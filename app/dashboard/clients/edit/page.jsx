@@ -454,13 +454,13 @@ export default function EditClientPage() {
 
             { id: 'consultations', icon: Video, label: 'Consultations', badge: 3, href: '/dashboard/consultations' },
 
-            { id: 'matches', icon: UserCheck, label: 'Pending Matches', badge: 8, href: '/dashboard' },
+            { id: 'matches', icon: UserCheck, label: 'Pending Matches', badge: 8, href: '/dashboard/pending-matches' },
 
             { id: 'tcs', icon: Users, label: 'Training Counsellors', href: '/dashboard/training-counsellors' },
 
             { id: 'clients', icon: ClipboardList, label: 'All Clients', href: '/dashboard/clients' },
 
-            { id: 'activity', icon: Activity, label: 'Activity Log', href: '/dashboard' }
+            { id: 'activity', icon: Activity, label: 'Activity Log', href: '/dashboard/activity-log' }
 
           ].map(item => {
 
