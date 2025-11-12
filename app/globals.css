@@ -24,3 +24,24 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Ensure all form elements have black text */
+input,
+select,
+option,
+textarea {
+  color: #000000 !important;
+}
+
+/* Ensure select dropdowns show black text when opened */
+select option {
+  color: #000000 !important;
+  background-color: #ffffff !important;
+}
+
+/* Ensure input placeholders are visible but don't override text color */
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280;
+  opacity: 1;
+}
