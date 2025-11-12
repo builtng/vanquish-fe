@@ -1,12 +1,41 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { Users, Calendar, Clock, CheckCircle, AlertCircle, Search, BarChart3, Settings, ChevronDown, ChevronUp, X, Check, AlertTriangle, Menu, Home, UserCheck, FileText, DollarSign, Bell, LogOut, Plus } from 'lucide-react';
 
 export default function VanquishAdminDashboard() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState('pending-matches');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [expandedConsultant, setExpandedConsultant] = useState(null);
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (user) {
+        router.push('/dashboard');
+      } else {
+        router.push('/login');
+      }
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white font-bold text-2xl mb-4 animate-pulse" style={{ backgroundColor: "#6f1d56" }}>
+            VT
+          </div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 
   // Mock data
   const pendingBookings = [

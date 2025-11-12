@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Users,
   Calendar,
@@ -34,6 +35,7 @@ import {
 
 export default function ClientDashboard() {
   const pathname = usePathname();
+  const { user, logout, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
   const [newClientForm, setNewClientForm] = useState({
@@ -56,6 +58,28 @@ export default function ClientDashboard() {
     substanceMisuse: "",
     availability: [],
   });
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white font-bold text-2xl mb-4 animate-pulse"
+            style={{ backgroundColor: "#6f1d56" }}
+          >
+            VT
+          </div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, the AuthContext will redirect to login
+  if (!user) {
+    return null;
+  }
 
   // Mock Data
   const stats = {
@@ -230,6 +254,28 @@ export default function ClientDashboard() {
     </div>
   );
 
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white font-bold text-2xl mb-4 animate-pulse"
+            style={{ backgroundColor: "#6f1d56" }}
+          >
+            VT
+          </div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, the AuthContext will redirect to login
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -285,7 +331,7 @@ export default function ClientDashboard() {
               icon: UserCheck,
               label: "Pending Matches",
               badge: 8,
-              href: "/dashboard",
+              href: "/dashboard/pending-matches",
             },
             {
               id: "tcs",
@@ -303,7 +349,7 @@ export default function ClientDashboard() {
               id: "activity",
               icon: Activity,
               label: "Activity Log",
-              href: "/dashboard",
+              href: "/dashboard/activity-log",
             },
           ].map((item) => {
             const isActive = pathname === item.href;
@@ -343,7 +389,10 @@ export default function ClientDashboard() {
               <span className="text-sm font-medium">Settings</span>
             )}
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg">
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
           </button>
