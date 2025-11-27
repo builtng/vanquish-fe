@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   User,
@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import apiService from "@/lib/api";
 
-export default function QualifiedCounsellorForm() {
+function QualifiedCounsellorFormContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tcId = searchParams.get("tc_id") || searchParams.get("id");
@@ -801,6 +801,21 @@ export default function QualifiedCounsellorForm() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function QualifiedCounsellorForm() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <QualifiedCounsellorFormContent />
+    </Suspense>
   );
 }
 
