@@ -307,7 +307,7 @@ class ClientSeeder extends Seeder
                 'submitted_date' => Carbon::parse('2025-03-15'),
                 'matched_tc_id' => 3, // Priya Patel
                 'matched_date' => Carbon::parse('2025-03-17'),
-                'agreement_status' => 'pending',
+                'agreement_status' => 'sent',
                 'agreement_sent_at' => Carbon::parse('2025-03-17'),
             ],
             // Consultation Completed
