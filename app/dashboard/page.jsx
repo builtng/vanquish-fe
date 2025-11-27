@@ -1,8 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import apiService from "@/lib/api";
+import SearchableSelect from "@/components/SearchableSelect";
+import DashboardLayout from "@/components/DashboardLayout";
+import * as XLSX from "xlsx";
 import {
   Users,
   Calendar,
@@ -18,6 +22,7 @@ import {
   Mail,
   Phone,
   ChevronRight,
+  ChevronDown,
   Bell,
   UserCheck,
   Activity,
@@ -25,19 +30,93 @@ import {
   Menu,
   Home,
   ClipboardList,
-  Settings,
-  LogOut,
   X,
   User,
   MapPin,
   Save,
+  Building2,
+  RefreshCw,
+  CalendarDays,
 } from "lucide-react";
 
 export default function ClientDashboard() {
   const pathname = usePathname();
-  const { user, logout, isLoading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { user, isLoading } = useAuth();
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
+  const [stats, setStats] = useState({
+    totalClients: 0,
+    totalChange: "+0 this month",
+    activeTherapy: 0,
+    activeChange: "↑ 0 new",
+    pendingMatch: 0,
+    pendingNote: "Needs review",
+    consultations: 0,
+    consultationsNote: "0 today",
+  });
+  const [pipelineStages, setPipelineStages] = useState([
+    { stage: "Application", count: 0, color: "#3b82f6", icon: FileText },
+    { stage: "Consultation", count: 0, color: "#8b5cf6", icon: Video },
+    { stage: "Matched", count: 0, color: "#10b981", icon: UserCheck },
+    { stage: "Agreement", count: 0, color: "#f59e0b", icon: CheckCircle },
+    { stage: "Active", count: 0, color: "#6f1d56", icon: CheckCircle },
+  ]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [urgentItems, setUrgentItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [needsAttentionExpanded, setNeedsAttentionExpanded] = useState(true);
+  const [recentActivityExpanded, setRecentActivityExpanded] = useState(true);
+
+  // Update UK time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Get UK time greeting
+  const getUKGreeting = () => {
+    const ukTime = new Date(currentTime.toLocaleString("en-GB", { timeZone: "Europe/London" }));
+    const hour = ukTime.getHours();
+    const userName = user?.name || "there";
+    
+    let greeting;
+    if (hour >= 5 && hour < 12) {
+      greeting = `Good morning`;
+    } else if (hour >= 12 && hour < 17) {
+      greeting = `Good afternoon`;
+    } else if (hour >= 17 && hour < 21) {
+      greeting = `Good evening`;
+    } else {
+      greeting = `Good night`;
+    }
+    
+    return `${greeting}, ${userName.split(' ')[0]}!`;
+  };
+
+  // Format UK time
+  const getUKTime = () => {
+    return currentTime.toLocaleString("en-GB", {
+      timeZone: "Europe/London",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  };
+
+  // Format UK date
+  const getUKDate = () => {
+    return currentTime.toLocaleDateString("en-GB", {
+      timeZone: "Europe/London",
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
   const [newClientForm, setNewClientForm] = useState({
     name: "",
     age: "",
@@ -59,136 +138,370 @@ export default function ClientDashboard() {
     availability: [],
   });
 
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white font-bold text-2xl mb-4 animate-pulse"
-            style={{ backgroundColor: "#6f1d56" }}
-          >
-            VT
-          </div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  // Fetch dashboard data from API
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        
+        // Fetch all clients
+        const clientsData = await apiService.getClients();
+        const allClients = Array.isArray(clientsData) ? clientsData : clientsData.data || [];
+        
+        // Fetch pending matches
+        const pendingMatchesData = await apiService.getPendingMatches();
+        const pendingMatches = Array.isArray(pendingMatchesData) ? pendingMatchesData : [];
+        
+        // Fetch consultations
+        const consultationsData = await apiService.getConsultations();
+        const consultations = Array.isArray(consultationsData) ? consultationsData : [];
+        
+        // Fetch activity logs
+        const activityData = await apiService.getActivityLogs({ per_page: 10 });
+        const activities = Array.isArray(activityData) ? activityData : activityData.data || [];
+        
+        // Calculate stats
+        const totalClients = allClients.length;
+        const activeTherapy = allClients.filter(c => c.stage === 'Active Therapy').length;
+        const pendingMatch = pendingMatches.length;
+        
+        const today = new Date().toISOString().split('T')[0];
+        const todayConsultations = consultations.filter(c => {
+          const consultationDate = c.scheduled_at ? c.scheduled_at.split('T')[0] : null;
+          return consultationDate === today && c.status === 'scheduled';
+        }).length;
+        
+        const thisWeekConsultations = consultations.filter(c => c.status === 'scheduled').length;
+        
+        // Calculate pipeline stages
+        const applicationCount = allClients.filter(c => c.stage === 'Application').length;
+        const consultationCount = allClients.filter(c => c.stage === 'Consultation Booked' || c.stage === 'Consultation Completed').length;
+        const matchedCount = allClients.filter(c => c.stage === 'Matched').length;
+        const agreementCount = allClients.filter(c => c.stage === 'Agreement Pending').length;
+        const activeCount = allClients.filter(c => c.stage === 'Active Therapy').length;
+        
+        setPipelineStages([
+          { stage: "Application", count: applicationCount, color: "#3b82f6", icon: FileText },
+          { stage: "Consultation", count: consultationCount, color: "#8b5cf6", icon: Video },
+          { stage: "Matched", count: matchedCount, color: "#10b981", icon: UserCheck },
+          { stage: "Agreement", count: agreementCount, color: "#f59e0b", icon: CheckCircle },
+          { stage: "Active", count: activeCount, color: "#6f1d56", icon: CheckCircle },
+        ]);
+        
+        // Transform activity logs to recent activity
+        const transformedActivities = activities.slice(0, 10).map((log, index) => {
+          let color = "gray";
+          if (log.action.includes('completed') || log.action.includes('matched') || log.action.includes('signed')) {
+            color = "green";
+          } else if (log.action.includes('consultation') || log.action.includes('booked')) {
+            color = "blue";
+          } else if (log.action.includes('application') || log.action.includes('created')) {
+            color = "purple";
+          } else if (log.action.includes('pending') || log.action.includes('stuck')) {
+            color = "yellow";
+          }
+          
+          const timeAgo = log.created_at ? (() => {
+            const now = new Date();
+            const created = new Date(log.created_at);
+            const diffMs = now - created;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 60) return `${diffMins} min ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+          })() : 'Recently';
+          
+          return {
+            id: log.id || index,
+            client: log.description?.split(' ')[0] || 'System',
+            action: log.description?.substring(log.description.indexOf(' ') + 1) || log.action,
+            time: timeAgo,
+            color: color
+          };
+        });
+        
+        setRecentActivity(transformedActivities);
+        
+        // Build urgent items
+        const urgentItemsList = [];
+        
+        if (todayConsultations > 0) {
+          urgentItemsList.push({
+            id: 1,
+            type: "consultation",
+            icon: Video,
+            message: `${todayConsultations} consultation${todayConsultations > 1 ? 's' : ''} today`,
+            details: "Requires attention",
+            priority: "high",
+            action: "View Schedule",
+          });
+        }
+        
+        const stuckClients = allClients.filter(c => c.stage === 'Agreement Pending' && c.status === 'stuck');
+        if (stuckClients.length > 0) {
+          urgentItemsList.push({
+            id: 2,
+            type: "stuck",
+            icon: Clock,
+            message: `${stuckClients.length} client${stuckClients.length > 1 ? 's' : ''} stuck in Agreement Pending`,
+            details: "No response for over 7 days",
+            priority: "medium",
+            action: "Review Clients",
+          });
+        }
+        
+        const riskClients = allClients.filter(c => c.risk_flags && c.risk_flags !== 'None reported');
+        if (riskClients.length > 0) {
+          urgentItemsList.push({
+            id: 3,
+            type: "risk",
+            icon: AlertTriangle,
+            message: `${riskClients.length} client${riskClients.length > 1 ? 's' : ''} with risk flag${riskClients.length > 1 ? 's' : ''} need${riskClients.length === 1 ? 's' : ''} follow-up`,
+            details: "High priority - requires immediate attention",
+            priority: "high",
+            action: "View Client",
+          });
+        }
+        
+        setUrgentItems(urgentItemsList);
+        
+        // Update stats
+        setStats({
+          totalClients: totalClients,
+          totalChange: "+0 this month", // TODO: Calculate from date comparison
+          activeTherapy: activeTherapy,
+          activeChange: `↑ ${activeTherapy} active`,
+          pendingMatch: pendingMatch,
+          pendingNote: pendingMatch > 0 ? "Needs review" : "All caught up",
+          consultations: thisWeekConsultations,
+          consultationsNote: `${todayConsultations} today`,
+        });
+        
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!isLoading && user) {
+      fetchDashboardData();
+    }
+  }, [user, isLoading]);
 
   // If not authenticated, the AuthContext will redirect to login
   if (!user) {
     return null;
   }
 
-  // Mock Data
-  const stats = {
-    totalClients: 156,
-    totalChange: "+12 this month",
-    activeTherapy: 42,
-    activeChange: "↑ 3 new",
-    pendingMatch: 8,
-    pendingNote: "Needs review",
-    consultations: 12,
-    consultationsNote: "3 today",
+  const handleExportReport = async () => {
+    try {
+      // Fetch all necessary data for export
+      const clientsData = await apiService.getClients();
+      const allClients = Array.isArray(clientsData) ? clientsData : clientsData.data || [];
+      
+      const pendingMatchesData = await apiService.getPendingMatches();
+      const pendingMatches = Array.isArray(pendingMatchesData) ? pendingMatchesData : [];
+      
+      const consultationsData = await apiService.getConsultations();
+      const consultations = Array.isArray(consultationsData) ? consultationsData : [];
+      
+      // Calculate stats from fetched data
+      const totalClients = allClients.length;
+      const activeTherapy = allClients.filter(c => c.stage === 'Active Therapy').length;
+      const pendingMatch = pendingMatches.length;
+      
+      const today = new Date().toISOString().split('T')[0];
+      const todayConsultations = consultations.filter(c => {
+        const consultationDate = c.scheduled_at ? c.scheduled_at.split('T')[0] : null;
+        return consultationDate === today && c.status === 'scheduled';
+      }).length;
+      
+      const thisWeekConsultations = consultations.filter(c => c.status === 'scheduled').length;
+      
+      // Calculate pipeline stages
+      const applicationCount = allClients.filter(c => c.stage === 'Application').length;
+      const consultationCount = allClients.filter(c => c.stage === 'Consultation Booked' || c.stage === 'Consultation Completed').length;
+      const matchedCount = allClients.filter(c => c.stage === 'Matched').length;
+      const agreementCount = allClients.filter(c => c.stage === 'Agreement Pending').length;
+      const activeCount = allClients.filter(c => c.stage === 'Active Therapy').length;
+      
+      const exportPipelineStages = [
+        { stage: "Application", count: applicationCount },
+        { stage: "Consultation", count: consultationCount },
+        { stage: "Matched", count: matchedCount },
+        { stage: "Agreement", count: agreementCount },
+        { stage: "Active", count: activeCount },
+      ];
+      
+      // Create a new workbook
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: Dashboard Summary
+      const summaryData = [
+        ['Dashboard Report'],
+        ['Generated', new Date().toLocaleString('en-GB')],
+        [],
+        ['Summary Statistics'],
+        ['Total Clients', totalClients],
+        ['Active in Therapy', activeTherapy],
+        ['Pending Matches', pendingMatch],
+        ['Consultations This Week', thisWeekConsultations],
+        ['Consultations Today', todayConsultations],
+        [],
+        ['Pipeline Stages'],
+        ['Stage', 'Count'],
+        ...exportPipelineStages.map(stage => [stage.stage, stage.count]),
+      ];
+
+      const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+
+      // Sheet 2: All Clients
+      if (allClients.length > 0) {
+        const clientsHeaders = [
+          'Client ID', 'Name', 'Email', 'Phone', 'Age', 'Gender', 
+          'Stage', 'Status', 'Service Type', 'Created At'
+        ];
+        const clientsRows = allClients.map(client => [
+          client.client_id || '',
+          client.name || '',
+          client.email || '',
+          client.phone || '',
+          client.age || '',
+          client.gender || '',
+          client.stage || '',
+          client.status || '',
+          client.service_type || '',
+          client.created_at ? new Date(client.created_at).toLocaleDateString('en-GB') : ''
+        ]);
+        const clientsData = [clientsHeaders, ...clientsRows];
+        const ws2 = XLSX.utils.aoa_to_sheet(clientsData);
+        XLSX.utils.book_append_sheet(wb, ws2, 'All Clients');
+      }
+
+      // Sheet 3: Pending Matches
+      if (pendingMatches.length > 0) {
+        const matchesHeaders = [
+          'Client ID', 'Client Name', 'TC ID', 'TC Name', 'Status', 'Created At'
+        ];
+        const matchesRows = pendingMatches.map(match => [
+          match.client_id || '',
+          match.client?.name || '',
+          match.tc_id || '',
+          match.training_counsellor?.name || '',
+          match.status || '',
+          match.created_at ? new Date(match.created_at).toLocaleDateString('en-GB') : ''
+        ]);
+        const matchesData = [matchesHeaders, ...matchesRows];
+        const ws3 = XLSX.utils.aoa_to_sheet(matchesData);
+        XLSX.utils.book_append_sheet(wb, ws3, 'Pending Matches');
+      }
+
+      // Sheet 4: Consultations
+      if (consultations.length > 0) {
+        const consultationsHeaders = [
+          'ID', 'Client ID', 'Client Name', 'Scheduled At', 'Status', 'Type', 'Created At'
+        ];
+        const consultationsRows = consultations.map(consultation => [
+          consultation.id || '',
+          consultation.client_id || '',
+          consultation.client?.name || '',
+          consultation.scheduled_at ? new Date(consultation.scheduled_at).toLocaleString('en-GB') : '',
+          consultation.status || '',
+          consultation.type || '',
+          consultation.created_at ? new Date(consultation.created_at).toLocaleDateString('en-GB') : ''
+        ]);
+        const consultationsData = [consultationsHeaders, ...consultationsRows];
+        const ws4 = XLSX.utils.aoa_to_sheet(consultationsData);
+        XLSX.utils.book_append_sheet(wb, ws4, 'Consultations');
+      }
+
+      // Sheet 5: Recent Activity
+      try {
+        const activityData = await apiService.getActivityLogs({ per_page: 50 });
+        const activities = Array.isArray(activityData) ? activityData : activityData.data || [];
+        
+        if (activities.length > 0) {
+          const activityHeaders = ['Description', 'Action', 'Created At'];
+          const activityRows = activities.slice(0, 50).map(log => [
+            log.description || log.action || '',
+            log.action || '',
+            log.created_at ? new Date(log.created_at).toLocaleString('en-GB') : ''
+          ]);
+          const activitySheetData = [activityHeaders, ...activityRows];
+          const ws5 = XLSX.utils.aoa_to_sheet(activitySheetData);
+          XLSX.utils.book_append_sheet(wb, ws5, 'Recent Activity');
+        }
+      } catch (err) {
+        console.error('Error fetching activity logs for export:', err);
+      }
+
+      // Sheet 6: Urgent Items
+      const urgentItemsList = [];
+      
+      if (todayConsultations > 0) {
+        urgentItemsList.push({
+          type: "consultation",
+          message: `${todayConsultations} consultation${todayConsultations > 1 ? 's' : ''} today`,
+          details: "Requires attention",
+          priority: "high",
+          action: "View Schedule",
+        });
+      }
+      
+      const stuckClients = allClients.filter(c => c.stage === 'Agreement Pending' && c.status === 'stuck');
+      if (stuckClients.length > 0) {
+        urgentItemsList.push({
+          type: "stuck",
+          message: `${stuckClients.length} client${stuckClients.length > 1 ? 's' : ''} stuck in Agreement Pending`,
+          details: "No response for over 7 days",
+          priority: "medium",
+          action: "Review Clients",
+        });
+      }
+      
+      const riskClients = allClients.filter(c => c.risk_flags && c.risk_flags !== 'None reported');
+      if (riskClients.length > 0) {
+        urgentItemsList.push({
+          type: "risk",
+          message: `${riskClients.length} client${riskClients.length > 1 ? 's' : ''} with risk flag${riskClients.length > 1 ? 's' : ''} need${riskClients.length === 1 ? 's' : ''} follow-up`,
+          details: "High priority - requires immediate attention",
+          priority: "high",
+          action: "View Client",
+        });
+      }
+      
+      if (urgentItemsList.length > 0) {
+        const urgentHeaders = ['Type', 'Message', 'Details', 'Priority', 'Action'];
+        const urgentRows = urgentItemsList.map(item => [
+          item.type || '',
+          item.message || '',
+          item.details || '',
+          item.priority || '',
+          item.action || ''
+        ]);
+        const urgentData = [urgentHeaders, ...urgentRows];
+        const ws6 = XLSX.utils.aoa_to_sheet(urgentData);
+        XLSX.utils.book_append_sheet(wb, ws6, 'Needs Attention');
+      }
+
+      // Generate Excel file and download
+      const fileName = `dashboard-report-${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      // Show success message (you might want to use a toast notification here)
+      console.log('Dashboard report exported successfully');
+    } catch (err) {
+      console.error('Error exporting dashboard report:', err);
+      alert('Failed to export dashboard report. Please try again.');
+    }
   };
-
-  const urgentItems = [
-    {
-      id: 1,
-      type: "consultation",
-      icon: Video,
-      message: "2 consultations today",
-      details: "Victoria James (10:00 AM), Robert Davies (2:00 PM)",
-      priority: "high",
-      action: "View Schedule",
-    },
-    {
-      id: 2,
-      type: "stuck",
-      icon: Clock,
-      message: "5 clients stuck in Agreement Pending",
-      details: "No response for over 7 days",
-      priority: "medium",
-      action: "Review Clients",
-    },
-    {
-      id: 3,
-      type: "risk",
-      icon: AlertTriangle,
-      message: "1 client with risk flag needs follow-up",
-      details: "High priority - requires immediate attention",
-      priority: "high",
-      action: "View Client",
-    },
-  ];
-
-  const pipelineStages = [
-    { stage: "Application", count: 15, color: "#3b82f6", icon: FileText },
-    { stage: "Consultation", count: 12, color: "#8b5cf6", icon: Video },
-    { stage: "Matched", count: 8, color: "#10b981", icon: UserCheck },
-    { stage: "Agreement", count: 6, color: "#f59e0b", icon: CheckCircle },
-    { stage: "Active", count: 42, color: "#6f1d56", icon: CheckCircle },
-  ];
-
-  const recentActivity = [
-    {
-      id: 1,
-      client: "Emma Wilson",
-      action: 'moved to "Active Therapy"',
-      time: "5 min ago",
-      color: "green",
-    },
-    {
-      id: 2,
-      client: "John Smith",
-      action: "consultation completed",
-      time: "1 hour ago",
-      color: "blue",
-    },
-    {
-      id: 3,
-      client: "Sarah Jones",
-      action: "submitted new application",
-      time: "2 hours ago",
-      color: "purple",
-    },
-    {
-      id: 4,
-      client: "Michael Brown",
-      action: "signed agreement",
-      time: "3 hours ago",
-      color: "green",
-    },
-    {
-      id: 5,
-      client: "Charlotte Evans",
-      action: "matched with Sarah Johnson",
-      time: "4 hours ago",
-      color: "green",
-    },
-    {
-      id: 6,
-      client: "David Martinez",
-      action: "consultation booked for tomorrow",
-      time: "5 hours ago",
-      color: "blue",
-    },
-    {
-      id: 7,
-      client: "Lisa Anderson",
-      action: 'moved to "Agreement Pending"',
-      time: "6 hours ago",
-      color: "yellow",
-    },
-    {
-      id: 8,
-      client: "Thomas Wright",
-      action: "submitted new application",
-      time: "8 hours ago",
-      color: "purple",
-    },
-  ];
 
   const StatCard = ({ icon: Icon, label, value, sublabel, color, change }) => (
     <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-lg transition-all cursor-pointer group">
@@ -216,43 +529,83 @@ export default function ClientDashboard() {
     </div>
   );
 
-  const UrgentItem = ({ item }) => (
-    <div
-      className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all hover:shadow-md cursor-pointer ${
-        item.priority === "high"
-          ? "bg-red-50 border-red-200 hover:border-red-300"
-          : "bg-orange-50 border-orange-200 hover:border-orange-300"
-      }`}
-    >
-      <div
-        className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-          item.priority === "high" ? "bg-red-100" : "bg-orange-100"
+  const UrgentItem = ({ item }) => {
+    // Determine the link based on action type
+    const getLink = () => {
+      if (
+        item.action === "View Schedule" ||
+        item.action.includes("consultation")
+      ) {
+        return "/dashboard/consultations";
+      } else if (
+        item.action === "Review Clients" ||
+        item.action.includes("Agreement")
+      ) {
+        return "/dashboard/pending-matches";
+      } else if (
+        item.action === "View Client" ||
+        item.action.includes("client")
+      ) {
+        return "/dashboard/clients";
+      }
+      return null;
+    };
+
+    const link = getLink();
+    const Component = link ? Link : "div";
+
+    return (
+      <Component
+        href={link || undefined}
+        className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all hover:shadow-md cursor-pointer ${
+          item.priority === "high"
+            ? "bg-red-50 border-red-200 hover:border-red-300"
+            : "bg-orange-50 border-orange-200 hover:border-orange-300"
         }`}
       >
-        <item.icon
-          className={`w-5 h-5 ${
-            item.priority === "high" ? "text-red-600" : "text-orange-600"
-          }`}
-        />
-      </div>
-      <div className="flex-1">
-        <h4 className="font-semibold text-gray-900 text-sm mb-1">
-          {item.message}
-        </h4>
-        <p className="text-xs text-gray-600 mb-2">{item.details}</p>
-        <button
-          className={`text-xs font-medium flex items-center gap-1 ${
-            item.priority === "high"
-              ? "text-red-600 hover:text-red-700"
-              : "text-orange-600 hover:text-orange-700"
+        <div
+          className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+            item.priority === "high" ? "bg-red-100" : "bg-orange-100"
           }`}
         >
-          {item.action}
-          <ArrowRight className="w-3 h-3" />
-        </button>
-      </div>
-    </div>
-  );
+          <item.icon
+            className={`w-5 h-5 ${
+              item.priority === "high" ? "text-red-600" : "text-orange-600"
+            }`}
+          />
+        </div>
+        <div className="flex-1">
+          <h4 className="font-semibold text-gray-900 text-sm mb-1">
+            {item.message}
+          </h4>
+          <p className="text-xs text-gray-600 mb-2">{item.details}</p>
+          {link ? (
+            <span
+              className={`text-xs font-medium flex items-center gap-1 ${
+                item.priority === "high"
+                  ? "text-red-600 hover:text-red-700"
+                  : "text-orange-600 hover:text-orange-700"
+              }`}
+            >
+              {item.action}
+              <ArrowRight className="w-3 h-3" />
+            </span>
+          ) : (
+            <button
+              className={`text-xs font-medium flex items-center gap-1 ${
+                item.priority === "high"
+                  ? "text-red-600 hover:text-red-700"
+                  : "text-orange-600 hover:text-orange-700"
+              }`}
+            >
+              {item.action}
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      </Component>
+    );
+  };
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -277,144 +630,33 @@ export default function ClientDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div
-        className={`${
-          sidebarOpen ? "w-64" : "w-20"
-        } bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen`}
-      >
-        {/* Logo & Toggle */}
-        <div className="p-4 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            {sidebarOpen && (
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-                  style={{ backgroundColor: "#6f1d56" }}
-                >
-                  VT
-                </div>
-                <div>
-                  <h1 className="text-sm font-bold text-gray-900">Vanquish</h1>
-                  <p className="text-xs text-gray-600">Admin</p>
-                </div>
-              </div>
-            )}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <Menu className="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {[
-            {
-              id: "overview",
-              icon: Home,
-              label: "Overview",
-              href: "/dashboard",
-            },
-            {
-              id: "consultations",
-              icon: Video,
-              label: "Consultations",
-              badge: 3,
-              href: "/dashboard/consultations",
-            },
-            {
-              id: "matches",
-              icon: UserCheck,
-              label: "Pending Matches",
-              badge: 8,
-              href: "/dashboard/pending-matches",
-            },
-            {
-              id: "tcs",
-              icon: Users,
-              label: "Training Counsellors",
-              href: "/dashboard/training-counsellors",
-            },
-            {
-              id: "clients",
-              icon: ClipboardList,
-              label: "All Clients",
-              href: "/dashboard/clients",
-            },
-            {
-              id: "activity",
-              icon: Activity,
-              label: "Activity Log",
-              href: "/dashboard/activity-log",
-            },
-          ].map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-purple-100 text-purple-900"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                {sidebarOpen && (
-                  <>
-                    <span className="flex-1 text-left text-sm font-medium">
-                      {item.label}
-                    </span>
-                    {item.badge > 0 && (
-                      <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Settings & Logout */}
-        <div className="p-4 border-t border-gray-200 space-y-2 flex-shrink-0">
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-            <Settings className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && (
-              <span className="text-sm font-medium">Settings</span>
-            )}
-          </button>
-          <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+    <DashboardLayout>
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Client Dashboard
-                </h1>
-                <p className="text-sm text-gray-600 mt-1">
-                  Overview of all clients and their journey through the system
+              <div className="flex-1">
+                <div className="flex items-center gap-4 mb-2">
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {getUKGreeting()}
+                  </h1>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-lg">
+                    <Clock className="w-4 h-4 text-purple-600" />
+                    <span className="text-sm font-mono font-semibold text-purple-900">
+                      {getUKTime()}
+                    </span>
+                    <span className="text-xs text-purple-600 ml-1">UK</span>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">
+                  {getUKDate()} • Overview of all clients and their journey through the system
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2">
+                <button 
+                  onClick={handleExportReport}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2"
+                >
                   <BarChart3 className="w-4 h-4" />
                   Export Report
                 </button>
@@ -434,15 +676,37 @@ export default function ClientDashboard() {
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="px-6 py-6">
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
+                  <p className="text-gray-600">Loading dashboard...</p>
+                </div>
+              </div>
+            )}
+            
+            {!loading && (
             <div className="space-y-6">
-              {/* Stats Cards - Single Row */}
-              <div className="grid grid-cols-4 gap-4">
+              {/* Stats Cards - Top Section */}
+              <div className="grid grid-cols-3 gap-4">
                 <StatCard
                   icon={Users}
                   label="Total Clients"
                   value={stats.totalClients}
                   change={stats.totalChange}
                   color="#6f1d56"
+                />
+                <StatCard
+                  icon={FileText}
+                  label="Application"
+                  value={pipelineStages.find(s => s.stage === "Application")?.count || 0}
+                  color="#3b82f6"
+                />
+                <StatCard
+                  icon={CheckCircle}
+                  label="Agreement"
+                  value={pipelineStages.find(s => s.stage === "Agreement")?.count || 0}
+                  color="#f59e0b"
                 />
                 <StatCard
                   icon={CheckCircle}
@@ -470,91 +734,78 @@ export default function ClientDashboard() {
 
               {/* Needs Attention Section - More Compact */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                    <Bell className="w-5 h-5 text-red-600" />
+                <div 
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setNeedsAttentionExpanded(!needsAttentionExpanded)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                      <Bell className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900">
+                        Needs Attention
+                      </h2>
+                      <p className="text-sm text-gray-600">
+                        {urgentItems.length} items require your attention
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-gray-900">
-                      Needs Attention
-                    </h2>
-                    <p className="text-sm text-gray-600">
-                      {urgentItems.length} items require your attention
-                    </p>
+                  <button
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNeedsAttentionExpanded(!needsAttentionExpanded);
+                    }}
+                  >
+                    {needsAttentionExpanded ? (
+                      <ChevronDown className="w-5 h-5 text-gray-600" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-gray-600" />
+                    )}
+                  </button>
+                </div>
+                {needsAttentionExpanded && (
+                  <div className="space-y-3 mt-4">
+                    {urgentItems.map((item) => (
+                      <UrgentItem key={item.id} item={item} />
+                    ))}
                   </div>
-                </div>
-                <div className="space-y-3">
-                  {urgentItems.map((item) => (
-                    <UrgentItem key={item.id} item={item} />
-                  ))}
-                </div>
+                )}
               </div>
 
-              {/* Pipeline and Activity - More Compact */}
-              <div className="grid lg:grid-cols-3 gap-6">
-                {/* Pipeline Visualization */}
-                <div className="lg:col-span-2">
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h2 className="text-lg font-bold text-gray-900">
-                          Client Pipeline
-                        </h2>
-                        <p className="text-sm text-gray-600">
-                          Journey from application to active therapy
-                        </p>
-                      </div>
-                      <button
-                        className="text-sm font-medium hover:opacity-80 flex items-center gap-1"
-                        style={{ color: "#6f1d56" }}
-                      >
-                        View All Stages
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-3 overflow-x-auto pb-2">
-                      {pipelineStages.map((stage, index) => (
-                        <React.Fragment key={stage.stage}>
-                          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 min-w-[120px] hover:shadow-lg transition-all cursor-pointer">
-                            <div className="flex items-center justify-between mb-2">
-                              <stage.icon
-                                className="w-6 h-6"
-                                style={{ color: stage.color }}
-                              />
-                              <span
-                                className="text-2xl font-bold"
-                                style={{ color: stage.color }}
-                              >
-                                {stage.count}
-                              </span>
-                            </div>
-                            <p className="text-xs font-medium text-gray-700">
-                              {stage.stage}
-                            </p>
-                          </div>
-                          {index < pipelineStages.length - 1 && (
-                            <ArrowRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
-                          )}
-                        </React.Fragment>
-                      ))}
+              {/* Recent Activity */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div 
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setRecentActivityExpanded(!recentActivityExpanded)}
+                >
+                  <div className="flex items-center gap-3">
+                    <Activity className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900">
+                        Recent Activity
+                      </h2>
+                      <p className="text-sm text-gray-600">Latest updates</p>
                     </div>
                   </div>
+                  <button
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRecentActivityExpanded(!recentActivityExpanded);
+                    }}
+                  >
+                    {recentActivityExpanded ? (
+                      <ChevronDown className="w-5 h-5 text-gray-600" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-gray-600" />
+                    )}
+                  </button>
                 </div>
-
-                {/* Recent Activity */}
-                <div className="lg:col-span-1">
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h2 className="text-lg font-bold text-gray-900">
-                          Recent Activity
-                        </h2>
-                        <p className="text-sm text-gray-600">Latest updates</p>
-                      </div>
-                      <Activity className="w-5 h-5 text-gray-400" />
-                    </div>
-                    <div className="space-y-1 max-h-72 overflow-y-auto">
+                {recentActivityExpanded && (
+                  <div className="mt-4">
+                    <div className="space-y-1">
                       {recentActivity.map((activity) => (
                         <div
                           key={activity.id}
@@ -586,8 +837,19 @@ export default function ClientDashboard() {
                         </div>
                       ))}
                     </div>
+                    {recentActivity.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <Link
+                          href="/dashboard/activity-log"
+                          className="text-sm font-medium text-purple-600 hover:text-purple-700 flex items-center gap-2"
+                        >
+                          View All Activity
+                          <ChevronRight className="w-4 h-4" />
+                        </Link>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Quick Actions - More Compact */}
@@ -631,7 +893,10 @@ export default function ClientDashboard() {
                     </p>
                   </Link>
 
-                  <button className="bg-white p-5 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:shadow-lg transition-all group">
+                  <Link
+                    href="/dashboard/pending-matches"
+                    className="bg-white p-5 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:shadow-lg transition-all group"
+                  >
                     <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                       <UserCheck className="w-6 h-6 text-green-600" />
                     </div>
@@ -641,11 +906,11 @@ export default function ClientDashboard() {
                     <p className="text-sm text-gray-600">
                       Approve pending TC matches
                     </p>
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
-          </div>
+            )}
         </div>
       </div>
 
@@ -816,7 +1081,7 @@ export default function ClientDashboard() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Gender *
                     </label>
-                    <select
+                    <SearchableSelect
                       required
                       value={newClientForm.gender}
                       onChange={(e) =>
@@ -825,16 +1090,14 @@ export default function ClientDashboard() {
                           gender: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    >
-                      <option value="">Select gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Non-binary">Non-binary</option>
-                      <option value="Prefer not to say">
-                        Prefer not to say
-                      </option>
-                    </select>
+                      options={[
+                        { value: 'Male', label: 'Male' },
+                        { value: 'Female', label: 'Female' },
+                        { value: 'Non-binary', label: 'Non-binary' },
+                        { value: 'Prefer not to say', label: 'Prefer not to say' }
+                      ]}
+                      placeholder="Select gender"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -857,7 +1120,7 @@ export default function ClientDashboard() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Sexual Orientation
                     </label>
-                    <select
+                    <SearchableSelect
                       value={newClientForm.sexualOrientation}
                       onChange={(e) =>
                         setNewClientForm({
@@ -865,23 +1128,21 @@ export default function ClientDashboard() {
                           sexualOrientation: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    >
-                      <option value="">Select orientation</option>
-                      <option value="Heterosexual">Heterosexual</option>
-                      <option value="Homosexual">Homosexual</option>
-                      <option value="Bisexual">Bisexual</option>
-                      <option value="Asexual">Asexual</option>
-                      <option value="Prefer not to say">
-                        Prefer not to say
-                      </option>
-                    </select>
+                      options={[
+                        { value: 'Heterosexual', label: 'Heterosexual' },
+                        { value: 'Homosexual', label: 'Homosexual' },
+                        { value: 'Bisexual', label: 'Bisexual' },
+                        { value: 'Asexual', label: 'Asexual' },
+                        { value: 'Prefer not to say', label: 'Prefer not to say' }
+                      ]}
+                      placeholder="Select orientation"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Voicemail Permission
                     </label>
-                    <select
+                    <SearchableSelect
                       value={newClientForm.voicemailPermission}
                       onChange={(e) =>
                         setNewClientForm({
@@ -889,11 +1150,12 @@ export default function ClientDashboard() {
                           voicemailPermission: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    >
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
+                      options={[
+                        { value: 'Yes', label: 'Yes' },
+                        { value: 'No', label: 'No' }
+                      ]}
+                      placeholder="Yes"
+                    />
                   </div>
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1061,6 +1323,6 @@ export default function ClientDashboard() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }

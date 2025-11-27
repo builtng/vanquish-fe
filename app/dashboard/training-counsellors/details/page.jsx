@@ -1,8 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import apiService from '@/lib/api';
+import SearchableSelect from '@/components/SearchableSelect';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 import { 
 
@@ -22,7 +26,7 @@ import {
 
   Save, ChevronUp, Award, BookOpen, Briefcase,
 
-  GraduationCap, FileCheck, Shield
+  GraduationCap, FileCheck, Shield, Building2
 
 } from 'lucide-react';
 
@@ -30,19 +34,53 @@ import {
 
 export default function IndividualTCDetailPage() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // Check if user is admin or staff (internal team)
+  const isInternalTeam = user?.role === 'admin' || user?.role === 'staff';
 
   const [activeNotesTab, setActiveNotesTab] = useState('admin');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [tc, setTc] = useState(null);
+  const [pendingClients, setPendingClients] = useState([]);
+  const [assignForm, setAssignForm] = useState({
+    clientId: '',
+    notes: '',
+    sendNotification: true
+  });
 
   const [showAssignModal, setShowAssignModal] = useState(false);
-
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusForm, setStatusForm] = useState({
+    status: 'Active',
+    counsellorType: 'Trainee',
+    reason: ''
+  });
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [showSendEmailConfirmModal, setShowSendEmailConfirmModal] = useState(false);
+  const [showOpenFormConfirmModal, setShowOpenFormConfirmModal] = useState(false);
 
+  // Redirect to training counsellors list - this page should only be accessed via [uuid] route
+  useEffect(() => {
+    router.push('/dashboard/training-counsellors');
+  }, [router]);
 
+  // Show loading while redirecting
+  if (!tc) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Mock TC data
-
-  const tc = {
+  // Placeholder TC data (will redirect anyway)
+  const placeholderTc = {
 
     id: 'TC001',
 
@@ -53,7 +91,8 @@ export default function IndividualTCDetailPage() {
     phone: '+44 7700 900201',
 
     status: 'Active',
-
+    counsellor_type: 'Trainee',
+    qualified_form_completed: false,
     modality: 'CBT - Cognitive Behavioral Therapy',
 
     
@@ -93,6 +132,17 @@ export default function IndividualTCDetailPage() {
     expectedGraduation: '2025-06',
 
     supervisor: 'Dr. Michael Thompson',
+    
+    // Training Provider Information
+    trainingOrgName: 'Salford University',
+    trainingOrgAddress: '43 Crescent, Salford M5 4WT',
+    courseTitle: 'BSc in Therapy & Coaching',
+    tutorName: 'Rachel Zuzu',
+    tutorEmail: 'r.zuzu@salford.ac.uk',
+    tutorPhone: '+44 161 295 5000',
+    placementLeadName: 'Zara',
+    placementLeadEmail: 'zara@salford.ac.uk',
+    placementLeadPhone: '+44 161 295 5001',
 
     joinedDate: '2024-08-15',
 
@@ -404,7 +454,7 @@ export default function IndividualTCDetailPage() {
 
       {/* Sidebar */}
 
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen`}>
+      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen fixed left-0 top-0 z-30`}>
 
         <div className="p-4 border-b border-gray-200 flex-shrink-0">
 
@@ -454,8 +504,8 @@ export default function IndividualTCDetailPage() {
 
             { id: 'matches', icon: UserCheck, label: 'Pending Matches', badge: 8, href: '/dashboard/pending-matches' },
 
-            { id: 'tcs', icon: Users, label: 'Training Counsellors', href: '/dashboard/training-counsellors' },
-
+            { id: 'tcs', icon: Users, label: 'Practitioners', href: '/dashboard/training-counsellors' },
+            { id: 'providers', icon: Building2, label: 'Training Providers', href: '/dashboard/training-providers' },
             { id: 'clients', icon: ClipboardList, label: 'All Clients', href: '/dashboard/clients' },
 
             { id: 'activity', icon: Activity, label: 'Activity Log', href: '/dashboard/activity-log' }
@@ -510,13 +560,17 @@ export default function IndividualTCDetailPage() {
 
         <div className="p-4 border-t border-gray-200 space-y-2">
 
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-
+          <Link
+            href="/dashboard/settings"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              pathname === '/dashboard/settings'
+                ? 'bg-purple-100 text-purple-900'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
             <Settings className="w-5 h-5 flex-shrink-0" />
-
             {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
-
-          </button>
+          </Link>
 
           <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg">
 
@@ -534,7 +588,7 @@ export default function IndividualTCDetailPage() {
 
       {/* Main Content */}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className={`flex-1 flex flex-col overflow-hidden ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
 
         {/* Header */}
 
@@ -546,7 +600,7 @@ export default function IndividualTCDetailPage() {
 
             <div className="flex items-center gap-2 text-sm text-gray-600">
 
-              <Link href="/dashboard/training-counsellors" className="hover:text-purple-600">All Training Counsellors</Link>
+              <Link href="/dashboard/training-counsellors" className="hover:text-purple-600">All Practitioners</Link>
 
               <ChevronRight className="w-4 h-4" />
 
@@ -598,9 +652,61 @@ export default function IndividualTCDetailPage() {
 
                     </span>
 
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      tc.counsellor_type === 'Qualified' 
+                        ? 'bg-purple-100 text-purple-800' 
+                        : 'bg-blue-100 text-blue-800'
+                    }`}>
+
+                      {tc.counsellor_type || 'Trainee'}
+
+                    </span>
+
                     <span className="text-sm text-gray-600">{tc.modality}</span>
 
                   </div>
+                  
+                  {/* Qualified Form Completion Banner */}
+                  {tc.counsellor_type === 'Qualified' && !tc.qualified_form_completed && (
+                    <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-yellow-900 mb-1">
+                              Qualified Counsellor Form Required
+                            </p>
+                            <p className="text-sm text-yellow-800">
+                              Send an email to the trainer to complete the Qualified Counsellor form. The email will include their UUID and a link to the form.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (!tc.email) {
+                              alert('This training counsellor does not have an email address.');
+                              return;
+                            }
+                            setShowSendEmailConfirmModal(true);
+                          }}
+                          disabled={sendingEmail || !tc.email}
+                          className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {sendingEmail ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Mail className="w-4 h-4" />
+                              Send Email
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                 </div>
 
@@ -730,7 +836,7 @@ export default function IndividualTCDetailPage() {
 
                     <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
 
-                    <Link href="/dashboard/training-counsellors/details" className="text-purple-600 hover:text-purple-700 text-sm font-medium flex items-center gap-1">
+                    <Link href="/dashboard/training-counsellors" className="text-purple-600 hover:text-purple-700 text-sm font-medium flex items-center gap-1">
 
                       <Edit className="w-4 h-4" />
 
@@ -868,13 +974,65 @@ export default function IndividualTCDetailPage() {
 
                     </div>
 
-                    <div>
+                    <div className="grid grid-cols-2 gap-4">
 
-                      <p className="text-sm text-gray-600 mb-1">Supervisor</p>
+                      <div>
 
-                      <p className="text-sm font-medium text-gray-900">{tc.supervisor}</p>
+                        <p className="text-sm text-gray-600 mb-1">Supervisor</p>
+
+                        <p className="text-sm font-medium text-gray-900">{tc.supervisor}</p>
+
+                      </div>
+
+                      {tc.tutorName && (
+
+                      <div>
+
+                        <p className="text-sm text-gray-600 mb-1">Tutor / Programme Lead</p>
+
+                        <p className="text-sm font-medium text-gray-900">{tc.tutorName}</p>
+
+                        {tc.tutorEmail && (
+
+                          <p className="text-xs text-gray-500 mt-1">{tc.tutorEmail}</p>
+
+                        )}
+
+                        {tc.tutorPhone && (
+
+                          <p className="text-xs text-gray-500">{tc.tutorPhone}</p>
+
+                        )}
+
+                      </div>
+
+                      )}
 
                     </div>
+                    
+                    {tc.placementLeadName && (
+
+                    <div>
+
+                      <p className="text-sm text-gray-600 mb-1">Placement Lead</p>
+
+                      <p className="text-sm font-medium text-gray-900">{tc.placementLeadName}</p>
+
+                      {tc.placementLeadEmail && (
+
+                        <p className="text-xs text-gray-500 mt-1">{tc.placementLeadEmail}</p>
+
+                      )}
+
+                      {tc.placementLeadPhone && (
+
+                        <p className="text-xs text-gray-500">{tc.placementLeadPhone}</p>
+
+                      )}
+
+                    </div>
+
+                    )}
 
                   </div>
 
@@ -1058,7 +1216,7 @@ export default function IndividualTCDetailPage() {
 
                             <div>
 
-                              <Link href={`/dashboard/client-details?id=${client.id}`} className="font-semibold text-gray-900 hover:text-purple-600">
+                              <Link href={`/dashboard/client-details/${client.uuid || client.id}`} className="font-semibold text-gray-900 hover:text-purple-600">
 
                                 {client.name}, {client.age}
 
@@ -1192,8 +1350,9 @@ export default function IndividualTCDetailPage() {
 
 
 
-                {/* Admin Notes */}
+                {/* Admin Notes - Only visible to internal team */}
 
+                {isInternalTeam && (
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
 
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Admin Notes</h2>
@@ -1277,6 +1436,7 @@ export default function IndividualTCDetailPage() {
                   </div>
 
                 </div>
+                )}
 
               </div>
 
@@ -1480,84 +1640,111 @@ export default function IndividualTCDetailPage() {
 
                 <p className="text-sm text-gray-700">Update status for <strong>{tc.name}</strong></p>
 
-
-
+                {/* Counsellor Type */}
                 <div>
-
-                  <label className="block text-sm font-medium text-gray-700 mb-2">New Status</label>
-
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent">
-
-                    <option value="Active">Active</option>
-
-                    <option value="At Capacity">At Capacity</option>
-
-                    <option value="On Leave">On Leave</option>
-
-                    <option value="Away">Away</option>
-
-                    <option value="Inactive">Inactive</option>
-
-                  </select>
-
-                </div>
-
-
-
-                <div>
-
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Reason (Optional)</label>
-
-                  <textarea
-
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
-
-                    rows={3}
-
-                    placeholder="Add reason for status change..."
-
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Counsellor Type</label>
+                  <SearchableSelect
+                    value={statusForm.counsellorType}
+                    onChange={(e) => setStatusForm({...statusForm, counsellorType: e.target.value})}
+                    options={[
+                      { value: 'Trainee', label: 'Trainee' },
+                      { value: 'Qualified', label: 'Qualified' }
+                    ]}
+                    placeholder="Trainee"
                   />
-
                 </div>
 
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <SearchableSelect
+                    value={statusForm.status}
+                    onChange={(e) => setStatusForm({...statusForm, status: e.target.value})}
+                    options={[
+                      { value: 'Active', label: 'Active' },
+                      { value: 'At Capacity', label: 'At Capacity' },
+                      { value: 'On Leave', label: 'On Leave' },
+                      { value: 'Away', label: 'Away' },
+                      { value: 'Inactive', label: 'Inactive' }
+                    ]}
+                    placeholder="Active"
+                  />
+                </div>
 
+                {/* Warning if transitioning to Qualified */}
+                {statusForm.counsellorType === 'Qualified' && tc.counsellor_type !== 'Qualified' && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-yellow-900 mb-1">
+                          Transitioning to Qualified Counsellor
+                        </p>
+                        <p className="text-sm text-yellow-800">
+                          This counsellor will need to complete the Qualified Counsellor form with additional information and documents.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Reason */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Reason (Optional)</label>
+                  <textarea
+                    value={statusForm.reason}
+                    onChange={(e) => setStatusForm({...statusForm, reason: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                    rows={3}
+                    placeholder="Add reason for status change..."
+                  />
+                </div>
 
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-
                   <button
-
-                    onClick={() => setShowStatusModal(false)}
-
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-
-                  >
-
-                    Cancel
-
-                  </button>
-
-                  <button
-
                     onClick={() => {
-
-                      alert('Status updated successfully!');
-
                       setShowStatusModal(false);
-
+                      setStatusForm({ status: 'Active', counsellorType: 'Trainee', reason: '' });
                     }}
-
-                    className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium"
-
-                    style={{ backgroundColor: '#6f1d56' }}
-
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
                   >
-
-                    Update Status
-
+                    Cancel
                   </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        // Update status and counsellor type
+                        const updateData = {
+                          status: statusForm.status,
+                          counsellor_type: statusForm.counsellorType,
+                        };
 
+                        await apiService.updateTrainingCounsellor(tc.uuid || tc.id, updateData);
+
+                        // If transitioning to Qualified, show notification
+                        if (statusForm.counsellorType === 'Qualified' && tc.counsellor_type !== 'Qualified') {
+                          alert('Status updated to Qualified Counsellor. The counsellor will need to complete the Qualified Counsellor form.');
+                          // Optionally redirect to form or show link
+                          setShowOpenFormConfirmModal(true);
+                        } else {
+                          alert('Status updated successfully!');
+                        }
+
+                        setShowStatusModal(false);
+                        setStatusForm({ status: 'Active', counsellorType: 'Trainee', reason: '' });
+                        // Refresh page or update state
+                        window.location.reload();
+                      } catch (error) {
+                        console.error('Error updating status:', error);
+                        alert('Error updating status. Please try again.');
+                      }
+                    }}
+                    className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium"
+                    style={{ backgroundColor: '#6f1d56' }}
+                  >
+                    Update Status
+                  </button>
                 </div>
-
               </div>
 
             </div>
@@ -1675,6 +1862,52 @@ export default function IndividualTCDetailPage() {
         </>
 
       )}
+
+      {/* Send Email Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showSendEmailConfirmModal}
+        onClose={() => setShowSendEmailConfirmModal(false)}
+        onConfirm={async () => {
+          try {
+            setSendingEmail(true);
+            const response = await apiService.sendQualifiedFormEmail(tc.uuid || tc.id);
+            alert(`Email sent successfully to ${tc.email}!\n\nTheir UUID: ${response.tc_uuid || tc.uuid}`);
+            setShowSendEmailConfirmModal(false);
+            // Optionally refresh the page to update any status
+            window.location.reload();
+          } catch (error) {
+            console.error('Error sending email:', error);
+            alert('Failed to send email. Please try again.');
+            setShowSendEmailConfirmModal(false);
+          } finally {
+            setSendingEmail(false);
+          }
+        }}
+        title="Send Qualified Counsellor Form Email"
+        message={`Send Qualified Counsellor Form email to ${tc?.email}?`}
+        confirmText="Send Email"
+        cancelText="Cancel"
+        type="info"
+        loading={sendingEmail}
+        confirmButtonColor="#eab308"
+      />
+
+      {/* Open Form Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showOpenFormConfirmModal}
+        onClose={() => setShowOpenFormConfirmModal(false)}
+        onConfirm={() => {
+          const formUrl = `/qualified-counsellor-form?tc_id=${tc.id}`;
+          window.open(formUrl, '_blank');
+          setShowOpenFormConfirmModal(false);
+        }}
+        title="Open Qualified Counsellor Form"
+        message="Would you like to open the Qualified Counsellor form now?"
+        confirmText="Open Form"
+        cancelText="Cancel"
+        type="info"
+        confirmButtonColor="#6f1d56"
+      />
 
     </div>
 

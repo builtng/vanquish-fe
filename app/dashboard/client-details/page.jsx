@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import apiService from '@/lib/api';
 
 import { 
 
@@ -18,7 +19,7 @@ import {
 
   Download, Send, Archive, Plus, ChevronLeft,
 
-  CreditCard, Package, AlertCircle, Check, XCircle
+  CreditCard, Package, AlertCircle, Check, XCircle, Building2, CalendarDays
 
 } from 'lucide-react';
 
@@ -26,17 +27,33 @@ import {
 
 export default function IndividualClientDetailPage() {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [client, setClient] = useState(null);
 
   const [activeNotesTab, setActiveNotesTab] = useState('consultation');
-
   const [editingSection, setEditingSection] = useState(null);
 
+  // Redirect to clients list - this page should only be accessed via [uuid] route
+  useEffect(() => {
+    router.push('/dashboard/clients');
+  }, [router]);
 
+  // Show loading while redirecting
+  if (!client) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Mock Client Data
-
-  const client = {
+  // This should never render, but keeping for type safety
+  const placeholderClient = {
 
     id: 'CL001',
 
@@ -622,7 +639,7 @@ export default function IndividualClientDetailPage() {
 
       {/* Sidebar */}
 
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}>
+      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen fixed left-0 top-0 z-30`}>
 
         <div className="p-4 border-b border-gray-200">
 
@@ -672,8 +689,9 @@ export default function IndividualClientDetailPage() {
 
             { id: 'matches', icon: UserCheck, label: 'Pending Matches', badge: 8, href: '/dashboard/pending-matches' },
 
-            { id: 'tcs', icon: Users, label: 'Training Counsellors', href: '/dashboard/training-counsellors' },
-
+            { id: 'tcs', icon: Users, label: 'Practitioners', href: '/dashboard/training-counsellors' },
+            { id: 'inductions', icon: CalendarDays, label: 'Inductions', href: '/dashboard/inductions' },
+            { id: 'providers', icon: Building2, label: 'Training Providers', href: '/dashboard/training-providers' },
             { id: 'clients', icon: ClipboardList, label: 'All Clients', href: '/dashboard/clients' },
 
             { id: 'activity', icon: Activity, label: 'Activity Log', href: '/dashboard/activity-log' }
@@ -728,13 +746,17 @@ export default function IndividualClientDetailPage() {
 
         <div className="p-4 border-t border-gray-200 space-y-2">
 
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-
+          <Link
+            href="/dashboard/settings"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              pathname === '/dashboard/settings'
+                ? 'bg-purple-100 text-purple-900'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
             <Settings className="w-5 h-5 flex-shrink-0" />
-
             {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
-
-          </button>
+          </Link>
 
           <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg">
 
@@ -752,7 +774,7 @@ export default function IndividualClientDetailPage() {
 
       {/* Main Content */}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className={`flex-1 flex flex-col overflow-hidden ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
 
         {/* Header */}
 
@@ -846,7 +868,7 @@ export default function IndividualClientDetailPage() {
 
                 </button>
 
-                <Link href="/dashboard/clients/edit" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2">
+                <Link href={`/dashboard/clients/edit?id=${client.id}`} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2">
 
                   <Edit className="w-4 h-4" />
 
@@ -1032,7 +1054,7 @@ export default function IndividualClientDetailPage() {
 
                     <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
 
-                    <Link href="/dashboard/clients/edit" className="text-purple-600 hover:text-purple-700 text-sm font-medium flex items-center gap-1">
+                    <Link href={`/dashboard/clients/edit?id=${client.id}`} className="text-purple-600 hover:text-purple-700 text-sm font-medium flex items-center gap-1">
 
                       <Edit className="w-4 h-4" />
 

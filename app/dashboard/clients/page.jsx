@@ -1,19 +1,23 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import apiService from '@/lib/api';
+import { useToast } from '@/contexts/ToastContext';
+import SearchableSelect from '@/components/SearchableSelect';
+import { formatName } from '@/lib/nameFormatter';
+import DashboardLayout from '@/components/DashboardLayout';
 import { 
   Users, Search, Filter, ChevronDown, MoreVertical, Eye,
   Mail, Phone, Calendar, Edit, Trash2, ArrowUpDown, X,
   CheckCircle, Clock, AlertTriangle, Video, FileText,
-  UserCheck, Activity, Menu, Home, ClipboardList,
-  Settings, LogOut, ChevronRight, MapPin, User
+  UserCheck, Activity, ChevronRight, MapPin, User, Building2, RefreshCw, Star, Send, CalendarDays
 } from 'lucide-react';
 
 export default function ViewAllClients() {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { success, error: showError } = useToast();
   const [selectedClient, setSelectedClient] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStage, setFilterStage] = useState('all');
@@ -25,206 +29,90 @@ export default function ViewAllClients() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
-  // Mock Data - All Clients
-  const allClients = [
-    {
-      id: 'CL001',
-      name: 'Emma Wilson',
-      age: 31,
-      email: 'emma.w@email.com',
-      phone: '+44 7700 900101',
-      stage: 'Active Therapy',
-      matchedTC: 'Sarah Johnson',
-      serviceType: 'Low Cost',
-      lastActivity: '2 hours ago',
-      status: 'active',
-      startDate: '2025-02-15',
-      sessionsCompleted: 6,
-      primaryIssues: ['Depression', 'Anxiety'],
-      address: '123 High Street, London',
-      postcode: 'SW1A 1AA'
-    },
-    {
-      id: 'CL002',
-      name: 'John Smith',
-      age: 28,
-      email: 'john.s@email.com',
-      phone: '+44 7700 900102',
-      stage: 'Active Therapy',
-      matchedTC: 'Sarah Johnson',
-      serviceType: 'Mid Range',
-      lastActivity: '1 day ago',
-      status: 'active',
-      startDate: '2025-02-01',
-      sessionsCompleted: 8,
-      primaryIssues: ['Anxiety', 'Work Stress'],
-      address: '456 Main Road, Manchester',
-      postcode: 'M1 1AA'
-    },
-    {
-      id: 'CL003',
-      name: 'Victoria James',
-      age: 29,
-      email: 'victoria.j@email.com',
-      phone: '+44 7700 900103',
-      stage: 'Consultation Booked',
-      matchedTC: 'Sarah Johnson',
-      serviceType: 'Low Cost',
-      lastActivity: '3 hours ago',
-      status: 'active',
-      consultationDate: '2025-03-18 10:00 AM',
-      primaryIssues: ['Anxiety', 'Work Stress'],
-      address: '789 Park Lane, Birmingham',
-      postcode: 'B1 1AA'
-    },
-    {
-      id: 'CL004',
-      name: 'Robert Davies',
-      age: 35,
-      email: 'robert.d@email.com',
-      phone: '+44 7700 900104',
-      stage: 'Consultation Booked',
-      matchedTC: 'David Chen',
-      serviceType: 'Mid Range',
-      lastActivity: '5 hours ago',
-      status: 'active',
-      consultationDate: '2025-03-18 2:00 PM',
-      primaryIssues: ['Trauma', 'Depression'],
-      address: '321 Queen Street, Edinburgh',
-      postcode: 'EH1 1AA'
-    },
-    {
-      id: 'CL005',
-      name: 'Charlotte Evans',
-      age: 30,
-      email: 'charlotte.e@email.com',
-      phone: '+44 7700 900105',
-      stage: 'Pending Match',
-      matchedTC: null,
-      serviceType: 'Low Cost',
-      lastActivity: '1 hour ago',
-      status: 'urgent',
-      submittedDate: '2025-03-17',
-      primaryIssues: ['Anxiety', 'Work Stress'],
-      address: '654 Church Road, Liverpool',
-      postcode: 'L1 1AA'
-    },
-    {
-      id: 'CL006',
-      name: 'Benjamin Clark',
-      age: 24,
-      email: 'benjamin.c@email.com',
-      phone: '+44 7700 900106',
-      stage: 'Pending Match',
-      matchedTC: null,
-      serviceType: 'Low Cost',
-      lastActivity: '2 days ago',
-      status: 'urgent',
-      submittedDate: '2025-03-16',
-      primaryIssues: ['Sexual Abuse', 'Low Self-esteem'],
-      address: '987 Station Road, Bristol',
-      postcode: 'BS1 1AA'
-    },
-    {
-      id: 'CL007',
-      name: 'Sophie Taylor',
-      age: 29,
-      email: 'sophie.t@email.com',
-      phone: '+44 7700 900107',
-      stage: 'Active Therapy',
-      matchedTC: 'David Chen',
-      serviceType: 'Low Cost',
-      lastActivity: '1 day ago',
-      status: 'active',
-      startDate: '2025-01-25',
-      sessionsCompleted: 12,
-      primaryIssues: ['Trauma', 'PTSD'],
-      address: '147 Bridge Street, Leeds',
-      postcode: 'LS1 1AA'
-    },
-    {
-      id: 'CL008',
-      name: 'Alice Cooper',
-      age: 26,
-      email: 'alice.c@email.com',
-      phone: '+44 7700 900108',
-      stage: 'Agreement Pending',
-      matchedTC: 'Priya Patel',
-      serviceType: 'Low Cost',
-      lastActivity: '8 days ago',
-      status: 'stuck',
-      matchedDate: '2025-03-12',
-      primaryIssues: ['Anxiety', 'Depression'],
-      address: '258 Hill Road, Newcastle',
-      postcode: 'NE1 1AA'
-    },
-    {
-      id: 'CL009',
-      name: 'Thomas Wright',
-      age: 33,
-      email: 'thomas.w@email.com',
-      phone: '+44 7700 900109',
-      stage: 'Application',
-      matchedTC: null,
-      serviceType: 'Mid Range',
-      lastActivity: '1 hour ago',
-      status: 'active',
-      submittedDate: '2025-03-17',
-      primaryIssues: ['Depression', 'Relationship Issues'],
-      address: '369 Valley Road, Sheffield',
-      postcode: 'S1 1AA'
-    },
-    {
-      id: 'CL010',
-      name: 'Hannah Lee',
-      age: 28,
-      email: 'hannah.l@email.com',
-      phone: '+44 7700 900110',
-      stage: 'Active Therapy',
-      matchedTC: 'Priya Patel',
-      serviceType: 'Low Cost',
-      lastActivity: '3 hours ago',
-      status: 'active',
-      startDate: '2025-02-20',
-      sessionsCompleted: 8,
-      primaryIssues: ['Anxiety', 'Social Anxiety'],
-      address: '741 River Road, Glasgow',
-      postcode: 'G1 1AA'
-    },
-    {
-      id: 'CL011',
-      name: 'Michael Brown',
-      age: 35,
-      email: 'michael.b@email.com',
-      phone: '+44 7700 900111',
-      stage: 'Active Therapy',
-      matchedTC: 'Sarah Johnson',
-      serviceType: 'Mid Range',
-      lastActivity: '1 day ago',
-      status: 'active',
-      startDate: '2025-03-01',
-      sessionsCompleted: 4,
-      primaryIssues: ['Relationship Issues', 'Communication'],
-      address: '852 Park Avenue, Cardiff',
-      postcode: 'CF1 1AA'
-    },
-    {
-      id: 'CL012',
-      name: 'Sarah Martinez',
-      age: 27,
-      email: 'sarah.m@email.com',
-      phone: '+44 7700 900112',
-      stage: 'Agreement Pending',
-      matchedTC: 'David Chen',
-      serviceType: 'Low Cost',
-      lastActivity: '9 days ago',
-      status: 'stuck',
-      matchedDate: '2025-03-10',
-      primaryIssues: ['Stress', 'Anxiety'],
-      address: '963 Castle Street, Belfast',
-      postcode: 'BT1 1AA'
+  // Data states
+  const [allClients, setAllClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  // Fetch clients from API
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const params = {};
+      if (searchTerm) params.search = searchTerm;
+      if (filterStage !== 'all') params.stage = filterStage;
+      if (filterStatus !== 'all') params.status = filterStatus;
+      if (filterService !== 'all') params.service_type = filterService;
+      
+      const response = await apiService.getClients(params);
+      
+      // Handle paginated response - extract data array
+      const clientsData = Array.isArray(response) 
+        ? response 
+        : (response && response.data ? response.data : []);
+      
+      // Ensure we have an array before mapping
+      if (!Array.isArray(clientsData)) {
+        console.error('Unexpected response format:', response);
+        throw new Error('Invalid response format from server');
+      }
+      
+      // Transform API data to match frontend structure
+      const transformedData = clientsData.map(client => ({
+        id: client.uuid || client.id, // Use UUID for routing
+        uuid: client.uuid || client.id,
+        client_id: client.client_id,
+        name: client.name || 'Unknown',
+        age: client.age || null,
+        email: client.email || '',
+        phone: client.phone || '',
+        stage: client.stage || 'Application',
+        matchedTC: client.matched_tc ? (client.matched_tc.name || client.matched_tc.full_name) : null,
+        matchedTcId: client.matched_tc_id,
+        serviceType: client.service_type || null,
+        lastActivity: client.last_activity || 'Never',
+        status: client.status || 'active',
+        startDate: client.start_date || null,
+        sessionsCompleted: client.sessions_completed || 0,
+        primaryIssues: client.primary_issues || [],
+        address: client.address || null,
+        postcode: client.postcode || null,
+        submittedDate: client.submitted_date || null,
+        matchedDate: client.matched_date || null,
+        consultationDate: client.consultation_date || null,
+        satisfactionScore: client.satisfaction_score || null,
+        feedbackCount: client.feedback_count || 0,
+        lastFeedbackSentAt: client.last_feedback_sent_at || null,
+        lastFeedbackDate: client.last_feedback_date || null,
+      }));
+      
+      setAllClients(transformedData);
+      setLastRefresh(new Date());
+    } catch (err) {
+      console.error('Error fetching clients:', err);
+      const errorMessage = err.message || 'Failed to load clients. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Initial fetch and refresh on filter changes
+  useEffect(() => {
+    fetchClients();
+  }, [searchTerm, filterStage, filterStatus, filterService]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchClients();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [searchTerm, filterStage, filterStatus, filterService]);
+
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -249,6 +137,9 @@ export default function ViewAllClients() {
     }
   };
 
+  // Get unique TCs for filter dropdown
+  const uniqueTCs = [...new Set(allClients.map(c => c.matchedTC).filter(Boolean))];
+
   const filteredClients = allClients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -268,7 +159,7 @@ export default function ViewAllClients() {
     <div className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl z-50 overflow-y-auto">
       <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{client.name}</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{formatName(client.name, 'client')}</h2>
           <p className="text-sm text-gray-600">{client.email}</p>
         </div>
         <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -340,9 +231,33 @@ export default function ViewAllClients() {
                 <User className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="font-medium text-gray-900">{client.matchedTC}</p>
+                <p className="font-medium text-gray-900">{formatName(client.matchedTC, 'tc')}</p>
                 <p className="text-sm text-gray-600">Training Counsellor</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Satisfaction Score */}
+        {(client.satisfactionScore !== null || client.feedbackCount > 0) && (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Client Satisfaction</h3>
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
+              <div className="flex items-center gap-3 mb-2">
+                <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {client.satisfactionScore ? client.satisfactionScore.toFixed(1) : 'N/A'}
+                    {client.satisfactionScore && <span className="text-sm text-gray-600">/5.0</span>}
+                  </p>
+                  <p className="text-xs text-gray-600">{client.feedbackCount} feedback{client.feedbackCount !== 1 ? 's' : ''} received</p>
+                </div>
+              </div>
+              {client.lastFeedbackDate && (
+                <p className="text-xs text-gray-600 mt-2">
+                  Last feedback: {new Date(client.lastFeedbackDate).toLocaleDateString('en-GB')}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -379,6 +294,24 @@ export default function ViewAllClients() {
           <button className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
             Send Email
           </button>
+          {(client.stage === 'Active Therapy' || client.stage === 'Completed') && (
+            <button 
+              onClick={async () => {
+                try {
+                  await apiService.sendFeedbackForm(client.uuid || client.id);
+                  success('Feedback form email sent successfully!');
+                  fetchClients();
+                } catch (err) {
+                  showError(err.message || 'Failed to send feedback form');
+                }
+              }}
+              disabled={client.lastFeedbackSentAt && new Date(client.lastFeedbackSentAt) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)}
+              className="w-full py-3 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Send className="w-4 h-4" />
+              Send Feedback Form
+            </button>
+          )}
           <button className="w-full py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium">
             Archive Client
           </button>
@@ -388,73 +321,7 @@ export default function ViewAllClients() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen`}>
-        <div className="p-4 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            {sidebarOpen && (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: '#6f1d56' }}>
-                  VT
-                </div>
-                <div>
-                  <h1 className="text-sm font-bold text-gray-900">Vanquish</h1>
-                  <p className="text-xs text-gray-600">Admin</p>
-                </div>
-              </div>
-            )}
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-lg">
-              <Menu className="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {[
-            { id: 'overview', icon: Home, label: 'Overview', href: '/dashboard' },
-            { id: 'consultations', icon: Video, label: 'Consultations', badge: 3, href: '/dashboard/consultations' },
-            { id: 'matches', icon: UserCheck, label: 'Pending Matches', badge: 8, href: '/dashboard/pending-matches' },
-            { id: 'tcs', icon: Users, label: 'Training Counsellors', href: '/dashboard/training-counsellors' },
-            { id: 'clients', icon: ClipboardList, label: 'All Clients', href: '/dashboard/clients' },
-            { id: 'activity', icon: Activity, label: 'Activity Log', href: '/dashboard/activity-log' }
-          ].map(item => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive ? 'bg-purple-100 text-purple-900' : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                {sidebarOpen && (
-                  <>
-                    <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
-                    {item.badge > 0 && (
-                      <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{item.badge}</span>
-                    )}
-                  </>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-gray-200 space-y-2 flex-shrink-0">
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-            <Settings className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg">
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content */}
+    <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
@@ -464,10 +331,21 @@ export default function ViewAllClients() {
                 <h1 className="text-2xl font-bold text-gray-900">All Clients</h1>
                 <p className="text-sm text-gray-600 mt-1">{filteredClients.length} clients total</p>
               </div>
-              <Link href="/dashboard/clients/edit" className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2" style={{ backgroundColor: '#6f1d56' }}>
-                <Users className="w-4 h-4" />
-                Add New Client
-              </Link>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchClients}
+                  disabled={loading}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2 disabled:opacity-50"
+                  title="Refresh data"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                <Link href="/dashboard/clients/edit" className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2" style={{ backgroundColor: '#6f1d56' }}>
+                  <Users className="w-4 h-4" />
+                  Add New Client
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -485,87 +363,140 @@ export default function ViewAllClients() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               />
             </div>
-            <select
-              value={filterStage}
-              onChange={(e) => setFilterStage(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
-            >
-              <option value="all">All Stages</option>
-              <option value="Application">Application</option>
-              <option value="Consultation Booked">Consultation Booked</option>
-              <option value="Pending Match">Pending Match</option>
-              <option value="Agreement Pending">Agreement Pending</option>
-              <option value="Active Therapy">Active Therapy</option>
-            </select>
-            <select
-              value={filterTC}
-              onChange={(e) => setFilterTC(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
-            >
-              <option value="all">All TCs</option>
-              <option value="Sarah Johnson">Sarah Johnson</option>
-              <option value="David Chen">David Chen</option>
-              <option value="Priya Patel">Priya Patel</option>
-            </select>
-            <select
-              value={filterService}
-              onChange={(e) => setFilterService(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
-            >
-              <option value="all">All Services</option>
-              <option value="Low Cost">Low Cost</option>
-              <option value="Mid Range">Mid Range</option>
-            </select>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
-            >
-              <option value="all">All Status</option>
-              <option value="urgent">Urgent</option>
-              <option value="stuck">Stuck</option>
-              <option value="active">Active</option>
-            </select>
+            <div className="min-w-[120px] flex-shrink-0">
+              <SearchableSelect
+                value={filterStage}
+                onChange={(e) => setFilterStage(e.target.value)}
+                options={[
+                  { value: 'all', label: 'All Stages' },
+                  { value: 'Application', label: 'Application' },
+                  { value: 'Consultation Booked', label: 'Consultation Booked' },
+                  { value: 'Pending Match', label: 'Pending Match' },
+                  { value: 'Agreement Pending', label: 'Agreement Pending' },
+                  { value: 'Active Therapy', label: 'Active Therapy' }
+                ]}
+                placeholder="All Stages"
+                className="text-sm"
+              />
+            </div>
+            <div className="min-w-[120px] flex-shrink-0">
+              <SearchableSelect
+                value={filterTC}
+                onChange={(e) => setFilterTC(e.target.value)}
+                options={[
+                  { value: 'all', label: 'All TCs' },
+                  ...uniqueTCs.map(tc => ({ value: tc, label: tc }))
+                ]}
+                placeholder="All TCs"
+                className="text-sm"
+              />
+            </div>
+            <div className="min-w-[120px] flex-shrink-0">
+              <SearchableSelect
+                value={filterService}
+                onChange={(e) => setFilterService(e.target.value)}
+                options={[
+                  { value: 'all', label: 'All Services' },
+                  { value: 'Low Cost', label: 'Low Cost' },
+                  { value: 'Mid Range', label: 'Mid Range' }
+                ]}
+                placeholder="All Services"
+                className="text-sm"
+              />
+            </div>
+            <div className="min-w-[120px] flex-shrink-0">
+              <SearchableSelect
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                options={[
+                  { value: 'all', label: 'All Status' },
+                  { value: 'urgent', label: 'Urgent' },
+                  { value: 'stuck', label: 'Stuck' },
+                  { value: 'active', label: 'Active' }
+                ]}
+                placeholder="All Status"
+                className="text-sm"
+              />
+            </div>
           </div>
         </div>
 
         {/* Table */}
         <div className="flex-1 overflow-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 sticky top-0">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Client
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stage
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Matched TC
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Service
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Activity
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedClients.map(client => (
+          {loading && allClients.length === 0 && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Loading clients...</p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 m-6">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <div>
+                  <p className="text-sm font-medium text-red-900">{error}</p>
+                  <button
+                    onClick={fetchClients}
+                    className="text-sm text-red-700 underline mt-1"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <table className="w-full">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Client
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Stage
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Matched TC
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Service
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Satisfaction
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Last Activity
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedClients.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-12 text-center">
+                      <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No Clients Found</h3>
+                      <p className="text-gray-600">Try adjusting your filters or add a new client</p>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedClients.map(client => (
                 <tr key={client.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className={`w-3 h-3 rounded-full ${getStatusColor(client.status)}`}></div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <Link href={`/dashboard/client-details`} className="font-medium text-gray-900 hover:text-purple-600">
+                      <Link href={`/dashboard/client-details/${client.uuid || client.id}`} className="font-medium text-gray-900 hover:text-purple-600">
                         {client.name}
                       </Link>
                       <p className="text-sm text-gray-600">{client.age} years old</p>
@@ -578,7 +509,7 @@ export default function ViewAllClients() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {client.matchedTC ? (
-                      <span className="text-sm text-gray-900">{client.matchedTC}</span>
+                      <span className="text-sm text-gray-900">{formatName(client.matchedTC, 'tc')}</span>
                     ) : (
                       <span className="text-sm text-gray-400 italic">Not assigned</span>
                     )}
@@ -587,12 +518,25 @@ export default function ViewAllClients() {
                     <span className="text-sm text-gray-900">{client.serviceType}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
+                    {client.satisfactionScore !== null ? (
+                      <div className="flex items-center gap-2">
+                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                        <span className="text-sm font-semibold text-gray-900">
+                          {client.satisfactionScore.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-gray-500">({client.feedbackCount})</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-400 italic">No feedback</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <span className="text-sm text-gray-600">{client.lastActivity}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <Link
-                        href={`/dashboard/client-details`}
+                        href={`/dashboard/client-details/${client.uuid || client.id}`}
                         className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
                         title="View Details"
                       >
@@ -601,15 +545,35 @@ export default function ViewAllClients() {
                       <button className="p-2 hover:bg-blue-100 rounded-lg transition-colors" title="Send Email">
                         <Mail className="w-4 h-4 text-blue-600" />
                       </button>
+                      {(client.stage === 'Active Therapy' || client.stage === 'Completed') && (
+                        <button 
+                          onClick={async () => {
+                            try {
+                              await apiService.sendFeedbackForm(client.uuid || client.id);
+                              success('Feedback form email sent successfully!');
+                              fetchClients();
+                            } catch (err) {
+                              showError(err.message || 'Failed to send feedback form');
+                            }
+                          }}
+                          disabled={client.lastFeedbackSentAt && new Date(client.lastFeedbackSentAt) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)}
+                          className="p-2 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
+                          title="Send Feedback Form"
+                        >
+                          <Send className="w-4 h-4 text-green-600" />
+                        </button>
+                      )}
                       <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="More">
                         <MoreVertical className="w-4 h-4 text-gray-600" />
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination */}
@@ -619,18 +583,20 @@ export default function ViewAllClients() {
               <span className="text-sm text-gray-700">
                 Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredClients.length)} of {filteredClients.length} clients
               </span>
-              <select
+              <SearchableSelect
                 value={itemsPerPage}
                 onChange={(e) => {
                   setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value={20}>20 per page</option>
-                <option value={50}>50 per page</option>
-                <option value={100}>100 per page</option>
-              </select>
+                options={[
+                  { value: 20, label: '20 per page' },
+                  { value: 50, label: '50 per page' },
+                  { value: 100, label: '100 per page' }
+                ]}
+                placeholder="20 per page"
+                className="text-sm"
+              />
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -662,7 +628,7 @@ export default function ViewAllClients() {
           <ClientDetailPanel client={selectedClient} onClose={() => setSelectedClient(null)} />
         </>
       )}
-    </div>
+    </DashboardLayout>
   );
 }
 

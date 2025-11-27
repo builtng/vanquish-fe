@@ -1,8 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
+import apiService from '@/lib/api';
+import { useToast } from '@/contexts/ToastContext';
+import ConfirmationModal from '@/components/ConfirmationModal';
 
 import { 
 
@@ -20,7 +23,7 @@ import {
 
   CreditCard, Package, AlertCircle, Check, XCircle,
 
-  Save, ChevronUp
+  Save, ChevronUp, Building2, RefreshCw
 
 } from 'lucide-react';
 
@@ -28,7 +31,19 @@ import {
 
 export default function EditClientPage() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { success, error: showError } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  
+  // Extract client ID from URL query parameters or pathname
+  const clientId = searchParams?.get('id') || searchParams?.get('clientId') || searchParams?.get('uuid') || null;
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [expandedSections, setExpandedSections] = useState({
 
@@ -48,29 +63,28 @@ export default function EditClientPage() {
 
 
 
-  // Mock existing client data - In production, this would be loaded from API
-
+  // Client form data - loaded from API
   const [formData, setFormData] = useState({
 
     // Client ID (read-only)
 
-    clientId: 'CL001',
+    clientId: '',
 
-    clientName: 'Emma Wilson',
+    clientName: '',
 
     
 
     // Personal Information
 
-    firstName: 'Emma',
+    firstName: '',
 
-    lastName: 'Wilson',
+    lastName: '',
 
-    email: 'emma.w@email.com',
+    email: '',
 
-    phone: '+44 7700 900101',
+    phone: '',
 
-    age: '31',
+    age: '',
 
     voicemailPermission: 'Yes',
 
@@ -86,15 +100,15 @@ export default function EditClientPage() {
 
     // Clinical Information
 
-    onMedication: 'Yes',
+    onMedication: 'No',
 
-    medicationDetails: 'Sertraline 50mg - prescribed for anxiety and depression',
+    medicationDetails: '',
 
     disabilities: 'None',
 
-    concernsSelected: ['Depression', 'Anxiety', 'Work Stress'],
+    concernsSelected: [],
 
-    additionalConcernDetails: 'Experiencing burnout from work. Recently promoted to management role and struggling with imposter syndrome. Having trouble sleeping and feeling overwhelmed.',
+    additionalConcernDetails: '',
 
     riskIssues: 'None reported',
 
@@ -104,15 +118,15 @@ export default function EditClientPage() {
 
     availability: {
 
-      Monday: ['morning-early'],
+      Monday: [],
 
       Tuesday: [],
 
-      Wednesday: ['afternoon-early'],
+      Wednesday: [],
 
       Thursday: [],
 
-      Friday: ['morning-late']
+      Friday: []
 
     },
 
@@ -120,7 +134,7 @@ export default function EditClientPage() {
 
     // Referral Information
 
-    howHeardAbout: 'Social Media (Facebook, Instagram)',
+    howHeardAbout: '',
 
     referralReasons: 'N/A',
 
@@ -136,13 +150,74 @@ export default function EditClientPage() {
 
     // Admin Notes
 
-    adminNotes: 'Client seems motivated. Good candidate for Low Cost counselling. Consultation completed 2025-02-20.',
+    adminNotes: '',
 
-    paymentStatus: 'Paid'
+    paymentStatus: 'Pending'
 
   });
 
+  // Determine if we're creating or editing
+  const isCreating = !clientId;
 
+  // Fetch client data from API (only if editing)
+  useEffect(() => {
+    const fetchClient = async () => {
+      // If creating, don't fetch - just set loading to false
+      if (!clientId) {
+        setLoading(false);
+        setError(null);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        const client = await apiService.getClient(clientId);
+        
+        // Transform API data to form structure
+        setFormData({
+          clientId: client.client_id || client.uuid || client.id || clientId,
+          clientName: client.name || '',
+          firstName: client.first_name || client.name?.split(' ')[0] || '',
+          lastName: client.last_name || client.name?.split(' ').slice(1).join(' ') || '',
+          email: client.email || '',
+          phone: client.phone || '',
+          age: client.age?.toString() || '',
+          voicemailPermission: client.voicemail_permission || 'Yes',
+          currentlyInTherapy: client.currently_in_therapy || 'No',
+          serviceType: client.service_type || 'Low Cost Counselling',
+          onMedication: client.on_medication || 'No',
+          medicationDetails: client.medication_details || '',
+          disabilities: client.disabilities || 'None',
+          concernsSelected: client.primary_issues || [],
+          additionalConcernDetails: client.additional_details || '',
+          riskIssues: client.risk_issues || 'None reported',
+          availability: client.availability || {
+            Monday: [],
+            Tuesday: [],
+            Wednesday: [],
+            Thursday: [],
+            Friday: []
+          },
+          howHeardAbout: client.how_heard_about || '',
+          referralReasons: client.referral_reasons || 'N/A',
+          referralName: client.referral_name || 'N/A',
+          referralPhone: client.referral_phone || 'N/A',
+          organizationName: client.organization_name || 'N/A',
+          organizationEmail: client.organization_email || 'N/A',
+          adminNotes: client.admin_notes || '',
+          paymentStatus: client.payment_status || 'Pending'
+        });
+      } catch (err) {
+        console.error('Error fetching client:', err);
+        setError('Failed to load client data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClient();
+  }, [clientId]);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -296,7 +371,7 @@ export default function EditClientPage() {
 
 
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
 
     e.preventDefault();
 
@@ -334,32 +409,120 @@ export default function EditClientPage() {
 
     }
 
+    // Determine if creating or updating
+    if (isCreating) {
+      // Create new client
+      try {
+        const newClient = await apiService.createClient({
+          name: `${formData.firstName} ${formData.lastName}`,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          age: parseInt(formData.age),
+          voicemail_permission: formData.voicemailPermission,
+          currently_in_therapy: formData.currentlyInTherapy,
+          service_type: formData.serviceType,
+          on_medication: formData.onMedication,
+          medication_details: formData.medicationDetails,
+          disabilities: formData.disabilities,
+          primary_issues: formData.concernsSelected,
+          additional_details: formData.additionalConcernDetails,
+          risk_issues: formData.riskIssues,
+          availability: formData.availability,
+          how_heard_about: formData.howHeardAbout,
+          referral_reasons: formData.referralReasons,
+          referral_name: formData.referralName,
+          referral_phone: formData.referralPhone,
+          organization_name: formData.organizationName,
+          organization_email: formData.organizationEmail,
+          admin_notes: formData.adminNotes,
+          payment_status: formData.paymentStatus,
+          stage: 'Application',
+          status: 'active'
+        });
 
+        success('Client created successfully!');
+        router.push(`/dashboard/client-details/${newClient.uuid || newClient.id}`);
+      } catch (err) {
+        console.error('Error creating client:', err);
+        showError(err.message || 'Failed to create client. Please try again.');
+      } finally {
+        setSaveLoading(false);
+      }
+      return;
+    }
 
-    console.log('Form updated:', formData);
+    // Update existing client
+    try {
+      setSaveLoading(true);
+      await apiService.updateClient(clientId, {
+        name: `${formData.firstName} ${formData.lastName}`,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        age: parseInt(formData.age),
+        voicemail_permission: formData.voicemailPermission,
+        currently_in_therapy: formData.currentlyInTherapy,
+        service_type: formData.serviceType,
+        on_medication: formData.onMedication,
+        medication_details: formData.medicationDetails,
+        disabilities: formData.disabilities,
+        primary_issues: formData.concernsSelected,
+        additional_details: formData.additionalConcernDetails,
+        risk_issues: formData.riskIssues,
+        availability: formData.availability,
+        how_heard_about: formData.howHeardAbout,
+        referral_reasons: formData.referralReasons,
+        referral_name: formData.referralName,
+        referral_phone: formData.referralPhone,
+        organization_name: formData.organizationName,
+        organization_email: formData.organizationEmail,
+        admin_notes: formData.adminNotes,
+        payment_status: formData.paymentStatus
+      });
 
-    alert('Client updated successfully! (This would save to database in production)');
-
-    // In production, this would make an API call to update the client
+      success('Client updated successfully!');
+      router.push(`/dashboard/client-details/${clientId}`);
+    } catch (err) {
+      console.error('Error updating client:', err);
+      showError(err.message || 'Failed to update client. Please try again.');
+    } finally {
+      setSaveLoading(false);
+    }
 
   };
 
 
 
   const handleDelete = () => {
-
-    if (window.confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
-
-      console.log('Deleting client:', formData.clientId);
-
-      alert('Client deleted successfully! (This would delete from database in production)');
-
-      // In production, this would make an API call to delete the client
-
-      // Then redirect to All Clients page
-
+    if (isCreating) {
+      showError('Cannot delete a client that hasn\'t been created yet.');
+      return;
     }
 
+    if (!clientId) {
+      showError('No client ID available. Cannot delete client.');
+      return;
+    }
+
+    setShowDeleteConfirmModal(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      setDeleteLoading(true);
+      await apiService.deleteClient(clientId);
+      success('Client deleted successfully!');
+      router.push('/dashboard/clients');
+    } catch (err) {
+      console.error('Error deleting client:', err);
+      showError(err.message || 'Failed to delete client. Please try again.');
+      setShowDeleteConfirmModal(false);
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
 
@@ -406,7 +569,7 @@ export default function EditClientPage() {
 
       {/* Sidebar */}
 
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen`}>
+      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen fixed left-0 top-0 z-30`}>
 
         <div className="p-4 border-b border-gray-200 flex-shrink-0">
 
@@ -456,8 +619,8 @@ export default function EditClientPage() {
 
             { id: 'matches', icon: UserCheck, label: 'Pending Matches', badge: 8, href: '/dashboard/pending-matches' },
 
-            { id: 'tcs', icon: Users, label: 'Training Counsellors', href: '/dashboard/training-counsellors' },
-
+            { id: 'tcs', icon: Users, label: 'Practitioners', href: '/dashboard/training-counsellors' },
+            { id: 'providers', icon: Building2, label: 'Training Providers', href: '/dashboard/training-providers' },
             { id: 'clients', icon: ClipboardList, label: 'All Clients', href: '/dashboard/clients' },
 
             { id: 'activity', icon: Activity, label: 'Activity Log', href: '/dashboard/activity-log' }
@@ -512,13 +675,17 @@ export default function EditClientPage() {
 
         <div className="p-4 border-t border-gray-200 space-y-2 flex-shrink-0">
 
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-
+          <Link
+            href="/dashboard/settings"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              pathname === '/dashboard/settings'
+                ? 'bg-purple-100 text-purple-900'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
             <Settings className="w-5 h-5 flex-shrink-0" />
-
             {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
-
-          </button>
+          </Link>
 
           <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg">
 
@@ -536,7 +703,7 @@ export default function EditClientPage() {
 
       {/* Main Content */}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className={`flex-1 flex flex-col overflow-hidden ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
 
         {/* Header */}
 
@@ -550,13 +717,20 @@ export default function EditClientPage() {
 
               <Link href="/dashboard/clients" className="hover:text-purple-600">All Clients</Link>
 
-              <ChevronRight className="w-4 h-4" />
-
-              <Link href="/dashboard/client-details" className="hover:text-purple-600">{formData.clientName}</Link>
-
-              <ChevronRight className="w-4 h-4" />
-
-              <span className="text-gray-900 font-medium">Edit</span>
+              {!isCreating && (
+                <>
+                  <ChevronRight className="w-4 h-4" />
+                  <Link href={`/dashboard/client-details/${formData.clientId}`} className="hover:text-purple-600">{formData.clientName}</Link>
+                  <ChevronRight className="w-4 h-4" />
+                  <span className="text-gray-900 font-medium">Edit</span>
+                </>
+              )}
+              {isCreating && (
+                <>
+                  <ChevronRight className="w-4 h-4" />
+                  <span className="text-gray-900 font-medium">Add New Client</span>
+                </>
+              )}
 
             </div>
 
@@ -574,17 +748,21 @@ export default function EditClientPage() {
 
                 <div className="flex items-center gap-3 mb-1">
 
-                  <h1 className="text-2xl font-bold text-gray-900">Edit Client</h1>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {isCreating ? 'Add New Client' : 'Edit Client'}
+                  </h1>
 
-                  <span className="px-3 py-1 bg-purple-100 text-purple-800 text-sm font-medium rounded-full">
-
-                    ID: {formData.clientId}
-
-                  </span>
+                  {!isCreating && (
+                    <span className="px-3 py-1 bg-purple-100 text-purple-800 text-sm font-medium rounded-full">
+                      ID: {formData.clientId}
+                    </span>
+                  )}
 
                 </div>
 
-                <p className="text-sm text-gray-600">{formData.clientName}</p>
+                {!isCreating && (
+                  <p className="text-sm text-gray-600">{formData.clientName}</p>
+                )}
 
               </div>
 
@@ -615,8 +793,34 @@ export default function EditClientPage() {
         {/* Form Content - Scrollable */}
 
         <div className="flex-1 overflow-y-auto">
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Loading client data...</p>
+              </div>
+            </div>
+          )}
 
-          <form onSubmit={handleSubmit} className="max-w-5xl mx-auto p-6">
+          {error && !isCreating && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 m-6">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-900">{error}</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="text-sm text-red-700 underline mt-1"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && (
+          <form onSubmit={handleSubmit} className="max-w-7xl px-6 py-6">
 
             {/* Alert Info */}
 
@@ -626,12 +830,14 @@ export default function EditClientPage() {
 
               <div>
 
-                <p className="text-sm font-medium text-blue-900 mb-1">Editing Client Information</p>
+                <p className="text-sm font-medium text-blue-900 mb-1">
+                  {isCreating ? 'Creating New Client' : 'Editing Client Information'}
+                </p>
 
                 <p className="text-sm text-blue-700">
-
-                  Update any client information below. Fields marked with * are required. Changes will be saved to the client's profile.
-
+                  {isCreating 
+                    ? 'Fill in all required information below to create a new client. Fields marked with * are required.'
+                    : 'Update any client information below. Fields marked with * are required. Changes will be saved to the client\'s profile.'}
                 </p>
 
               </div>
@@ -1502,21 +1708,32 @@ export default function EditClientPage() {
 
             <div className="flex items-center justify-between pt-6 border-t border-gray-200">
 
-              <button
+              {!isCreating && (
+                <button
 
-                type="button"
+                  type="button"
 
-                onClick={handleDelete}
+                  onClick={handleDelete}
+                  disabled={deleteLoading}
 
-                className="px-6 py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium flex items-center gap-2"
+                  className="px-6 py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 
-              >
+                >
+                  {deleteLoading ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-5 h-5" />
+                      Delete Client
+                    </>
+                  )}
 
-                <Trash2 className="w-5 h-5" />
-
-                Delete Client
-
-              </button>
+                </button>
+              )}
+              {isCreating && <div></div>}
 
 
 
@@ -1539,16 +1756,24 @@ export default function EditClientPage() {
                 <button
 
                   type="submit"
+                  disabled={saveLoading}
 
-                  className="px-6 py-3 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2"
+                  className="px-6 py-3 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 
                   style={{ backgroundColor: '#6f1d56' }}
 
                 >
-
-                  <Save className="w-5 h-5" />
-
-                  Save Changes
+                  {saveLoading ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      {isCreating ? 'Creating...' : 'Saving...'}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      {isCreating ? 'Create Client' : 'Save Changes'}
+                    </>
+                  )}
 
                 </button>
 
@@ -1557,10 +1782,25 @@ export default function EditClientPage() {
             </div>
 
           </form>
+          )}
 
         </div>
 
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirmModal}
+        onClose={() => setShowDeleteConfirmModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Client"
+        message="Are you sure you want to delete this client? This action cannot be undone."
+        confirmText="Delete Client"
+        cancelText="Cancel"
+        type="danger"
+        loading={deleteLoading}
+        confirmButtonColor="#dc2626"
+      />
 
     </div>
 

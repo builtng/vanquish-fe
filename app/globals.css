@@ -45,3 +45,51 @@ textarea::placeholder {
   color: #6b7280;
   opacity: 1;
 }
+
+/* Toast animations */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* React Select Styles */
+.react-select-container {
+  font-size: 0.875rem;
+}
+
+.react-select__control {
+  border-radius: 0.5rem !important;
+  min-height: 42px !important;
+}
+
+.react-select__input-container {
+  color: #111827 !important;
+}
+
+.react-select__single-value {
+  color: #111827 !important;
+}
+
+.react-select__menu {
+  z-index: 9999 !important;
+}
+
+.react-select__option--is-focused {
+  background-color: #f3e8ff !important;
+  color: #111827 !important;
+}
+
+.react-select__option--is-selected {
+  background-color: #9333ea !important;
+  color: white !important;
+}

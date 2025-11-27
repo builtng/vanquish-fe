@@ -1,0 +1,2701 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname, useParams } from 'next/navigation';
+import apiService from '@/lib/api';
+import * as XLSX from 'xlsx';
+import SessionNotesModal from '@/components/SessionNotesModal';
+import { useToast } from '@/contexts/ToastContext';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import DashboardLayout from '@/components/DashboardLayout';
+
+import { 
+
+  Users, Search, Filter, ChevronDown, MoreVertical, Eye,
+
+  Mail, Phone, Calendar, Edit, Trash2, ArrowUpDown, X,
+
+  CheckCircle, Clock, AlertTriangle, Video, FileText,
+
+  UserCheck, Activity, ChevronRight, MapPin, User, 
+
+  Download, Send, Archive, Plus, ChevronLeft,
+
+  CreditCard, Package, AlertCircle, Check, XCircle, Building2, Star, CalendarDays
+
+} from 'lucide-react';
+
+
+
+export default function IndividualClientDetailPage() {
+  const pathname = usePathname();
+  const params = useParams();
+  const uuid = params?.uuid;
+  const { success, error: showError } = useToast();
+
+  const [activeNotesTab, setActiveNotesTab] = useState('consultation');
+  const [editingSection, setEditingSection] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [client, setClient] = useState(null);
+  const [notification, setNotification] = useState(null);
+  const [showAddSessionModal, setShowAddSessionModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showAddNoteModal, setShowAddNoteModal] = useState(false);
+  const [newNoteText, setNewNoteText] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [adminNotes, setAdminNotes] = useState([]);
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [editingNoteText, setEditingNoteText] = useState('');
+  const [showSessionNotesModal, setShowSessionNotesModal] = useState(false);
+  const [showArchiveConfirmModal, setShowArchiveConfirmModal] = useState(false);
+  const [showDeleteNoteConfirmModal, setShowDeleteNoteConfirmModal] = useState(false);
+  const [showProgressStageConfirmModal, setShowProgressStageConfirmModal] = useState(false);
+  const [showDeleteSessionConfirmModal, setShowDeleteSessionConfirmModal] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState(null);
+  const [nextStage, setNextStage] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
+
+  // Show notification and auto-hide
+  const showNotification = (message, type = 'success') => {
+    // Use toast instead
+    if (type === 'error') {
+      showError(message);
+    } else {
+      success(message);
+    }
+    // Keep old notification for backward compatibility if needed
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
+  // Transform API data to frontend structure
+  const transformClientData = (data) => {
+    return {
+      id: data.uuid || data.id,
+      uuid: data.uuid || data.id,
+      dbId: data.id,
+      client_id: data.client_id,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      address: data.address || null,
+      postcode: data.postcode || null,
+      age: data.age || null,
+      gender: data.gender || null,
+      ethnicity: data.ethnicity || null,
+      sexualOrientation: data.sexual_orientation || null,
+      stage: data.stage || 'Application',
+      status: data.status || 'active',
+      daysInSystem: data.submitted_date ? Math.floor((new Date() - new Date(data.submitted_date)) / (1000 * 60 * 60 * 24)) : 0,
+      voicemailPermission: data.voicemail_permission || null,
+      howHeardAbout: data.how_heard_about || null,
+      journey: [],
+      primaryIssues: data.primary_issues || [],
+      additionalDetails: data.additional_details || null,
+      medication: data.medication || null,
+      disabilities: data.disabilities || null,
+      riskFlags: data.risk_flags || null,
+      substanceMisuse: data.substance_misuse || null,
+      availability: data.availability && typeof data.availability === 'object' && !Array.isArray(data.availability)
+        ? Object.entries(data.availability).map(([day, timeBlocks]) => ({
+            day: day,
+            timeBlocks: Array.isArray(timeBlocks) ? timeBlocks : []
+          }))
+        : Array.isArray(data.availability) 
+          ? data.availability 
+          : [],
+      serviceType: data.service_type || null,
+      packageDetails: (() => {
+        // Determine total sessions based on service type (default to 6)
+        const getTotalSessions = (serviceType) => {
+          // You can customize this based on your service types
+          if (serviceType === 'Low Cost') return 6;
+          if (serviceType === 'Mid Range') return 8;
+          if (serviceType === 'High Range') return 12;
+          return 6; // Default
+        };
+        
+        const totalSessions = getTotalSessions(data.service_type);
+        const consultations = data.consultations || [];
+        const sessionsCompleted = consultations.filter(c => c.status === 'completed').length;
+        const sessionsDNA = consultations.filter(c => c.status === 'dna').length;
+        const sessionsRemaining = Math.max(0, totalSessions - sessionsCompleted - sessionsDNA);
+        
+        // Determine start date - use first completed session or first scheduled session, or matched_date, or start_date
+        let startDate = null;
+        if (consultations.length > 0) {
+          const firstCompleted = consultations.find(c => c.status === 'completed');
+          const firstScheduled = consultations.find(c => c.scheduled_at);
+          const firstSession = firstCompleted || firstScheduled;
+          if (firstSession?.scheduled_at) {
+            startDate = new Date(firstSession.scheduled_at).toLocaleDateString('en-GB', { 
+              year: 'numeric', 
+              month: 'short', 
+              day: 'numeric' 
+            });
+          }
+        }
+        if (!startDate && data.start_date) {
+          startDate = new Date(data.start_date).toLocaleDateString('en-GB', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          });
+        }
+        if (!startDate && data.matched_date) {
+          startDate = new Date(data.matched_date).toLocaleDateString('en-GB', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          });
+        }
+        
+        // Calculate expected end date (assuming weekly sessions, 7 days apart)
+        let expectedEndDate = null;
+        if (totalSessions > 0) {
+          // Get the actual start date object for calculation
+          let startDateObj = null;
+          if (consultations.length > 0) {
+            const firstCompleted = consultations.find(c => c.status === 'completed');
+            const firstScheduled = consultations.find(c => c.scheduled_at);
+            const firstSession = firstCompleted || firstScheduled;
+            if (firstSession?.scheduled_at) {
+              startDateObj = new Date(firstSession.scheduled_at);
+            }
+          }
+          if (!startDateObj && data.start_date) {
+            startDateObj = new Date(data.start_date);
+          }
+          if (!startDateObj && data.matched_date) {
+            startDateObj = new Date(data.matched_date);
+          }
+          
+          if (startDateObj) {
+            // Add weeks based on total sessions (weekly sessions)
+            const endDate = new Date(startDateObj);
+            endDate.setDate(endDate.getDate() + (totalSessions * 7));
+            expectedEndDate = endDate.toLocaleDateString('en-GB', { 
+              year: 'numeric', 
+              month: 'short', 
+              day: 'numeric' 
+            });
+          }
+        }
+        
+        // Determine status based on stage and session completion
+        let status = 'Not Started';
+        const stage = data.stage || 'Application';
+        if (stage === 'Completed' || sessionsCompleted >= totalSessions) {
+          status = 'Completed';
+        } else if (stage === 'Active Therapy' || sessionsCompleted > 0) {
+          status = 'Active';
+        } else if (['Matched', 'Agreement Pending'].includes(stage)) {
+          status = 'Pending';
+        }
+        
+        return {
+          name: `${data.service_type || 'Counselling'} Package`,
+          totalSessions,
+          sessionsCompleted,
+          sessionsDNA,
+          sessionsRemaining,
+          status,
+          startDate: startDate || 'Not started',
+          expectedEndDate: expectedEndDate || 'Not calculated'
+        };
+      })(),
+      matchedTC: data.matched_tc ? {
+        id: data.matched_tc.id,
+        name: data.matched_tc.name,
+        email: data.matched_tc.email,
+        phone: data.matched_tc.phone,
+        currentClients: data.matched_tc.current_clients || 0,
+        maxClients: 6,
+        modality: data.matched_tc.modality || null,
+        matchScore: 0,
+        matchBreakdown: {},
+        warningFlags: [],
+        otherClients: []
+      } : null,
+      payments: [],
+      sessions: data.consultations ? data.consultations.map((consultation, idx) => ({
+        id: consultation.id,
+        sessionNumber: idx + 1,
+        date: consultation.scheduled_at ? new Date(consultation.scheduled_at).toISOString().split('T')[0] : null,
+        time: consultation.scheduled_at ? new Date(consultation.scheduled_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null,
+        tcName: consultation.tc ? consultation.tc.name : (consultation.tc_id ? 'Assigned' : null),
+        duration: '50 min',
+        status: consultation.status || 'scheduled',
+        notes: consultation.notes || null
+      })) : [],
+      consultation: data.consultations && data.consultations.length > 0 
+        ? (() => {
+            const firstCompleted = data.consultations.find(c => c.status === 'completed');
+            const firstConsultation = firstCompleted || data.consultations[0];
+            return {
+              date: firstConsultation.scheduled_at ? new Date(firstConsultation.scheduled_at).toISOString().split('T')[0] : null,
+              time: firstConsultation.scheduled_at ? new Date(firstConsultation.scheduled_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null,
+              duration: '50 min',
+              conductedBy: firstConsultation.tc ? firstConsultation.tc.name : null,
+              notes: firstConsultation.notes || null,
+              outcome: firstConsultation.outcome || null,
+              recommendedService: firstConsultation.recommended_service || data.service_type || null
+            };
+          })()
+        : null,
+      satisfactionScore: data.satisfaction_score || null,
+      feedbackCount: data.feedback_count || 0,
+      lastFeedbackSentAt: data.last_feedback_sent_at || null,
+      lastFeedbackDate: data.last_feedback_date || null
+    };
+  };
+
+  // Fetch admin notes
+  const fetchAdminNotes = async () => {
+    try {
+      const logs = await apiService.getActivityLogs({
+        model_type: 'App\\Models\\Client',
+        per_page: 100
+      });
+      // Filter for admin notes related to this client
+      const clientLogs = logs.data?.filter(log => {
+        // We'll need to match by client ID - this is a simplified version
+        return log.model_type === 'App\\Models\\Client';
+      }) || [];
+      setAdminNotes(clientLogs.map(log => ({
+        id: log.id,
+        date: new Date(log.created_at).toLocaleString('en-GB'),
+        author: log.user?.name || 'Admin',
+        content: log.description
+      })));
+    } catch (err) {
+      console.error('Error fetching admin notes:', err);
+    }
+  };
+
+  // Fetch client data from API
+  useEffect(() => {
+    const fetchClientData = async () => {
+      if (!uuid) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await apiService.getClientDetails(uuid);
+        const transformedData = transformClientData(data);
+        setClient(transformedData);
+        await fetchAdminNotes();
+      } catch (err) {
+        console.error('Error fetching client details:', err);
+        setError('Failed to load client details. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClientData();
+  }, [uuid]);
+
+  // Action Handlers
+  const handleSendEmail = async () => {
+    if (!client?.email) {
+      showNotification('Client email not available', 'error');
+      return;
+    }
+    setShowEmailModal(true);
+  };
+
+  const handleSendEmailSubmit = async (subject, message) => {
+    try {
+      setActionLoading(true);
+      await apiService.sendClientEmail(uuid, subject, message);
+      showNotification('Email sent successfully');
+      setShowEmailModal(false);
+    } catch (err) {
+      showNotification(err.message || 'Failed to send email', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCall = () => {
+    if (!client?.phone) {
+      showNotification('Client phone number not available', 'error');
+      return;
+    }
+    window.location.href = `tel:${client.phone}`;
+  };
+
+  const handleSendFeedbackForm = async () => {
+    if (!client?.email) {
+      showNotification('Client email not available', 'error');
+      return;
+    }
+    
+    // Check if feedback was sent recently
+    if (client.lastFeedbackSentAt) {
+      const monthsSince = Math.floor((new Date() - new Date(client.lastFeedbackSentAt)) / (1000 * 60 * 60 * 24 * 30));
+      if (monthsSince < 3) {
+        showNotification(`Feedback form was sent ${monthsSince} month(s) ago. Please wait until 3 months have passed.`, 'error');
+        return;
+      }
+    }
+    
+    try {
+      setActionLoading(true);
+      await apiService.sendFeedbackForm(uuid);
+      success('Feedback form email sent successfully!');
+      // Refresh client data
+      const data = await apiService.getClientDetails(uuid);
+      const transformedData = transformClientData(data);
+      setClient(transformedData);
+    } catch (err) {
+      showError(err.message || 'Failed to send feedback form');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleArchive = () => {
+    setShowArchiveConfirmModal(true);
+  };
+
+  const confirmArchive = async () => {
+    try {
+      setActionLoading(true);
+      await apiService.archiveClient(uuid);
+      success('Client archived successfully');
+      // Refresh client data
+      const data = await apiService.getClientDetails(uuid);
+      setClient(prev => ({ ...prev, status: 'archived' }));
+      setShowArchiveConfirmModal(false);
+    } catch (err) {
+      showError(err.message || 'Failed to archive client');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAddSession = async (sessionData) => {
+    try {
+      setActionLoading(true);
+      const consultation = await apiService.createConsultation({
+        client_id: client.dbId,
+        tc_id: client.matchedTC?.id || null,
+        scheduled_at: sessionData.dateTime,
+        notes: sessionData.notes || '',
+        send_confirmation: sessionData.sendConfirmation || false
+      });
+      showNotification('Session added successfully');
+      setShowAddSessionModal(false);
+      
+      // Refresh full client data to get updated sessions with TC info
+      const data = await apiService.getClientDetails(uuid);
+      const transformedData = transformClientData(data);
+      setClient(transformedData);
+    } catch (err) {
+      showNotification(err.message || 'Failed to add session', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleViewSession = (session) => {
+    setSelectedSession(session);
+    setShowSessionNotesModal(true);
+  };
+
+  const handleDeleteSession = (session) => {
+    setSessionToDelete(session);
+    setShowDeleteSessionConfirmModal(true);
+  };
+
+  const confirmDeleteSession = async () => {
+    if (!sessionToDelete || !sessionToDelete.id) {
+      showError('Session ID not found. Cannot delete session.');
+      setShowDeleteSessionConfirmModal(false);
+      setSessionToDelete(null);
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      await apiService.deleteConsultation(sessionToDelete.id);
+      success('Session deleted successfully!');
+      setShowDeleteSessionConfirmModal(false);
+      setSessionToDelete(null);
+      
+      // Refresh client data
+      const data = await apiService.getClientDetails(uuid);
+      const transformedData = transformClientData(data);
+      setClient(transformedData);
+    } catch (err) {
+      console.error('Error deleting session:', err);
+      showError(err.message || 'Failed to delete session. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDownloadAgreement = () => {
+    if (!client?.agreement?.documentUrl) {
+      showNotification('Agreement document not available', 'error');
+      return;
+    }
+    window.open(client.agreement.documentUrl, '_blank');
+  };
+
+  const handleResendAgreement = async () => {
+    try {
+      setActionLoading(true);
+      await apiService.resendAgreement(client.uuid);
+      showNotification('Agreement resent successfully');
+      // Reload client data to get updated agreement status
+      await loadClientDetails();
+    } catch (err) {
+      showNotification(err.message || 'Failed to resend agreement', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAddAdminNote = async () => {
+    if (!newNoteText.trim()) {
+      showNotification('Please enter a note', 'error');
+      return;
+    }
+    
+    try {
+      setActionLoading(true);
+      // Create activity log entry
+      await apiService.createActivityLog({
+        action: 'admin_note',
+        model_type: 'App\\Models\\Client',
+        model_id: client.dbId,
+        description: newNoteText.trim()
+      });
+      showNotification('Note added successfully');
+      setNewNoteText('');
+      setShowAddNoteModal(false);
+      await fetchAdminNotes();
+    } catch (err) {
+      showNotification(err.message || 'Failed to add note', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleEditNote = (note) => {
+    setEditingNoteId(note.id);
+    setEditingNoteText(note.content);
+  };
+
+  const handleUpdateNote = async () => {
+    if (!editingNoteText.trim()) {
+      showNotification('Please enter a note', 'error');
+      return;
+    }
+    
+    try {
+      setActionLoading(true);
+      await apiService.updateActivityLog(editingNoteId, {
+        description: editingNoteText.trim()
+      });
+      showNotification('Note updated successfully');
+      setEditingNoteId(null);
+      setEditingNoteText('');
+      await fetchAdminNotes();
+    } catch (err) {
+      showNotification(err.message || 'Failed to update note', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteNote = (noteId) => {
+    setNoteToDelete(noteId);
+    setShowDeleteNoteConfirmModal(true);
+  };
+
+  const confirmDeleteNote = async () => {
+    try {
+      setActionLoading(true);
+      await apiService.deleteActivityLog(noteToDelete);
+      success('Note deleted successfully');
+      await fetchAdminNotes();
+      setShowDeleteNoteConfirmModal(false);
+      setNoteToDelete(null);
+    } catch (err) {
+      showError(err.message || 'Failed to delete note');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleProgressStage = () => {
+    const stages = ['Application', 'Consultation Booked', 'Consultation Completed', 'Pending Match', 'Matched', 'Agreement Pending', 'Active Therapy', 'Completed'];
+    const currentIndex = stages.indexOf(client.stage);
+    if (currentIndex === -1 || currentIndex === stages.length - 1) {
+      showError('Cannot progress further');
+      return;
+    }
+    
+    const stage = stages[currentIndex + 1];
+    setNextStage(stage);
+    setShowProgressStageConfirmModal(true);
+  };
+
+  const confirmProgressStage = async () => {
+    try {
+      setActionLoading(true);
+      await apiService.progressClientStage(uuid, nextStage);
+      success(`Client progressed to ${nextStage}`);
+      setClient(prev => ({ ...prev, stage: nextStage }));
+      setShowProgressStageConfirmModal(false);
+      setNextStage(null);
+    } catch (err) {
+      showError(err.message || 'Failed to progress stage');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBookNextSession = () => {
+    setShowAddSessionModal(true);
+  };
+
+
+  const handleDownloadReport = () => {
+    try {
+      // Create a new workbook
+      const wb = XLSX.utils.book_new();
+
+      // Sheet 1: Client Overview
+      const overviewData = [
+        ['Client Report'],
+        [],
+        ['Client Information'],
+        ['Name', client.name],
+        ['Client ID', client.client_id],
+        ['Email', client.email],
+        ['Phone', client.phone],
+        ['Age', client.age],
+        ['Gender', client.gender],
+        ['Ethnicity', client.ethnicity],
+        ['Sexual Orientation', client.sexualOrientation],
+        [],
+        ['Status Information'],
+        ['Stage', client.stage],
+        ['Status', client.status],
+        ['Days in System', client.daysInSystem],
+        ['Service Type', client.serviceType],
+        [],
+        ['Address'],
+        ['Address', client.address],
+        ['Postcode', client.postcode],
+      ];
+
+      const ws1 = XLSX.utils.aoa_to_sheet(overviewData);
+      XLSX.utils.book_append_sheet(wb, ws1, 'Overview');
+
+      // Sheet 2: Clinical Information
+      const clinicalData = [
+        ['Clinical Information'],
+        [],
+        ['Primary Issues / Concerns'],
+        ...(client.primaryIssues?.map(issue => [issue]) || [['None']]),
+        [],
+        ['Additional Details', client.additionalDetails || 'N/A'],
+        [],
+        ['Medication', client.medication || 'None'],
+        ['Disabilities / Impairments', client.disabilities || 'None'],
+        ['Risk Flags', client.riskFlags || 'None'],
+        ['Substance Misuse', client.substanceMisuse || 'None'],
+      ];
+
+      const ws2 = XLSX.utils.aoa_to_sheet(clinicalData);
+      XLSX.utils.book_append_sheet(wb, ws2, 'Clinical Info');
+
+      // Sheet 3: Sessions
+      const sessionsData = [
+        ['Session', 'Date', 'Time', 'TC Name', 'Duration', 'Status', 'Notes'],
+        ...(client.sessions?.map(session => [
+          session.sessionNumber,
+          session.date || 'N/A',
+          session.time || 'N/A',
+          session.tcName || 'N/A',
+          session.duration || 'N/A',
+          session.status || 'N/A',
+          session.notes || 'N/A'
+        ]) || [])
+      ];
+
+      const ws3 = XLSX.utils.aoa_to_sheet(sessionsData);
+      XLSX.utils.book_append_sheet(wb, ws3, 'Sessions');
+
+      // Sheet 4: Package Summary
+      const packageData = [
+        ['Package Summary'],
+        [],
+        ['Package Name', client.packageDetails?.name || 'N/A'],
+        ['Total Sessions', client.packageDetails?.totalSessions || 0],
+        ['Sessions Completed', client.packageDetails?.sessionsCompleted || 0],
+        ['Sessions DNA', client.packageDetails?.sessionsDNA || 0],
+        ['Sessions Remaining', client.packageDetails?.sessionsRemaining || 0],
+        ['Status', client.packageDetails?.status || 'N/A'],
+        ['Start Date', client.packageDetails?.startDate || 'N/A'],
+        ['Expected End Date', client.packageDetails?.expectedEndDate || 'N/A'],
+      ];
+
+      const ws4 = XLSX.utils.aoa_to_sheet(packageData);
+      XLSX.utils.book_append_sheet(wb, ws4, 'Package');
+
+      // Sheet 5: Matched Training Counsellor
+      if (client.matchedTC) {
+        const tcData = [
+          ['Matched Training Counsellor'],
+          [],
+          ['Name', client.matchedTC.name],
+          ['Email', client.matchedTC.email],
+          ['Phone', client.matchedTC.phone],
+          ['Modality', client.matchedTC.modality || 'N/A'],
+          ['Current Caseload', `${client.matchedTC.currentClients}/${client.matchedTC.maxClients}`],
+          ['Match Score', `${client.matchedTC.matchScore}%`],
+        ];
+
+        const ws5 = XLSX.utils.aoa_to_sheet(tcData);
+        XLSX.utils.book_append_sheet(wb, ws5, 'Matched TC');
+      }
+
+      // Sheet 6: Payment History
+      const paymentData = [
+        ['Payment History'],
+        [],
+        ['ID', 'Date', 'Type', 'Description', 'Amount', 'Status', 'Method'],
+        ...(client.payments?.map(payment => [
+          payment.id,
+          payment.date,
+          payment.type,
+          payment.description,
+          `£${payment.amount}`,
+          payment.status,
+          payment.method
+        ]) || []),
+        [],
+        ['Total Paid', `£${client.payments?.reduce((sum, p) => sum + p.amount, 0) || 0}`]
+      ];
+
+      const ws6 = XLSX.utils.aoa_to_sheet(paymentData);
+      XLSX.utils.book_append_sheet(wb, ws6, 'Payments');
+
+      // Sheet 7: Availability
+      if (client.availability && client.availability.length > 0) {
+        const availabilityData = [
+          ['Availability Schedule'],
+          [],
+          ['Day', 'Time Blocks'],
+          ...client.availability.map(avail => [
+            avail.day,
+            avail.timeBlocks?.join(', ') || 'N/A'
+          ])
+        ];
+
+        const ws7 = XLSX.utils.aoa_to_sheet(availabilityData);
+        XLSX.utils.book_append_sheet(wb, ws7, 'Availability');
+      }
+
+      // Generate Excel file and download
+      const fileName = `client-report-${client.client_id}-${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      showNotification('Report downloaded successfully');
+    } catch (err) {
+      console.error('Error generating report:', err);
+      showNotification('Failed to generate report', 'error');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading client details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !client) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600">{error || 'Client not found'}</p>
+          <Link href="/dashboard/clients" className="mt-4 text-purple-600 hover:text-purple-700">
+            Back to Clients
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Initialize journey timeline if not present
+  if (!client.journey || client.journey.length === 0) {
+    const stages = ['Application', 'Consultation Booked', 'Consultation Completed', 'Pending Match', 'Matched', 'Agreement Pending', 'Active Therapy', 'Completed'];
+    const currentStageIndex = stages.indexOf(client.stage);
+    
+    client.journey = stages.map((stage, index) => {
+      const isCompleted = currentStageIndex !== -1 && index < currentStageIndex;
+      const isCurrent = stage === client.stage;
+      
+      return {
+        stage,
+        date: null,
+        completed: isCompleted,
+        current: isCurrent
+      };
+    });
+  }
+
+  // Notes data - transform from client data
+  // Get consultation notes from all completed consultations
+  const consultationNotes = (client.sessions || [])
+    .filter(session => session.status === 'completed' && session.notes)
+    .map((session, idx) => ({
+      id: `consultation-${session.id || idx}`,
+      author: session.tcName || 'Admin',
+      date: session.date ? new Date(session.date).toLocaleDateString('en-GB') : 'N/A',
+      content: session.notes
+    }));
+  
+  // Transform session notes to match expected structure
+  const sessionNotes = (client.sessions || [])
+    .filter(session => session.notes) // Only show sessions with notes
+    .map((session, idx) => ({
+      id: `session-${session.id || session.sessionNumber || idx}`,
+      sessionNumber: session.sessionNumber || idx + 1,
+      author: session.tcName || 'Admin',
+      date: session.date ? new Date(session.date).toLocaleDateString('en-GB') : 'N/A',
+      session: `Session #${session.sessionNumber || idx + 1}`,
+      content: session.notes
+    }));
+
+
+
+  const getStatusColor = (status) => {
+
+    switch(status) {
+
+      case 'urgent': return 'bg-red-500';
+
+      case 'stuck': return 'bg-yellow-500';
+
+      case 'active': return 'bg-green-500';
+
+      default: return 'bg-gray-400';
+
+    }
+
+  };
+
+
+
+  const getStageBadgeColor = (stage) => {
+
+    switch(stage) {
+
+      case 'Application': return 'bg-blue-100 text-blue-800';
+
+      case 'Consultation Booked': return 'bg-purple-100 text-purple-800';
+
+      case 'Consultation Completed': return 'bg-purple-100 text-purple-800';
+
+      case 'Matched': return 'bg-green-100 text-green-800';
+
+      case 'Pending Match': return 'bg-yellow-100 text-yellow-800';
+
+      case 'Agreement Pending': return 'bg-orange-100 text-orange-800';
+
+      case 'Active Therapy': return 'bg-green-100 text-green-800';
+
+      case 'Completed': return 'bg-gray-100 text-gray-800';
+
+      default: return 'bg-gray-100 text-gray-800';
+
+    }
+
+  };
+
+
+
+  const getSessionStatusBadge = (status) => {
+
+    switch(status) {
+
+      case 'Completed':
+
+        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full flex items-center gap-1">
+
+          <CheckCircle className="w-3 h-3" /> Completed
+
+        </span>;
+
+      case 'DNA':
+
+        return <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full flex items-center gap-1">
+
+          <XCircle className="w-3 h-3" /> DNA
+
+        </span>;
+
+      case 'Scheduled':
+
+        return <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full flex items-center gap-1">
+
+          <Calendar className="w-3 h-3" /> Scheduled
+
+        </span>;
+
+      case 'Cancelled':
+
+        return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full flex items-center gap-1">
+
+          <Clock className="w-3 h-3" /> Cancelled
+
+        </span>;
+
+      default:
+
+        return null;
+
+    }
+
+  };
+
+
+
+  return (
+    <DashboardLayout>
+      <div className="min-h-screen bg-gray-50 flex">
+        {/* Notification Toast */}
+      {notification && (
+        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 ${
+          notification.type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+        }`}>
+          <span>{notification.message}</span>
+          <button onClick={() => setNotification(null)} className="ml-2">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Add Session Modal */}
+      {showAddSessionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Add New Session</h3>
+            <AddSessionFormComponent
+              client={client}
+              onSubmit={handleAddSession}
+              onCancel={() => setShowAddSessionModal(false)}
+              loading={actionLoading}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Send Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Send Email to {client?.name}</h3>
+            <EmailFormComponent
+              clientEmail={client?.email}
+              onSubmit={handleSendEmailSubmit}
+              onCancel={() => setShowEmailModal(false)}
+              loading={actionLoading}
+            />
+          </div>
+        </div>
+      )}
+
+        {/* Session Notes Modal */}
+        <SessionNotesModal
+          isOpen={showSessionNotesModal}
+          onClose={() => {
+            setShowSessionNotesModal(false);
+            setSelectedSession(null);
+          }}
+          session={selectedSession}
+        />
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+
+        {/* Header */}
+
+        <div className="bg-white border-b border-gray-200">
+
+          {/* Breadcrumb */}
+
+          <div className="px-6 py-3 border-b border-gray-100">
+
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+
+              <Link href="/dashboard/clients" className="hover:text-purple-600">All Clients</Link>
+
+              <ChevronRight className="w-4 h-4" />
+
+              <span className="text-gray-900 font-medium">{client.name}</span>
+
+            </div>
+
+          </div>
+
+
+
+          {/* Client Header */}
+
+          <div className="px-6 py-4">
+
+            <div className="flex items-start justify-between">
+
+              <div className="flex items-start gap-4">
+
+                <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold" style={{ backgroundColor: '#6f1d56' }}>
+
+                  {client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : '??'}
+
+                </div>
+
+                <div>
+
+                  <div className="flex items-center gap-3 mb-2">
+
+                    <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
+
+                    <span className="text-gray-600">•</span>
+
+                    <span className="text-lg text-gray-600">{client.age} years old</span>
+
+                    <span className="text-gray-600">•</span>
+
+                    <span className="text-sm text-gray-500">ID: {client.id}</span>
+
+                  </div>
+
+                  <div className="flex items-center gap-3">
+
+                    <div className={`w-3 h-3 rounded-full ${getStatusColor(client.status)}`}></div>
+
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStageBadgeColor(client.stage)}`}>
+
+                      {client.stage}
+
+                    </span>
+
+                    <span className="text-sm text-gray-600">Last activity: 2 hours ago</span>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
+
+              {/* Quick Actions */}
+
+              <div className="flex items-center gap-2">
+
+                <button 
+                  onClick={handleSendEmail}
+                  disabled={actionLoading}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+
+                  <Mail className="w-4 h-4" />
+
+                  Send Email
+
+                </button>
+
+                <button 
+                  onClick={handleCall}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2">
+
+                  <Phone className="w-4 h-4" />
+
+                  Call
+
+                </button>
+
+                {(client.stage === 'Active Therapy' || client.stage === 'Completed') && (
+                  <button 
+                    onClick={handleSendFeedbackForm}
+                    disabled={actionLoading || (client.lastFeedbackSentAt && new Date(client.lastFeedbackSentAt) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000))}
+                    className="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+
+                    <Send className="w-4 h-4" />
+
+                    Send Feedback Form
+
+                  </button>
+                )}
+
+                <Link href={`/dashboard/clients/edit?id=${uuid}`} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2">
+
+                  <Edit className="w-4 h-4" />
+
+                  Edit
+
+                </Link>
+
+                <button 
+                  onClick={handleArchive}
+                  disabled={actionLoading || client.status === 'archived'}
+                  className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+
+                  <Archive className="w-4 h-4" />
+
+                  {client.status === 'archived' ? 'Archived' : 'Archive'}
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        {/* Content Area - Scrollable */}
+
+        <div className="flex-1 overflow-y-auto">
+
+          <div className="p-6 space-y-6">
+
+            {/* Overview Cards */}
+
+            <div className="grid grid-cols-4 gap-4">
+
+              <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+
+                <p className="text-sm text-purple-600 mb-1">Service Type</p>
+
+                <p className="text-xl font-bold text-purple-900">{client.serviceType}</p>
+
+              </div>
+
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+
+                <p className="text-sm text-blue-600 mb-1">Days in System</p>
+
+                <p className="text-xl font-bold text-blue-900">{client.daysInSystem} days</p>
+
+              </div>
+
+              <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+
+                <p className="text-sm text-green-600 mb-1">Sessions Completed</p>
+
+                <p className="text-xl font-bold text-green-900">{client.packageDetails?.sessionsCompleted || 0}/{client.packageDetails?.totalSessions || 0}</p>
+
+              </div>
+
+              {(client.satisfactionScore !== null || client.feedbackCount > 0) && (
+                <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-100">
+
+                  <p className="text-sm text-yellow-600 mb-1">Client Satisfaction</p>
+
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                    <p className="text-xl font-bold text-yellow-900">
+                      {client.satisfactionScore ? client.satisfactionScore.toFixed(1) : 'N/A'}
+                      {client.satisfactionScore && <span className="text-sm text-yellow-700">/5.0</span>}
+                    </p>
+                    {client.feedbackCount > 0 && (
+                      <span className="text-xs text-yellow-700">({client.feedbackCount})</span>
+                    )}
+                  </div>
+
+                </div>
+              )}
+
+              <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
+
+                <p className="text-sm text-orange-600 mb-1">Next Session</p>
+
+                <p className="text-sm font-bold text-orange-900">28 Mar, 10:00 AM</p>
+
+              </div>
+
+            </div>
+
+
+
+            {/* Journey Timeline */}
+
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Client Journey</h2>
+
+              <div className="relative">
+
+                {/* Timeline Line */}
+
+                <div className="absolute top-6 left-0 right-0 h-0.5 bg-gray-200"></div>
+
+                <div 
+
+                  className="absolute top-6 left-0 h-0.5 bg-purple-600 transition-all duration-500"
+
+                  style={{ 
+                    width: `${client.journey && client.journey.length > 0 
+                      ? ((client.journey.findIndex(j => j.current) !== -1 
+                          ? client.journey.findIndex(j => j.current) + 1 
+                          : client.journey.filter(j => j.completed).length) / client.journey.length) * 100 
+                      : 0}%` 
+                  }}
+
+                ></div>
+
+
+
+                {/* Timeline Stages */}
+
+                <div className="relative flex justify-between">
+
+                  {(client.journey || []).map((stage, index) => (
+
+                    <div key={index} className="flex flex-col items-center" style={{ flex: 1 }}>
+
+                      {/* Circle */}
+
+                      <div className={`w-12 h-12 rounded-full border-4 flex items-center justify-center relative z-10 ${
+
+                        stage.completed 
+
+                          ? 'bg-purple-600 border-purple-600' 
+
+                          : stage.current
+
+                          ? 'bg-white border-purple-600'
+
+                          : 'bg-white border-gray-300'
+
+                      }`}>
+
+                        {stage.completed ? (
+
+                          <Check className="w-6 h-6 text-white" />
+
+                        ) : stage.current ? (
+
+                          <Clock className="w-6 h-6 text-purple-600" />
+
+                        ) : (
+
+                          <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+
+                        )}
+
+                      </div>
+
+                      
+
+                      {/* Label */}
+
+                      <div className="mt-3 text-center">
+
+                        <p className={`text-xs font-medium ${
+
+                          stage.completed || stage.current ? 'text-gray-900' : 'text-gray-500'
+
+                        }`}>
+
+                          {stage.stage}
+
+                        </p>
+
+                        {stage.date && (
+
+                          <p className="text-xs text-gray-500 mt-1">{stage.date}</p>
+
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  ))}
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+
+            {/* Two Column Layout */}
+
+            <div className="grid grid-cols-3 gap-6">
+
+              {/* Left Column - 2/3 width */}
+
+              <div className="col-span-2 space-y-6">
+
+                {/* Personal Information */}
+
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+                  <div className="flex items-center justify-between mb-4">
+
+                    <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
+
+                    <Link href={`/dashboard/clients/edit?id=${uuid}`} className="text-purple-600 hover:text-purple-700 text-sm font-medium flex items-center gap-1">
+
+                      <Edit className="w-4 h-4" />
+
+                      Edit
+
+                    </Link>
+
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+
+                    <div>
+
+                      <p className="text-sm text-gray-600 mb-1">Full Name</p>
+
+                      <p className="text-sm font-medium text-gray-900">{client.name}</p>
+
+                    </div>
+
+                    <div>
+
+                      <p className="text-sm text-gray-600 mb-1">Age</p>
+
+                      <p className="text-sm font-medium text-gray-900">{client.age} years old</p>
+
+                    </div>
+
+                    <div>
+
+                      <p className="text-sm text-gray-600 mb-1">Email</p>
+
+                      <p className="text-sm font-medium text-gray-900">{client.email}</p>
+
+                    </div>
+
+                    <div>
+
+                      <p className="text-sm text-gray-600 mb-1">Phone</p>
+
+                      <p className="text-sm font-medium text-gray-900">{client.phone}</p>
+
+                    </div>
+
+                    <div className="col-span-2">
+
+                      <p className="text-sm text-gray-600 mb-1">Address</p>
+
+                      <p className="text-sm font-medium text-gray-900">{client.address}, {client.postcode}</p>
+
+                    </div>
+
+                    <div>
+
+                      <p className="text-sm text-gray-600 mb-1">Gender</p>
+
+                      <p className="text-sm font-medium text-gray-900">{client.gender}</p>
+
+                    </div>
+
+                    <div>
+
+                      <p className="text-sm text-gray-600 mb-1">Ethnicity</p>
+
+                      <p className="text-sm font-medium text-gray-900">{client.ethnicity}</p>
+
+                    </div>
+
+                    <div>
+
+                      <p className="text-sm text-gray-600 mb-1">Sexual Orientation</p>
+
+                      <p className="text-sm font-medium text-gray-900">{client.sexualOrientation}</p>
+
+                    </div>
+
+                    <div>
+
+                      <p className="text-sm text-gray-600 mb-1">Voicemail Permission</p>
+
+                      <p className="text-sm font-medium text-gray-900">{client.voicemailPermission}</p>
+
+                    </div>
+
+                    <div className="col-span-2">
+
+                      <p className="text-sm text-gray-600 mb-1">How They Heard About Us</p>
+
+                      <p className="text-sm font-medium text-gray-900">{client.howHeardAbout}</p>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+
+                {/* Clinical Information */}
+
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Clinical Information</h2>
+
+                  
+
+                  <div className="space-y-4">
+
+                    <div>
+
+                      <p className="text-sm text-gray-600 mb-2">Primary Issues / Concerns</p>
+
+                      <div className="flex flex-wrap gap-2">
+
+                        {client.primaryIssues.map(issue => (
+
+                          <span key={issue} className="px-3 py-1 bg-red-100 text-red-800 text-sm rounded-full">
+
+                            {issue}
+
+                          </span>
+
+                        ))}
+
+                      </div>
+
+                    </div>
+
+
+
+                    <div>
+
+                      <p className="text-sm text-gray-600 mb-2">Additional Details</p>
+
+                      <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{client.additionalDetails}</p>
+
+                    </div>
+
+
+
+                    <div className="grid grid-cols-2 gap-4">
+
+                      <div>
+
+                        <p className="text-sm text-gray-600 mb-2">Medication</p>
+
+                        <p className="text-sm text-gray-900">{client.medication}</p>
+
+                      </div>
+
+                      <div>
+
+                        <p className="text-sm text-gray-600 mb-2">Disabilities / Impairments</p>
+
+                        <p className="text-sm text-gray-900">{client.disabilities}</p>
+
+                      </div>
+
+                      <div>
+
+                        <p className="text-sm text-gray-600 mb-2">Risk Flags</p>
+
+                        <p className="text-sm text-gray-900">{client.riskFlags}</p>
+
+                      </div>
+
+                      <div>
+
+                        <p className="text-sm text-gray-600 mb-2">Substance Misuse</p>
+
+                        <p className="text-sm text-gray-900">{client.substanceMisuse}</p>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+
+                {/* Availability */}
+
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Availability Schedule</h2>
+
+                  <div className="space-y-3">
+
+                    {Array.isArray(client.availability) && client.availability.length > 0 ? (
+                      client.availability.map(avail => (
+
+                      <div key={avail.day} className="flex items-center gap-4 p-3 bg-purple-50 rounded-lg border border-purple-100">
+
+                        <div className="w-28">
+
+                          <p className="text-sm font-medium text-purple-900">{avail.day}</p>
+
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+
+                          {avail.timeBlocks.map(block => (
+
+                            <span key={block} className="px-3 py-1 bg-purple-600 text-white text-sm rounded-full">
+
+                              {block}
+
+                            </span>
+
+                          ))}
+
+                        </div>
+
+                      </div>
+
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">No availability information available</p>
+                    )}
+
+                  </div>
+
+                </div>
+
+
+
+                {/* Matched Training Counsellor */}
+
+                {client.matchedTC && (
+
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Matched Training Counsellor</h2>
+
+                    
+
+                    {/* TC Profile Card */}
+
+                    <div className="border border-gray-200 rounded-lg p-4 mb-4">
+
+                      <div className="flex items-start justify-between mb-4">
+
+                        <div className="flex items-center gap-3">
+
+                          <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+
+                            <User className="w-6 h-6 text-purple-600" />
+
+                          </div>
+
+                          <div>
+
+                            <p className="font-semibold text-gray-900">{client.matchedTC.name}</p>
+
+                            <p className="text-sm text-gray-600">{client.matchedTC.modality}</p>
+
+                          </div>
+
+                        </div>
+
+                        <div className="text-right">
+
+                          <p className="text-2xl font-bold text-purple-600">{client.matchedTC.matchScore}%</p>
+
+                          <p className="text-xs text-gray-600">Match Score</p>
+
+                        </div>
+
+                      </div>
+
+
+
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+
+                        <div className="bg-gray-50 p-3 rounded-lg">
+
+                          <p className="text-xs text-gray-600 mb-1">Current Caseload</p>
+
+                          <p className="text-sm font-semibold text-gray-900">
+
+                            {client.matchedTC.currentClients}/{client.matchedTC.maxClients} clients
+
+                          </p>
+
+                        </div>
+
+                        <div className="bg-gray-50 p-3 rounded-lg">
+
+                          <p className="text-xs text-gray-600 mb-1">Contact</p>
+
+                          <p className="text-sm font-semibold text-gray-900">{client.matchedTC.email}</p>
+
+                        </div>
+
+                      </div>
+
+
+
+                      {/* Other Clients */}
+
+                      <div>
+
+                        <p className="text-xs text-gray-600 mb-2">Other Clients</p>
+
+                        <div className="flex flex-wrap gap-2">
+
+                          {client.matchedTC.otherClients.map((oc, idx) => (
+
+                            <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+
+                              {oc.name}, {oc.age}
+
+                            </span>
+
+                          ))}
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+
+
+                    {/* Match Score Breakdown */}
+
+                    <div>
+
+                      <p className="text-sm font-medium text-gray-900 mb-3">Match Score Breakdown</p>
+
+                      <div className="space-y-3">
+
+                        {Object.entries(client.matchedTC.matchBreakdown).map(([key, value]) => (
+
+                          <div key={key}>
+
+                            <div className="flex items-center justify-between mb-1">
+
+                              <span className="text-sm text-gray-700 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+
+                              <span className="text-sm font-medium text-gray-900">{value.score}/{value.max} ({value.percentage}%)</span>
+
+                            </div>
+
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+
+                              <div 
+
+                                className="bg-purple-600 h-2 rounded-full transition-all duration-500"
+
+                                style={{ width: `${value.percentage}%` }}
+
+                              ></div>
+
+                            </div>
+
+                          </div>
+
+                        ))}
+
+                      </div>
+
+                    </div>
+
+
+
+                    {client.matchedTC.warningFlags.length > 0 && (
+
+                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+
+                        <div className="flex items-start gap-2">
+
+                          <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+
+                          <div>
+
+                            <p className="text-sm font-medium text-yellow-900 mb-1">Warning Flags</p>
+
+                            <p className="text-sm text-yellow-800">
+
+                              TC marked as not ready for: {client.matchedTC.warningFlags.join(', ')}
+
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+
+                    )}
+
+                  </div>
+
+                )}
+
+
+
+                {/* Payment History */}
+
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment History</h2>
+
+                  <div className="space-y-3">
+
+                    {client.payments.map(payment => (
+
+                      <div key={payment.id} className="border border-gray-200 rounded-lg p-4">
+
+                        <div className="flex items-center justify-between mb-2">
+
+                          <div className="flex items-center gap-3">
+
+                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+
+                              <CreditCard className="w-5 h-5 text-green-600" />
+
+                            </div>
+
+                            <div>
+
+                              <p className="font-medium text-gray-900">{payment.type}</p>
+
+                              <p className="text-sm text-gray-600">{payment.description}</p>
+
+                            </div>
+
+                          </div>
+
+                          <div className="text-right">
+
+                            <p className="text-xl font-bold text-gray-900">£{payment.amount}</p>
+
+                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+
+                              {payment.status}
+
+                            </span>
+
+                          </div>
+
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm text-gray-600 mt-2">
+
+                          <span>{payment.date}</span>
+
+                          <span>{payment.method}</span>
+
+                        </div>
+
+                      </div>
+
+                    ))}
+
+                  </div>
+
+                  
+
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+
+                    <div className="flex items-center justify-between">
+
+                      <span className="font-semibold text-gray-900">Total Paid</span>
+
+                      <span className="text-2xl font-bold text-gray-900">
+
+                        £{client.payments.reduce((sum, p) => sum + p.amount, 0)}
+
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+
+
+                {/* Session History */}
+
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+                  <div className="flex items-center justify-between mb-4">
+
+                    <h2 className="text-lg font-semibold text-gray-900">Session History</h2>
+
+                    <button 
+                      onClick={() => setShowAddSessionModal(true)}
+                      disabled={actionLoading}
+                      className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
+                      style={{ backgroundColor: '#6f1d56' }}>
+
+                      <Plus className="w-4 h-4" />
+
+                      Add Session
+
+                    </button>
+
+                  </div>
+
+
+
+                  <div className="overflow-x-auto">
+
+                    <table className="w-full">
+
+                      <thead className="bg-gray-50">
+
+                        <tr>
+
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session</th>
+
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
+
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">TC Name</th>
+
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+
+                        </tr>
+
+                      </thead>
+
+                      <tbody className="divide-y divide-gray-200">
+
+                        {client.sessions.map(session => (
+
+                          <tr key={session.sessionNumber} className="hover:bg-gray-50">
+
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900">#{session.sessionNumber}</td>
+
+                            <td className="px-4 py-3 text-sm text-gray-700">
+
+                              {session.date}<br/>
+
+                              <span className="text-gray-500">{session.time}</span>
+
+                            </td>
+
+                            <td className="px-4 py-3 text-sm text-gray-700">{session.tcName}</td>
+
+                            <td className="px-4 py-3 text-sm text-gray-700">{session.duration}</td>
+
+                            <td className="px-4 py-3">{getSessionStatusBadge(session.status)}</td>
+
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => handleViewSession(session)}
+                                  className="p-2 hover:bg-gray-100 rounded-lg"
+                                  title="View Session Notes">
+                                  <Eye className="w-4 h-4 text-gray-600" />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteSession(session)}
+                                  disabled={actionLoading}
+                                  className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Delete Session">
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </button>
+                              </div>
+                            </td>
+
+                          </tr>
+
+                        ))}
+
+                      </tbody>
+
+                    </table>
+
+                  </div>
+
+                </div>
+
+
+
+                {/* Consultation Record */}
+
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Initial Consultation Record</h2>
+
+                  
+
+                  {client.consultation ? (
+                    <div className="space-y-4">
+
+                      <div className="grid grid-cols-3 gap-4">
+
+                        <div>
+
+                          <p className="text-sm text-gray-600 mb-1">Date</p>
+
+                          <p className="text-sm font-medium text-gray-900">{client.consultation.date || 'N/A'}</p>
+
+                        </div>
+
+                        <div>
+
+                          <p className="text-sm text-gray-600 mb-1">Time</p>
+
+                          <p className="text-sm font-medium text-gray-900">{client.consultation.time || 'N/A'}</p>
+
+                        </div>
+
+                        <div>
+
+                          <p className="text-sm text-gray-600 mb-1">Duration</p>
+
+                          <p className="text-sm font-medium text-gray-900">{client.consultation.duration || 'N/A'}</p>
+
+                        </div>
+
+                      </div>
+
+
+
+                      <div>
+
+                        <p className="text-sm text-gray-600 mb-1">Conducted By</p>
+
+                        <p className="text-sm font-medium text-gray-900">{client.consultation.conductedBy || 'N/A'}</p>
+
+                      </div>
+
+
+
+                      <div>
+
+                        <p className="text-sm text-gray-600 mb-2">Consultation Notes</p>
+
+                        <p className="text-sm text-gray-900 bg-gray-50 p-4 rounded-lg">{client.consultation.notes || 'No notes available'}</p>
+
+                      </div>
+
+
+
+                      <div className="grid grid-cols-2 gap-4">
+
+                        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+
+                          <p className="text-sm text-gray-600 mb-1">Outcome</p>
+
+                          <p className="text-sm font-medium text-green-900">{client.consultation.outcome || 'N/A'}</p>
+
+                        </div>
+
+                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+
+                          <p className="text-sm text-gray-600 mb-1">Recommended Service</p>
+
+                          <p className="text-sm font-medium text-blue-900">{client.consultation.recommendedService || 'N/A'}</p>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-gray-500 italic">No consultation record available yet</p>
+                    </div>
+                  )}
+
+                </div>
+
+
+
+                {/* Agreement Status */}
+
+                {client.agreement && (
+
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Client Agreement</h2>
+
+                    
+
+                    <div className="space-y-4">
+
+                      <div className="flex items-center gap-3">
+
+                        {client.agreement.status === 'Signed' ? (
+
+                          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+
+                            <CheckCircle className="w-6 h-6 text-green-600" />
+
+                          </div>
+
+                        ) : (
+
+                          <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+
+                            <Clock className="w-6 h-6 text-yellow-600" />
+
+                          </div>
+
+                        )}
+
+                        <div>
+
+                          <p className="font-medium text-gray-900">Agreement {client.agreement.status}</p>
+
+                          <p className="text-sm text-gray-600">
+
+                            {client.agreement.status === 'Signed' 
+
+                              ? `Signed on ${client.agreement.signedDate}`
+
+                              : `Sent on ${client.agreement.sentDate}`
+
+                            }
+
+                          </p>
+
+                        </div>
+
+                      </div>
+
+
+
+                      <div className="flex items-center gap-3">
+
+                        <button 
+                          onClick={handleDownloadAgreement}
+                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2">
+
+                          <Download className="w-4 h-4" />
+
+                          Download Agreement
+
+                        </button>
+
+                        {client.agreement && client.agreement.status !== 'Signed' && (
+
+                          <button 
+                            onClick={handleResendAgreement}
+                            disabled={actionLoading}
+                            className="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+
+                            <Send className="w-4 h-4" />
+
+                            Resend Agreement
+
+                          </button>
+
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                )}
+
+
+
+                {/* Notes Section with Tabs */}
+
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Notes & Activity</h2>
+
+                  
+
+                  {/* Tabs */}
+
+                  <div className="flex items-center gap-2 border-b border-gray-200 mb-4">
+
+                    <button
+
+                      onClick={() => setActiveNotesTab('consultation')}
+
+                      className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+
+                        activeNotesTab === 'consultation'
+
+                          ? 'border-purple-600 text-purple-600'
+
+                          : 'border-transparent text-gray-600 hover:text-gray-900'
+
+                      }`}
+
+                    >
+
+                      Consultation Notes
+
+                    </button>
+
+                    <button
+
+                      onClick={() => setActiveNotesTab('session')}
+
+                      className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+
+                        activeNotesTab === 'session'
+
+                          ? 'border-purple-600 text-purple-600'
+
+                          : 'border-transparent text-gray-600 hover:text-gray-900'
+
+                      }`}
+
+                    >
+
+                      Session Notes
+
+                    </button>
+
+                    <button
+
+                      onClick={() => setActiveNotesTab('admin')}
+
+                      className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+
+                        activeNotesTab === 'admin'
+
+                          ? 'border-purple-600 text-purple-600'
+
+                          : 'border-transparent text-gray-600 hover:text-gray-900'
+
+                      }`}
+
+                    >
+
+                      Admin Notes
+
+                    </button>
+
+                  </div>
+
+
+
+                  {/* Notes Content */}
+
+                  <div className="space-y-4">
+
+                    {activeNotesTab === 'consultation' && (
+                      consultationNotes.length > 0 ? (
+                        consultationNotes.map(note => (
+
+                          <div key={note.id} className="border border-gray-200 rounded-lg p-4">
+
+                            <div className="flex items-start justify-between mb-2">
+
+                              <div>
+
+                                <p className="font-medium text-gray-900">{note.author}</p>
+
+                                <p className="text-sm text-gray-600">{note.date}</p>
+
+                              </div>
+
+                            </div>
+
+                            <p className="text-sm text-gray-700">{note.content}</p>
+
+                          </div>
+
+                        ))
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-sm text-gray-500 italic">No consultation notes available yet</p>
+                        </div>
+                      )
+                    )}
+
+
+
+                    {activeNotesTab === 'session' && (
+                      sessionNotes.length > 0 ? (
+                        sessionNotes.map(note => (
+
+                          <div key={note.id} className="border border-gray-200 rounded-lg p-4">
+
+                            <div className="flex items-start justify-between mb-2">
+
+                              <div>
+
+                                <p className="font-medium text-gray-900">{note.author}</p>
+
+                                <p className="text-sm text-gray-600">{note.session} • {note.date}</p>
+
+                              </div>
+
+                              <button className="p-2 hover:bg-gray-100 rounded-lg">
+
+                                <Eye className="w-4 h-4 text-gray-600" />
+
+                              </button>
+
+                            </div>
+
+                            <p className="text-sm text-gray-700">{note.content}</p>
+
+                          </div>
+
+                        ))
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-sm text-gray-500 italic">No session notes available yet</p>
+                        </div>
+                      )
+                    )}
+
+
+
+                    {activeNotesTab === 'admin' && (
+
+                      <>
+
+                        {adminNotes.map(note => (
+
+                          <div key={note.id} className="border border-gray-200 rounded-lg p-4">
+
+                            <div className="flex items-start justify-between mb-2">
+
+                              <div>
+
+                                <p className="font-medium text-gray-900">{note.author}</p>
+
+                                <p className="text-sm text-gray-600">{note.date}</p>
+
+                              </div>
+
+                              <div className="flex items-center gap-2">
+
+                                <button 
+                                  onClick={() => handleEditNote(note)}
+                                  className="p-2 hover:bg-gray-100 rounded-lg">
+
+                                  <Edit className="w-4 h-4 text-gray-600" />
+
+                                </button>
+
+                                <button 
+                                  onClick={() => handleDeleteNote(note.id)}
+                                  disabled={actionLoading}
+                                  className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+
+                                </button>
+
+                              </div>
+
+                            </div>
+
+                            <p className="text-sm text-gray-700">{note.content}</p>
+
+                          </div>
+
+                        ))}
+
+                        
+
+                        {/* Add New Admin Note */}
+                        {editingNoteId ? (
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                          <textarea
+                              value={editingNoteText}
+                              onChange={(e) => setEditingNoteText(e.target.value)}
+                              placeholder="Edit admin note..."
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                              rows={3}
+                            ></textarea>
+                            <div className="flex items-center justify-end gap-2 mt-2">
+                              <button 
+                                onClick={() => {
+                                  setEditingNoteId(null);
+                                  setEditingNoteText('');
+                                }}
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">
+                                Cancel
+                              </button>
+                              <button 
+                                onClick={handleUpdateNote}
+                                disabled={actionLoading}
+                                className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
+                                style={{ backgroundColor: '#6f1d56' }}>
+                                Update Note
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                            <textarea
+                              value={newNoteText}
+                              onChange={(e) => setNewNoteText(e.target.value)}
+                            placeholder="Add a new admin note..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                            rows={3}
+                          ></textarea>
+                          <div className="flex items-center justify-end gap-2 mt-2">
+                              <button 
+                                onClick={() => {
+                                  setNewNoteText('');
+                                  setShowAddNoteModal(false);
+                                }}
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">
+                              Cancel
+                            </button>
+                              <button 
+                                onClick={handleAddAdminNote}
+                                disabled={actionLoading}
+                                className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
+                                style={{ backgroundColor: '#6f1d56' }}>
+                              Add Note
+                            </button>
+                          </div>
+                        </div>
+                        )}
+
+                      </>
+
+                    )}
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
+
+              {/* Right Column - 1/3 width - Package Summary */}
+
+              <div className="col-span-1">
+
+                <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-6">
+
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Package Summary</h2>
+
+                  
+
+                  <div className="space-y-4">
+
+                    <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+
+                      <div className="flex items-center gap-2 mb-2">
+
+                        <Package className="w-5 h-5 text-purple-600" />
+
+                        <p className="font-medium text-purple-900">{client.packageDetails.name}</p>
+
+                      </div>
+
+                      <p className="text-sm text-purple-700">
+
+                        {client.packageDetails.totalSessions} Sessions Package
+
+                      </p>
+
+                    </div>
+
+
+
+                    <div className="space-y-3">
+
+                      <div className="flex justify-between items-center">
+
+                        <span className="text-sm text-gray-600">Total Sessions</span>
+
+                        <span className="text-sm font-semibold text-gray-900">{client.packageDetails.totalSessions}</span>
+
+                      </div>
+
+                      <div className="flex justify-between items-center">
+
+                        <span className="text-sm text-gray-600">Completed</span>
+
+                        <span className="text-sm font-semibold text-green-600">{client.packageDetails.sessionsCompleted}</span>
+
+                      </div>
+
+                      <div className="flex justify-between items-center">
+
+                        <span className="text-sm text-gray-600">DNA (Did Not Attend)</span>
+
+                        <span className="text-sm font-semibold text-red-600">{client.packageDetails.sessionsDNA}</span>
+
+                      </div>
+
+                      <div className="flex justify-between items-center">
+
+                        <span className="text-sm text-gray-600">Remaining</span>
+
+                        <span className="text-sm font-semibold text-blue-600">{client.packageDetails.sessionsRemaining}</span>
+
+                      </div>
+
+                    </div>
+
+
+
+                    <div className="pt-4 border-t border-gray-200">
+
+                      <div className="flex justify-between items-center mb-1">
+
+                        <span className="text-sm text-gray-600">Progress</span>
+
+                        <span className="text-sm font-semibold text-gray-900">
+
+                          {client.packageDetails && client.packageDetails.totalSessions > 0 ? Math.round((client.packageDetails.sessionsCompleted / client.packageDetails.totalSessions) * 100) : 0}%
+
+                        </span>
+
+                      </div>
+
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+
+                        <div 
+
+                          className="bg-purple-600 h-2 rounded-full transition-all duration-500"
+
+                          style={{ width: `${client.packageDetails && client.packageDetails.totalSessions > 0 ? (client.packageDetails.sessionsCompleted / client.packageDetails.totalSessions) * 100 : 0}%` }}
+
+                        ></div>
+
+                      </div>
+
+                    </div>
+
+
+
+                    <div className="pt-4 border-t border-gray-200 space-y-2">
+
+                      <div className="flex justify-between items-center">
+
+                        <span className="text-sm text-gray-600">Start Date</span>
+
+                        <span className="text-sm font-medium text-gray-900">{client.packageDetails.startDate}</span>
+
+                      </div>
+
+                      <div className="flex justify-between items-center">
+
+                        <span className="text-sm text-gray-600">Expected End</span>
+
+                        <span className="text-sm font-medium text-gray-900">{client.packageDetails.expectedEndDate}</span>
+
+                      </div>
+
+                      <div className="flex justify-between items-center">
+
+                        <span className="text-sm text-gray-600">Status</span>
+
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          client.packageDetails.status === 'Active' 
+                            ? 'bg-green-100 text-green-800'
+                            : client.packageDetails.status === 'Completed'
+                            ? 'bg-gray-100 text-gray-800'
+                            : client.packageDetails.status === 'Pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+
+                          {client.packageDetails.status}
+
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+
+
+                  {/* Quick Actions */}
+
+                  <div className="mt-6 space-y-2">
+
+                    <button 
+                      onClick={handleProgressStage}
+                      disabled={actionLoading || client.stage === 'Completed'}
+                      className="w-full py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
+                      style={{ backgroundColor: '#6f1d56' }}>
+
+                      Progress to Next Stage
+
+                    </button>
+
+                    <button 
+                      onClick={handleBookNextSession}
+                      disabled={actionLoading}
+                      className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+
+                      Book Next Session
+
+                    </button>
+
+                    <button 
+                      onClick={handleDownloadReport}
+                      className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">
+
+                      Download Report
+
+                    </button>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* Archive Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showArchiveConfirmModal}
+        onClose={() => setShowArchiveConfirmModal(false)}
+        onConfirm={confirmArchive}
+        title="Archive Client"
+        message={`Are you sure you want to archive ${client?.name}? This will mark the client as archived.`}
+        confirmText="Archive Client"
+        cancelText="Cancel"
+        type="warning"
+        loading={actionLoading}
+        confirmButtonColor="#f59e0b"
+      />
+
+      {/* Delete Note Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteNoteConfirmModal}
+        onClose={() => {
+          setShowDeleteNoteConfirmModal(false);
+          setNoteToDelete(null);
+        }}
+        onConfirm={confirmDeleteNote}
+        title="Delete Note"
+        message="Are you sure you want to delete this note? This action cannot be undone."
+        confirmText="Delete Note"
+        cancelText="Cancel"
+        type="danger"
+        loading={actionLoading}
+        confirmButtonColor="#dc2626"
+      />
+
+      {/* Progress Stage Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showProgressStageConfirmModal}
+        onClose={() => {
+          setShowProgressStageConfirmModal(false);
+          setNextStage(null);
+        }}
+        onConfirm={confirmProgressStage}
+        title="Progress Client Stage"
+        message={`Are you sure you want to progress ${client?.name} to "${nextStage}" stage?`}
+        confirmText={`Progress to ${nextStage}`}
+        cancelText="Cancel"
+        type="info"
+        loading={actionLoading}
+        confirmButtonColor="#6f1d56"
+      />
+
+      {/* Delete Session Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteSessionConfirmModal}
+        onClose={() => {
+          setShowDeleteSessionConfirmModal(false);
+          setSessionToDelete(null);
+        }}
+        onConfirm={confirmDeleteSession}
+        title="Delete Session"
+        message={`Are you sure you want to delete Session #${sessionToDelete?.sessionNumber || 'N/A'} scheduled for ${sessionToDelete?.date || 'N/A'}? This action cannot be undone.`}
+        confirmText="Delete Session"
+        cancelText="Cancel"
+        type="danger"
+        loading={actionLoading}
+        confirmButtonColor="#dc2626"
+      />
+      </div>
+    </DashboardLayout>
+  );
+
+}
+
+// Add Session Form Component
+function AddSessionFormComponent({ client, onSubmit, onCancel, loading }) {
+  const [dateTime, setDateTime] = useState('');
+  const [notes, setNotes] = useState('');
+  const [sendConfirmation, setSendConfirmation] = useState(true);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!dateTime) {
+      alert('Please select a date and time');
+      return;
+    }
+    onSubmit({ dateTime, notes, sendConfirmation });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Date & Time
+        </label>
+        <input
+          type="datetime-local"
+          value={dateTime}
+          onChange={(e) => setDateTime(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Notes (Optional)
+        </label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+          rows={3}
+        />
+      </div>
+      <div className="flex items-center">
+        <input
+          type="checkbox"
+          id="sendConfirmation"
+          checked={sendConfirmation}
+          onChange={(e) => setSendConfirmation(e.target.checked)}
+          className="mr-2"
+        />
+        <label htmlFor="sendConfirmation" className="text-sm text-gray-700">
+          Send confirmation email
+        </label>
+      </div>
+      <div className="flex items-center justify-end gap-2 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ backgroundColor: '#6f1d56' }}
+        >
+          {loading ? 'Adding...' : 'Add Session'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// Email Form Component
+function EmailFormComponent({ clientEmail, onSubmit, onCancel, loading }) {
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!subject.trim() || !message.trim()) {
+      alert('Please fill in both subject and message');
+      return;
+    }
+    onSubmit(subject, message);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          To
+        </label>
+        <input
+          type="email"
+          value={clientEmail || ''}
+          disabled
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Subject
+        </label>
+        <input
+          type="text"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Message
+        </label>
+        <textarea
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+          rows={6}
+          required
+        />
+      </div>
+      <div className="flex items-center justify-end gap-2 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ backgroundColor: '#6f1d56' }}
+        >
+          {loading ? 'Sending...' : 'Send Email'}
+        </button>
+      </div>
+    </form>
+  );
+}
+

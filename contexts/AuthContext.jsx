@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import apiService from "@/lib/api";
 
 const AuthContext = createContext(null);
 
@@ -12,15 +13,24 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Check for stored authentication on mount
-    const storedUser = localStorage.getItem("vanquish_user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        localStorage.removeItem("vanquish_user");
-      }
+    const token = apiService.getToken();
+    if (token) {
+      // Verify token by fetching user
+      apiService
+        .getUser()
+        .then((response) => {
+          setUser(response.user);
+        })
+        .catch(() => {
+          apiService.clearToken();
+          setUser(null);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -37,15 +47,31 @@ export function AuthProvider({ children }) {
     }
   }, [user, isLoading, pathname, router]);
 
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem("vanquish_user", JSON.stringify(userData));
+  const login = async (email, password, twoFactorCode = null) => {
+    try {
+      const response = await apiService.login(email, password, twoFactorCode);
+      
+      // Check if 2FA is required
+      if (response.requires_two_factor) {
+        return { requiresTwoFactor: true, message: response.message };
+      }
+      
+      setUser(response.user);
+      return response;
+    } catch (error) {
+      throw error;
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("vanquish_user");
-    router.push("/login");
+  const logout = async () => {
+    try {
+      await apiService.logout();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setUser(null);
+      router.push("/login");
+    }
   };
 
   return (
@@ -62,4 +88,3 @@ export function useAuth() {
   }
   return context;
 }
-

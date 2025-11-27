@@ -1,20 +1,26 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import apiService from '@/lib/api';
+import { useToast } from '@/contexts/ToastContext';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import SearchableSelect from '@/components/SearchableSelect';
+import DashboardLayout from '@/components/DashboardLayout';
+import { formatName, getCounsellorPrefixType } from '@/lib/nameFormatter';
 import { 
   Users, Search, Filter, ChevronDown, MoreVertical, Eye,
   Mail, Phone, Calendar, Edit, Trash2, ArrowUpDown, X,
   CheckCircle, Clock, AlertTriangle, Video, FileText,
   UserCheck, Activity, Menu, Home, ClipboardList,
   Settings, LogOut, ChevronRight, MapPin, User,
-  Star, TrendingUp, Award, Shield, Zap
+  Star, TrendingUp, Award, Shield, Zap, Building2, RefreshCw, CalendarDays
 } from 'lucide-react';
 
 export default function PendingMatchesPage() {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { success, error: showError } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterService, setFilterService] = useState('all');
   const [filterUrgency, setFilterUrgency] = useState('all');
@@ -22,9 +28,98 @@ export default function PendingMatchesPage() {
   const [selectedClient, setSelectedClient] = useState(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedTC, setSelectedTC] = useState(null);
+  const [pendingMatches, setPendingMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [trainingCounsellors, setTrainingCounsellors] = useState([]);
+  const [assignLoading, setAssignLoading] = useState(false);
 
-  // Mock Pending Match Clients
-  const pendingMatches = [
+  // Fetch pending matches from API
+  useEffect(() => {
+    const fetchPendingMatches = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const params = {};
+        if (searchTerm) params.search = searchTerm;
+        if (filterService !== 'all') params.service_type = filterService;
+        if (filterUrgency !== 'all') params.urgency = filterUrgency;
+        
+        const data = await apiService.getPendingMatches(params);
+        
+        // Transform API data to match component structure
+        const transformedData = data.map(client => ({
+          id: client.uuid || client.id,
+          uuid: client.uuid || client.id,
+          name: client.name,
+          age: client.age || null,
+          email: client.email,
+          phone: client.phone || null,
+          serviceType: client.service_type || null,
+          submittedDate: client.submitted_date || null,
+          daysWaiting: client.days_waiting || 0,
+          urgency: client.urgency || (client.status === 'urgent' ? 'high' : client.status === 'stuck' ? 'high' : 'medium'),
+          primaryIssues: client.primary_issues || [],
+          preferredModality: client.preferred_modality || null,
+          availability: client.availability ? Object.entries(client.availability).flatMap(([day, slots]) => 
+            slots.map(slot => `${day} ${slot.replace('-', ' ')}`)
+          ) : [],
+          location: client.address ? `${client.address}${client.postcode ? ', ' + client.postcode : ''}` : null,
+          matchScore: null,
+          suggestedTCs: [] // Will be populated separately
+        }));
+        
+        setPendingMatches(transformedData);
+      } catch (err) {
+        console.error('Error fetching pending matches:', err);
+        const errorMessage = 'Failed to load pending matches. Please try again.';
+        setError(errorMessage);
+        showError(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPendingMatches();
+  }, [searchTerm, filterService, filterUrgency]);
+
+  // Fetch training counsellors for suggestions
+  useEffect(() => {
+    const fetchTCs = async () => {
+      try {
+        const data = await apiService.getTrainingCounsellors();
+        setTrainingCounsellors(data);
+        
+        // Update pending matches with suggested TCs
+        setPendingMatches(prev => prev.map(client => {
+          // Simple matching logic - can be enhanced
+          const suggested = data
+            .filter(tc => tc.status === 'Active' && tc.current_clients < (tc.max_clients || 6))
+            .slice(0, 3)
+            .map(tc => ({
+              id: tc.uuid || tc.id,
+              uuid: tc.uuid || tc.id,
+              name: tc.name,
+              modality: tc.modality || 'N/A',
+              matchScore: 85, // Placeholder - implement real matching algorithm
+              currentClients: tc.current_clients || 0,
+              availability: tc.current_clients < (tc.max_clients || 6) ? 'High' : 'Low'
+            }));
+          
+          return { ...client, suggestedTCs: suggested };
+        }));
+      } catch (err) {
+        console.error('Error fetching training counsellors:', err);
+      }
+    };
+
+    if (pendingMatches.length > 0) {
+      fetchTCs();
+    }
+  }, [pendingMatches.length]);
+
+  // Mock Pending Match Clients (removed - now using API)
+  const oldPendingMatches = [
     {
       id: 'CL005',
       name: 'Charlotte Evans',
@@ -239,82 +334,62 @@ export default function PendingMatchesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen`}>
-        <div className="p-4 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            {sidebarOpen && (
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: '#6f1d56' }}>
-                  VT
-                </div>
-                <div>
-                  <h1 className="text-sm font-bold text-gray-900">Vanquish</h1>
-                  <p className="text-xs text-gray-600">Admin</p>
-                </div>
-              </div>
-            )}
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-lg">
-              <Menu className="w-5 h-5 text-gray-600" />
-            </button>
-          </div>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {[
-            { id: 'overview', icon: Home, label: 'Overview', href: '/dashboard' },
-            { id: 'consultations', icon: Video, label: 'Consultations', badge: 3, href: '/dashboard/consultations' },
-            { id: 'matches', icon: UserCheck, label: 'Pending Matches', badge: 8, href: '/dashboard/pending-matches' },
-            { id: 'tcs', icon: Users, label: 'Training Counsellors', href: '/dashboard/training-counsellors' },
-            { id: 'clients', icon: ClipboardList, label: 'All Clients', href: '/dashboard/clients' },
-            { id: 'activity', icon: Activity, label: 'Activity Log', href: '/dashboard/activity-log' }
-          ].map(item => {
-            const isActive = pathname === item.href || (item.id === 'matches' && pathname?.startsWith('/dashboard/pending-matches'));
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive ? 'bg-purple-100 text-purple-900' : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                {sidebarOpen && (
-                  <>
-                    <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
-                    {item.badge > 0 && (
-                      <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{item.badge}</span>
-                    )}
-                  </>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-4 border-t border-gray-200 space-y-2 flex-shrink-0">
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-            <Settings className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg">
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+    <DashboardLayout>
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Pending Matches</h1>
-                <p className="text-sm text-gray-600 mt-1">Clients waiting to be matched with training counsellors</p>
+                <p className="text-sm text-gray-600 mt-1">Clients waiting to be matched with practitioners</p>
               </div>
+              <button
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    setError(null);
+                    const params = {};
+                    if (searchTerm) params.search = searchTerm;
+                    if (filterService !== 'all') params.service_type = filterService;
+                    if (filterUrgency !== 'all') params.urgency = filterUrgency;
+                    
+                    const data = await apiService.getPendingMatches(params);
+                    const transformedData = data.map(client => ({
+                      id: client.uuid || client.id,
+                      uuid: client.uuid || client.id,
+                      name: client.name,
+                      age: client.age || null,
+                      email: client.email,
+                      phone: client.phone || null,
+                      serviceType: client.service_type || null,
+                      submittedDate: client.submitted_date || null,
+                      daysWaiting: client.days_waiting || 0,
+                      urgency: client.urgency || (client.status === 'urgent' ? 'high' : client.status === 'stuck' ? 'high' : 'medium'),
+                      primaryIssues: client.primary_issues || [],
+                      preferredModality: client.preferred_modality || null,
+                      availability: client.availability ? Object.entries(client.availability).flatMap(([day, slots]) => 
+                        slots.map(slot => `${day} ${slot.replace('-', ' ')}`)
+                      ) : [],
+                      location: client.address ? `${client.address}${client.postcode ? ', ' + client.postcode : ''}` : null,
+                      matchScore: null,
+                      suggestedTCs: []
+                    }));
+                    setPendingMatches(transformedData);
+                    success('Data refreshed successfully');
+                  } catch (err) {
+                    console.error('Error refreshing:', err);
+                    showError('Failed to refresh data');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh data"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
             </div>
 
             {/* Stats Cards */}
@@ -352,41 +427,119 @@ export default function PendingMatchesPage() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               />
             </div>
-            <select
-              value={filterService}
-              onChange={(e) => setFilterService(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
-            >
-              <option value="all">All Services</option>
-              <option value="Low Cost">Low Cost</option>
-              <option value="Mid Range">Mid Range</option>
-            </select>
-            <select
-              value={filterUrgency}
-              onChange={(e) => setFilterUrgency(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
-            >
-              <option value="all">All Urgency</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
-            >
-              <option value="urgency">Sort: Urgency</option>
-              <option value="daysWaiting">Sort: Days Waiting</option>
-              <option value="name">Sort: Name</option>
-            </select>
+            <div className="min-w-[120px] flex-shrink-0">
+              <SearchableSelect
+                value={filterService}
+                onChange={(e) => setFilterService(e.target.value)}
+                options={[
+                  { value: 'all', label: 'All Services' },
+                  { value: 'Low Cost', label: 'Low Cost' },
+                  { value: 'Mid Range', label: 'Mid Range' }
+                ]}
+                placeholder="All Services"
+                className="text-sm"
+              />
+            </div>
+            <div className="min-w-[120px] flex-shrink-0">
+              <SearchableSelect
+                value={filterUrgency}
+                onChange={(e) => setFilterUrgency(e.target.value)}
+                options={[
+                  { value: 'all', label: 'All Urgency' },
+                  { value: 'high', label: 'High' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'low', label: 'Low' }
+                ]}
+                placeholder="All Urgency"
+                className="text-sm"
+              />
+            </div>
+            <div className="min-w-[120px] flex-shrink-0">
+              <SearchableSelect
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                options={[
+                  { value: 'urgency', label: 'Sort: Urgency' },
+                  { value: 'daysWaiting', label: 'Sort: Days Waiting' },
+                  { value: 'name', label: 'Sort: Name' }
+                ]}
+                placeholder="Sort: Urgency"
+                className="text-sm"
+              />
+            </div>
           </div>
         </div>
 
         {/* Matches List */}
         <div className="flex-1 overflow-y-auto p-6">
+          {loading && pendingMatches.length === 0 && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Loading pending matches...</p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <div>
+                  <p className="text-sm font-medium text-red-900">{error}</p>
+                  <button
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        setError(null);
+                        const params = {};
+                        if (searchTerm) params.search = searchTerm;
+                        if (filterService !== 'all') params.service_type = filterService;
+                        if (filterUrgency !== 'all') params.urgency = filterUrgency;
+                        
+                        const data = await apiService.getPendingMatches(params);
+                        const transformedData = data.map(client => ({
+                          id: client.uuid || client.id,
+                          uuid: client.uuid || client.id,
+                          name: client.name,
+                          age: client.age || null,
+                          email: client.email,
+                          phone: client.phone || null,
+                          serviceType: client.service_type || null,
+                          submittedDate: client.submitted_date || null,
+                          daysWaiting: client.days_waiting || 0,
+                          urgency: client.urgency || (client.status === 'urgent' ? 'high' : client.status === 'stuck' ? 'high' : 'medium'),
+                          primaryIssues: client.primary_issues || [],
+                          preferredModality: client.preferred_modality || null,
+                          availability: client.availability ? Object.entries(client.availability).flatMap(([day, slots]) => 
+                            slots.map(slot => `${day} ${slot.replace('-', ' ')}`)
+                          ) : [],
+                          location: client.address ? `${client.address}${client.postcode ? ', ' + client.postcode : ''}` : null,
+                          matchScore: null,
+                          suggestedTCs: []
+                        }));
+                        setPendingMatches(transformedData);
+                        success('Data loaded successfully');
+                      } catch (err) {
+                        console.error('Error fetching:', err);
+                        const errorMessage = 'Failed to load pending matches. Please try again.';
+                        setError(errorMessage);
+                        showError(errorMessage);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="text-sm text-red-700 underline mt-1"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4">
-            {filteredMatches.map(client => (
+            {!loading && filteredMatches.map(client => (
               <div key={client.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-4 flex-1">
@@ -395,7 +548,7 @@ export default function PendingMatchesPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <Link href={`/dashboard/client-details?id=${client.id}`} className="text-lg font-bold text-gray-900 hover:text-purple-600">
+                        <Link href={`/dashboard/client-details/${client.uuid || client.id}`} className="text-lg font-bold text-gray-900 hover:text-purple-600">
                           {client.name}, {client.age}
                         </Link>
                         <div className={`w-3 h-3 rounded-full ${getUrgencyColor(client.urgency)}`}></div>
@@ -439,19 +592,20 @@ export default function PendingMatchesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedClient(client);
-                        setShowAssignModal(true);
-                      }}
-                      className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2"
-                      style={{ backgroundColor: '#6f1d56' }}
-                    >
-                      <UserCheck className="w-4 h-4" />
-                      Assign TC
-                    </button>
+                  <button
+                    onClick={() => {
+                      setSelectedClient(client);
+                      setShowAssignModal(true);
+                    }}
+                    disabled={loading}
+                    className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: '#6f1d56' }}
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    Assign TC
+                  </button>
                     <Link
-                      href={`/dashboard/client-details?id=${client.id}`}
+                      href={`/dashboard/client-details/${client.uuid || client.id}`}
                       className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                       title="View Details"
                     >
@@ -462,15 +616,15 @@ export default function PendingMatchesPage() {
 
                 {/* Suggested TCs */}
                 <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-sm font-medium text-gray-900 mb-3">💡 Suggested Training Counsellors:</p>
+                  <p className="text-sm font-medium text-gray-900 mb-3">💡 Suggested Practitioners:</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {client.suggestedTCs.map(tc => (
                       <div key={tc.id} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <Link href={`/dashboard/training-counsellors/details`} className="font-semibold text-gray-900 hover:text-purple-600">
-                                {tc.name}
+                              <Link href={`/dashboard/training-counsellors/details/${tc.uuid || tc.id}`} className="font-semibold text-gray-900 hover:text-purple-600">
+                                {formatName(tc.name, 'tc')}
                               </Link>
                               <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full flex items-center gap-1">
                                 <Star className="w-3 h-3" />
@@ -488,7 +642,8 @@ export default function PendingMatchesPage() {
                               setSelectedTC(tc);
                               setShowAssignModal(true);
                             }}
-                            className="px-3 py-1.5 text-white rounded-lg hover:opacity-90 text-xs font-medium"
+                            disabled={loading}
+                            className="px-3 py-1.5 text-white rounded-lg hover:opacity-90 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{ backgroundColor: '#6f1d56' }}
                           >
                             Assign
@@ -501,7 +656,7 @@ export default function PendingMatchesPage() {
               </div>
             ))}
 
-            {filteredMatches.length === 0 && (
+            {!loading && filteredMatches.length === 0 && (
               <div className="text-center py-12">
                 <UserCheck className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No Pending Matches Found</h3>
@@ -510,7 +665,6 @@ export default function PendingMatchesPage() {
             )}
           </div>
         </div>
-      </div>
 
       {/* Assign Modal */}
       {showAssignModal && selectedClient && (
@@ -535,28 +689,49 @@ export default function PendingMatchesPage() {
 
               <div className="p-6">
                 <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 mb-4">
-                  <p className="font-semibold text-purple-900 mb-1">{selectedClient.name}</p>
+                  <p className="font-semibold text-purple-900 mb-1">{formatName(selectedClient.name, 'client')}</p>
                   <p className="text-sm text-purple-700">{selectedClient.age} years old • {selectedClient.serviceType}</p>
                   <p className="text-xs text-purple-600 mt-1">Primary Issues: {selectedClient.primaryIssues.join(', ')}</p>
                 </div>
 
                 {selectedTC ? (
                   <div className="p-4 bg-green-50 rounded-lg border border-green-200 mb-4">
-                    <p className="font-semibold text-green-900 mb-1">{selectedTC.name}</p>
+                    <p className="font-semibold text-green-900 mb-1">{formatName(selectedTC.name, 'tc')}</p>
                     <p className="text-sm text-green-700">{selectedTC.modality} • Match Score: {selectedTC.matchScore}%</p>
                     <p className="text-xs text-green-600 mt-1">Current Clients: {selectedTC.currentClients} • Availability: {selectedTC.availability}</p>
                   </div>
                 ) : (
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Select Training Counsellor</label>
-                    <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent">
-                      <option value="">Choose a TC...</option>
-                      {selectedClient.suggestedTCs.map(tc => (
-                        <option key={tc.id} value={tc.id}>
-                          {tc.name} ({tc.modality}) - {tc.matchScore}% match
-                        </option>
-                      ))}
-                    </select>
+                    <SearchableSelect
+                      value={selectedTC?.id || ''}
+                      onChange={(e) => {
+                        const tcId = e.target.value;
+                        if (tcId) {
+                          // Find the TC from suggestedTCs or trainingCounsellors
+                          const tc = selectedClient.suggestedTCs.find(t => (t.id === tcId || t.uuid === tcId)) ||
+                                    trainingCounsellors.find(t => (t.id === tcId || t.uuid === tcId));
+                          if (tc) {
+                            setSelectedTC({
+                              id: tc.uuid || tc.id,
+                              uuid: tc.uuid || tc.id,
+                              name: tc.name,
+                              modality: tc.modality || 'N/A',
+                              matchScore: tc.matchScore || null,
+                              currentClients: tc.current_clients || 0,
+                              availability: tc.availability || 'N/A'
+                            });
+                          }
+                        } else {
+                          setSelectedTC(null);
+                        }
+                      }}
+                      options={(selectedClient.suggestedTCs.length > 0 ? selectedClient.suggestedTCs : trainingCounsellors.filter(tc => tc.status === 'Active' && tc.current_clients < (tc.max_clients || 6))).map(tc => ({
+                        value: tc.uuid || tc.id,
+                        label: `${tc.name} (${tc.modality})${tc.matchScore ? ` - ${tc.matchScore}% match` : ''}`
+                      }))}
+                      placeholder="Choose a TC..."
+                    />
                   </div>
                 )}
 
@@ -583,21 +758,76 @@ export default function PendingMatchesPage() {
                       setSelectedClient(null);
                       setSelectedTC(null);
                     }}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                    disabled={assignLoading}
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={() => {
-                      alert(`Client "${selectedClient.name}" assigned to "${selectedTC?.name || 'selected TC'}" successfully!`);
-                      setShowAssignModal(false);
-                      setSelectedClient(null);
-                      setSelectedTC(null);
+                    onClick={async () => {
+                      if (!selectedTC) {
+                        showError('Please select a Training Counsellor before assigning.');
+                        return;
+                      }
+                      try {
+                        setAssignLoading(true);
+                        await apiService.assignMatch({
+                          client_id: selectedClient.uuid || selectedClient.id,
+                          tc_id: selectedTC.uuid || selectedTC.id,
+                          match_score: selectedTC.matchScore || null,
+                          assignment_notes: '',
+                          send_notification: true
+                        });
+                        success(`Client "${selectedClient.name}" assigned to "${selectedTC.name}" successfully!`);
+                        setShowAssignModal(false);
+                        setSelectedClient(null);
+                        setSelectedTC(null);
+                        // Refresh data
+                        const params = {};
+                        if (searchTerm) params.search = searchTerm;
+                        if (filterService !== 'all') params.service_type = filterService;
+                        if (filterUrgency !== 'all') params.urgency = filterUrgency;
+                        const data = await apiService.getPendingMatches(params);
+                        const transformedData = data.map(client => ({
+                          id: client.uuid || client.id,
+                          uuid: client.uuid || client.id,
+                          name: client.name,
+                          age: client.age || null,
+                          email: client.email,
+                          phone: client.phone || null,
+                          serviceType: client.service_type || null,
+                          submittedDate: client.submitted_date || null,
+                          daysWaiting: client.days_waiting || 0,
+                          urgency: client.urgency || (client.status === 'urgent' ? 'high' : client.status === 'stuck' ? 'high' : 'medium'),
+                          primaryIssues: client.primary_issues || [],
+                          preferredModality: client.preferred_modality || null,
+                          availability: client.availability ? Object.entries(client.availability).flatMap(([day, slots]) => 
+                            slots.map(slot => `${day} ${slot.replace('-', ' ')}`)
+                          ) : [],
+                          location: client.address ? `${client.address}${client.postcode ? ', ' + client.postcode : ''}` : null,
+                          matchScore: null,
+                          suggestedTCs: []
+                        }));
+                        setPendingMatches(transformedData);
+                      } catch (err) {
+                        console.error('Error assigning match:', err);
+                        showError(err.message || 'Failed to assign client. Please try again.');
+                      } finally {
+                        setAssignLoading(false);
+                      }
                     }}
-                    className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium"
+                    disabled={assignLoading || !selectedTC}
+                    className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     style={{ backgroundColor: '#6f1d56' }}
                   >
-                    Assign Client
+                    {assignLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Assigning...
+                      </>
+                    ) : (
+                      'Assign Client'
+                    )}
                   </button>
                 </div>
               </div>
@@ -605,7 +835,7 @@ export default function PendingMatchesPage() {
           </div>
         </>
       )}
-    </div>
+    </DashboardLayout>
   );
 }
 

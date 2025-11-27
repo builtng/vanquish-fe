@@ -10,10 +10,12 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    twoFactorCode: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [requires2FA, setRequires2FA] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,27 +23,27 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Simulate API call - replace with actual authentication
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Demo credentials - replace with actual authentication logic
-      if (
-        formData.email === "admin@vanquish.com" &&
-        formData.password === "admin123"
-      ) {
-        const user = {
-          id: "1",
-          email: formData.email,
-          name: "Admin User",
-          role: "admin",
-        };
-        login(user);
-        router.push("/dashboard");
-      } else {
-        setError("Invalid email or password. Please try again.");
+      const response = await login(
+        formData.email, 
+        formData.password, 
+        requires2FA ? formData.twoFactorCode : null
+      );
+      
+      // Check if 2FA is required
+      if (response && response.requiresTwoFactor) {
+        setRequires2FA(true);
+        setError("");
+        setIsLoading(false);
+        return;
       }
+      
+      router.push("/dashboard");
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      if (err.response?.data?.errors?.two_factor_code) {
+        setError(err.response.data.errors.two_factor_code[0]);
+      } else {
+        setError(err.message || "Invalid email or password. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -119,18 +121,20 @@ export default function LoginPage() {
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  required
+                  required={!requires2FA}
+                  disabled={requires2FA}
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
                   }
-                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent text-gray-900 placeholder-gray-400"
+                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={requires2FA}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center disabled:cursor-not-allowed"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
@@ -140,6 +144,40 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {/* Two-Factor Authentication Code Field */}
+            {requires2FA && (
+              <div>
+                <label
+                  htmlFor="twoFactorCode"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Two-Factor Authentication Code
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="twoFactorCode"
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={formData.twoFactorCode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setFormData({ ...formData, twoFactorCode: value });
+                    }}
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent text-gray-900 placeholder-gray-400 text-center text-2xl tracking-widest font-mono"
+                    placeholder="000000"
+                    autoFocus
+                  />
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Enter the 6-digit code from your authenticator app
+                </p>
+              </div>
+            )}
 
             {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">

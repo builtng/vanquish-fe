@@ -1,0 +1,540 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\TrainingCounsellor;
+use App\Models\ActivityLog;
+use App\Mail\QualifiedCounsellorFormEmail;
+use App\Mail\GenericTrainingCounsellorEmail;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+
+class TrainingCounsellorController extends Controller
+{
+    public function index(Request $request)
+    {
+        $query = TrainingCounsellor::with(['clients', 'intakeForm']);
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('modality') && $request->modality !== 'all') {
+            $query->where('modality', $request->modality);
+        }
+
+        $tcs = $query->get();
+        
+        // Transform to include intake form data in a more accessible format
+        $tcs->transform(function ($tc) {
+            $intakeForm = $tc->intakeForm->first();
+            if ($intakeForm) {
+                // Try to extract training provider details from additional_info JSON
+                $trainingProviderDetails = [];
+                if ($intakeForm->additional_info) {
+                    try {
+                        $decoded = json_decode($intakeForm->additional_info, true);
+                        if (is_array($decoded)) {
+                            $trainingProviderDetails = $decoded;
+                        }
+                    } catch (\Exception $e) {
+                        // If not JSON, ignore
+                    }
+                }
+                
+                // Add intake form fields to TC object for easier access
+                $tc->training_org_name = $trainingProviderDetails['training_org_name'] ?? $intakeForm->institution ?? null;
+                $tc->training_org_address = $trainingProviderDetails['training_org_address'] ?? null;
+                $tc->course_title = $trainingProviderDetails['course_title'] ?? $intakeForm->course ?? null;
+                $tc->tutor_name = $trainingProviderDetails['tutor_name'] ?? null;
+                $tc->tutor_email = $trainingProviderDetails['tutor_email'] ?? null;
+                $tc->tutor_phone = $trainingProviderDetails['tutor_phone'] ?? null;
+                $tc->placement_lead_name = $trainingProviderDetails['placement_lead_name'] ?? null;
+                $tc->placement_lead_email = $trainingProviderDetails['placement_lead_email'] ?? null;
+                $tc->placement_lead_phone = $trainingProviderDetails['placement_lead_phone'] ?? null;
+            } else {
+                // Fallback to TC fields if no intake form
+                $tc->training_org_name = $tc->institution ?? null;
+                $tc->training_org_address = null;
+                $tc->course_title = $tc->course ?? null;
+                $tc->tutor_name = null;
+                $tc->tutor_email = null;
+                $tc->tutor_phone = null;
+                $tc->placement_lead_name = null;
+                $tc->placement_lead_email = null;
+                $tc->placement_lead_phone = null;
+            }
+            return $tc;
+        });
+        
+        return response()->json($tcs);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:training_counsellors,email',
+            'phone' => 'nullable|string',
+            'modality' => 'nullable|in:CBT,Person-Centred,Integrative,Psychodynamic,Other',
+            'status' => 'nullable|in:Active,At Capacity,On Leave,Inactive',
+            'availability' => 'nullable|array',
+            'topics_with_experience' => 'nullable|array',
+            'topics_not_ready_for' => 'nullable|array',
+            'course' => 'nullable|string',
+            'institution' => 'nullable|string',
+        ]);
+
+        $validated['tc_id'] = 'TC' . str_pad(TrainingCounsellor::count() + 1, 3, '0', STR_PAD_LEFT);
+        $validated['joined_date'] = now();
+        $validated['last_activity'] = now();
+
+        $tc = TrainingCounsellor::create($validated);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'tc_created',
+            'model_type' => TrainingCounsellor::class,
+            'model_id' => $tc->id,
+            'description' => "Training Counsellor {$tc->name} created",
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json($tc, 201);
+    }
+
+    public function show($id)
+    {
+        // Find by UUID or fall back to tc_id for backward compatibility
+        $tc = TrainingCounsellor::where('uuid', $id)
+            ->orWhere('tc_id', $id)
+            ->with(['clients', 'consultations', 'matches.client'])
+            ->firstOrFail();
+        return response()->json($tc);
+    }
+
+    public function update(Request $request, $id)
+    {
+        // Find by UUID or fall back to tc_id for backward compatibility
+        $tc = TrainingCounsellor::where('uuid', $id)->orWhere('tc_id', $id)->firstOrFail();
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:training_counsellors,email,' . $id,
+            'phone' => 'nullable|string',
+            'modality' => 'nullable|in:CBT,Person-Centred,Integrative,Psychodynamic,Other',
+            'status' => 'sometimes|in:Active,At Capacity,On Leave,Inactive',
+            'counsellor_type' => 'sometimes|in:Trainee,Qualified',
+            'availability' => 'nullable|array',
+            'topics_with_experience' => 'nullable|array',
+            'topics_not_ready_for' => 'nullable|array',
+        ]);
+
+        // Check if transitioning from Trainee to Qualified
+        $wasTrainee = $tc->counsellor_type === 'Trainee';
+        $becomingQualified = isset($validated['counsellor_type']) && $validated['counsellor_type'] === 'Qualified';
+
+        $tc->update($validated);
+        $tc->update(['last_activity' => now()]);
+
+        $description = "Training Counsellor {$tc->name} updated";
+        if ($wasTrainee && $becomingQualified) {
+            $description = "Training Counsellor {$tc->name} transitioned to Qualified Counsellor";
+        }
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'tc_updated',
+            'model_type' => TrainingCounsellor::class,
+            'model_id' => $tc->id,
+            'description' => $description,
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json($tc);
+    }
+
+    public function destroy($id)
+    {
+        // Find by UUID or fall back to tc_id for backward compatibility
+        $tc = TrainingCounsellor::where('uuid', $id)->orWhere('tc_id', $id)->firstOrFail();
+        $tc->delete();
+
+        return response()->json(['message' => 'Training Counsellor deleted successfully']);
+    }
+
+    public function details($id)
+    {
+        // Find by UUID or fall back to tc_id for backward compatibility
+        $tc = TrainingCounsellor::where('uuid', $id)
+            ->orWhere('tc_id', $id)
+            ->with([
+                'clients',
+                'consultations.client',
+                'matches.client',
+                'intakeForm'
+            ])
+            ->firstOrFail();
+
+        // Format documents from file path columns
+        $documents = [];
+        $documentFields = [
+            'qualification_document' => 'Course Certificate',
+            'dbs_certificate_qualified' => 'DBS Certificate',
+            'insurance_qualified' => 'Professional Indemnity Insurance',
+            'self_employment_proof' => 'Self Employment Proof',
+            'professional_membership' => 'Professional Membership',
+        ];
+
+        // Also check for regular DBS and insurance from intake form
+        if ($tc->intakeForm && $tc->intakeForm->count() > 0) {
+            $intakeForm = $tc->intakeForm->first();
+            if ($intakeForm->dbs_certificate) {
+                $documents[] = [
+                    'id' => 'dbs_intake',
+                    'name' => 'DBS Certificate',
+                    'type' => 'DBS',
+                    'uploadDate' => $intakeForm->created_at ? $intakeForm->created_at->format('Y-m-d') : null,
+                    'status' => 'Verified',
+                    'url' => $intakeForm->dbs_certificate,
+                ];
+            }
+            if ($intakeForm->insurance_certificate) {
+                $documents[] = [
+                    'id' => 'insurance_intake',
+                    'name' => 'Professional Indemnity Insurance',
+                    'type' => 'Insurance',
+                    'uploadDate' => $intakeForm->created_at ? $intakeForm->created_at->format('Y-m-d') : null,
+                    'status' => 'Verified',
+                    'url' => $intakeForm->insurance_certificate,
+                ];
+            }
+            if ($intakeForm->student_id) {
+                $documents[] = [
+                    'id' => 'student_id',
+                    'name' => 'Student ID',
+                    'type' => 'ID',
+                    'uploadDate' => $intakeForm->created_at ? $intakeForm->created_at->format('Y-m-d') : null,
+                    'status' => 'Verified',
+                    'url' => $intakeForm->student_id,
+                ];
+            }
+            if ($intakeForm->supervisor_agreement) {
+                $documents[] = [
+                    'id' => 'supervisor_agreement',
+                    'name' => 'Supervisor Agreement',
+                    'type' => 'Agreement',
+                    'uploadDate' => $intakeForm->created_at ? $intakeForm->created_at->format('Y-m-d') : null,
+                    'status' => 'Verified',
+                    'url' => $intakeForm->supervisor_agreement,
+                ];
+            }
+            if ($intakeForm->fitness_to_practice) {
+                $documents[] = [
+                    'id' => 'fitness_to_practice',
+                    'name' => 'Fitness to Practice Certificate',
+                    'type' => 'Fitness',
+                    'uploadDate' => $intakeForm->created_at ? $intakeForm->created_at->format('Y-m-d') : null,
+                    'status' => 'Verified',
+                    'url' => $intakeForm->fitness_to_practice,
+                ];
+            }
+        }
+
+        // Add qualified counsellor documents
+        foreach ($documentFields as $field => $name) {
+            if ($tc->$field) {
+                $documents[] = [
+                    'id' => $field,
+                    'name' => $name,
+                    'type' => str_replace('_qualified', '', $field),
+                    'uploadDate' => $tc->created_at ? $tc->created_at->format('Y-m-d') : null,
+                    'status' => 'Verified',
+                    'url' => $tc->$field,
+                ];
+            }
+        }
+
+        // Get admin notes from activity logs
+        $adminNotes = ActivityLog::where('model_type', TrainingCounsellor::class)
+            ->where('model_id', $tc->id)
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'author' => $log->user ? $log->user->name . ' (Admin)' : 'System',
+                    'date' => $log->created_at ? $log->created_at->format('Y-m-d h:i A') : null,
+                    'content' => $log->description,
+                ];
+            })
+            ->toArray();
+
+        // Format response with documents and admin notes
+        $response = $tc->toArray();
+        $response['documents'] = $documents;
+        $response['current_clients'] = $tc->clients->count();
+        $response['admin_notes'] = $adminNotes;
+
+        return response()->json($response);
+    }
+
+    public function transitionToQualified(Request $request, $id)
+    {
+        // Find by UUID or fall back to tc_id for backward compatibility
+        $tc = TrainingCounsellor::where('uuid', $id)->orWhere('tc_id', $id)->firstOrFail();
+
+        if ($tc->counsellor_type === 'Qualified') {
+            return response()->json(['message' => 'Counsellor is already qualified'], 400);
+        }
+
+        $tc->update([
+            'counsellor_type' => 'Qualified',
+            'last_activity' => now(),
+        ]);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'tc_transitioned_to_qualified',
+            'model_type' => TrainingCounsellor::class,
+            'model_id' => $tc->id,
+            'description' => "Training Counsellor {$tc->name} transitioned to Qualified Counsellor",
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'message' => 'Counsellor status updated to Qualified. Please complete the qualified counsellor form.',
+            'tc' => $tc,
+            'requires_form' => !$tc->qualified_form_completed,
+        ]);
+    }
+
+    public function submitQualifiedForm(Request $request)
+    {
+        $validated = $request->validate([
+            'tc_id' => 'required', // Can be either database ID or tc_id string
+            'legal_first_name' => 'required|string|max:255',
+            'legal_last_name' => 'required|string|max:255',
+            'registered_address' => 'required|string|max:500',
+            'registered_city' => 'required|string|max:255',
+            'registered_postcode' => 'required|string|max:20',
+            'has_supervisor' => 'required|in:Yes,No',
+            'previous_vanquish_work' => 'nullable|string',
+            'areas_to_improve' => 'required|string',
+            'unique_trait' => 'required|string',
+            'counsellor_training_details' => 'required|string',
+            'qualified_to_work_with' => 'required|array',
+            'qualified_to_work_with.*' => 'in:Individuals,Couples,Families',
+            'challenging_cases' => 'required|string',
+            'qualification_document' => 'required|string',
+            'dbs_certificate_qualified' => 'required|string',
+            'insurance_qualified' => 'required|string',
+            'self_employment_proof' => 'required|string',
+            'professional_membership' => 'required|string',
+            'signature' => 'required|string',
+            'signature_date' => 'required|date',
+        ]);
+
+        // Find TC by ID or tc_id string
+        $tc = is_numeric($validated['tc_id']) 
+            ? TrainingCounsellor::findOrFail($validated['tc_id'])
+            : TrainingCounsellor::where('tc_id', $validated['tc_id'])->firstOrFail();
+
+        // Update TC with qualified counsellor information
+        $tc->update([
+            'legal_first_name' => $validated['legal_first_name'],
+            'legal_last_name' => $validated['legal_last_name'],
+            'registered_address' => $validated['registered_address'],
+            'registered_city' => $validated['registered_city'],
+            'registered_postcode' => $validated['registered_postcode'],
+            'has_supervisor' => $validated['has_supervisor'],
+            'previous_vanquish_work' => $validated['previous_vanquish_work'] ?? null,
+            'areas_to_improve' => $validated['areas_to_improve'],
+            'unique_trait' => $validated['unique_trait'],
+            'counsellor_training_details' => $validated['counsellor_training_details'],
+            'qualified_to_work_with' => $validated['qualified_to_work_with'],
+            'challenging_cases' => $validated['challenging_cases'],
+            'qualification_document' => $validated['qualification_document'],
+            'dbs_certificate_qualified' => $validated['dbs_certificate_qualified'],
+            'insurance_qualified' => $validated['insurance_qualified'],
+            'self_employment_proof' => $validated['self_employment_proof'],
+            'professional_membership' => $validated['professional_membership'],
+            'signature' => $validated['signature'],
+            'signature_date' => $validated['signature_date'],
+            'qualified_form_completed' => true,
+            'counsellor_type' => 'Qualified',
+            'last_activity' => now(),
+        ]);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id ?? null,
+            'action' => 'qualified_form_submitted',
+            'model_type' => TrainingCounsellor::class,
+            'model_id' => $tc->id,
+            'description' => "Qualified Counsellor form submitted for {$tc->name}",
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'message' => 'Qualified Counsellor form submitted successfully',
+            'tc' => $tc,
+        ]);
+    }
+
+    public function uploadDocument(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
+            'field' => 'required|string|max:100',
+            'tc_id' => 'required',
+        ]);
+
+        $file = $request->file('file');
+        $field = $request->input('field');
+        $tcIdParam = $request->input('tc_id');
+        
+        // Additional security checks
+        $originalName = $file->getClientOriginalName();
+        $extension = strtolower($file->getClientOriginalExtension());
+        $mimeType = $file->getMimeType();
+        
+        // Validate file extension
+        $allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+        if (!in_array($extension, $allowedExtensions)) {
+            return response()->json([
+                'message' => 'Invalid file type. Allowed types: PDF, DOC, DOCX, JPG, JPEG, PNG',
+            ], 422);
+        }
+        
+        // Validate MIME type
+        $allowedMimeTypes = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/jpeg',
+            'image/png',
+        ];
+        if (!in_array($mimeType, $allowedMimeTypes)) {
+            return response()->json([
+                'message' => 'Invalid file MIME type.',
+            ], 422);
+        }
+        
+        // Sanitize field name to prevent directory traversal
+        $field = preg_replace('/[^a-zA-Z0-9_-]/', '_', $field);
+        $field = substr($field, 0, 100);
+        
+        // Find TC by ID or tc_id string
+        $tc = is_numeric($tcIdParam) 
+            ? TrainingCounsellor::findOrFail($tcIdParam)
+            : TrainingCounsellor::where('tc_id', $tcIdParam)->firstOrFail();
+        
+        $tcId = $tc->id;
+
+        // Sanitize filename
+        $sanitizedName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
+        $sanitizedName = substr($sanitizedName, 0, 255);
+        
+        // Generate unique filename to prevent overwrites
+        $filename = time() . '_' . uniqid() . '_' . $sanitizedName;
+
+        $path = $file->storeAs("qualified_counsellors/{$tcId}/{$field}", $filename, 'public');
+
+        return response()->json([
+            'file_path' => $path,
+            'file_name' => $originalName,
+        ]);
+    }
+
+    public function sendEmail(Request $request, $id)
+    {
+        // Find by UUID or fall back to tc_id for backward compatibility
+        $tc = TrainingCounsellor::where('uuid', $id)->orWhere('tc_id', $id)->firstOrFail();
+        
+        $validated = $request->validate([
+            'subject' => 'required|string|max:255',
+            'message' => 'required|string',
+        ]);
+
+        // Check if email exists
+        if (!$tc->email) {
+            return response()->json([
+                'message' => 'Training counsellor does not have an email address',
+            ], 400);
+        }
+
+        // Send email
+        try {
+            Mail::to($tc->email)->send(new GenericTrainingCounsellorEmail($tc->name, $validated['subject'], $validated['message']));
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'email_sent',
+            'model_type' => TrainingCounsellor::class,
+            'model_id' => $tc->id,
+            'description' => "Email sent to {$tc->name} ({$tc->email}): {$validated['subject']}",
+            'changes' => ['subject' => $validated['subject']],
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json([
+                'message' => 'Email sent successfully to ' . $tc->email,
+            'to' => $tc->email,
+            'subject' => $validated['subject'],
+                'tc_uuid' => $tc->uuid,
+        ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to send email: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function sendQualifiedFormEmail(Request $request, $id)
+    {
+        // Find by UUID or fall back to tc_id for backward compatibility
+        $tc = TrainingCounsellor::where('uuid', $id)
+            ->orWhere('tc_id', $id)
+            ->firstOrFail();
+
+        // Check if email exists
+        if (!$tc->email) {
+            return response()->json([
+                'message' => 'Training counsellor does not have an email address',
+            ], 400);
+        }
+
+        // Send email
+        try {
+            Mail::to($tc->email)->send(new QualifiedCounsellorFormEmail($tc->name, $tc->uuid));
+
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'qualified_form_email_sent',
+                'model_type' => TrainingCounsellor::class,
+                'model_id' => $tc->id,
+                'description' => "Qualified Counsellor form email sent to {$tc->name} ({$tc->email})",
+                'ip_address' => $request->ip(),
+            ]);
+
+            return response()->json([
+                'message' => 'Email sent successfully to ' . $tc->email,
+                'tc_uuid' => $tc->uuid,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to send email: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+}

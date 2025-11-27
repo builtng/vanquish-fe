@@ -1,8 +1,14 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import apiService from '@/lib/api';
+import { useToast } from '@/contexts/ToastContext';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { formatName } from '@/lib/nameFormatter';
+import SearchableSelect from '@/components/SearchableSelect';
+import DashboardLayout from '@/components/DashboardLayout';
 
 import { 
 
@@ -22,7 +28,7 @@ import {
 
   Save, ChevronUp, List, CalendarDays, RefreshCw,
 
-  Ban, DollarSign, Repeat
+  Ban, DollarSign, Repeat, Building2
 
 } from 'lucide-react';
 
@@ -30,14 +36,26 @@ import {
 
 export default function ConsultationsManagementPageFixed() {
   const pathname = usePathname();
-
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { success, error: showError } = useToast();
 
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
 
   const [activeTab, setActiveTab] = useState('today');
 
   const [searchTerm, setSearchTerm] = useState('');
+
+  const [consultations, setConsultations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [clients, setClients] = useState([]);
+  const [trainingCounsellors, setTrainingCounsellors] = useState([]);
+  const [stats, setStats] = useState({
+    today_count: 0,
+    upcoming_count: 0,
+    this_week_count: 0,
+    completed_this_month: 0,
+    pending_payment: 0
+  });
 
   
 
@@ -50,8 +68,18 @@ export default function ConsultationsManagementPageFixed() {
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
 
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   const [selectedConsultation, setSelectedConsultation] = useState(null);
+  
+  // Reschedule form state
+  const [rescheduleForm, setRescheduleForm] = useState({
+    date: '',
+    time: '',
+    sendNotification: true
+  });
 
 
 
@@ -60,6 +88,8 @@ export default function ConsultationsManagementPageFixed() {
   const [bookForm, setBookForm] = useState({
 
     clientId: '',
+
+    tcId: '',
 
     date: '',
 
@@ -91,203 +121,117 @@ export default function ConsultationsManagementPageFixed() {
 
   });
 
-
-
-  // Mock consultations data
-
-  const consultations = [
-
-    {
-
-      id: 'CONS001',
-
-      clientId: 'CL003',
-
-      clientName: 'Victoria James',
-
-      clientAge: 29,
-
-      date: '2025-11-07',
-
-      time: '10:00 AM',
-
-      status: 'Booked',
-
-      serviceRequested: 'Low Cost Counselling',
-
-      paymentStatus: 'Paid',
-
-      paymentAmount: 13,
-
-      conductedBy: 'Isha',
-
-      bookedAt: '2025-11-05 2:30 PM',
-
-      notes: ''
-
-    },
-
-    {
-
-      id: 'CONS002',
-
-      clientId: 'CL004',
-
-      clientName: 'Robert Davies',
-
-      clientAge: 35,
-
-      date: '2025-11-07',
-
-      time: '2:00 PM',
-
-      status: 'Booked',
-
-      serviceRequested: 'Mid Range Counselling',
-
-      paymentStatus: 'Paid',
-
-      paymentAmount: 13,
-
-      conductedBy: 'Isha',
-
-      bookedAt: '2025-11-04 4:15 PM',
-
-      notes: ''
-
-    },
-
-    {
-
-      id: 'CONS003',
-
-      clientId: 'CL009',
-
-      clientName: 'Thomas Wright',
-
-      clientAge: 33,
-
-      date: '2025-11-08',
-
-      time: '11:00 AM',
-
-      status: 'Booked',
-
-      serviceRequested: 'Mid Range Counselling',
-
-      paymentStatus: 'Paid',
-
-      paymentAmount: 13,
-
-      conductedBy: 'Isha',
-
-      bookedAt: '2025-11-06 9:00 AM',
-
-      notes: ''
-
-    },
-
-    {
-
-      id: 'CONS004',
-
-      clientId: 'CL001',
-
-      clientName: 'Emma Wilson',
-
-      clientAge: 31,
-
-      date: '2025-10-20',
-
-      time: '2:00 PM',
-
-      status: 'Completed',
-
-      serviceRequested: 'Low Cost Counselling',
-
-      paymentStatus: 'Paid',
-
-      paymentAmount: 13,
-
-      conductedBy: 'Isha',
-
-      completedAt: '2025-10-20 3:00 PM',
-
-      duration: '45 min',
-
-      outcome: 'Approved for Therapy',
-
-      recommendedService: 'Low Cost Counselling - CBT focus',
-
-      notes: 'Client presented with work-related stress and anxiety. Recently promoted and experiencing imposter syndrome. Good insight into issues. Motivated for therapy.'
-
-    },
-
-    {
-
-      id: 'CONS005',
-
-      clientId: 'CL010',
-
-      clientName: 'Hannah Lee',
-
-      clientAge: 28,
-
-      date: '2025-10-18',
-
-      time: '10:30 AM',
-
-      status: 'Completed',
-
-      serviceRequested: 'Low Cost Counselling',
-
-      paymentStatus: 'Paid',
-
-      paymentAmount: 13,
-
-      conductedBy: 'Isha',
-
-      completedAt: '2025-10-18 11:30 AM',
-
-      duration: '60 min',
-
-      outcome: 'Approved for Therapy',
-
-      recommendedService: 'Low Cost Counselling',
-
-      notes: 'Client experiencing social anxiety. Good candidate for therapy.'
-
-    },
-
-    {
-
-      id: 'CONS006',
-
-      clientId: 'CL011',
-
-      clientName: 'Michael Brown',
-
-      clientAge: 35,
-
-      date: '2025-10-25',
-
-      time: '3:00 PM',
-
-      status: 'No Show',
-
-      serviceRequested: 'Mid Range Counselling',
-
-      paymentStatus: 'Paid',
-
-      paymentAmount: 13,
-
-      conductedBy: 'Isha',
-
-      notes: 'Client did not attend. Follow-up email sent.'
-
+  // Helper function to refresh consultations and stats
+  const refreshData = async () => {
+      try {
+      // Fetch consultations and stats in parallel
+      const [consultationsData, statsData] = await Promise.all([
+        apiService.getConsultations(),
+        apiService.getConsultationStats()
+      ]);
+        
+        // Handle API response - could be array or wrapped in data property
+      const consultationsArray = Array.isArray(consultationsData) ? consultationsData : (consultationsData?.data || []);
+        
+        // Transform API data to match component structure
+        const transformedData = transformConsultationData(consultationsArray);
+        
+        setConsultations(transformedData);
+      setStats(statsData || {
+        today_count: 0,
+        upcoming_count: 0,
+        this_week_count: 0,
+        completed_this_month: 0,
+        pending_payment: 0
+      });
+      } catch (err) {
+      console.error('Error refreshing data:', err);
+      showError('Failed to refresh data. Please try again.');
     }
+  };
 
-  ];
+  // Fetch consultations and stats from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        await refreshData();
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Failed to load consultations. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Fetch clients and training counsellors for booking modal
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const response = await apiService.getClients();
+        // Handle paginated response - extract data array
+        const clientsData = Array.isArray(response) 
+          ? response 
+          : (response && response.data ? response.data : []);
+        
+        // Ensure we have an array before setting state
+        setClients(Array.isArray(clientsData) ? clientsData : []);
+      } catch (err) {
+        console.error('Error fetching clients:', err);
+        setClients([]); // Set empty array on error
+      }
+    };
+
+    const fetchTrainingCounsellors = async () => {
+      try {
+        const data = await apiService.getTrainingCounsellors({ status: 'active' });
+        const tcsData = Array.isArray(data) ? data : [];
+        setTrainingCounsellors(tcsData);
+      } catch (err) {
+        console.error('Error fetching training counsellors:', err);
+        setTrainingCounsellors([]);
+      }
+    };
+
+    if (showBookModal) {
+      fetchClients();
+      fetchTrainingCounsellors();
+    }
+  }, [showBookModal]);
+
+  // Transform API consultation data to match component structure
+  const transformConsultationData = (consultations) => {
+    if (!Array.isArray(consultations)) {
+      return [];
+    }
+    
+    return consultations.map(consultation => ({
+      id: consultation.id,
+      consultationId: consultation.consultation_id || `CONS${String(consultation.id).padStart(3, '0')}`,
+      clientId: consultation.client_id,
+      clientUuid: consultation.client?.uuid || consultation.client_id, // Use UUID, fallback to ID for backward compatibility
+      clientName: consultation.client?.name || 'Unknown Client',
+      clientAge: consultation.client?.age || null,
+      date: consultation.scheduled_at ? consultation.scheduled_at.split('T')[0] : null,
+      time: consultation.scheduled_at ? new Date(consultation.scheduled_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null,
+      status: consultation.status === 'scheduled' ? 'Booked' : consultation.status === 'completed' ? 'Completed' : consultation.status === 'no_show' ? 'No Show' : consultation.status === 'cancelled' ? 'Cancelled' : consultation.status,
+      serviceRequested: consultation.client?.service_type || 'N/A',
+      paymentStatus: 'Paid', // TODO: Get from payment records
+      paymentAmount: consultation.recommended_service === 'Coaching/Counselling' ? 25 : (consultation.payment_amount || 13),
+      conductedBy: consultation.tc?.name || 'Not Assigned',
+      bookedAt: consultation.created_at || null,
+      notes: consultation.notes || '',
+      completedAt: consultation.completed_at || null,
+      duration: consultation.duration_minutes ? `${consultation.duration_minutes} min` : null,
+      outcome: consultation.outcome || null,
+      recommendedService: consultation.recommended_service || null,
+      recommendedModality: consultation.recommended_modality || null
+    }));
+  };
 
 
 
@@ -295,7 +239,7 @@ export default function ConsultationsManagementPageFixed() {
 
   const getFilteredConsultations = () => {
 
-    const today = '2025-11-07';
+    const today = new Date().toISOString().split('T')[0];
 
     let filtered = consultations;
 
@@ -305,9 +249,9 @@ export default function ConsultationsManagementPageFixed() {
 
       filtered = filtered.filter(c => 
 
-        c.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
 
-        c.clientId.toLowerCase().includes(searchTerm.toLowerCase())
+        (c.clientId || '').toLowerCase().includes(searchTerm.toLowerCase())
 
       );
 
@@ -351,17 +295,16 @@ export default function ConsultationsManagementPageFixed() {
 
   const filteredConsultations = getFilteredConsultations();
 
-
-
-  // Stats
-
-  const todayCount = consultations.filter(c => c.date === '2025-11-07' && c.status === 'Booked').length;
-
-  const thisWeekCount = consultations.filter(c => c.status === 'Booked').length;
-
-  const completedThisMonth = consultations.filter(c => c.status === 'Completed').length;
-
-  const pendingPayment = consultations.filter(c => c.paymentStatus === 'Pending').length;
+  // Calculate actual counts from consultations data
+  const today = new Date().toISOString().split('T')[0];
+  const todayCount = consultations.filter(c => c.date === today && c.status === 'Booked').length;
+  const upcomingCount = consultations.filter(c => c.status === 'Booked').length;
+  const completedCount = consultations.filter(c => c.status === 'Completed').length;
+  
+  // Stats from backend (for display cards)
+  const thisWeekCount = stats.this_week_count || 0;
+  const completedThisMonth = stats.completed_this_month || 0;
+  const pendingPayment = stats.pending_payment || 0;
 
 
 
@@ -419,6 +362,29 @@ export default function ConsultationsManagementPageFixed() {
 
 
 
+  // Helper function to convert 12-hour format (e.g., "09:00 AM") to 24-hour format (e.g., "09:00")
+  const convertTo24Hour = (time12h) => {
+    if (!time12h) return '';
+    const [time, period] = time12h.split(' ');
+    const [hours, minutes] = time.split(':');
+    let hour24 = parseInt(hours, 10);
+    if (period === 'PM' && hour24 !== 12) {
+      hour24 += 12;
+    } else if (period === 'AM' && hour24 === 12) {
+      hour24 = 0;
+    }
+    return `${String(hour24).padStart(2, '0')}:${minutes}`;
+  };
+
+  // Helper function to safely get initials from a name
+  const getInitials = (name) => {
+    if (!name || typeof name !== 'string') return '??';
+    const parts = name.trim().split(' ').filter(part => part.length > 0);
+    if (parts.length === 0) return '??';
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
   const handleOpenComplete = (consultation) => {
 
     setSelectedConsultation(consultation);
@@ -447,25 +413,102 @@ export default function ConsultationsManagementPageFixed() {
 
 
 
-  const handleCompleteSubmit = (e) => {
+  const handleCompleteSubmit = async (e) => {
 
     e.preventDefault();
 
-    alert(`Consultation marked as completed!\n\nClient "${selectedConsultation.clientName}" has been moved to "Pending Match" stage.\n\nGo to Pending Matches to assign a Training Counsellor.`);
+    try {
+      setActionLoading(true);
+      
+      // Validate required fields
+      if (!completeForm.duration || !completeForm.outcome || !completeForm.notes?.trim()) {
+        showError('Please fill in all required fields (Duration, Outcome, and Notes).');
+        setActionLoading(false);
+        return;
+      }
+      
+      await apiService.completeConsultation(selectedConsultation.id, {
+        duration_minutes: parseInt(completeForm.duration, 10),
+        notes: completeForm.notes.trim(),
+        outcome: completeForm.outcome,
+        recommended_service: completeForm.recommendedService || null,
+        recommended_modality: completeForm.recommendedModality || null,
+        risk_notes: completeForm.riskNotes?.trim() || null,
+        next_steps: completeForm.nextSteps?.trim() || null
+      });
 
-    setShowCompleteModal(false);
+      const outcomeMessage = completeForm.outcome === 'approved' 
+        ? `Consultation marked as completed! Client "${selectedConsultation.clientName || 'Unknown Client'}" has been moved to "Pending Match" stage.`
+        : `Consultation marked as completed!`;
+      
+      success(outcomeMessage);
+      setShowCompleteModal(false);
+      // Reset form
+      setCompleteForm({
+        duration: '45',
+        notes: '',
+        outcome: 'approved',
+        recommendedService: 'Low Cost Counselling',
+        recommendedModality: 'CBT',
+        riskNotes: '',
+        nextSteps: ''
+      });
+      // Refresh data
+      await refreshData();
+    } catch (err) {
+      console.error('Error completing consultation:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to complete consultation. Please try again.';
+      showError(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
 
   };
 
 
 
-  const handleBookSubmit = (e) => {
+  const handleBookSubmit = async (e) => {
 
     e.preventDefault();
 
-    alert('Consultation booked successfully!');
+    try {
+      setActionLoading(true);
+      
+      const time24h = convertTo24Hour(bookForm.time);
+      if (!bookForm.date || !time24h) {
+        showError('Please select both date and time.');
+        setActionLoading(false);
+        return;
+      }
+      
+      const scheduledDateTime = new Date(`${bookForm.date}T${time24h}`).toISOString();
+      
+      await apiService.createConsultation({
+        client_id: bookForm.clientId,
+        tc_id: bookForm.tcId || null,
+        scheduled_at: scheduledDateTime,
+        notes: bookForm.notes,
+        send_confirmation: bookForm.sendConfirmation
+      });
 
-    setShowBookModal(false);
+      success('Consultation booked successfully!');
+      setShowBookModal(false);
+      setBookForm({
+        clientId: '',
+        tcId: '',
+        date: '',
+        time: '',
+        notes: '',
+        sendConfirmation: true
+      });
+      // Refresh data
+      await refreshData();
+    } catch (err) {
+      console.error('Error booking consultation:', err);
+      showError(err.message || 'Failed to book consultation. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
 
   };
 
@@ -485,7 +528,10 @@ export default function ConsultationsManagementPageFixed() {
 
     const getConsultationsForDay = (day) => {
 
-      const dateStr = `2025-11-${String(day).padStart(2, '0')}`;
+      const currentDate = new Date();
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const dateStr = `${year}-${month}-${String(day).padStart(2, '0')}`;
 
       return consultations.filter(c => c.date === dateStr);
 
@@ -601,11 +647,11 @@ export default function ConsultationsManagementPageFixed() {
 
                       }`}
 
-                      title={`${consultation.time} - ${consultation.clientName}`}
+                      title={`${consultation.time || ''} - ${consultation.clientName || 'Unknown Client'}`}
 
                     >
 
-                      {consultation.time.split(' ')[0]}
+                      {consultation.time ? consultation.time.split(' ')[0] : 'N/A'}
 
                     </div>
 
@@ -703,7 +749,7 @@ export default function ConsultationsManagementPageFixed() {
 
                 <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-lg">
 
-                  {consultation.clientName.split(' ').map(n => n[0]).join('')}
+                  {getInitials(consultation.clientName)}
 
                 </div>
 
@@ -713,9 +759,9 @@ export default function ConsultationsManagementPageFixed() {
 
                   <div className="flex items-center gap-3 mb-2">
 
-                    <Link href="/dashboard/client-details" className="text-lg font-semibold text-gray-900 hover:text-purple-600">
+                    <Link href={`/dashboard/client-details/${consultation.clientUuid || consultation.clientId}`} className="text-lg font-semibold text-gray-900 hover:text-purple-600">
 
-                      {consultation.clientName}
+                      {formatName(consultation.clientName || 'Unknown Client', 'client')}
 
                     </Link>
 
@@ -755,7 +801,7 @@ export default function ConsultationsManagementPageFixed() {
 
                       <User className="w-4 h-4 text-gray-500" />
 
-                      <span className="text-gray-700">Conducted by: {consultation.conductedBy}</span>
+                      <span className="text-gray-700">Conducted by: {formatName(consultation.conductedBy, 'tc')}</span>
 
                     </div>
 
@@ -832,11 +878,16 @@ export default function ConsultationsManagementPageFixed() {
                     <button
 
                       onClick={() => {
-
                         setSelectedConsultation(consultation);
-
+                        // Pre-fill reschedule form with current date/time
+                        const currentDate = consultation.date || '';
+                        const currentTime = consultation.time || '';
+                        setRescheduleForm({
+                          date: currentDate,
+                          time: currentTime,
+                          sendNotification: true
+                        });
                         setShowRescheduleModal(true);
-
                       }}
 
                       className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
@@ -877,7 +928,7 @@ export default function ConsultationsManagementPageFixed() {
 
                 <Link
 
-                  href="/dashboard/client-details"
+                  href={`/dashboard/client-details/${consultation.clientUuid || consultation.clientId}`}
 
                   className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
 
@@ -906,144 +957,8 @@ export default function ConsultationsManagementPageFixed() {
 
 
   return (
-
-    <div className="min-h-screen bg-gray-50 flex">
-
-      {/* Sidebar */}
-
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}>
-
-        <div className="p-4 border-b border-gray-200">
-
-          <div className="flex items-center justify-between">
-
-            {sidebarOpen && (
-
-              <div className="flex items-center gap-3">
-
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: '#6f1d56' }}>
-
-                  VT
-
-                </div>
-
-                <div>
-
-                  <h1 className="text-sm font-bold text-gray-900">Vanquish</h1>
-
-                  <p className="text-xs text-gray-600">Admin</p>
-
-                </div>
-
-              </div>
-
-            )}
-
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-lg">
-
-              <Menu className="w-5 h-5 text-gray-600" />
-
-            </button>
-
-          </div>
-
-        </div>
-
-
-
-        <nav className="flex-1 p-4 space-y-2">
-
-          {[
-
-            { id: 'overview', icon: Home, label: 'Overview', href: '/dashboard' },
-
-            { id: 'consultations', icon: Video, label: 'Consultations', badge: todayCount, href: '/dashboard/consultations' },
-
-            { id: 'matches', icon: UserCheck, label: 'Pending Matches', badge: 8, href: '/dashboard/pending-matches' },
-
-            { id: 'tcs', icon: Users, label: 'Training Counsellors', href: '/dashboard/training-counsellors' },
-
-            { id: 'clients', icon: ClipboardList, label: 'All Clients', href: '/dashboard/clients' },
-
-            { id: 'activity', icon: Activity, label: 'Activity Log', href: '/dashboard/activity-log' }
-
-          ].map(item => {
-
-            const isActive = pathname === item.href;
-
-            return (
-
-              <Link
-
-                key={item.id}
-
-                href={item.href}
-
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-
-                  isActive ? 'bg-purple-100 text-purple-900' : 'text-gray-700 hover:bg-gray-100'
-
-                }`}
-
-              >
-
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-
-                {sidebarOpen && (
-
-                  <>
-
-                    <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
-
-                    {item.badge > 0 && (
-
-                      <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{item.badge}</span>
-
-                    )}
-
-                  </>
-
-                )}
-
-              </Link>
-
-            );
-
-          })}
-
-        </nav>
-
-
-
-        <div className="p-4 border-t border-gray-200 space-y-2">
-
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg">
-
-            <Settings className="w-5 h-5 flex-shrink-0" />
-
-            {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
-
-          </button>
-
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg">
-
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-
-            {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
-
-          </button>
-
-        </div>
-
-      </div>
-
-
-
-      {/* Main Content */}
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-
-        {/* Header */}
+    <DashboardLayout>
+      {/* Header */}
 
         <div className="bg-white border-b border-gray-200">
 
@@ -1054,8 +969,6 @@ export default function ConsultationsManagementPageFixed() {
               <div>
 
                 <h1 className="text-2xl font-bold text-gray-900">Consultations</h1>
-
-                <p className="text-sm text-gray-600 mt-1">Manage initial client consultations with Isha</p>
 
               </div>
 
@@ -1203,9 +1116,9 @@ export default function ConsultationsManagementPageFixed() {
 
                 { id: 'today', label: 'Today', count: todayCount },
 
-                { id: 'upcoming', label: 'Upcoming', count: thisWeekCount },
+                { id: 'upcoming', label: 'Upcoming', count: upcomingCount },
 
-                { id: 'completed', label: 'Completed', count: completedThisMonth },
+                { id: 'completed', label: 'Completed', count: completedCount },
 
                 { id: 'all', label: 'All', count: consultations.length }
 
@@ -1227,19 +1140,15 @@ export default function ConsultationsManagementPageFixed() {
 
                   {tab.label}
 
-                  {tab.count > 0 && (
+                  <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
 
-                    <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                    activeTab === tab.id ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'
 
-                      activeTab === tab.id ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'
+                  }`}>
 
-                    }`}>
+                    {tab.count}
 
-                      {tab.count}
-
-                    </span>
-
-                  )}
+                  </span>
 
                 </button>
 
@@ -1256,14 +1165,35 @@ export default function ConsultationsManagementPageFixed() {
         {/* Content */}
 
         <div className="flex-1 overflow-y-auto p-6">
+          {loading && consultations.length === 0 && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Loading consultations...</p>
+              </div>
+            </div>
+          )}
 
-          {viewMode === 'list' ? <ListViewComponent /> : <CalendarViewComponent />}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <div>
+                  <p className="text-sm font-medium text-red-900">{error}</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="text-sm text-red-700 underline mt-1"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!loading && (viewMode === 'list' ? <ListViewComponent /> : <CalendarViewComponent />)}
 
         </div>
-
-      </div>
-
-
 
       {/* Book Modal */}
 
@@ -1303,7 +1233,7 @@ export default function ConsultationsManagementPageFixed() {
 
                     <p className="text-sm text-yellow-800">
 
-                      Client must have paid the £13 consultation fee before booking.
+                      Client must have paid the consultation fee (£13 for Counselling, £25 for Coaching/Counselling) before booking.
 
                     </p>
 
@@ -1321,27 +1251,16 @@ export default function ConsultationsManagementPageFixed() {
 
                   </label>
 
-                  <select
-
+                  <SearchableSelect
                     value={bookForm.clientId}
-
                     onChange={(e) => setBookForm({...bookForm, clientId: e.target.value})}
-
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-
+                    options={Array.isArray(clients) ? clients.map(client => ({
+                      value: client.id,
+                      label: `${client.name} - ${client.client_id || client.uuid}`
+                    })) : []}
+                    placeholder="Select a client..."
                     required
-
-                  >
-
-                    <option value="">Select a client...</option>
-
-                    <option value="CL005">Charlotte Evans - CL005</option>
-
-                    <option value="CL006">Benjamin Clark - CL006</option>
-
-                    <option value="CL009">Thomas Wright - CL009</option>
-
-                  </select>
+                  />
 
                 </div>
 
@@ -1381,31 +1300,19 @@ export default function ConsultationsManagementPageFixed() {
 
                     </label>
 
-                    <select
-
+                    <SearchableSelect
                       value={bookForm.time}
-
                       onChange={(e) => setBookForm({...bookForm, time: e.target.value})}
-
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-
+                      options={[
+                        { value: '09:00 AM', label: '09:00 AM' },
+                        { value: '10:00 AM', label: '10:00 AM' },
+                        { value: '11:00 AM', label: '11:00 AM' },
+                        { value: '02:00 PM', label: '02:00 PM' },
+                        { value: '03:00 PM', label: '03:00 PM' }
+                      ]}
+                      placeholder="Select time..."
                       required
-
-                    >
-
-                      <option value="">Select time...</option>
-
-                      <option value="09:00 AM">09:00 AM</option>
-
-                      <option value="10:00 AM">10:00 AM</option>
-
-                      <option value="11:00 AM">11:00 AM</option>
-
-                      <option value="02:00 PM">02:00 PM</option>
-
-                      <option value="03:00 PM">03:00 PM</option>
-
-                    </select>
+                    />
 
                   </div>
 
@@ -1415,9 +1322,20 @@ export default function ConsultationsManagementPageFixed() {
 
                 <div>
 
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Conducted By</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Counsellor <span className="text-red-500">*</span>
+                  </label>
 
-                  <input type="text" value="Isha" disabled className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600" />
+                  <SearchableSelect
+                    value={bookForm.tcId}
+                    onChange={(e) => setBookForm({...bookForm, tcId: e.target.value})}
+                    options={Array.isArray(trainingCounsellors) ? trainingCounsellors.map(tc => ({
+                      value: tc.id,
+                      label: `${tc.name} ${tc.modality ? `(${tc.modality})` : ''}`
+                    })) : []}
+                    placeholder="Select a counsellor..."
+                    required
+                  />
 
                 </div>
 
@@ -1471,16 +1389,21 @@ export default function ConsultationsManagementPageFixed() {
 
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
 
-                  <button type="button" onClick={() => setShowBookModal(false)} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
+                  <button type="button" onClick={() => setShowBookModal(false)} disabled={actionLoading} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
 
                     Cancel
 
                   </button>
 
-                  <button type="submit" className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium" style={{ backgroundColor: '#6f1d56' }}>
-
-                    Book Consultation
-
+                  <button type="submit" disabled={actionLoading} className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" style={{ backgroundColor: '#6f1d56' }}>
+                    {actionLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Booking...
+                      </>
+                    ) : (
+                      'Book Consultation'
+                    )}
                   </button>
 
                 </div>
@@ -1517,7 +1440,7 @@ export default function ConsultationsManagementPageFixed() {
 
                     <h2 className="text-xl font-bold text-gray-900">Mark Consultation as Completed</h2>
 
-                    <p className="text-sm text-gray-600 mt-1">{selectedConsultation.clientName} - {selectedConsultation.date} {selectedConsultation.time}</p>
+                    <p className="text-sm text-gray-600 mt-1">{formatName(selectedConsultation.clientName || 'Unknown Client', 'client')} - {selectedConsultation.date} {selectedConsultation.time}</p>
 
                   </div>
 
@@ -1567,27 +1490,17 @@ export default function ConsultationsManagementPageFixed() {
 
                     <label className="block text-sm font-medium text-gray-700 mb-2">Outcome <span className="text-red-500">*</span></label>
 
-                    <select
-
+                    <SearchableSelect
                       value={completeForm.outcome}
-
                       onChange={(e) => setCompleteForm({...completeForm, outcome: e.target.value})}
-
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-
+                      options={[
+                        { value: 'approved', label: 'Approved for Therapy' },
+                        { value: 'not_approved', label: 'Not Approved' },
+                        { value: 'pending', label: 'Pending Review' }
+                      ]}
+                      placeholder="Select outcome..."
                       required
-
-                    >
-
-                      <option value="approved">Approved for Therapy</option>
-
-                      <option value="waitlist">Waitlist</option>
-
-                      <option value="not-suitable">Not Suitable</option>
-
-                      <option value="follow-up">Requires Follow-up</option>
-
-                    </select>
+                    />
 
                   </div>
 
@@ -1603,21 +1516,16 @@ export default function ConsultationsManagementPageFixed() {
 
                       <label className="block text-sm font-medium text-gray-700 mb-2">Recommended Service</label>
 
-                      <select
-
+                      <SearchableSelect
                         value={completeForm.recommendedService}
-
                         onChange={(e) => setCompleteForm({...completeForm, recommendedService: e.target.value})}
-
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-
-                      >
-
-                        <option value="Low Cost Counselling">Low Cost Counselling</option>
-
-                        <option value="Mid Range Counselling">Mid Range Counselling</option>
-
-                      </select>
+                        options={[
+                          { value: 'Low Cost Counselling', label: 'Low Cost Counselling' },
+                          { value: 'Mid Range Counselling', label: 'Mid Range Counselling' },
+                          { value: 'Coaching/Counselling', label: 'Coaching/Counselling' }
+                        ]}
+                        placeholder="Select service..."
+                      />
 
                     </div>
 
@@ -1625,23 +1533,16 @@ export default function ConsultationsManagementPageFixed() {
 
                       <label className="block text-sm font-medium text-gray-700 mb-2">Recommended Modality</label>
 
-                      <select
-
+                      <SearchableSelect
                         value={completeForm.recommendedModality}
-
                         onChange={(e) => setCompleteForm({...completeForm, recommendedModality: e.target.value})}
-
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-
-                      >
-
-                        <option value="CBT">CBT</option>
-
-                        <option value="Person-Centred">Person-Centred</option>
-
-                        <option value="Integrative">Integrative</option>
-
-                      </select>
+                        options={[
+                          { value: 'CBT', label: 'CBT' },
+                          { value: 'Person-Centred', label: 'Person-Centred' },
+                          { value: 'Integrative', label: 'Integrative' }
+                        ]}
+                        placeholder="Select modality..."
+                      />
 
                     </div>
 
@@ -1705,18 +1606,24 @@ export default function ConsultationsManagementPageFixed() {
 
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
 
-                  <button type="button" onClick={() => setShowCompleteModal(false)} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
+                  <button type="button" onClick={() => setShowCompleteModal(false)} disabled={actionLoading} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
 
                     Cancel
 
                   </button>
 
-                  <button type="submit" className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2">
-
-                    <Save className="w-5 h-5" />
-
-                    Save & Complete
-
+                  <button type="submit" disabled={actionLoading} className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {actionLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Completing...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-5 h-5" />
+                        Save & Complete
+                      </>
+                    )}
                   </button>
 
                 </div>
@@ -1739,7 +1646,10 @@ export default function ConsultationsManagementPageFixed() {
 
         <>
 
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowRescheduleModal(false)}></div>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => {
+            setShowRescheduleModal(false);
+            setRescheduleForm({ date: '', time: '', sendNotification: true });
+          }}></div>
 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 
@@ -1749,7 +1659,10 @@ export default function ConsultationsManagementPageFixed() {
 
                 <h2 className="text-xl font-bold text-gray-900">Reschedule Consultation</h2>
 
-                <button onClick={() => setShowRescheduleModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <button onClick={() => {
+                  setShowRescheduleModal(false);
+                  setRescheduleForm({ date: '', time: '', sendNotification: true });
+                }} className="p-2 hover:bg-gray-100 rounded-lg">
 
                   <X className="w-5 h-5 text-gray-600" />
 
@@ -1761,15 +1674,21 @@ export default function ConsultationsManagementPageFixed() {
 
               <div className="p-6 space-y-4">
 
-                <p className="text-sm text-gray-700">Reschedule for <strong>{selectedConsultation.clientName}</strong></p>
+                <p className="text-sm text-gray-700">Reschedule for <strong>{formatName(selectedConsultation.clientName || 'Unknown Client', 'client')}</strong></p>
 
                 
 
                 <div>
 
-                  <label className="block text-sm font-medium text-gray-700 mb-2">New Date</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">New Date <span className="text-red-500">*</span></label>
 
-                  <input type="date" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent" />
+                  <input 
+                    type="date" 
+                    value={rescheduleForm.date}
+                    onChange={(e) => setRescheduleForm({...rescheduleForm, date: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent" 
+                    required
+                  />
 
                 </div>
 
@@ -1777,17 +1696,22 @@ export default function ConsultationsManagementPageFixed() {
 
                 <div>
 
-                  <label className="block text-sm font-medium text-gray-700 mb-2">New Time</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">New Time <span className="text-red-500">*</span></label>
 
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent">
-
-                    <option value="">Select time...</option>
-
-                    <option value="09:00 AM">09:00 AM</option>
-
-                    <option value="10:00 AM">10:00 AM</option>
-
-                  </select>
+                  <SearchableSelect
+                    value={rescheduleForm.time}
+                    onChange={(e) => setRescheduleForm({...rescheduleForm, time: e.target.value})}
+                    options={[
+                      { value: '09:00 AM', label: '09:00 AM' },
+                      { value: '10:00 AM', label: '10:00 AM' },
+                      { value: '11:00 AM', label: '11:00 AM' },
+                      { value: '02:00 PM', label: '02:00 PM' },
+                      { value: '03:00 PM', label: '03:00 PM' },
+                      { value: '04:00 PM', label: '04:00 PM' }
+                    ]}
+                    placeholder="Select time..."
+                    required
+                  />
 
                 </div>
 
@@ -1795,7 +1719,13 @@ export default function ConsultationsManagementPageFixed() {
 
                 <div className="flex items-center gap-2">
 
-                  <input type="checkbox" id="notify" className="w-4 h-4 text-purple-600 border-gray-300 rounded" defaultChecked />
+                  <input 
+                    type="checkbox" 
+                    id="notify" 
+                    checked={rescheduleForm.sendNotification}
+                    onChange={(e) => setRescheduleForm({...rescheduleForm, sendNotification: e.target.checked})}
+                    className="w-4 h-4 text-purple-600 border-gray-300 rounded" 
+                  />
 
                   <label htmlFor="notify" className="text-sm text-gray-700">Send notification to client</label>
 
@@ -1805,7 +1735,10 @@ export default function ConsultationsManagementPageFixed() {
 
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
 
-                  <button onClick={() => setShowRescheduleModal(false)} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
+                  <button onClick={() => {
+                    setShowRescheduleModal(false);
+                    setRescheduleForm({ date: '', time: '', sendNotification: true });
+                  }} disabled={actionLoading} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
 
                     Cancel
 
@@ -1813,21 +1746,64 @@ export default function ConsultationsManagementPageFixed() {
 
                   <button
 
-                    onClick={() => {
+                    onClick={async () => {
+                      try {
+                        setActionLoading(true);
+                        
+                        if (!rescheduleForm.date || !rescheduleForm.time) {
+                          showError('Please select both date and time.');
+                          setActionLoading(false);
+                          return;
+                        }
 
-                      alert('Consultation rescheduled!');
+                        const time24h = convertTo24Hour(rescheduleForm.time);
+                        if (!time24h) {
+                          showError('Invalid time format. Please select a valid time.');
+                          setActionLoading(false);
+                          return;
+                        }
+                        
+                        const scheduledDateTime = new Date(`${rescheduleForm.date}T${time24h}`).toISOString();
+                        
+                        // Validate date
+                        if (isNaN(new Date(scheduledDateTime).getTime())) {
+                          showError('Invalid date/time combination. Please check your selection.');
+                          setActionLoading(false);
+                          return;
+                        }
+                        
+                        await apiService.rescheduleConsultation(selectedConsultation.id, {
+                          scheduled_at: scheduledDateTime,
+                        });
 
-                      setShowRescheduleModal(false);
-
+                        success('Consultation rescheduled successfully!');
+                        setShowRescheduleModal(false);
+                        setRescheduleForm({ date: '', time: '', sendNotification: true });
+                        // Refresh data
+                        const data = await apiService.getConsultations();
+                        const consultationsArray = Array.isArray(data) ? data : (data?.data || []);
+                        setConsultations(transformConsultationData(consultationsArray));
+                      } catch (err) {
+                        console.error('Error rescheduling consultation:', err);
+                        showError(err.message || 'Failed to reschedule consultation. Please try again.');
+                      } finally {
+                        setActionLoading(false);
+                      }
                     }}
-
-                    className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium"
+                    disabled={actionLoading}
+                    className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 
                     style={{ backgroundColor: '#6f1d56' }}
 
                   >
-
-                    Reschedule
+                    {actionLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Rescheduling...
+                      </>
+                    ) : (
+                      'Reschedule'
+                    )}
 
                   </button>
 
@@ -1869,7 +1845,7 @@ export default function ConsultationsManagementPageFixed() {
 
                 <p className="text-gray-700 mb-4">
 
-                  Cancel consultation for <strong>{selectedConsultation.clientName}</strong> on {selectedConsultation.date}?
+                  Cancel consultation for <strong>{formatName(selectedConsultation.clientName || 'Unknown Client', 'client')}</strong> on {selectedConsultation.date}?
 
                 </p>
 
@@ -1877,9 +1853,15 @@ export default function ConsultationsManagementPageFixed() {
 
                 <div>
 
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Reason</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Reason (Optional)</label>
 
-                  <textarea className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none" rows={3} />
+                  <textarea 
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none" 
+                    rows={3}
+                    placeholder="Enter reason for cancellation..."
+                  />
 
                 </div>
 
@@ -1896,14 +1878,11 @@ export default function ConsultationsManagementPageFixed() {
                   <button
 
                     onClick={() => {
-
-                      alert('Consultation cancelled!');
-
                       setShowCancelModal(false);
-
+                      setShowCancelConfirmModal(true);
                     }}
-
-                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                    disabled={actionLoading}
+                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
 
                   >
 
@@ -1923,9 +1902,41 @@ export default function ConsultationsManagementPageFixed() {
 
       )}
 
-    </div>
-
+      {/* Cancel Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showCancelConfirmModal}
+        onClose={() => {
+          setShowCancelConfirmModal(false);
+          setCancelReason('');
+        }}
+        onConfirm={async () => {
+          try {
+            setActionLoading(true);
+            await apiService.cancelConsultation(selectedConsultation.id, cancelReason);
+            success('Consultation cancelled successfully!');
+            setShowCancelConfirmModal(false);
+            setShowCancelModal(false);
+            setCancelReason('');
+            // Refresh data
+            const data = await apiService.getConsultations();
+            const consultationsArray = Array.isArray(data) ? data : (data?.data || []);
+            setConsultations(transformConsultationData(consultationsArray));
+          } catch (err) {
+            console.error('Error cancelling consultation:', err);
+            showError(err.message || 'Failed to cancel consultation. Please try again.');
+          } finally {
+            setActionLoading(false);
+          }
+        }}
+        title="Cancel Consultation"
+        message={`Are you sure you want to cancel the consultation for ${selectedConsultation?.clientName || 'Unknown Client'} on ${selectedConsultation?.date}? This action cannot be undone.`}
+        confirmText="Cancel Consultation"
+        cancelText="Keep Consultation"
+        type="danger"
+        loading={actionLoading}
+        confirmButtonColor="#dc2626"
+      />
+    </DashboardLayout>
   );
-
 }
 
