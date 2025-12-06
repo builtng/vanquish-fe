@@ -21,8 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Global middleware
         $middleware->append(\App\Http\Middleware\ForceHttps::class);
         
-        // Rate limiting for API - stricter for auth endpoints
-        $middleware->throttleApi('60,1'); // 60 requests per minute
+        // Rate limiting is handled per-route in routes/api.php
+        // This allows different limits for public vs authenticated routes
         
         // Alias middleware for easier use
         $middleware->alias([

@@ -350,4 +350,3 @@ class ClientSeeder extends Seeder
         $this->command->info('Clients seeded successfully!');
     }
 }
-

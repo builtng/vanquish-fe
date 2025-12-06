@@ -13,6 +13,14 @@ class ActivityLogController extends Controller
 {
     public function index(Request $request)
     {
+        // Ensure user is authenticated and has staff/admin role
+        $user = $request->user();
+        if (!$user || !in_array($user->role, ['admin', 'staff'])) {
+            return response()->json([
+                'message' => 'Unauthorized. Staff or admin access required.',
+            ], 403);
+        }
+
         $query = ActivityLog::with(['user'])->orderBy('created_at', 'desc');
 
         if ($request->has('action')) {
@@ -23,12 +31,43 @@ class ActivityLogController extends Controller
             $query->where('model_type', $request->model_type);
         }
 
+        // Filter by model_id (specific record ID)
+        if ($request->has('model_id')) {
+            $query->where('model_id', $request->model_id);
+        }
+
+        // Filter by user_id (admin who performed the action)
+        if ($request->has('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        // Filter by date range
+        if ($request->has('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->has('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
         $perPage = $request->get('per_page', 50);
         $logs = $query->paginate($perPage);
 
-        // Transform logs to include related model UUIDs
+        // Transform logs to include related model UUIDs and user information
         $logs->getCollection()->transform(function ($log) {
             $data = $log->toArray();
+            
+            // Ensure user information is included
+            if ($log->user) {
+                $data['user'] = [
+                    'id' => $log->user->id,
+                    'name' => $log->user->name,
+                    'email' => $log->user->email,
+                    'role' => $log->user->role,
+                ];
+            } else {
+                $data['user'] = null;
+            }
             
             // Add related model UUID if available
             if ($log->model_type && $log->model_id) {
@@ -96,6 +135,14 @@ class ActivityLogController extends Controller
     public function update(Request $request, $id)
     {
         $log = ActivityLog::findOrFail($id);
+        $user = $request->user();
+
+        // Only allow updating if user is admin/staff, or if they created the note
+        if (!in_array($user->role, ['admin', 'staff']) && $log->user_id !== $user->id) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only edit your own notes.',
+            ], 403);
+        }
 
         // Only allow updating description for admin notes
         $validated = $request->validate([
@@ -109,9 +156,18 @@ class ActivityLogController extends Controller
         return response()->json($log);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $log = ActivityLog::findOrFail($id);
+        $user = $request->user();
+
+        // Only allow deleting if user is admin/staff, or if they created the note
+        if (!in_array($user->role, ['admin', 'staff']) && $log->user_id !== $user->id) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only delete your own notes.',
+            ], 403);
+        }
+
         $log->delete();
 
         return response()->json(['message' => 'Activity log deleted successfully']);

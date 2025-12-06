@@ -9,6 +9,10 @@ use App\Http\Controllers\Api\IntakeFormController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\InductionController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\ClientBookingController;
+use App\Http\Controllers\Api\JotFormWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes with stricter rate limiting
@@ -20,11 +24,24 @@ Route::middleware('throttle:5,1')->group(function () {
 // Service routes (public)
 Route::get('/services/ish-capacity', [\App\Http\Controllers\Api\ServiceController::class, 'checkIshCapacity']);
 
+// Client booking routes (public - clients book without auth)
+Route::prefix('client-booking')->group(function () {
+    Route::post('/authenticate', [ClientBookingController::class, 'authenticate']);
+    Route::get('/{clientUuid}/status', [ClientBookingController::class, 'getBookingStatus']);
+    Route::get('/{clientUuid}/available-slots', [ClientBookingController::class, 'getAvailableSlots']);
+    Route::post('/book-session', [ClientBookingController::class, 'bookSession']);
+    Route::post('/book-block', [ClientBookingController::class, 'bookBlock']);
+});
+
 // Payment routes (public for client intake)
 Route::post('/payments/create-intent', [PaymentController::class, 'createPaymentIntent']);
 Route::post('/payments/confirm', [PaymentController::class, 'confirmPayment']);
 // Webhook endpoint - no rate limiting but signature verification required
 Route::post('/payments/webhook', [PaymentController::class, 'handleWebhook'])->withoutMiddleware(['throttle:api']);
+
+// JotForm webhooks (public - no auth required)
+Route::post('/jotform/agreement-webhook', [JotFormWebhookController::class, 'handleAgreementSubmission'])->withoutMiddleware(['throttle:api']);
+Route::post('/jotform/intake-webhook', [JotFormWebhookController::class, 'handleIntakeSubmission'])->withoutMiddleware(['throttle:api']);
 
 // Intake Forms (public - clients need to submit without auth)
 // Rate limited to prevent abuse
@@ -37,8 +54,8 @@ Route::middleware('throttle:10,1')->group(function () {
 Route::post('/induction/accept/{token}', [InductionController::class, 'acceptInvitation']);
 Route::post('/induction/decline/{token}', [InductionController::class, 'declineInvitation']);
 
-// Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+// Protected routes - higher rate limit for authenticated users
+Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
@@ -63,12 +80,29 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/clients/eligible-for-feedback', [ClientController::class, 'getEligibleForFeedback']);
     });
     
+    // Client photo upload (admin only)
+    Route::middleware('admin')->group(function () {
+        Route::post('/clients/{client}/upload-photo', [ClientController::class, 'uploadPhoto']);
+        Route::delete('/clients/{client}/delete-photo', [ClientController::class, 'deletePhoto']);
+    });
+    
     // Training Counsellors (staff and admin only)
     Route::middleware('staff')->group(function () {
         Route::apiResource('training-counsellors', TrainingCounsellorController::class);
         Route::get('/training-counsellors/{tc}/details', [TrainingCounsellorController::class, 'details']);
         Route::post('/training-counsellors/{tc}/transition-to-qualified', [TrainingCounsellorController::class, 'transitionToQualified']);
         Route::post('/training-counsellors/{tc}/send-email', [TrainingCounsellorController::class, 'sendEmail']);
+    });
+    
+    // Counsellor portal endpoints (counsellors can access their own data)
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/counsellor/my-data', [TrainingCounsellorController::class, 'getOwnData']);
+    });
+    
+    // TC photo upload (admin only)
+    Route::middleware('admin')->group(function () {
+        Route::post('/training-counsellors/{tc}/upload-photo', [TrainingCounsellorController::class, 'uploadPhoto']);
+        Route::delete('/training-counsellors/{tc}/delete-photo', [TrainingCounsellorController::class, 'deletePhoto']);
     });
     
     // Qualified Counsellor Form (staff and admin only - TCs submit through public form)
@@ -109,10 +143,34 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/services/all', [ServiceController::class, 'getAllServices']);
     });
     
+    // User Management (admin only)
+    Route::middleware('admin')->group(function () {
+        Route::apiResource('users', UserController::class);
+        Route::get('/users-count', [UserController::class, 'count']);
+    });
+    
     // Inductions (staff and admin only)
     Route::middleware('staff')->group(function () {
         Route::apiResource('inductions', InductionController::class);
         Route::post('/inductions/{id}/add-attendees', [InductionController::class, 'addAttendees']);
+    });
+    
+    // Messages (all authenticated users)
+    Route::prefix('messages')->group(function () {
+        Route::get('/', [MessageController::class, 'index']);
+        Route::get('/unread-count', [MessageController::class, 'unreadCount']);
+        Route::get('/{id}', [MessageController::class, 'show']);
+        Route::post('/{id}/mark-read', [MessageController::class, 'markAsRead']);
+        
+        // Staff/admin can send to counsellors
+        Route::middleware('staff')->group(function () {
+            Route::post('/send-to-counsellor', [MessageController::class, 'sendToCounsellor']);
+        });
+        
+        // Counsellors can send to staff
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::post('/send-to-staff', [MessageController::class, 'sendToStaff']);
+        });
     });
 });
 

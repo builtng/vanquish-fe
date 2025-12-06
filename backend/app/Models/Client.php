@@ -18,6 +18,7 @@ class Client extends Model
         'name',
         'age',
         'email',
+        'photo',
         'phone',
         'address',
         'postcode',
@@ -43,6 +44,7 @@ class Client extends Model
         'agreement_sent_at',
         'agreement_signed_at',
         'agreement_jotform_id',
+        'agreement_signature_url',
         'emergency_contact_name',
         'emergency_contact_phone',
         'emergency_contact_relationship',
@@ -50,6 +52,12 @@ class Client extends Model
         'last_feedback_date',
         'satisfaction_score',
         'feedback_count',
+        'allocated_day',
+        'allocated_time',
+        'next_booking_deadline',
+        'jotform_intake_data',
+        'jotform_intake_submission_id',
+        'jotform_intake_completed_at',
     ];
 
     protected $casts = [
@@ -63,6 +71,9 @@ class Client extends Model
         'last_feedback_sent_at' => 'date',
         'last_feedback_date' => 'date',
         'satisfaction_score' => 'decimal:2',
+        'next_booking_deadline' => 'date',
+        'jotform_intake_data' => 'array',
+        'jotform_intake_completed_at' => 'datetime',
     ];
 
     public function matchedTc(): BelongsTo
@@ -88,6 +99,37 @@ class Client extends Model
     public function sessions(): HasMany
     {
         return $this->hasMany(Session::class);
+    }
+
+    /**
+     * Get the next session that needs booking (for Low Cost clients)
+     */
+    public function getNextSessionNeedingBooking()
+    {
+        if ($this->service_type !== 'Low Cost') {
+            return null;
+        }
+
+        // Find the next scheduled session that's 48+ hours away
+        return $this->sessions()
+            ->where('status', 'scheduled')
+            ->where('scheduled_at', '>=', now()->addHours(48))
+            ->whereNull('booking_deadline') // Not yet booked
+            ->orderBy('scheduled_at')
+            ->first();
+    }
+
+    /**
+     * Get upcoming sessions for this client
+     */
+    public function getUpcomingSessions($limit = 10)
+    {
+        return $this->sessions()
+            ->where('status', 'scheduled')
+            ->where('scheduled_at', '>=', now())
+            ->orderBy('scheduled_at')
+            ->limit($limit)
+            ->get();
     }
 
     /**

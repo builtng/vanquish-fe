@@ -9,6 +9,7 @@ use App\Mail\QualifiedCounsellorFormEmail;
 use App\Mail\GenericTrainingCounsellorEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class TrainingCounsellorController extends Controller
 {
@@ -129,10 +130,10 @@ class TrainingCounsellorController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:training_counsellors,email,' . $id,
+            'email' => 'sometimes|email|unique:training_counsellors,email,' . $tc->id,
             'phone' => 'nullable|string',
             'modality' => 'nullable|in:CBT,Person-Centred,Integrative,Psychodynamic,Other',
-            'status' => 'sometimes|in:Active,At Capacity,On Leave,Inactive',
+            'status' => 'sometimes|in:Active,At Capacity,On Leave,Away,Inactive',
             'counsellor_type' => 'sometimes|in:Trainee,Qualified',
             'availability' => 'nullable|array',
             'topics_with_experience' => 'nullable|array',
@@ -172,7 +173,37 @@ class TrainingCounsellorController extends Controller
         return response()->json(['message' => 'Training Counsellor deleted successfully']);
     }
 
-    public function details($id)
+    /**
+     * Get counsellor's own data (for counsellor portal)
+     */
+    public function getOwnData(Request $request)
+    {
+        $user = $request->user();
+        
+        if (!$user || $user->role !== 'counsellor' || !$user->training_counsellor_id) {
+            return response()->json(['message' => 'Unauthorized. Counsellor access required.'], 403);
+        }
+
+        $tc = TrainingCounsellor::with(['clients', 'consultations.client'])
+            ->findOrFail($user->training_counsellor_id);
+
+        // Get upcoming consultations/sessions
+        $upcomingConsultations = $tc->consultations()
+            ->where('status', 'scheduled')
+            ->where('scheduled_at', '>=', now())
+            ->with('client')
+            ->orderBy('scheduled_at')
+            ->get();
+
+        return response()->json([
+            'tc' => $tc,
+            'clients' => $tc->clients,
+            'upcoming_consultations' => $upcomingConsultations,
+            'total_clients' => $tc->clients()->count(),
+        ]);
+    }
+
+    public function details(Request $request, $id)
     {
         // Find by UUID or fall back to tc_id for backward compatibility
         $tc = TrainingCounsellor::where('uuid', $id)
@@ -285,6 +316,11 @@ class TrainingCounsellorController extends Controller
         $response['documents'] = $documents;
         $response['current_clients'] = $tc->clients->count();
         $response['admin_notes'] = $adminNotes;
+        
+        // Add photo_url if photo exists
+        if ($tc->photo) {
+            $response['photo_url'] = $this->getStorageUrl($request, $tc->photo);
+        }
 
         return response()->json($response);
     }
@@ -536,5 +572,136 @@ class TrainingCounsellorController extends Controller
                 'message' => 'Failed to send email: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Upload photo for training counsellor (admin only)
+     */
+    public function uploadPhoto(Request $request, $id)
+    {
+        // Find by UUID or fall back to tc_id for backward compatibility
+        $tc = TrainingCounsellor::where('uuid', $id)->orWhere('tc_id', $id)->firstOrFail();
+
+        // Only admin can upload photos
+        if (!$request->user() || $request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
+        }
+
+        $request->validate([
+            'photo' => 'required|image|mimes:jpeg,jpg,png|max:5120', // Max 5MB
+        ]);
+
+        $file = $request->file('photo');
+        
+        // Additional security checks
+        $originalName = $file->getClientOriginalName();
+        $extension = strtolower($file->getClientOriginalExtension());
+        $mimeType = $file->getMimeType();
+        
+        // Validate file extension
+        $allowedExtensions = ['jpg', 'jpeg', 'png'];
+        if (!in_array($extension, $allowedExtensions)) {
+            return response()->json([
+                'message' => 'Invalid file type. Allowed types: JPG, JPEG, PNG',
+            ], 422);
+        }
+        
+        // Validate MIME type
+        $allowedMimeTypes = ['image/jpeg', 'image/png'];
+        if (!in_array($mimeType, $allowedMimeTypes)) {
+            return response()->json([
+                'message' => 'Invalid file MIME type.',
+            ], 422);
+        }
+        
+        // Sanitize filename
+        $sanitizedName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
+        $sanitizedName = substr($sanitizedName, 0, 255);
+        
+        // Generate unique filename to prevent overwrites
+        $filename = time() . '_' . uniqid() . '_' . $sanitizedName;
+
+        // Delete old photo if exists
+        if ($tc->photo) {
+            $oldPhotoPath = storage_path('app/public/' . $tc->photo);
+            if (file_exists($oldPhotoPath)) {
+                @unlink($oldPhotoPath);
+            }
+        }
+
+        $path = $file->storeAs("tc_photos/{$tc->id}", $filename, 'public');
+
+        // Update TC with photo path
+        $tc->update(['photo' => $path]);
+
+        // Log activity
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'tc_photo_uploaded',
+            'model_type' => TrainingCounsellor::class,
+            'model_id' => $tc->id,
+            'description' => "Photo uploaded for training counsellor {$tc->name}",
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'message' => 'Photo uploaded successfully',
+            'photo' => $path,
+            'photo_url' => $this->getStorageUrl($request, $path),
+        ]);
+    }
+
+    /**
+     * Delete photo for training counsellor (admin only)
+     */
+    public function deletePhoto(Request $request, $id)
+    {
+        // Find by UUID or fall back to tc_id for backward compatibility
+        $tc = TrainingCounsellor::where('uuid', $id)->orWhere('tc_id', $id)->firstOrFail();
+
+        // Only admin can delete photos
+        if (!$request->user() || $request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
+        }
+
+        if (!$tc->photo) {
+            return response()->json([
+                'message' => 'No photo to delete',
+            ], 404);
+        }
+
+        // Delete file from storage
+        $photoPath = storage_path('app/public/' . $tc->photo);
+        if (file_exists($photoPath)) {
+            @unlink($photoPath);
+        }
+
+        // Update TC
+        $tc->update(['photo' => null]);
+
+        // Log activity
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'tc_photo_deleted',
+            'model_type' => TrainingCounsellor::class,
+            'model_id' => $tc->id,
+            'description' => "Photo deleted for training counsellor {$tc->name}",
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'message' => 'Photo deleted successfully',
+        ]);
+    }
+
+    /**
+     * Generate storage URL using request's base URL
+     */
+    private function getStorageUrl(Request $request, $path)
+    {
+        $baseUrl = $request->getSchemeAndHttpHost();
+        return $baseUrl . '/storage/' . $path;
     }
 }

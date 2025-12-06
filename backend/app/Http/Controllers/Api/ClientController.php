@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 
 class ClientController extends Controller
 {
@@ -36,7 +37,7 @@ class ClientController extends Controller
 
         // Filters - validate enum values
         if ($request->has('stage') && $request->stage !== 'all') {
-            $validStages = ['Application', 'Consultation Booked', 'Consultation Completed', 'Pending Match', 'Matched', 'Agreement Pending', 'Active Therapy', 'Completed'];
+            $validStages = ['Application & Assessment form Submitted', 'Consultation Booked', 'Consultation Completed', 'Matched with TC', 'Agreement Sent', 'Agreement Signed', 'Sessions Bookable', 'Active Therapy'];
             if (in_array($request->stage, $validStages)) {
                 $query->where('stage', $request->stage);
             }
@@ -136,7 +137,7 @@ class ClientController extends Controller
             'email' => 'sometimes|email|unique:clients,email,' . $client->id,
             'age' => 'nullable|integer|min:1|max:120',
             'phone' => 'nullable|string|max:20',
-            'stage' => 'sometimes|in:Application,Consultation Booked,Consultation Completed,Pending Match,Matched,Agreement Pending,Active Therapy,Completed',
+            'stage' => 'sometimes|in:Application & Assessment form Submitted,Consultation Booked,Consultation Completed,Matched with TC,Agreement Sent,Agreement Signed,Sessions Bookable,Active Therapy',
             'status' => 'sometimes|in:active,urgent,stuck,archived',
             'service_type' => 'nullable|in:Low Cost,Mid Range,High Range',
             'primary_issues' => 'nullable|array|max:20',
@@ -186,7 +187,7 @@ class ClientController extends Controller
         return response()->json(['message' => 'Client deleted successfully']);
     }
 
-    public function details($id)
+    public function details(Request $request, $id)
     {
         // Find by UUID or fall back to client_id for backward compatibility
         $client = Client::where('uuid', $id)
@@ -204,7 +205,14 @@ class ClientController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        return response()->json($client);
+        $response = $client->toArray();
+        
+        // Add photo_url if photo exists
+        if ($client->photo) {
+            $response['photo_url'] = $this->getStorageUrl($request, $client->photo);
+        }
+
+        return response()->json($response);
     }
 
     public function progressStage(Request $request, $id)
@@ -218,7 +226,7 @@ class ClientController extends Controller
         }
         
         $request->validate([
-            'stage' => 'required|in:Application,Consultation Booked,Consultation Completed,Pending Match,Matched,Agreement Pending,Active Therapy,Completed',
+            'stage' => 'required|in:Application & Assessment form Submitted,Consultation Booked,Consultation Completed,Matched with TC,Agreement Sent,Agreement Signed,Sessions Bookable,Active Therapy',
         ]);
 
         $oldStage = $client->stage;
@@ -243,7 +251,7 @@ class ClientController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $query = Client::where('stage', 'Pending Match')
+        $query = Client::where('stage', 'Matched with TC')
             ->with(['matchedTc']);
 
         if ($request->has('search')) {
@@ -293,7 +301,7 @@ class ClientController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $count = Client::where('stage', 'Pending Match')->count();
+        $count = Client::where('stage', 'Matched with TC')->count();
         return response()->json(['count' => $count]);
     }
 
@@ -358,6 +366,8 @@ class ClientController extends Controller
             'match_score' => 'nullable|integer|min:0|max:100',
             'assignment_notes' => 'nullable|string|max:1000',
             'send_notification' => 'boolean',
+            'allocated_day' => 'nullable|string|in:Monday,Tuesday,Wednesday,Thursday,Friday',
+            'allocated_time' => 'nullable|string|max:50',
         ]);
 
         // Find by UUID or client_id/tc_id - sanitize input
@@ -382,11 +392,19 @@ class ClientController extends Controller
         ]);
 
         // Update client
-        $client->update([
+        $updateData = [
             'matched_tc_id' => $tc->id,
             'matched_date' => now(),
-            'stage' => 'Agreement Pending',
-        ]);
+            'stage' => 'Matched with TC',
+        ];
+
+        // Add allocated day/time for Low Cost and Mid-Range clients
+        if (isset($validated['allocated_day']) && isset($validated['allocated_time'])) {
+            $updateData['allocated_day'] = $validated['allocated_day'];
+            $updateData['allocated_time'] = $validated['allocated_time'];
+        }
+
+        $client->update($updateData);
 
         // Update TC client count
         $tc->increment('current_clients');
@@ -403,7 +421,7 @@ class ClientController extends Controller
                 'action' => 'client_tc_matched',
                 'model_type' => ClientTcMatch::class,
                 'model_id' => $match->id,
-                'description' => "Client {$client->name} matched with TC {$tc->name}",
+                'description' => "{$request->user()->name} matched client {$client->name} with TC {$tc->name}",
                 'ip_address' => $request->ip(),
             ]);
         }
@@ -542,7 +560,7 @@ class ClientController extends Controller
 
         // Send email
         try {
-            Mail::to($client->email)->send(new ClientAgreementEmail($client->name));
+            Mail::to($client->email)->send(new ClientAgreementEmail($client->name, $client->email, $client->uuid));
 
             // Update client record
             $client->update([
@@ -660,5 +678,136 @@ class ClientController extends Controller
         });
 
         return response()->json($clients);
+    }
+
+    /**
+     * Upload photo for client (admin only)
+     */
+    public function uploadPhoto(Request $request, $id)
+    {
+        // Find by UUID or fall back to client_id for backward compatibility
+        $client = Client::where('uuid', $id)->orWhere('client_id', $id)->firstOrFail();
+
+        // Only admin can upload photos
+        if (!$request->user() || $request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
+        }
+
+        $request->validate([
+            'photo' => 'required|image|mimes:jpeg,jpg,png|max:5120', // Max 5MB
+        ]);
+
+        $file = $request->file('photo');
+        
+        // Additional security checks
+        $originalName = $file->getClientOriginalName();
+        $extension = strtolower($file->getClientOriginalExtension());
+        $mimeType = $file->getMimeType();
+        
+        // Validate file extension
+        $allowedExtensions = ['jpg', 'jpeg', 'png'];
+        if (!in_array($extension, $allowedExtensions)) {
+            return response()->json([
+                'message' => 'Invalid file type. Allowed types: JPG, JPEG, PNG',
+            ], 422);
+        }
+        
+        // Validate MIME type
+        $allowedMimeTypes = ['image/jpeg', 'image/png'];
+        if (!in_array($mimeType, $allowedMimeTypes)) {
+            return response()->json([
+                'message' => 'Invalid file MIME type.',
+            ], 422);
+        }
+        
+        // Sanitize filename
+        $sanitizedName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
+        $sanitizedName = substr($sanitizedName, 0, 255);
+        
+        // Generate unique filename to prevent overwrites
+        $filename = time() . '_' . uniqid() . '_' . $sanitizedName;
+
+        // Delete old photo if exists
+        if ($client->photo) {
+            $oldPhotoPath = storage_path('app/public/' . $client->photo);
+            if (file_exists($oldPhotoPath)) {
+                @unlink($oldPhotoPath);
+            }
+        }
+
+        $path = $file->storeAs("client_photos/{$client->id}", $filename, 'public');
+
+        // Update client with photo path
+        $client->update(['photo' => $path]);
+
+        // Log activity
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'client_photo_uploaded',
+            'model_type' => Client::class,
+            'model_id' => $client->id,
+            'description' => "Photo uploaded for client {$client->name}",
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'message' => 'Photo uploaded successfully',
+            'photo' => $path,
+            'photo_url' => $this->getStorageUrl($request, $path),
+        ]);
+    }
+
+    /**
+     * Delete photo for client (admin only)
+     */
+    public function deletePhoto(Request $request, $id)
+    {
+        // Find by UUID or fall back to client_id for backward compatibility
+        $client = Client::where('uuid', $id)->orWhere('client_id', $id)->firstOrFail();
+
+        // Only admin can delete photos
+        if (!$request->user() || $request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized. Admin access required.'], 403);
+        }
+
+        if (!$client->photo) {
+            return response()->json([
+                'message' => 'No photo to delete',
+            ], 404);
+        }
+
+        // Delete file from storage
+        $photoPath = storage_path('app/public/' . $client->photo);
+        if (file_exists($photoPath)) {
+            @unlink($photoPath);
+        }
+
+        // Update client
+        $client->update(['photo' => null]);
+
+        // Log activity
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'client_photo_deleted',
+            'model_type' => Client::class,
+            'model_id' => $client->id,
+            'description' => "Photo deleted for client {$client->name}",
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'message' => 'Photo deleted successfully',
+        ]);
+    }
+
+    /**
+     * Generate storage URL using request's base URL
+     */
+    private function getStorageUrl(Request $request, $path)
+    {
+        $baseUrl = $request->getSchemeAndHttpHost();
+        return $baseUrl . '/storage/' . $path;
     }
 }

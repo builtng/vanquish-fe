@@ -16,6 +16,7 @@ class TrainingCounsellor extends Model
         'tc_id',
         'name',
         'email',
+        'photo',
         'phone',
         'modality',
         'status',

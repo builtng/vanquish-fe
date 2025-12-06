@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\ActivityLog;
+use App\Models\Message;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\BookingNotificationEmail;
 
 class ConsultationController extends Controller
 {
@@ -39,17 +42,56 @@ class ConsultationController extends Controller
         $validated['status'] = 'scheduled';
 
         $consultation = Consultation::create($validated);
+        $consultation->load(['client', 'tc']);
 
+        // Log activity
         ActivityLog::create([
             'user_id' => $request->user()->id,
             'action' => 'consultation_booked',
             'model_type' => Consultation::class,
             'model_id' => $consultation->id,
-            'description' => "Consultation booked for client",
+            'description' => "Consultation booked for client {$consultation->client->name}",
             'ip_address' => $request->ip(),
         ]);
 
-        return response()->json($consultation->load(['client', 'tc']), 201);
+        // Send notification to TC if assigned
+        if ($consultation->tc_id && $consultation->tc) {
+            $tc = $consultation->tc;
+            
+            // Send email notification if TC has email
+            if ($tc->email) {
+                try {
+                    Mail::to($tc->email)->send(new BookingNotificationEmail(
+                        $tc->name,
+                        $consultation->client->name,
+                        'consultation',
+                        $consultation->scheduled_at,
+                        ['notes' => $consultation->notes]
+                    ));
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send consultation booking notification: ' . $e->getMessage());
+                }
+            }
+
+            // Create in-system message notification
+            try {
+                Message::create([
+                    'from_user_id' => $request->user()->id,
+                    'to_tc_id' => $tc->id,
+                    'subject' => "New Consultation Booking: {$consultation->client->name}",
+                    'message' => "A consultation has been scheduled for {$consultation->client->name} on " . 
+                                \Carbon\Carbon::parse($consultation->scheduled_at)->format('l, F j, Y \a\t g:i A') . 
+                                ($consultation->notes ? "\n\nNotes: {$consultation->notes}" : ''),
+                    'type' => 'staff_to_counsellor',
+                    'related_client_id' => $consultation->client_id,
+                    'related_consultation_id' => $consultation->id,
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create consultation booking message: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json($consultation, 201);
     }
 
     public function show($id)

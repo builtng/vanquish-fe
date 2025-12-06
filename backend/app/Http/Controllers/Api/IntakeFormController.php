@@ -88,6 +88,7 @@ class IntakeFormController extends Controller
             ]);
 
             $clientId = null;
+            $client = null;
             
             // Optionally create client from intake form
             if ($request->has('create_client') && $request->create_client) {
@@ -102,17 +103,30 @@ class IntakeFormController extends Controller
                     'primary_issues' => $validated['support_areas'] ?? [],
                     'availability' => $validated['availability'] ?? [],
                     'submitted_date' => now(),
-                    'stage' => 'Application',
+                    'stage' => 'Application & Assessment form Submitted',
                 ]);
 
                 $form->update(['client_id' => $client->id]);
                 $clientId = $client->id;
             }
 
+            // Get client UUID if client was created or form has client_id
+            $clientUuid = null;
+            if ($client) {
+                $clientUuid = $client->uuid;
+            } elseif ($clientId) {
+                $client = Client::find($clientId);
+                $clientUuid = $client ? $client->uuid : null;
+            } elseif ($form->client_id) {
+                $client = Client::find($form->client_id);
+                $clientUuid = $client ? $client->uuid : null;
+            }
+
             return response()->json([
                 'message' => 'Intake form submitted successfully',
                 'form' => $form,
                 'client_id' => $clientId ?? $form->client_id,
+                'client_uuid' => $clientUuid,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([

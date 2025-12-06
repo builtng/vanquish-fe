@@ -12,3 +12,13 @@ Artisan::command('inspire', function () {
 Schedule::command('clients:send-feedback-forms')
     ->monthly()
     ->description('Send feedback form emails to eligible clients (every 3 months)');
+
+// Schedule booking reminders - check every hour for clients needing reminders (48hrs before deadline)
+Schedule::command('bookings:send-reminders')
+    ->hourly()
+    ->description('Send booking reminders to Low Cost clients 48 hours before deadline');
+
+// Schedule auto-deduction - check daily for clients who missed booking deadline
+Schedule::command('bookings:apply-auto-deduction')
+    ->daily()
+    ->description('Apply auto-deduction (3 sessions instead of 4) for clients who missed booking deadline');

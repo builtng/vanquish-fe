@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -97,6 +98,14 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // Enforce 3-user limit
+        $userCount = User::count();
+        if ($userCount >= 3) {
+            return response()->json([
+                'message' => 'Maximum number of users (3) has been reached. Cannot create more users.',
+            ], 403);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255|regex:/^[a-zA-Z\s\-\'\.]+$/',
             'email' => 'required|string|email|max:255|unique:users',
@@ -135,6 +144,17 @@ class AuthController extends Controller
             'email' => $user->email,
             'role' => $user->role,
             'ip' => $request->ip(),
+        ]);
+
+        // Log activity
+        ActivityLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => 'user_registered',
+            'model_type' => User::class,
+            'model_id' => $user->id,
+            'description' => "User {$user->name} ({$user->email}) registered with role: {$role}",
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         return response()->json([
