@@ -77,7 +77,13 @@ class ActivityLogSeeder extends Seeder
         ];
 
         foreach ($activities as $activity) {
-            ActivityLog::create($activity);
+            ActivityLog::updateOrCreate(
+                [
+                    'description' => $activity['description'],
+                    'created_at' => $activity['created_at']
+                ],
+                $activity
+            );
         }
 
         $this->command->info('Activity Logs seeded successfully!');

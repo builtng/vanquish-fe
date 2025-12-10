@@ -123,7 +123,10 @@ class ConsultationSeeder extends Seeder
 
         foreach ($consultations as $consultation) {
             if ($consultation['client_id']) {
-                Consultation::create($consultation);
+                Consultation::updateOrCreate(
+                    ['consultation_id' => $consultation['consultation_id']],
+                    $consultation
+                );
             }
         }
 

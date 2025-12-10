@@ -137,7 +137,7 @@ class ClientSeeder extends Seeder
                 'gender' => 'Female',
                 'ethnicity' => 'White British',
                 'sexual_orientation' => 'Heterosexual',
-                'stage' => 'Pending Match',
+                'stage' => 'Consultation Completed',
                 'status' => 'urgent',
                 'service_type' => 'Low Cost',
                 'primary_issues' => ['Anxiety', 'Work Stress'],
@@ -167,7 +167,7 @@ class ClientSeeder extends Seeder
                 'gender' => 'Male',
                 'ethnicity' => 'Mixed Heritage',
                 'sexual_orientation' => 'Gay',
-                'stage' => 'Pending Match',
+                'stage' => 'Consultation Completed',
                 'status' => 'active',
                 'service_type' => 'Low Cost',
                 'primary_issues' => ['Sexual Abuse', 'Low Self-esteem'],
@@ -197,7 +197,7 @@ class ClientSeeder extends Seeder
                 'gender' => 'Male',
                 'ethnicity' => 'White British',
                 'sexual_orientation' => 'Heterosexual',
-                'stage' => 'Pending Match',
+                'stage' => 'Consultation Completed',
                 'status' => 'active',
                 'service_type' => 'Low Cost',
                 'primary_issues' => ['Depression', 'Relationship Problems'],
@@ -227,7 +227,7 @@ class ClientSeeder extends Seeder
                 'gender' => 'Male',
                 'ethnicity' => 'White British',
                 'sexual_orientation' => 'Heterosexual',
-                'stage' => 'Pending Match',
+                'stage' => 'Consultation Completed',
                 'status' => 'active',
                 'service_type' => 'Mid Range',
                 'primary_issues' => ['Anxiety', 'Panic Attacks'],
@@ -257,7 +257,7 @@ class ClientSeeder extends Seeder
                 'gender' => 'Female',
                 'ethnicity' => 'White British',
                 'sexual_orientation' => 'Heterosexual',
-                'stage' => 'Pending Match',
+                'stage' => 'Consultation Completed',
                 'status' => 'urgent',
                 'service_type' => 'Low Cost',
                 'primary_issues' => ['Trauma', 'PTSD', 'Anxiety'],
@@ -288,7 +288,7 @@ class ClientSeeder extends Seeder
                 'gender' => 'Female',
                 'ethnicity' => 'Asian British',
                 'sexual_orientation' => 'Heterosexual',
-                'stage' => 'Agreement Pending',
+                'stage' => 'Agreement Sent',
                 'status' => 'active',
                 'service_type' => 'Low Cost',
                 'primary_issues' => ['Anxiety', 'Social Anxiety'],
@@ -344,7 +344,10 @@ class ClientSeeder extends Seeder
         ];
 
         foreach ($clients as $client) {
-            Client::create($client);
+            Client::updateOrCreate(
+                ['email' => $client['email']],
+                $client
+            );
         }
 
         $this->command->info('Clients seeded successfully!');

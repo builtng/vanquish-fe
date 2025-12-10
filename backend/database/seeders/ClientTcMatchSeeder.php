@@ -74,7 +74,13 @@ class ClientTcMatchSeeder extends Seeder
 
         foreach ($matches as $match) {
             if ($match['client_id'] && $match['tc_id']) {
-                ClientTcMatch::create($match);
+                ClientTcMatch::updateOrCreate(
+                    [
+                        'client_id' => $match['client_id'],
+                        'tc_id' => $match['tc_id']
+                    ],
+                    $match
+                );
             }
         }
 

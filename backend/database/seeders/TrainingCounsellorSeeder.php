@@ -182,7 +182,10 @@ class TrainingCounsellorSeeder extends Seeder
         ];
 
         foreach ($tcs as $tc) {
-            TrainingCounsellor::create($tc);
+            TrainingCounsellor::updateOrCreate(
+                ['email' => $tc['email']],
+                $tc
+            );
         }
 
         $this->command->info('Training Counsellors seeded successfully!');
