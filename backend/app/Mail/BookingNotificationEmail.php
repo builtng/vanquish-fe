@@ -49,3 +49,4 @@ class BookingNotificationEmail extends Mailable
     }
 }
 
+
