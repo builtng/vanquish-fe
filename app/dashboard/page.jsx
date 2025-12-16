@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
 import DashboardLayout from "@/components/DashboardLayout";
+import DashboardHeader from "@/components/DashboardHeader";
 import * as XLSX from "xlsx";
 import {
   Users,
@@ -56,8 +57,8 @@ export default function ClientDashboard() {
   });
   const [pipelineStages, setPipelineStages] = useState([
     { stage: "Application", count: 0, color: "#3b82f6", icon: FileText },
-    { stage: "Consultation", count: 0, color: "#8b5cf6", icon: Video },
-    { stage: "Matched", count: 0, color: "#10b981", icon: UserCheck },
+    { stage: "Consultation", count: 0, color: "#6366F1", icon: Video },
+    { stage: "Matched", count: 0, color: "#10B981", icon: UserCheck },
     { stage: "Agreement", count: 0, color: "#f59e0b", icon: CheckCircle },
     { stage: "Active", count: 0, color: "#6f1d56", icon: CheckCircle },
   ]);
@@ -78,8 +79,13 @@ export default function ClientDashboard() {
 
   // Get UK time greeting
   const getUKGreeting = () => {
-    const ukTime = new Date(currentTime.toLocaleString("en-GB", { timeZone: "Europe/London" }));
-    const hour = ukTime.getHours();
+    // Get hour in UK timezone using Intl.DateTimeFormat
+    const formatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/London",
+      hour: "numeric",
+      hour12: false,
+    });
+    const hour = parseInt(formatter.format(currentTime));
     const userName = user?.name || "there";
     
     let greeting;
@@ -140,27 +146,63 @@ export default function ClientDashboard() {
 
   // Fetch dashboard data from API
   useEffect(() => {
+    let isMounted = true;
+    let abortController = new AbortController();
+    
     const fetchDashboardData = async () => {
       if (!user) return;
       
       try {
         setLoading(true);
         
-        // Fetch all clients
-        const clientsData = await apiService.getClients();
-        const allClients = Array.isArray(clientsData) ? clientsData : clientsData.data || [];
+        // Fetch all data in parallel with error handling for each request
+        const [clientsResult, pendingMatchesResult, consultationsResult, activityResult] = await Promise.allSettled([
+          apiService.getClients(),
+          apiService.getPendingMatches(),
+          apiService.getConsultations(),
+          apiService.getActivityLogs({ per_page: 10 }),
+        ]);
         
-        // Fetch pending matches
-        const pendingMatchesData = await apiService.getPendingMatches();
-        const pendingMatches = Array.isArray(pendingMatchesData) ? pendingMatchesData : [];
+        // Handle clients data
+        let allClients = [];
+        if (clientsResult.status === 'fulfilled') {
+          const clientsData = clientsResult.value;
+          allClients = Array.isArray(clientsData) ? clientsData : clientsData.data || [];
+        } else {
+          console.error('Error fetching clients:', clientsResult.reason);
+          if (clientsResult.reason?.message?.includes('Too many requests')) {
+            throw new Error('Rate limit exceeded. Please wait a moment and refresh the page.');
+          }
+        }
         
-        // Fetch consultations
-        const consultationsData = await apiService.getConsultations();
-        const consultations = Array.isArray(consultationsData) ? consultationsData : [];
+        // Handle pending matches data
+        let pendingMatches = [];
+        if (pendingMatchesResult.status === 'fulfilled') {
+          const pendingMatchesData = pendingMatchesResult.value;
+          pendingMatches = Array.isArray(pendingMatchesData) ? pendingMatchesData : [];
+        } else {
+          console.error('Error fetching pending matches:', pendingMatchesResult.reason);
+        }
         
-        // Fetch activity logs
-        const activityData = await apiService.getActivityLogs({ per_page: 10 });
-        const activities = Array.isArray(activityData) ? activityData : activityData.data || [];
+        // Handle consultations data
+        let consultations = [];
+        if (consultationsResult.status === 'fulfilled') {
+          const consultationsData = consultationsResult.value;
+          consultations = Array.isArray(consultationsData) ? consultationsData : [];
+        } else {
+          console.error('Error fetching consultations:', consultationsResult.reason);
+        }
+        
+        // Handle activity logs data
+        let activities = [];
+        if (activityResult.status === 'fulfilled') {
+          const activityData = activityResult.value;
+          activities = Array.isArray(activityData) ? activityData : activityData.data || [];
+        } else {
+          console.error('Error fetching activity logs:', activityResult.reason);
+        }
+        
+        if (!isMounted) return;
         
         // Calculate stats
         const totalClients = allClients.length;
@@ -184,8 +226,8 @@ export default function ClientDashboard() {
         
         setPipelineStages([
           { stage: "Application", count: applicationCount, color: "#3b82f6", icon: FileText },
-          { stage: "Consultation", count: consultationCount, color: "#8b5cf6", icon: Video },
-          { stage: "Matched", count: matchedCount, color: "#10b981", icon: UserCheck },
+          { stage: "Consultation", count: consultationCount, color: "#6366F1", icon: Video },
+          { stage: "Matched", count: matchedCount, color: "#10B981", icon: UserCheck },
           { stage: "Agreement", count: agreementCount, color: "#f59e0b", icon: CheckCircle },
           { stage: "Active", count: activeCount, color: "#6f1d56", icon: CheckCircle },
         ]);
@@ -284,14 +326,26 @@ export default function ClientDashboard() {
         
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
+        // Show user-friendly error message for rate limiting
+        if (err.message?.includes('Too many requests') || err.message?.includes('Rate limit')) {
+          // You might want to show a toast notification here
+          console.warn('Rate limit exceeded. Please wait before refreshing.');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     if (!isLoading && user) {
       fetchDashboardData();
     }
+    
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, [user, isLoading]);
 
   // If not authenticated, the AuthContext will redirect to login
@@ -504,28 +558,24 @@ export default function ClientDashboard() {
   };
 
   const StatCard = ({ icon: Icon, label, value, sublabel, color, change }) => (
-    <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow-lg transition-all cursor-pointer group">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <p className="text-xs text-gray-600 mb-1">{label}</p>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
-          {change && <p className="text-xs text-gray-500 mt-1">{change}</p>}
-        </div>
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"
-          style={{ backgroundColor: `${color}20` }}
+    <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow group">
+      <div className="flex items-center gap-3 mb-2">
+        <div 
+          className="w-10 h-10 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
+          style={{ backgroundColor: `${color}15`, color: color }}
         >
-          <Icon className="w-6 h-6" style={{ color }} />
+          <Icon className="w-5 h-5" />
         </div>
+        <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">{label}</p>
       </div>
-      {sublabel && (
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-          <span className="text-xs font-medium" style={{ color }}>
-            {sublabel}
-          </span>
-          <ChevronRight className="w-3 h-3 text-gray-400 group-hover:text-gray-600" />
-        </div>
-      )}
+      <div className="pl-1">
+        <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{value}</p>
+        {(change || sublabel) && (
+          <p className="text-xs text-gray-500 dark:text-[var(--text-tertiary)] mt-1 font-medium">
+            {change || sublabel}
+          </p>
+        )}
+      </div>
     </div>
   );
 
@@ -559,32 +609,32 @@ export default function ClientDashboard() {
         href={link || undefined}
         className={`flex items-start gap-3 p-3 rounded-lg border-2 transition-all hover:shadow-md cursor-pointer ${
           item.priority === "high"
-            ? "bg-red-50 border-red-200 hover:border-red-300"
-            : "bg-orange-50 border-orange-200 hover:border-orange-300"
+            ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700"
+            : "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 hover:border-orange-300 dark:hover:border-orange-700"
         }`}
       >
         <div
           className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            item.priority === "high" ? "bg-red-100" : "bg-orange-100"
+            item.priority === "high" ? "bg-red-100 dark:bg-red-900/30" : "bg-orange-100 dark:bg-orange-900/30"
           }`}
         >
           <item.icon
             className={`w-5 h-5 ${
-              item.priority === "high" ? "text-red-600" : "text-orange-600"
+              item.priority === "high" ? "text-red-600 dark:text-red-400" : "text-orange-600 dark:text-orange-400"
             }`}
           />
         </div>
         <div className="flex-1">
-          <h4 className="font-semibold text-gray-900 text-sm mb-1">
+          <h4 className="font-semibold text-gray-900 dark:text-[var(--text-primary)] text-sm mb-1">
             {item.message}
           </h4>
-          <p className="text-xs text-gray-600 mb-2">{item.details}</p>
+          <p className="text-xs text-gray-600 dark:text-[var(--text-secondary)] mb-2">{item.details}</p>
           {link ? (
             <span
               className={`text-xs font-medium flex items-center gap-1 ${
                 item.priority === "high"
-                  ? "text-red-600 hover:text-red-700"
-                  : "text-orange-600 hover:text-orange-700"
+                  ? "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                  : "text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300"
               }`}
             >
               {item.action}
@@ -594,8 +644,8 @@ export default function ClientDashboard() {
             <button
               className={`text-xs font-medium flex items-center gap-1 ${
                 item.priority === "high"
-                  ? "text-red-600 hover:text-red-700"
-                  : "text-orange-600 hover:text-orange-700"
+                  ? "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                  : "text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300"
               }`}
             >
               {item.action}
@@ -632,46 +682,43 @@ export default function ClientDashboard() {
   return (
     <DashboardLayout>
         {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-4 mb-2">
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    {getUKGreeting()}
-                  </h1>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 border border-purple-200 rounded-lg">
-                    <Clock className="w-4 h-4 text-purple-600" />
-                    <span className="text-sm font-mono font-semibold text-purple-900">
-                      {getUKTime()}
-                    </span>
-                    <span className="text-xs text-purple-600 ml-1">UK</span>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600">
-                  {getUKDate()} • Overview of all clients and their journey through the system
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={handleExportReport}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2"
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  Export Report
-                </button>
-                <Link
-                  href="/dashboard/clients/edit"
-                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2"
-                  style={{ backgroundColor: "#6f1d56" }}
-                >
-                  <Plus className="w-4 h-4" />
-                  Add New Client
-                </Link>
-              </div>
+        <DashboardHeader
+          actions={
+            <>
+              <button 
+                onClick={handleExportReport}
+                className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-800 dark:text-[var(--text-primary)] bg-white dark:bg-[var(--card-bg)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 transition-colors shadow-sm"
+              >
+                <BarChart3 className="w-4 h-4" />
+                Export Report
+              </button>
+              <Link
+                href="/dashboard/clients/edit"
+                className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 transition-opacity"
+                style={{ backgroundColor: "#6f1d56" }}
+              >
+                <Plus className="w-4 h-4" />
+                Add New Client
+              </Link>
+            </>
+          }
+        >
+          <div className="flex items-center gap-4 mb-2">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+              {getUKGreeting()}
+            </h1>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg">
+              <Clock className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+              <span className="text-sm font-mono font-semibold text-gray-900 dark:text-gray-100">
+                {getUKTime()}
+              </span>
+              <span className="text-xs text-gray-600 dark:text-gray-400 ml-1 font-medium">UK</span>
             </div>
           </div>
-        </div>
+          <p className="text-sm text-gray-700 dark:text-[var(--text-secondary)]">
+            {getUKDate()} • Overview of all clients and their journey through the system
+          </p>
+        </DashboardHeader>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
@@ -679,16 +726,17 @@ export default function ClientDashboard() {
             {loading && (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
-                  <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-                  <p className="text-gray-600">Loading dashboard...</p>
+                  <RefreshCw className="w-8 h-8 text-gray-400 dark:text-[var(--text-tertiary)] animate-spin mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-[var(--text-secondary)]">Loading dashboard...</p>
                 </div>
               </div>
             )}
             
             {!loading && (
             <div className="space-y-6">
+
               {/* Stats Cards - Top Section */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <StatCard
                   icon={Users}
                   label="Total Clients"
@@ -703,18 +751,11 @@ export default function ClientDashboard() {
                   color="#3b82f6"
                 />
                 <StatCard
-                  icon={CheckCircle}
-                  label="Agreement"
-                  value={pipelineStages.find(s => s.stage === "Agreement")?.count || 0}
-                  color="#f59e0b"
-                />
-                <StatCard
-                  icon={CheckCircle}
-                  label="Active in Therapy"
-                  value={stats.activeTherapy}
-                  change={stats.activeChange}
-                  sublabel="View Active Clients"
-                  color="#10b981"
+                  icon={Video}
+                  label="Consultations"
+                  value={stats.consultations}
+                  sublabel={stats.consultationsNote}
+                  color="#6366F1"
                 />
                 <StatCard
                   icon={UserCheck}
@@ -724,44 +765,50 @@ export default function ClientDashboard() {
                   color="#f59e0b"
                 />
                 <StatCard
-                  icon={Video}
-                  label="Consultations This Week"
-                  value={stats.consultations}
-                  sublabel={stats.consultationsNote}
-                  color="#3b82f6"
+                  icon={CheckCircle}
+                  label="Agreement"
+                  value={pipelineStages.find(s => s.stage === "Agreement")?.count || 0}
+                  color="#f97316"
+                />
+                <StatCard
+                  icon={Activity}
+                  label="Active Therapy"
+                  value={stats.activeTherapy}
+                  change={stats.activeChange}
+                  color="#10b981"
                 />
               </div>
 
               {/* Needs Attention Section - More Compact */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--card-border)] p-5">
                 <div 
                   className="flex items-center justify-between cursor-pointer"
                   onClick={() => setNeedsAttentionExpanded(!needsAttentionExpanded)}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                      <Bell className="w-5 h-5 text-red-600" />
+                    <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                      <Bell className="w-5 h-5 text-red-600 dark:text-red-400" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-gray-900">
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-[var(--text-primary)]">
                         Needs Attention
                       </h2>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
                         {urgentItems.length} items require your attention
                       </p>
                     </div>
                   </div>
                   <button
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       setNeedsAttentionExpanded(!needsAttentionExpanded);
                     }}
                   >
                     {needsAttentionExpanded ? (
-                      <ChevronDown className="w-5 h-5 text-gray-600" />
+                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
                     ) : (
-                      <ChevronRight className="w-5 h-5 text-gray-600" />
+                      <ChevronRight className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
                     )}
                   </button>
                 </div>
@@ -775,31 +822,31 @@ export default function ClientDashboard() {
               </div>
 
               {/* Recent Activity */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--card-border)] p-5">
                 <div 
                   className="flex items-center justify-between cursor-pointer"
                   onClick={() => setRecentActivityExpanded(!recentActivityExpanded)}
                 >
                   <div className="flex items-center gap-3">
-                    <Activity className="w-5 h-5 text-gray-400" />
+                    <Activity className="w-5 h-5 text-gray-400 dark:text-[var(--text-tertiary)]" />
                     <div>
-                      <h2 className="text-lg font-bold text-gray-900">
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-[var(--text-primary)]">
                         Recent Activity
                       </h2>
-                      <p className="text-sm text-gray-600">Latest updates</p>
+                      <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">Latest updates</p>
                     </div>
                   </div>
                   <button
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       setRecentActivityExpanded(!recentActivityExpanded);
                     }}
                   >
                     {recentActivityExpanded ? (
-                      <ChevronDown className="w-5 h-5 text-gray-600" />
+                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
                     ) : (
-                      <ChevronRight className="w-5 h-5 text-gray-600" />
+                      <ChevronRight className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
                     )}
                   </button>
                 </div>
@@ -809,39 +856,39 @@ export default function ClientDashboard() {
                       {recentActivity.map((activity) => (
                         <div
                           key={activity.id}
-                          className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group"
+                          className="flex items-start gap-3 p-2 hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors cursor-pointer group"
                         >
                           <div
                             className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
                               activity.color === "green"
-                                ? "bg-green-500"
+                                ? "bg-[var(--success-primary)]"
                                 : activity.color === "blue"
                                 ? "bg-blue-500"
                                 : activity.color === "purple"
-                                ? "bg-purple-500"
+                                ? "bg-[var(--purple-primary)]"
                                 : "bg-yellow-500"
                             }`}
                           ></div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-gray-900 dark:text-[var(--text-primary)]">
                               <span className="font-semibold">
                                 {activity.client}
                               </span>{" "}
                               {activity.action}
                             </p>
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="text-xs text-gray-500 dark:text-[var(--text-tertiary)] mt-0.5">
                               {activity.time}
                             </p>
                           </div>
-                          <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 flex-shrink-0 mt-1" />
+                          <ChevronRight className="w-4 h-4 text-gray-300 dark:text-[var(--text-tertiary)] group-hover:text-gray-500 dark:group-hover:text-[var(--text-secondary)] flex-shrink-0 mt-1" />
                         </div>
                       ))}
                     </div>
                     {recentActivity.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-[var(--card-border)]">
                         <Link
                           href="/dashboard/activity-log"
-                          className="text-sm font-medium text-purple-600 hover:text-purple-700 flex items-center gap-2"
+                          className="text-sm font-medium text-[var(--purple-primary)] hover:opacity-80 flex items-center gap-2"
                         >
                           View All Activity
                           <ChevronRight className="w-4 h-4" />
@@ -853,57 +900,57 @@ export default function ClientDashboard() {
               </div>
 
               {/* Quick Actions - More Compact */}
-              <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl border-2 border-dashed border-purple-200 p-6">
+              <div className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl border-2 border-dashed border-purple-200 dark:border-purple-700 p-6">
                 <div className="text-center mb-4">
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)] mb-1">
                     Quick Actions
                   </h2>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
                     Common tasks for client management
                   </p>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <Link
                     href="/dashboard/clients"
-                    className="bg-white p-5 rounded-xl border-2 border-gray-200 hover:border-purple-500 hover:shadow-lg transition-all group"
+                    className="bg-white dark:bg-[var(--card-bg)] p-5 rounded-xl border-2 border-gray-200 dark:border-[var(--card-border)] hover:border-[var(--purple-primary)] hover:shadow-lg transition-all group"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                      <Eye className="w-6 h-6 text-purple-600" />
+                    <div className="w-12 h-12 rounded-lg bg-[var(--purple-bg)] flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                      <Eye className="w-6 h-6 text-[var(--purple-primary)]" />
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-1">
                       View All Clients
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
                       See complete client list with filters
                     </p>
                   </Link>
 
                   <Link
                     href="/dashboard/consultations"
-                    className="bg-white p-5 rounded-xl border-2 border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all group"
+                    className="bg-white dark:bg-[var(--card-bg)] p-5 rounded-xl border-2 border-gray-200 dark:border-[var(--card-border)] hover:border-blue-500 dark:hover:border-blue-400 hover:shadow-lg transition-all group"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                      <Video className="w-6 h-6 text-blue-600" />
+                    <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                      <Video className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-1">
                       Book Consultation
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
                       Schedule initial consultation
                     </p>
                   </Link>
 
                   <Link
                     href="/dashboard/pending-matches"
-                    className="bg-white p-5 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:shadow-lg transition-all group"
+                    className="bg-white dark:bg-[var(--card-bg)] p-5 rounded-xl border-2 border-gray-200 dark:border-[var(--card-border)] hover:border-[var(--success-primary)] hover:shadow-lg transition-all group"
                   >
-                    <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                      <UserCheck className="w-6 h-6 text-green-600" />
+                    <div className="w-12 h-12 rounded-lg bg-[var(--success-bg)] flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                      <UserCheck className="w-6 h-6 text-[var(--success-primary)]" />
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-1">
                       Review Matches
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
                       Approve pending TC matches
                     </p>
                   </Link>
@@ -917,17 +964,17 @@ export default function ClientDashboard() {
       {/* New Client Modal */}
       {isNewClientModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-              <h2 className="text-2xl font-bold text-gray-900">
+            <div className="sticky top-0 bg-white dark:bg-[var(--card-bg)] border-b border-gray-200 dark:border-[var(--card-border)] px-6 py-4 flex items-center justify-between z-10">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
                 Add New Client
               </h2>
               <button
                 onClick={() => setIsNewClientModalOpen(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-gray-600" />
+                <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
               </button>
             </div>
 
@@ -984,7 +1031,7 @@ export default function ClientDashboard() {
                           name: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
                       placeholder="Enter full name"
                     />
                   </div>

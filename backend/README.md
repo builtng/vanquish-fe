@@ -6,7 +6,7 @@ Laravel 12 API backend for the Vanquish therapy management system.
 
 - **Authentication**: Laravel Sanctum for API token authentication
 - **Security**: CORS enabled, rate limiting, input validation
-- **Models**: Clients, Training Counsellors, Consultations, Activity Logs, Intake Forms
+- **Models**: Clients, Trainee Counsellors, Consultations, Activity Logs, Intake Forms
 - **RESTful API**: Full CRUD operations for all resources
 
 ## Installation
@@ -86,7 +86,7 @@ The API will be available at `http://localhost:8000/api`
 - `GET /api/pending-matches` - Get pending matches
 - `POST /api/matches` - Assign client to TC
 
-### Training Counsellors
+### Trainee Counsellors
 - `GET /api/training-counsellors` - List TCs
 - `POST /api/training-counsellors` - Create TC
 - `GET /api/training-counsellors/{id}` - Get TC

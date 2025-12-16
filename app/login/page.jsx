@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Mail, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -50,32 +51,37 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4 transition-colors duration-200">
+      {/* Theme Toggle - Fixed Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md">
+
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white font-bold text-2xl mb-4" style={{ backgroundColor: "#6f1d56" }}>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white font-bold text-2xl mb-4 bg-[var(--button-primary-bg)]">
             VT
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Vanquish</h1>
-          <p className="text-gray-600">Admin Dashboard Login</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Vanquish</h1>
+          <p className="text-muted-foreground">Admin Dashboard Login</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+        <div className="bg-card rounded-2xl shadow-xl border border-border p-8">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-foreground mb-2">
               Welcome Back
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Sign in to access your dashboard
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
             </div>
           )}
 
@@ -84,13 +90,13 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-foreground mb-2"
               >
                 Email Address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   id="email"
@@ -100,7 +106,7 @@ export default function LoginPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent text-gray-900 placeholder-gray-400"
+                  className="block w-full pl-10 pr-3 py-3 border border-input bg-background/50 text-foreground rounded-lg focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:border-transparent placeholder:text-muted-foreground"
                   placeholder="Enter your email"
                 />
               </div>
@@ -110,13 +116,13 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-foreground mb-2"
               >
                 Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   id="password"
@@ -127,7 +133,7 @@ export default function LoginPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
                   }
-                  className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent text-gray-900 placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="block w-full pl-10 pr-12 py-3 border border-input bg-background/50 text-foreground rounded-lg focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:border-transparent placeholder:text-muted-foreground disabled:bg-muted disabled:cursor-not-allowed"
                   placeholder="Enter your password"
                 />
                 <button
@@ -137,9 +143,9 @@ export default function LoginPage() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center disabled:cursor-not-allowed"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <EyeOff className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400" />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    <Eye className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400" />
                   )}
                 </button>
               </div>
@@ -150,13 +156,13 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="twoFactorCode"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-sm font-medium text-foreground mb-2"
                 >
                   Two-Factor Authentication Code
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
+                    <Lock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                   </div>
                   <input
                     id="twoFactorCode"
@@ -168,12 +174,12 @@ export default function LoginPage() {
                       const value = e.target.value.replace(/\D/g, '').slice(0, 6);
                       setFormData({ ...formData, twoFactorCode: value });
                     }}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent text-gray-900 placeholder-gray-400 text-center text-2xl tracking-widest font-mono"
+                    className="block w-full pl-10 pr-3 py-3 border border-input bg-background/50 text-foreground rounded-lg focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:border-transparent placeholder:text-muted-foreground text-center text-2xl tracking-widest font-mono"
                     placeholder="000000"
                     autoFocus
                   />
                 </div>
-                <p className="mt-2 text-xs text-gray-500">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Enter the 6-digit code from your authenticator app
                 </p>
               </div>
@@ -185,19 +191,18 @@ export default function LoginPage() {
                 <input
                   id="remember"
                   type="checkbox"
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-[var(--button-primary-bg)] focus:ring-[var(--button-primary-bg)] border-input rounded"
                 />
                 <label
                   htmlFor="remember"
-                  className="ml-2 block text-sm text-gray-700"
+                  className="ml-2 block text-sm text-foreground"
                 >
                   Remember me
                 </label>
               </div>
               <a
                 href="#"
-                className="text-sm font-medium hover:opacity-80"
-                style={{ color: "#6f1d56" }}
+                className="text-sm font-medium hover:opacity-80 text-[var(--button-primary-bg)]"
               >
                 Forgot password?
               </a>
@@ -207,8 +212,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 rounded-lg text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{ backgroundColor: "#6f1d56" }}
+              className="w-full py-3 px-4 rounded-lg text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-[var(--button-primary-bg)]"
             >
               {isLoading ? (
                 <>
@@ -242,7 +246,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-gray-600 mt-6">
+        <p className="text-center text-sm text-muted-foreground mt-6">
           © 2024 Vanquish. All rights reserved.
         </p>
       </div>

@@ -4,28 +4,31 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import apiService from '@/lib/api';
-import { useToast } from '@/contexts/ToastContext';
+import { useToast } from '@/lib/toast';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
+import DashboardLayout from '@/components/DashboardLayout';
 
 import { 
-
+  
   Users, Search, Filter, ChevronDown, MoreVertical, Eye,
-
+  
   Mail, Phone, Calendar, Edit, Trash2, ArrowUpDown, X,
-
+  
   CheckCircle, Clock, AlertTriangle, Video, FileText,
-
-  UserCheck, Activity, Menu, Home, ClipboardList,
-
+  
+  UserCheck, Activity, Home, ClipboardList,
+  
   Settings, LogOut, ChevronRight, MapPin, User, 
-
+  
   Download, Send, Archive, Plus, ChevronLeft,
-
+  
   CreditCard, Package, AlertCircle, Check, XCircle,
-
+  
   Save, ChevronUp, Building2, RefreshCw
-
+  
 } from 'lucide-react';
+import PhotoUpload from '@/components/PhotoUpload';
 
 
 
@@ -34,16 +37,18 @@ function EditClientPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { success, error: showError } = useToast();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [showEditConfirmModal, setShowEditConfirmModal] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState(null);
   
   // Extract client ID from URL query parameters or pathname
   const clientId = searchParams?.get('id') || searchParams?.get('clientId') || searchParams?.get('uuid') || null;
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [clientPhoto, setClientPhoto] = useState(null);
 
   const [expandedSections, setExpandedSections] = useState({
 
@@ -178,6 +183,7 @@ function EditClientPageContent() {
         setFormData({
           clientId: client.client_id || client.uuid || client.id || clientId,
           clientName: client.name || '',
+          photo: client.photo || null,
           firstName: client.first_name || client.name?.split(' ')[0] || '',
           lastName: client.last_name || client.name?.split(' ').slice(1).join(' ') || '',
           email: client.email || '',
@@ -208,6 +214,7 @@ function EditClientPageContent() {
           adminNotes: client.admin_notes || '',
           paymentStatus: client.payment_status || 'Pending'
         });
+        setClientPhoto(client.photo_url || client.photo || null);
       } catch (err) {
         console.error('Error fetching client:', err);
         setError('Failed to load client data. Please try again.');
@@ -224,17 +231,15 @@ function EditClientPageContent() {
 
 
   const timeSlots = [
-
-    { value: 'morning-early', label: '10am - 11am' },
-
-    { value: 'morning-late', label: '11am - 1pm' },
-
-    { value: 'afternoon-early', label: '1pm - 4pm' },
-
-    { value: 'afternoon-late', label: '4pm - 5pm' },
-
-    { value: 'evening', label: '5pm - 7pm' }
-
+    { value: "10am-1050am", label: "10:00 AM - 10:50 AM" },
+    { value: "11am-1150am", label: "11:00 AM - 11:50 AM" },
+    { value: "12pm-1250pm", label: "12:00 PM - 12:50 PM" },
+    { value: "1pm-150pm", label: "1:00 PM - 1:50 PM" },
+    { value: "2pm-250pm", label: "2:00 PM - 2:50 PM" },
+    { value: "3pm-350pm", label: "3:00 PM - 3:50 PM" },
+    { value: "4pm-450pm", label: "4:00 PM - 4:50 PM" },
+    { value: "5pm-550pm", label: "5:00 PM - 5:50 PM" },
+    { value: "6pm-650pm", label: "6:00 PM - 6:50 PM" },
   ];
 
 
@@ -379,7 +384,7 @@ function EditClientPageContent() {
 
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.age) {
 
-      alert('Please fill in all required personal information fields.');
+      showError('Please fill in all required personal information fields.');
 
       return;
 
@@ -388,31 +393,26 @@ function EditClientPageContent() {
     
 
     // Check if at least one availability slot is selected
+    const isIshServices = formData.serviceType === "Ish's Services";
 
-    const hasAvailability = Object.values(formData.availability).some(slots => slots.length > 0);
+    if (!isIshServices) {
+      const hasAvailability = Object.values(formData.availability).some(slots => slots.length > 0);
+      if (!hasAvailability) {
+        showError('Please select at least one availability time slot.');
+        return;
+      }
 
-    if (!hasAvailability) {
-
-      alert('Please select at least one availability time slot.');
-
-      return;
-
-    }
-
-
-
-    if (formData.concernsSelected.length === 0) {
-
-      alert('Please select at least one area of support.');
-
-      return;
-
+      if (formData.concernsSelected.length === 0) {
+        showError('Please select at least one area of support.');
+        return;
+      }
     }
 
     // Determine if creating or updating
     if (isCreating) {
-      // Create new client
+      // Create new client - no confirmation needed
       try {
+        setSaveLoading(true);
         const newClient = await apiService.createClient({
           name: `${formData.firstName} ${formData.lastName}`,
           first_name: formData.firstName,
@@ -453,34 +453,42 @@ function EditClientPageContent() {
       return;
     }
 
-    // Update existing client
+    // Update existing client - show confirmation modal
+    setPendingFormData(formData);
+    setShowEditConfirmModal(true);
+  };
+
+  const confirmSaveChanges = async () => {
+    if (!pendingFormData || !clientId) return;
+
     try {
       setSaveLoading(true);
+      setShowEditConfirmModal(false);
       await apiService.updateClient(clientId, {
-        name: `${formData.firstName} ${formData.lastName}`,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        age: parseInt(formData.age),
-        voicemail_permission: formData.voicemailPermission,
-        currently_in_therapy: formData.currentlyInTherapy,
-        service_type: formData.serviceType,
-        on_medication: formData.onMedication,
-        medication_details: formData.medicationDetails,
-        disabilities: formData.disabilities,
-        primary_issues: formData.concernsSelected,
-        additional_details: formData.additionalConcernDetails,
-        risk_issues: formData.riskIssues,
-        availability: formData.availability,
-        how_heard_about: formData.howHeardAbout,
-        referral_reasons: formData.referralReasons,
-        referral_name: formData.referralName,
-        referral_phone: formData.referralPhone,
-        organization_name: formData.organizationName,
-        organization_email: formData.organizationEmail,
-        admin_notes: formData.adminNotes,
-        payment_status: formData.paymentStatus
+        name: `${pendingFormData.firstName} ${pendingFormData.lastName}`,
+        first_name: pendingFormData.firstName,
+        last_name: pendingFormData.lastName,
+        email: pendingFormData.email,
+        phone: pendingFormData.phone,
+        age: parseInt(pendingFormData.age),
+        voicemail_permission: pendingFormData.voicemailPermission,
+        currently_in_therapy: pendingFormData.currentlyInTherapy,
+        service_type: pendingFormData.serviceType,
+        on_medication: pendingFormData.onMedication,
+        medication_details: pendingFormData.medicationDetails,
+        disabilities: pendingFormData.disabilities,
+        primary_issues: pendingFormData.concernsSelected,
+        additional_details: pendingFormData.additionalConcernDetails,
+        risk_issues: pendingFormData.riskIssues,
+        availability: pendingFormData.availability,
+        how_heard_about: pendingFormData.howHeardAbout,
+        referral_reasons: pendingFormData.referralReasons,
+        referral_name: pendingFormData.referralName,
+        referral_phone: pendingFormData.referralPhone,
+        organization_name: pendingFormData.organizationName,
+        organization_email: pendingFormData.organizationEmail,
+        admin_notes: pendingFormData.adminNotes,
+        payment_status: pendingFormData.paymentStatus
       });
 
       success('Client updated successfully!');
@@ -490,6 +498,7 @@ function EditClientPageContent() {
       showError(err.message || 'Failed to update client. Please try again.');
     } finally {
       setSaveLoading(false);
+      setPendingFormData(null);
     }
 
   };
@@ -530,33 +539,19 @@ function EditClientPageContent() {
   const SectionHeader = ({ title, section, required = false }) => (
 
     <button
-
       type="button"
-
       onClick={() => toggleSection(section)}
-
-      className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors border-b border-gray-200"
-
+      className="w-full flex items-center justify-between p-4 bg-[var(--bg-secondary)] hover:bg-[var(--hover-bg)] transition-colors border-b border-[var(--border-color)]"
     >
-
       <div className="flex items-center gap-2">
-
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
         {required && <span className="text-red-500 text-sm">*</span>}
-
       </div>
-
       {expandedSections[section] ? (
-
-        <ChevronUp className="w-5 h-5 text-gray-600" />
-
+        <ChevronUp className="w-5 h-5 text-[var(--text-secondary)]" />
       ) : (
-
-        <ChevronDown className="w-5 h-5 text-gray-600" />
-
+        <ChevronDown className="w-5 h-5 text-[var(--text-secondary)]" />
       )}
-
     </button>
 
   );
@@ -564,171 +559,33 @@ function EditClientPageContent() {
 
 
   return (
-
-    <div className="min-h-screen bg-gray-50 flex">
-
-      {/* Sidebar */}
-
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen fixed left-0 top-0 z-30`}>
-
-        <div className="p-4 border-b border-gray-200 flex-shrink-0">
-
-          <div className="flex items-center justify-between">
-
-            {sidebarOpen && (
-
-              <div className="flex items-center gap-3">
-
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: '#6f1d56' }}>
-
-                  VT
-
-                </div>
-
-                <div>
-
-                  <h1 className="text-sm font-bold text-gray-900">Vanquish</h1>
-
-                  <p className="text-xs text-gray-600">Admin</p>
-
-                </div>
-
-              </div>
-
-            )}
-
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-lg">
-
-              <Menu className="w-5 h-5 text-gray-600" />
-
-            </button>
-
-          </div>
-
-        </div>
-
-
-
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-
-          {[
-
-            { id: 'overview', icon: Home, label: 'Overview', href: '/dashboard' },
-
-            { id: 'consultations', icon: Video, label: 'Consultations', badge: 3, href: '/dashboard/consultations' },
-
-            { id: 'matches', icon: UserCheck, label: 'Pending Matches', badge: 8, href: '/dashboard/pending-matches' },
-
-            { id: 'tcs', icon: Users, label: 'Practitioners', href: '/dashboard/training-counsellors' },
-            { id: 'providers', icon: Building2, label: 'Training Providers', href: '/dashboard/training-providers' },
-            { id: 'clients', icon: ClipboardList, label: 'All Clients', href: '/dashboard/clients' },
-
-            { id: 'activity', icon: Activity, label: 'Activity Log', href: '/dashboard/activity-log' }
-
-          ].map(item => {
-
-            const isActive = pathname === item.href || (item.id === 'clients' && pathname?.startsWith('/dashboard/client'));
-
-            return (
-
-              <Link
-
-                key={item.id}
-
-                href={item.href}
-
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-
-                  isActive ? 'bg-purple-100 text-purple-900' : 'text-gray-700 hover:bg-gray-100'
-
-                }`}
-
-              >
-
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-
-                {sidebarOpen && (
-
-                  <>
-
-                    <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
-
-                    {item.badge > 0 && (
-
-                      <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{item.badge}</span>
-
-                    )}
-
-                  </>
-
-                )}
-
-              </Link>
-
-            );
-
-          })}
-
-        </nav>
-
-
-
-        <div className="p-4 border-t border-gray-200 space-y-2 flex-shrink-0">
-
-          <Link
-            href="/dashboard/settings"
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-              pathname === '/dashboard/settings'
-                ? 'bg-purple-100 text-purple-900'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <Settings className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
-          </Link>
-
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg">
-
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-
-            {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
-
-          </button>
-
-        </div>
-
-      </div>
-
-
-
-      {/* Main Content */}
-
-      <div className={`flex-1 flex flex-col overflow-hidden ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
+    <DashboardLayout>
+      <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Header */}
 
-        <div className="bg-white border-b border-gray-200">
+        <div className="bg-[var(--card-bg)] border-b border-[var(--border-color)]">
 
           {/* Breadcrumb */}
 
-          <div className="px-6 py-3 border-b border-gray-100">
+          <div className="px-6 py-3 border-b border-[var(--border-color)]">
 
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
 
-              <Link href="/dashboard/clients" className="hover:text-purple-600">All Clients</Link>
+              <Link href="/dashboard/clients" className="hover:text-[var(--purple-primary)]">All Clients</Link>
 
               {!isCreating && (
                 <>
                   <ChevronRight className="w-4 h-4" />
-                  <Link href={`/dashboard/client-details/${formData.clientId}`} className="hover:text-purple-600">{formData.clientName}</Link>
+                  <Link href={`/dashboard/client-details/${formData.clientId}`} className="hover:text-[var(--purple-primary)]">{formData.clientName}</Link>
                   <ChevronRight className="w-4 h-4" />
-                  <span className="text-gray-900 font-medium">Edit</span>
+                  <span className="text-[var(--text-primary)] font-medium">Edit</span>
                 </>
               )}
               {isCreating && (
                 <>
                   <ChevronRight className="w-4 h-4" />
-                  <span className="text-gray-900 font-medium">Add New Client</span>
+                  <span className="text-[var(--text-primary)] font-medium">Add New Client</span>
                 </>
               )}
 
@@ -748,12 +605,12 @@ function EditClientPageContent() {
 
                 <div className="flex items-center gap-3 mb-1">
 
-                  <h1 className="text-2xl font-bold text-gray-900">
+                  <h1 className="text-2xl font-bold text-[var(--text-primary)]">
                     {isCreating ? 'Add New Client' : 'Edit Client'}
                   </h1>
 
                   {!isCreating && (
-                    <span className="px-3 py-1 bg-purple-100 text-purple-800 text-sm font-medium rounded-full">
+                    <span className="px-3 py-1 bg-[var(--purple-bg)] text-[var(--purple-primary)] text-sm font-medium rounded-full">
                       ID: {formData.clientId}
                     </span>
                   )}
@@ -761,7 +618,7 @@ function EditClientPageContent() {
                 </div>
 
                 {!isCreating && (
-                  <p className="text-sm text-gray-600">{formData.clientName}</p>
+                  <p className="text-sm text-[var(--text-secondary)]">{formData.clientName}</p>
                 )}
 
               </div>
@@ -772,7 +629,7 @@ function EditClientPageContent() {
 
                 onClick={() => window.history.back()}
 
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2"
+                className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2"
 
               >
 
@@ -796,21 +653,21 @@ function EditClientPageContent() {
           {loading && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-                <p className="text-gray-600">Loading client data...</p>
+                <RefreshCw className="w-8 h-8 text-[var(--text-tertiary)] animate-spin mx-auto mb-4" />
+                <p className="text-[var(--text-secondary)]">Loading client data...</p>
               </div>
             </div>
           )}
 
           {error && !isCreating && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 m-6">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 m-6">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-red-900">{error}</p>
+                  <p className="text-sm font-medium text-red-900 dark:text-red-200">{error}</p>
                   <button
                     onClick={() => window.location.reload()}
-                    className="text-sm text-red-700 underline mt-1"
+                    className="text-sm text-red-700 dark:text-red-300 underline mt-1"
                   >
                     Try again
                   </button>
@@ -824,17 +681,17 @@ function EditClientPageContent() {
 
             {/* Alert Info */}
 
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start gap-3">
 
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
 
               <div>
 
-                <p className="text-sm font-medium text-blue-900 mb-1">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
                   {isCreating ? 'Creating New Client' : 'Editing Client Information'}
                 </p>
 
-                <p className="text-sm text-blue-700">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
                   {isCreating 
                     ? 'Fill in all required information below to create a new client. Fields marked with * are required.'
                     : 'Update any client information below. Fields marked with * are required. Changes will be saved to the client\'s profile.'}
@@ -848,7 +705,7 @@ function EditClientPageContent() {
 
             {/* Personal Information Section */}
 
-            <div className="bg-white rounded-lg border border-gray-200 mb-6 overflow-hidden">
+            <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
 
               <SectionHeader title="Personal Information" section="personal" required />
 
@@ -857,12 +714,37 @@ function EditClientPageContent() {
               {expandedSections.personal && (
 
                 <div className="p-6 space-y-4">
+                  
+                  {/* Photo Upload Section - Only show when editing existing client */}
+                  {!isCreating && formData.clientId && (
+                    <div className="flex items-start gap-6 pb-4 border-b border-[var(--border-color)]">
+                      <PhotoUpload
+                        photoUrl={clientPhoto}
+                        entityId={formData.clientId}
+                        entityType="client"
+                        onUpload={async (id, file) => {
+                          const response = await apiService.uploadClientPhoto(id, file);
+                          setClientPhoto(response.photo_url || response.photo);
+                          return response;
+                        }}
+                        onDelete={async (id) => {
+                          await apiService.deleteClientPhoto(id);
+                          setClientPhoto(null);
+                        }}
+                        size="large"
+                      />
+                      <div className="flex-1">
+                        <h3 className="text-sm font-medium text-[var(--text-primary)] mb-1">Profile Photo</h3>
+                        <p className="text-xs text-[var(--text-tertiary)]">Upload a photo for this client (Admin only)</p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
 
                     <div>
 
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                         First Name <span className="text-red-500">*</span>
 
@@ -876,7 +758,7 @@ function EditClientPageContent() {
 
                         onChange={(e) => handleInputChange('firstName', e.target.value)}
 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
 
                         placeholder="Enter first name"
 
@@ -888,7 +770,7 @@ function EditClientPageContent() {
 
                     <div>
 
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                         Last Name <span className="text-red-500">*</span>
 
@@ -902,7 +784,7 @@ function EditClientPageContent() {
 
                         onChange={(e) => handleInputChange('lastName', e.target.value)}
 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
 
                         placeholder="Enter last name"
 
@@ -920,7 +802,7 @@ function EditClientPageContent() {
 
                     <div>
 
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                         Email <span className="text-red-500">*</span>
 
@@ -934,7 +816,7 @@ function EditClientPageContent() {
 
                         onChange={(e) => handleInputChange('email', e.target.value)}
 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
 
                         placeholder="email@example.com"
 
@@ -946,7 +828,7 @@ function EditClientPageContent() {
 
                     <div>
 
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                         Phone <span className="text-red-500">*</span>
 
@@ -960,7 +842,7 @@ function EditClientPageContent() {
 
                         onChange={(e) => handleInputChange('phone', e.target.value)}
 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
 
                         placeholder="+44 7700 900000"
 
@@ -978,7 +860,7 @@ function EditClientPageContent() {
 
                     <div>
 
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                         Age <span className="text-red-500">*</span>
 
@@ -992,7 +874,7 @@ function EditClientPageContent() {
 
                         onChange={(e) => handleInputChange('age', e.target.value)}
 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
 
                         placeholder="18"
 
@@ -1006,7 +888,7 @@ function EditClientPageContent() {
 
                     <div>
 
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                         Voicemail Permission <span className="text-red-500">*</span>
 
@@ -1018,7 +900,7 @@ function EditClientPageContent() {
 
                         onChange={(e) => handleInputChange('voicemailPermission', e.target.value)}
 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
 
                       >
 
@@ -1032,7 +914,7 @@ function EditClientPageContent() {
 
                     <div>
 
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                         Currently in Therapy? <span className="text-red-500">*</span>
 
@@ -1044,7 +926,7 @@ function EditClientPageContent() {
 
                         onChange={(e) => handleInputChange('currentlyInTherapy', e.target.value)}
 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
 
                       >
 
@@ -1060,7 +942,7 @@ function EditClientPageContent() {
 
 
 
-                  <p className="text-xs text-gray-600 italic">
+                  <p className="text-xs text-[var(--text-tertiary)] italic">
 
                     Note: We primarily communicate through Emails and WhatsApp
 
@@ -1076,7 +958,7 @@ function EditClientPageContent() {
 
             {/* Service Selection Section */}
 
-            <div className="bg-white rounded-lg border border-gray-200 mb-6 overflow-hidden">
+            <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
 
               <SectionHeader title="Service Selection" section="service" required />
 
@@ -1086,7 +968,7 @@ function EditClientPageContent() {
 
                 <div className="p-6">
 
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                     Service Type <span className="text-red-500">*</span>
 
@@ -1098,7 +980,7 @@ function EditClientPageContent() {
 
                     onChange={(e) => handleInputChange('serviceType', e.target.value)}
 
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
 
                   >
 
@@ -1120,21 +1002,23 @@ function EditClientPageContent() {
 
             {/* Clinical Information Section */}
 
-            <div className="bg-white rounded-lg border border-gray-200 mb-6 overflow-hidden">
+            <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
 
               <SectionHeader title="Clinical Information" section="clinical" required />
 
               
 
               {expandedSections.clinical && (
-
-                <div className="p-6 space-y-4">
+                <fieldset 
+                  className="p-6 space-y-4"
+                  disabled={formData.serviceType === "Ish's Services"}
+                >
 
                   {/* Medication */}
 
                   <div>
 
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                       Currently on Medication?
 
@@ -1146,7 +1030,7 @@ function EditClientPageContent() {
 
                       onChange={(e) => handleInputChange('onMedication', e.target.value)}
 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent mb-3"
+                      className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent mb-3"
 
                     >
 
@@ -1162,7 +1046,7 @@ function EditClientPageContent() {
 
                       <div>
 
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                           Medication Details (what medication and what it's prescribed for) <span className="text-red-500">*</span>
 
@@ -1174,7 +1058,7 @@ function EditClientPageContent() {
 
                           onChange={(e) => handleInputChange('medicationDetails', e.target.value)}
 
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                          className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
 
                           rows={3}
 
@@ -1196,7 +1080,7 @@ function EditClientPageContent() {
 
                   <div>
 
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                       Disabilities / Impairments
 
@@ -1208,7 +1092,7 @@ function EditClientPageContent() {
 
                       onChange={(e) => handleInputChange('disabilities', e.target.value)}
 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                      className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
 
                       rows={2}
 
@@ -1224,17 +1108,17 @@ function EditClientPageContent() {
 
                   <div>
 
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-3">
 
                       Areas Requiring Support <span className="text-red-500">*</span>
 
                     </label>
 
-                    <div className="grid grid-cols-3 gap-3 max-h-80 overflow-y-auto p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="grid grid-cols-3 gap-3 max-h-80 overflow-y-auto p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
 
                       {concernsOptions.map(concern => (
 
-                        <label key={concern} className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded transition-colors">
+                        <label key={concern} className="flex items-center gap-2 cursor-pointer hover:bg-[var(--bg-primary)] p-2 rounded transition-colors">
 
                           <input
 
@@ -1244,11 +1128,11 @@ function EditClientPageContent() {
 
                             onChange={() => handleConcernToggle(concern)}
 
-                            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-600"
+                            className="w-4 h-4 text-[var(--purple-primary)] border-[var(--border-color)] rounded focus:ring-[var(--purple-primary)]"
 
                           />
 
-                          <span className="text-sm text-gray-700">{concern}</span>
+                          <span className="text-sm text-[var(--text-primary)]">{concern}</span>
 
                         </label>
 
@@ -1256,7 +1140,7 @@ function EditClientPageContent() {
 
                     </div>
 
-                    <p className="text-xs text-gray-600 mt-2">
+                    <p className="text-xs text-[var(--text-tertiary)] mt-2">
 
                       Selected: {formData.concernsSelected.length} {formData.concernsSelected.length === 1 ? 'concern' : 'concerns'}
 
@@ -1270,7 +1154,7 @@ function EditClientPageContent() {
 
                   <div>
 
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                       Additional Details About Selected Areas <span className="text-red-500">*</span>
 
@@ -1282,7 +1166,7 @@ function EditClientPageContent() {
 
                       onChange={(e) => handleInputChange('additionalConcernDetails', e.target.value)}
 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                      className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
 
                       rows={4}
 
@@ -1300,7 +1184,7 @@ function EditClientPageContent() {
 
                   <div>
 
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                       Risk Issues or Substance Misuse <span className="text-red-500">*</span>
 
@@ -1312,7 +1196,7 @@ function EditClientPageContent() {
 
                       onChange={(e) => handleInputChange('riskIssues', e.target.value)}
 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                      className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
 
                       rows={3}
 
@@ -1324,8 +1208,7 @@ function EditClientPageContent() {
 
                   </div>
 
-                </div>
-
+                </fieldset>
               )}
 
             </div>
@@ -1334,21 +1217,23 @@ function EditClientPageContent() {
 
             {/* Availability Section */}
 
-            <div className="bg-white rounded-lg border border-gray-200 mb-6 overflow-hidden">
+            <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
 
               <SectionHeader title="Availability Schedule" section="availability" required />
 
               
 
               {expandedSections.availability && (
+                <fieldset 
+                  className="p-6"
+                  disabled={formData.serviceType === "Ish's Services"}
+                >
 
-                <div className="p-6">
-
-                  <p className="text-sm text-gray-700 mb-4">
+                  <p className="text-sm text-[var(--text-secondary)] mb-4">
 
                     Select the accurate days and times the client is available for weekly counselling sessions (UK time).
 
-                    <span className="block text-xs text-gray-600 mt-1">
+                    <span className="block text-xs text-[var(--text-tertiary)] mt-1">
 
                       Note: Last session is at 6pm Monday-Thursday, and 5pm on Friday.
 
@@ -1362,20 +1247,17 @@ function EditClientPageContent() {
 
                     {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => (
 
-                      <div key={day} className="border border-gray-200 rounded-lg p-4">
+                      <div key={day} className="border border-[var(--border-color)] rounded-lg p-4">
 
-                        <h4 className="font-medium text-gray-900 mb-3">{day}</h4>
+                        <h4 className="font-medium text-[var(--text-primary)] mb-3">{day}</h4>
 
-                        <div className="grid grid-cols-5 gap-2">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
 
                           {timeSlots.map(slot => {
 
-                            // Restrict Friday evening slot
-
-                            if (day === 'Friday' && slot.value === 'evening') {
-
+                            // Restrict Friday evening slot (last session at 5pm)
+                            if (day === 'Friday' && slot.value === '6pm-650pm') {
                               return null;
-
                             }
 
                             return (
@@ -1388,9 +1270,9 @@ function EditClientPageContent() {
 
                                   formData.availability[day].includes(slot.value)
 
-                                    ? 'border-purple-600 bg-purple-50 text-purple-900'
+                                    ? 'border-[var(--purple-border)] bg-purple-50 dark:bg-purple-900/20 text-purple-900 dark:text-purple-200'
 
-                                    : 'border-gray-300 hover:border-purple-300 text-gray-700'
+                                    : 'border-[var(--border-color)] hover:border-[var(--purple-border)] text-[var(--text-secondary)]'
 
                                 }`}
 
@@ -1426,9 +1308,9 @@ function EditClientPageContent() {
 
 
 
-                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
 
-                    <p className="text-sm text-yellow-800">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
 
                       <strong>Important:</strong> At least one availability slot must be selected.
 
@@ -1436,8 +1318,7 @@ function EditClientPageContent() {
 
                   </div>
 
-                </div>
-
+                </fieldset>
               )}
 
             </div>
@@ -1446,19 +1327,21 @@ function EditClientPageContent() {
 
             {/* Referral Information Section */}
 
-            <div className="bg-white rounded-lg border border-gray-200 mb-6 overflow-hidden">
+            <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
 
               <SectionHeader title="Referral Information" section="referral" />
 
               
 
               {expandedSections.referral && (
-
-                <div className="p-6 space-y-4">
+                <fieldset 
+                  className="p-6 space-y-4"
+                  disabled={formData.serviceType === "Ish's Services"}
+                >
 
                   <div>
 
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                       How did they hear about our services? <span className="text-red-500">*</span>
 
@@ -1470,7 +1353,7 @@ function EditClientPageContent() {
 
                       onChange={(e) => handleInputChange('howHeardAbout', e.target.value)}
 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
 
                     >
 
@@ -1492,7 +1375,7 @@ function EditClientPageContent() {
 
                   <div>
 
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                       Reasons for Referral
 
@@ -1504,7 +1387,7 @@ function EditClientPageContent() {
 
                       onChange={(e) => handleInputChange('referralReasons', e.target.value)}
 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                      className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent resize-none"
 
                       rows={3}
 
@@ -1520,7 +1403,7 @@ function EditClientPageContent() {
 
                     <div>
 
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                         Referral's Name
 
@@ -1534,7 +1417,7 @@ function EditClientPageContent() {
 
                         onChange={(e) => handleInputChange('referralName', e.target.value)}
 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
 
                         placeholder="Enter referral name or N/A"
 
@@ -1544,7 +1427,7 @@ function EditClientPageContent() {
 
                     <div>
 
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                         Referral's Phone
 
@@ -1558,7 +1441,7 @@ function EditClientPageContent() {
 
                         onChange={(e) => handleInputChange('referralPhone', e.target.value)}
 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
 
                         placeholder="Enter phone or N/A"
 
@@ -1574,7 +1457,7 @@ function EditClientPageContent() {
 
                     <div>
 
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                         Organization Name (if applicable)
 
@@ -1588,7 +1471,7 @@ function EditClientPageContent() {
 
                         onChange={(e) => handleInputChange('organizationName', e.target.value)}
 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
 
                         placeholder="Enter organization name or N/A"
 
@@ -1598,7 +1481,7 @@ function EditClientPageContent() {
 
                     <div>
 
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                         Organization Email
 
@@ -1612,7 +1495,7 @@ function EditClientPageContent() {
 
                         onChange={(e) => handleInputChange('organizationEmail', e.target.value)}
 
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
 
                         placeholder="Enter organization email or N/A"
 
@@ -1622,8 +1505,7 @@ function EditClientPageContent() {
 
                   </div>
 
-                </div>
-
+                </fieldset>
               )}
 
             </div>
@@ -1632,19 +1514,21 @@ function EditClientPageContent() {
 
             {/* Admin Notes Section */}
 
-            <div className="bg-white rounded-lg border border-gray-200 mb-6 overflow-hidden">
+            <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
 
               <SectionHeader title="Admin Notes & Payment" section="adminNotes" />
 
               
 
               {expandedSections.adminNotes && (
-
-                <div className="p-6 space-y-4">
+                <fieldset 
+                  className="p-6 space-y-4"
+                  disabled={formData.serviceType === "Ish's Services"}
+                >
 
                   <div>
 
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                       Internal Admin Notes
 
@@ -1656,7 +1540,7 @@ function EditClientPageContent() {
 
                       onChange={(e) => handleInputChange('adminNotes', e.target.value)}
 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                      className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent resize-none"
 
                       rows={4}
 
@@ -1670,7 +1554,7 @@ function EditClientPageContent() {
 
                   <div>
 
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
 
                       Consultation Fee Payment Status (£13)
 
@@ -1682,7 +1566,7 @@ function EditClientPageContent() {
 
                       onChange={(e) => handleInputChange('paymentStatus', e.target.value)}
 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
 
                     >
 
@@ -1696,8 +1580,7 @@ function EditClientPageContent() {
 
                   </div>
 
-                </div>
-
+                </fieldset>
               )}
 
             </div>
@@ -1706,7 +1589,7 @@ function EditClientPageContent() {
 
             {/* Form Actions */}
 
-            <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-between pt-6 border-t border-[var(--border-color)]">
 
               {!isCreating && (
                 <button
@@ -1716,7 +1599,7 @@ function EditClientPageContent() {
                   onClick={handleDelete}
                   disabled={deleteLoading}
 
-                  className="px-6 py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-3 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 
                 >
                   {deleteLoading ? (
@@ -1745,7 +1628,7 @@ function EditClientPageContent() {
 
                   onClick={() => window.history.back()}
 
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                  className="px-6 py-3 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium"
 
                 >
 
@@ -1760,7 +1643,7 @@ function EditClientPageContent() {
 
                   className="px-6 py-3 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 
-                  style={{ backgroundColor: '#6f1d56' }}
+                  style={{ backgroundColor: 'var(--button-primary-bg)', color: 'var(--button-primary-text)' }}
 
                 >
                   {saveLoading ? (
@@ -1785,25 +1668,38 @@ function EditClientPageContent() {
           )}
 
         </div>
-
       </div>
 
       {/* Delete Confirmation Modal */}
-      <ConfirmationModal
+      <DeleteConfirmationModal
         isOpen={showDeleteConfirmModal}
         onClose={() => setShowDeleteConfirmModal(false)}
         onConfirm={confirmDelete}
         title="Delete Client"
         message="Are you sure you want to delete this client? This action cannot be undone."
+        itemName={formData.firstName && formData.lastName ? `${formData.firstName} ${formData.lastName}` : "this client"}
         confirmText="Delete Client"
         cancelText="Cancel"
-        type="danger"
         loading={deleteLoading}
-        confirmButtonColor="#dc2626"
       />
 
-    </div>
-
+      {/* Edit Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showEditConfirmModal}
+        onClose={() => {
+          setShowEditConfirmModal(false);
+          setPendingFormData(null);
+        }}
+        onConfirm={confirmSaveChanges}
+        title="Save Changes"
+        message={`Are you sure you want to save changes to ${formData.firstName && formData.lastName ? `${formData.firstName} ${formData.lastName}` : "this client"}?`}
+        confirmText="Save Changes"
+        cancelText="Cancel"
+        type="info"
+        loading={saveLoading}
+        confirmButtonColor="var(--button-primary-bg)"
+      />
+    </DashboardLayout>
   );
 
 }
@@ -1811,10 +1707,10 @@ function EditClientPageContent() {
 export default function EditClientPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-[var(--text-secondary)]">Loading...</p>
         </div>
       </div>
     }>

@@ -680,7 +680,7 @@ export default function VanquishTCApplication() {
             Application Submitted!
           </h2>
           <p className="text-gray-600 mb-6">
-            Thank you for applying to join Vanquish Therapies as a Training
+            Thank you for applying to join Vanquish Therapies as a Trainee
             Counsellor. We'll review your application and be in touch soon.
           </p>
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
@@ -1660,8 +1660,7 @@ export default function VanquishTCApplication() {
                     journey? <span className="text-red-500">*</span>
                   </label>
                   <p className="text-sm text-gray-600 mb-3 italic">
-                    Our Upbringing, Family, and Foundation are the fundamental
-                    elements of our struggles and our growth.
+                   Our Upbringing, Family, and Foundation are the fundamental elements of our struggles and our growth. What difficulties have you encountered within your Family structure, how has this impacted and influenced your journey?
                   </p>
                   <textarea
                     value={formData.familyDifficulties}
@@ -1676,8 +1675,7 @@ export default function VanquishTCApplication() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Please tell us about the personal journey which led you to
-                    pursue a career in counselling{" "}
+                    Please tell us a little about the personal journey which led you to pursue a career in counselling:
                     <span className="text-red-500">*</span>
                   </label>
                   <textarea
@@ -1693,14 +1691,9 @@ export default function VanquishTCApplication() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Self-awareness is essential to counselling. Please give us
-                    an example of your own self-awareness and negative patterns
-                    of behaviour <span className="text-red-500">*</span>
+                   Self-awareness is an essential element of the emotional intelligence crucial to Counselling. Please use this space to give us an example of your own self-awareness and negative patterns of behaviour: <span className="text-red-500">*</span>
                   </label>
-                  <p className="text-sm text-gray-600 mb-3 italic">
-                    Self-awareness is an essential element of the emotional
-                    intelligence crucial to Counselling.
-                  </p>
+                 
                   <textarea
                     value={formData.selfAwareness}
                     onChange={(e) =>

@@ -18,13 +18,17 @@ import {
   Settings,
   LogOut,
   Menu,
-  Info
+  Info,
+  UserCog,
+  GitMerge,
+  Tag
 } from 'lucide-react';
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { sidebarOpen, setSidebarOpen } = useSidebar();
+  const isAdmin = user?.role === 'admin';
   const [consultationCounts, setConsultationCounts] = useState({
     today: 0,
     upcoming: 0,
@@ -32,6 +36,8 @@ export default function DashboardSidebar() {
   });
   const [pendingMatchesCount, setPendingMatchesCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const isFetchingRef = React.useRef(false);
+  const lastFetchRef = React.useRef(0);
 
   // Transform API consultation data to match component structure
   const transformConsultationData = (consultations) => {
@@ -46,10 +52,25 @@ export default function DashboardSidebar() {
     }));
   };
 
-  // Fetch sidebar counts from backend
+  // Fetch sidebar counts from backend with throttling
   useEffect(() => {
     const fetchSidebarCounts = async () => {
+      // Prevent multiple simultaneous requests
+      if (isFetchingRef.current) {
+        return;
+      }
+
+      // Throttle: minimum 5 seconds between requests
+      const now = Date.now();
+      const timeSinceLastFetch = now - lastFetchRef.current;
+      if (timeSinceLastFetch < 5000 && lastFetchRef.current > 0) {
+        return;
+      }
+
       try {
+        isFetchingRef.current = true;
+        lastFetchRef.current = now;
+
         const [consultationsData, pendingCount] = await Promise.all([
           apiService.getConsultations(),
           apiService.getPendingMatchesCount()
@@ -72,11 +93,14 @@ export default function DashboardSidebar() {
         });
         setPendingMatchesCount(pendingCount || 0);
       } catch (err) {
-        console.error('Error fetching sidebar counts:', err);
-        // Set defaults on error
-        setConsultationCounts({ today: 0, upcoming: 0, completed: 0 });
-        setPendingMatchesCount(0);
+        // Silently handle rate limit errors - don't spam console
+        if (err.message && !err.message.includes('Too Many Attempts')) {
+          console.error('Error fetching sidebar counts:', err);
+        }
+        // Keep existing counts on error instead of resetting to 0
+        // This prevents flickering when rate limited
       } finally {
+        isFetchingRef.current = false;
         setLoading(false);
       }
     };
@@ -104,13 +128,16 @@ export default function DashboardSidebar() {
     { id: 'providers', icon: Building2, label: 'Training Providers', href: '/dashboard/training-providers' },
     { id: 'clients', icon: ClipboardList, label: 'All Clients', href: '/dashboard/clients' },
     { id: 'activity', icon: Activity, label: 'Activity Log', href: '/dashboard/activity-log' },
-    { id: 'color-guide', icon: Info, label: 'Color Guide', href: '/dashboard/color-guide' }
+    { id: 'coupons', icon: Tag, label: 'Coupons', href: '/dashboard/coupons' },
+    { id: 'color-guide', icon: Info, label: 'Color Guide', href: '/dashboard/color-guide' },
+    { id: 'matching-algo', icon: GitMerge, label: 'Matching Logic', href: '/dashboard/matching-algorithm' },
+    ...(isAdmin ? [{ id: 'users', icon: UserCog, label: 'User Management', href: '/dashboard/users' }] : [])
   ];
 
   return (
-    <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen fixed left-0 top-0 z-30`}>
+    <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white dark:bg-[var(--sidebar-bg)] border-r border-gray-200 dark:border-[var(--sidebar-border)] transition-all duration-300 flex flex-col h-screen fixed left-0 top-0 z-30`}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-gray-200 dark:border-[var(--sidebar-border)]">
         <div className="flex items-center justify-between">
           {sidebarOpen && (
             <div className="flex items-center gap-3">
@@ -118,17 +145,17 @@ export default function DashboardSidebar() {
                 VT
               </div>
               <div>
-                <h1 className="text-sm font-bold text-gray-900">Vanquish</h1>
-                <p className="text-xs text-gray-600">Admin</p>
+                <h1 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)]">Vanquish</h1>
+                <p className="text-xs text-gray-600 dark:text-[var(--text-secondary)]">Admin</p>
               </div>
             </div>
           )}
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)} 
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
             aria-label="Toggle sidebar"
           >
-            <Menu className="w-5 h-5 text-gray-600" />
+            <Menu className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
           </button>
         </div>
       </div>
@@ -146,16 +173,31 @@ export default function DashboardSidebar() {
               key={item.id}
               href={item.href}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                isActive ? 'bg-purple-100 text-purple-900' : 'text-gray-700 hover:bg-gray-100'
+                isActive 
+                  ? 'dark:bg-purple-900/30 font-semibold shadow-sm' 
+                  : 'text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]'
               }`}
+              style={isActive ? { backgroundColor: '#6f1c56', color: '#ffffff' } : {}}
             >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <item.icon 
+                className={`w-5 h-5 flex-shrink-0 ${isActive ? 'dark:text-purple-300' : ''}`}
+                style={isActive ? { color: '#ffffff' } : {}}
+              />
               {sidebarOpen && (
                 <>
-                  <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
+                  <span 
+                    className={`flex-1 text-left text-sm font-medium ${isActive ? 'dark:text-purple-300' : ''}`}
+                    style={isActive ? { color: '#ffffff' } : {}}
+                  >{item.label}</span>
                   {item.badge !== undefined && (
-                    <span className={`px-2 py-0.5 text-white text-xs rounded-full ${
-                      item.badge > 0 ? 'bg-red-500' : 'bg-gray-300'
+                    <span className={`px-2 py-0.5 text-xs rounded-full font-semibold ${
+                      isActive
+                        ? item.badge > 0
+                          ? 'bg-white/30 text-white'
+                          : 'bg-white/20 text-white/80'
+                        : item.badge > 0
+                          ? 'bg-red-500 dark:bg-red-600 text-white'
+                          : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
                     }`}>
                       {item.badge}
                     </span>
@@ -168,22 +210,31 @@ export default function DashboardSidebar() {
       </nav>
 
       {/* Settings & Logout */}
-      <div className="p-4 border-t border-gray-200 space-y-2 flex-shrink-0">
+      <div className="p-4 border-t border-gray-200 dark:border-[var(--sidebar-border)] space-y-2 flex-shrink-0">
         <Link
           href="/dashboard/settings"
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
             pathname === '/dashboard/settings'
-              ? 'bg-purple-100 text-purple-900'
-              : 'text-gray-700 hover:bg-gray-100'
-          }`}
+              ? 'dark:bg-purple-900/30 font-semibold shadow-sm'
+              : 'text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]'
+          } ${sidebarOpen ? '' : 'justify-center'}`}
+          style={pathname === '/dashboard/settings' ? { backgroundColor: '#6f1c56', color: '#ffffff' } : {}}
         >
-          <Settings className="w-5 h-5 flex-shrink-0" />
-          {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
+          <Settings 
+            className={`w-5 h-5 flex-shrink-0 ${pathname === '/dashboard/settings' ? 'dark:text-purple-300' : ''}`}
+            style={pathname === '/dashboard/settings' ? { color: '#ffffff' } : {}}
+          />
+          {sidebarOpen && (
+            <span 
+              className={`text-sm font-medium ${pathname === '/dashboard/settings' ? 'dark:text-purple-300' : ''}`}
+              style={pathname === '/dashboard/settings' ? { color: '#ffffff' } : {}}
+            >Settings</span>
+          )}
         </Link>
 
         <button 
           onClick={logout}
-          className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg"
+          className={`w-full flex items-center gap-3 px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors ${sidebarOpen ? '' : 'justify-center'}`}
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
           {sidebarOpen && <span className="text-sm font-medium">Logout</span>}

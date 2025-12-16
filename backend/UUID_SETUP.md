@@ -31,7 +31,7 @@ To generate UUIDs for a specific table:
 # For clients only
 php artisan uuid:generate --table=clients
 
-# For training counsellors only
+# For trainee counsellors only
 php artisan uuid:generate --table=training_counsellors
 ```
 
@@ -65,7 +65,7 @@ API routes automatically resolve models by UUID:
 
 The frontend has been updated to use UUIDs for all routing:
 - Client detail pages: `/dashboard/client-details/{uuid}`
-- Training counsellor detail pages: `/dashboard/training-counsellors/details/{uuid}`
+- Trainee counsellor detail pages: `/dashboard/training-counsellors/details/{uuid}`
 
 All links use the pattern: `{entity}.uuid || {entity}.id` for backward compatibility.
 
@@ -75,7 +75,7 @@ All links use the pattern: `{entity}.uuid || {entity}.id` for backward compatibi
 - `uuid` column: UUID, unique, NOT NULL
 - Auto-generated on record creation
 
-### Training Counsellors Table
+### Trainee Counsellors Table
 - `uuid` column: UUID, unique, NOT NULL
 - Auto-generated on record creation
 

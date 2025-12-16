@@ -12,22 +12,37 @@ NEXT_PUBLIC_API_URL=https://api.your-domain.com/api
 
 # Stripe Configuration (for payment processing)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...  # Production publishable key from Stripe Dashboard
+
+# TinyMCE Configuration (Rich Text Editor)
+NEXT_PUBLIC_TINYMCE_API_KEY=your_tinymce_api_key_here
 ```
 
 ### For Vercel Deployment:
 
 1. Go to your Vercel project settings
 2. Navigate to "Environment Variables"
-3. Add both variables:
+3. Add variables:
    - `NEXT_PUBLIC_API_URL` = `https://api.your-domain.com/api`
    - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` = `pk_live_...` (from Stripe Dashboard)
+   - `NEXT_PUBLIC_TINYMCE_API_KEY` = `your_tinymce_api_key` (from TinyMCE Cloud)
 
 ### For Local Development:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...  # Test key from Stripe Dashboard
+NEXT_PUBLIC_TINYMCE_API_KEY=your_tinymce_api_key_here  # Same key works for dev and production
 ```
+
+**Getting TinyMCE API Key:**
+
+1. Go to [TinyMCE Cloud](https://www.tiny.cloud/auth/signup/)
+2. Sign up for a free account or log in
+3. Navigate to your account dashboard
+4. Go to "API Keys" section
+5. Copy your API key → `NEXT_PUBLIC_TINYMCE_API_KEY`
+
+**Note:** TinyMCE Cloud offers a free tier with limited features. The API key is the same for development and production.
 
 ---
 
@@ -186,6 +201,7 @@ FILESYSTEM_DISK=local
 
 - [ ] `NEXT_PUBLIC_API_URL` set to production API URL
 - [ ] `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` set to production key
+- [ ] `NEXT_PUBLIC_TINYMCE_API_KEY` set (optional, for rich text editor)
 
 ---
 
@@ -264,6 +280,7 @@ php artisan migrate:status
 ```env
 NEXT_PUBLIC_API_URL=https://api.vanquish.gen6ixx.com/api
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51AbCdEfGhIjKlMnOpQrStUvWxYz1234567890
+NEXT_PUBLIC_TINYMCE_API_KEY=your_tinymce_api_key_here
 ```
 
 ### Backend (.env)
@@ -316,6 +333,7 @@ LOG_LEVEL=error
 | ------------------------------------ | -------- | ------- | ----------- | ----------------------------------------- |
 | `NEXT_PUBLIC_API_URL`                | ✅       | ❌      | Yes         | API base URL                              |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | ✅       | ❌      | Yes         | Stripe publishable key                    |
+| `NEXT_PUBLIC_TINYMCE_API_KEY`        | ✅       | ❌      | Optional    | TinyMCE Cloud API key for rich text editor |
 | `APP_ENV`                            | ❌       | ✅      | Yes         | `production`                              |
 | `APP_DEBUG`                          | ❌       | ✅      | Yes         | `false`                                   |
 | `APP_KEY`                            | ❌       | ✅      | Yes         | Generated with `php artisan key:generate` |

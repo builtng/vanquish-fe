@@ -8,6 +8,7 @@ import { useToast } from '@/contexts/ToastContext';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import SearchableSelect from '@/components/SearchableSelect';
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardHeader from '@/components/DashboardHeader';
 import { formatName, getCounsellorPrefixType } from '@/lib/nameFormatter';
 import { 
   Users, Search, Filter, ChevronDown, MoreVertical, Eye,
@@ -292,19 +293,19 @@ export default function PendingMatchesPage() {
 
   const getUrgencyBadge = (urgency) => {
     switch(urgency) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'high': return 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 ring-1 ring-inset ring-red-600/20 dark:ring-red-500/30';
+      case 'medium': return 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 ring-1 ring-inset ring-yellow-600/20 dark:ring-yellow-500/30';
+      case 'low': return 'bg-[var(--success-bg)] text-[var(--success-primary)] border border-[var(--success-border)]';
+      default: return 'bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 ring-1 ring-inset ring-gray-600/20 dark:ring-gray-500/30';
     }
   };
 
   const getAvailabilityBadge = (availability) => {
     switch(availability) {
-      case 'High': return 'bg-green-100 text-green-800';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800';
-      case 'Low': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'High': return 'bg-[var(--success-bg)] text-[var(--success-primary)] border border-[var(--success-border)]';
+      case 'Medium': return 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 ring-1 ring-inset ring-yellow-600/20 dark:ring-yellow-500/30';
+      case 'Low': return 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 ring-1 ring-inset ring-orange-600/20 dark:ring-orange-500/30';
+      default: return 'bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 ring-1 ring-inset ring-gray-600/20 dark:ring-gray-500/30';
     }
   };
 
@@ -335,87 +336,120 @@ export default function PendingMatchesPage() {
 
   return (
     <DashboardLayout>
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Pending Matches</h1>
-                <p className="text-sm text-gray-600 mt-1">Clients waiting to be matched with practitioners</p>
+        <DashboardHeader
+          actions={
+            <button
+              onClick={async () => {
+                try {
+                  setLoading(true);
+                  setError(null);
+                  const params = {};
+                  if (searchTerm) params.search = searchTerm;
+                  if (filterService !== 'all') params.service_type = filterService;
+                  if (filterUrgency !== 'all') params.urgency = filterUrgency;
+                  
+                  const data = await apiService.getPendingMatches(params);
+                  const transformedData = data.map(client => ({
+                    id: client.uuid || client.id,
+                    uuid: client.uuid || client.id,
+                    name: client.name,
+                    age: client.age || null,
+                    email: client.email,
+                    phone: client.phone || null,
+                    serviceType: client.service_type || null,
+                    submittedDate: client.submitted_date || null,
+                    daysWaiting: client.days_waiting || 0,
+                    urgency: client.urgency || (client.status === 'urgent' ? 'high' : client.status === 'stuck' ? 'high' : 'medium'),
+                    primaryIssues: client.primary_issues || [],
+                    preferredModality: client.preferred_modality || null,
+                    availability: client.availability ? Object.entries(client.availability).flatMap(([day, slots]) => 
+                      slots.map(slot => `${day} ${slot.replace('-', ' ')}`)
+                    ) : [],
+                    location: client.address ? `${client.address}${client.postcode ? ', ' + client.postcode : ''}` : null,
+                    matchScore: null,
+                    suggestedTCs: []
+                  }));
+                  setPendingMatches(transformedData);
+                  success('Data refreshed successfully');
+                } catch (err) {
+                  console.error('Error refreshing:', err);
+                  showError('Failed to refresh data');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-700 dark:text-[var(--text-primary)] bg-white dark:bg-[var(--card-bg)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Refresh data"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          }
+        >
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">Pending Matches</h1>
+            <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Clients waiting to be matched with practitioners</p>
+          </div>
+        </DashboardHeader>
+
+        {/* Stats Cards */}
+        <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-[var(--purple-bg)] text-[var(--purple-primary)] flex items-center justify-center">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-[var(--text-secondary)]">Total Pending</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{stats.total}</p>
+                </div>
               </div>
-              <button
-                onClick={async () => {
-                  try {
-                    setLoading(true);
-                    setError(null);
-                    const params = {};
-                    if (searchTerm) params.search = searchTerm;
-                    if (filterService !== 'all') params.service_type = filterService;
-                    if (filterUrgency !== 'all') params.urgency = filterUrgency;
-                    
-                    const data = await apiService.getPendingMatches(params);
-                    const transformedData = data.map(client => ({
-                      id: client.uuid || client.id,
-                      uuid: client.uuid || client.id,
-                      name: client.name,
-                      age: client.age || null,
-                      email: client.email,
-                      phone: client.phone || null,
-                      serviceType: client.service_type || null,
-                      submittedDate: client.submitted_date || null,
-                      daysWaiting: client.days_waiting || 0,
-                      urgency: client.urgency || (client.status === 'urgent' ? 'high' : client.status === 'stuck' ? 'high' : 'medium'),
-                      primaryIssues: client.primary_issues || [],
-                      preferredModality: client.preferred_modality || null,
-                      availability: client.availability ? Object.entries(client.availability).flatMap(([day, slots]) => 
-                        slots.map(slot => `${day} ${slot.replace('-', ' ')}`)
-                      ) : [],
-                      location: client.address ? `${client.address}${client.postcode ? ', ' + client.postcode : ''}` : null,
-                      matchScore: null,
-                      suggestedTCs: []
-                    }));
-                    setPendingMatches(transformedData);
-                    success('Data refreshed successfully');
-                  } catch (err) {
-                    console.error('Error refreshing:', err);
-                    showError('Failed to refresh data');
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Refresh data"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
+            </div>
+            
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-[var(--text-secondary)]">High Urgency</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{stats.highUrgency}</p>
+                </div>
+              </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
-                <p className="text-sm text-purple-600 mb-1">Total Pending</p>
-                <p className="text-2xl font-bold text-purple-900">{stats.total}</p>
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-[var(--text-secondary)]">Waiting 3+ Days</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{stats.waitingOver3Days}</p>
+                </div>
               </div>
-              <div className="bg-red-50 rounded-lg p-4 border border-red-100">
-                <p className="text-sm text-red-600 mb-1">High Urgency</p>
-                <p className="text-2xl font-bold text-red-900">{stats.highUrgency}</p>
-              </div>
-              <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
-                <p className="text-sm text-orange-600 mb-1">Waiting 3+ Days</p>
-                <p className="text-2xl font-bold text-orange-900">{stats.waitingOver3Days}</p>
-              </div>
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                <p className="text-sm text-blue-600 mb-1">Low Cost Service</p>
-                <p className="text-2xl font-bold text-blue-900">{stats.lowCost}</p>
+            </div>
+
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-[var(--text-secondary)]">Low Cost Service</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{stats.lowCost}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -424,7 +458,7 @@ export default function PendingMatchesPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by name or email..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
               />
             </div>
             <div className="min-w-[120px] flex-shrink-0">
@@ -471,22 +505,22 @@ export default function PendingMatchesPage() {
         </div>
 
         {/* Matches List */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-[var(--background)]">
           {loading && pendingMatches.length === 0 && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-                <p className="text-gray-600">Loading pending matches...</p>
+                <RefreshCw className="w-8 h-8 text-gray-400 dark:text-[var(--text-tertiary)] animate-spin mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-[var(--text-secondary)]">Loading pending matches...</p>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                 <div>
-                  <p className="text-sm font-medium text-red-900">{error}</p>
+                  <p className="text-sm font-medium text-red-900 dark:text-red-200">{error}</p>
                   <button
                     onClick={async () => {
                       try {
@@ -529,7 +563,7 @@ export default function PendingMatchesPage() {
                         setLoading(false);
                       }
                     }}
-                    className="text-sm text-red-700 underline mt-1"
+                    className="text-sm text-red-700 dark:text-red-300 underline mt-1"
                   >
                     Try again
                   </button>
@@ -540,26 +574,26 @@ export default function PendingMatchesPage() {
 
           <div className="space-y-4">
             {!loading && filteredMatches.map(client => (
-              <div key={client.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+              <div key={client.id} className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-4 flex-1">
-                    <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                      <User className="w-6 h-6 text-purple-600" />
+                    <div className="w-12 h-12 rounded-full bg-[var(--purple-bg)] flex items-center justify-center">
+                      <User className="w-6 h-6 text-[var(--purple-primary)]" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <Link href={`/dashboard/client-details/${client.uuid || client.id}`} className="text-lg font-bold text-gray-900 hover:text-purple-600">
+                        <Link href={`/dashboard/client-details/${client.uuid || client.id}`} className="text-lg font-bold text-gray-900 dark:text-[var(--text-primary)] hover:text-[var(--purple-primary)] dark:hover:text-[#A5B4FC]">
                           {client.name}, {client.age}
                         </Link>
                         <div className={`w-3 h-3 rounded-full ${getUrgencyColor(client.urgency)}`}></div>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getUrgencyBadge(client.urgency)}`}>
                           {client.urgency.toUpperCase()}
                         </span>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                        <span className="px-2 py-1 bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 ring-1 ring-inset ring-gray-600/20 dark:ring-gray-500/30 text-xs rounded-full">
                           {client.daysWaiting} {client.daysWaiting === 1 ? 'day' : 'days'} waiting
                         </span>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                      <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-[var(--text-secondary)] mb-2">
                         <div className="flex items-center gap-1">
                           <Mail className="w-4 h-4" />
                           <span>{client.email}</span>
@@ -574,19 +608,19 @@ export default function PendingMatchesPage() {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 mb-2">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                        <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 ring-1 ring-inset ring-blue-600/20 dark:ring-blue-500/30 text-xs rounded-full">
                           {client.serviceType}
                         </span>
-                        <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                        <span className="px-2 py-1 bg-[var(--purple-bg)] text-[var(--purple-primary)] border border-[var(--purple-border)] text-xs rounded-full">
                           Prefers: {client.preferredModality}
                         </span>
                         {client.primaryIssues.map(issue => (
-                          <span key={issue} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                          <span key={issue} className="px-2 py-1 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 ring-1 ring-inset ring-red-600/20 dark:ring-red-500/30 text-xs rounded-full">
                             {issue}
                           </span>
                         ))}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 dark:text-[var(--text-tertiary)]">
                         <span className="font-medium">Availability:</span> {client.availability.join(', ')}
                       </div>
                     </div>
@@ -598,15 +632,14 @@ export default function PendingMatchesPage() {
                       setShowAssignModal(true);
                     }}
                     disabled={loading}
-                    className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: '#6f1d56' }}
+                     className="px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <UserCheck className="w-4 h-4" />
                     Assign TC
                   </button>
                     <Link
                       href={`/dashboard/client-details/${client.uuid || client.id}`}
-                      className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                      className="p-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)]"
                       title="View Details"
                     >
                       <Eye className="w-4 h-4" />
@@ -619,14 +652,14 @@ export default function PendingMatchesPage() {
                   <p className="text-sm font-medium text-gray-900 mb-3">💡 Suggested Practitioners:</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {client.suggestedTCs.map(tc => (
-                      <div key={tc.id} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                      <div key={tc.id} className="border border-gray-200 dark:border-[var(--card-border)] rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <Link href={`/dashboard/training-counsellors/details/${tc.uuid || tc.id}`} className="font-semibold text-gray-900 hover:text-purple-600">
+                              <Link href={`/dashboard/training-counsellors/details/${tc.uuid || tc.id}`} className="font-semibold text-gray-900 hover:text-[var(--purple-primary)]">
                                 {formatName(tc.name, 'tc')}
                               </Link>
-                              <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full flex items-center gap-1">
+                              <span className="px-2 py-0.5 bg-[var(--success-bg)] text-[var(--success-primary)] text-xs rounded-full flex items-center gap-1">
                                 <Star className="w-3 h-3" />
                                 {tc.matchScore}% match
                               </span>
@@ -643,8 +676,7 @@ export default function PendingMatchesPage() {
                               setShowAssignModal(true);
                             }}
                             disabled={loading}
-                            className="px-3 py-1.5 text-white rounded-lg hover:opacity-90 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{ backgroundColor: '#6f1d56' }}
+                            className="px-3 py-1.5 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
                             Assign
                           </button>
@@ -665,6 +697,7 @@ export default function PendingMatchesPage() {
             )}
           </div>
         </div>
+      </div>
 
       {/* Assign Modal */}
       {showAssignModal && selectedClient && (
@@ -675,34 +708,34 @@ export default function PendingMatchesPage() {
             setSelectedTC(null);
           }}></div>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Assign Training Counsellor</h2>
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-2xl w-full">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">Assign Trainee Counsellor</h2>
                 <button onClick={() => {
                   setShowAssignModal(false);
                   setSelectedClient(null);
                   setSelectedTC(null);
-                }} className="p-2 hover:bg-gray-100 rounded-lg">
-                  <X className="w-5 h-5 text-gray-600" />
+                }} className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors">
+                  <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
                 </button>
               </div>
 
               <div className="p-6">
-                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200 mb-4">
-                  <p className="font-semibold text-purple-900 mb-1">{formatName(selectedClient.name, 'client')}</p>
-                  <p className="text-sm text-purple-700">{selectedClient.age} years old • {selectedClient.serviceType}</p>
-                  <p className="text-xs text-purple-600 mt-1">Primary Issues: {selectedClient.primaryIssues.join(', ')}</p>
+                <div className="p-4 bg-[var(--purple-bg)] rounded-lg border border-[var(--purple-border)] mb-4">
+                  <p className="font-semibold text-[var(--purple-primary)] mb-1">{formatName(selectedClient.name, 'client')}</p>
+                  <p className="text-sm text-[var(--purple-primary)]">{selectedClient.age} years old • {selectedClient.serviceType}</p>
+                  <p className="text-xs text-[var(--purple-primary)] mt-1">Primary Issues: {selectedClient.primaryIssues.join(', ')}</p>
                 </div>
 
                 {selectedTC ? (
-                  <div className="p-4 bg-green-50 rounded-lg border border-green-200 mb-4">
-                    <p className="font-semibold text-green-900 mb-1">{formatName(selectedTC.name, 'tc')}</p>
-                    <p className="text-sm text-green-700">{selectedTC.modality} • Match Score: {selectedTC.matchScore}%</p>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-4">
+                    <p className="font-semibold text-green-900 dark:text-green-200 mb-1">{formatName(selectedTC.name, 'tc')}</p>
+                    <p className="text-sm text-green-700 dark:text-green-300">{selectedTC.modality} • Match Score: {selectedTC.matchScore}%</p>
                     <p className="text-xs text-green-600 mt-1">Current Clients: {selectedTC.currentClients} • Availability: {selectedTC.availability}</p>
                   </div>
                 ) : (
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Training Counsellor</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Trainee Counsellor</label>
                     <SearchableSelect
                       value={selectedTC?.id || ''}
                       onChange={(e) => {
@@ -735,9 +768,53 @@ export default function PendingMatchesPage() {
                   </div>
                 )}
 
+                {/* Allocated Day/Time for Low Cost and Mid-Range */}
+                {(selectedClient.serviceType === 'Low Cost' || selectedClient.serviceType === 'Mid Range') && selectedTC && (
+                  <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-3">Allocated Session Slot</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Day of Week *
+                        </label>
+                        <select
+                          id="allocatedDay"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                          defaultValue=""
+                        >
+                          <option value="">Select day...</option>
+                          <option value="Monday">Monday</option>
+                          <option value="Tuesday">Tuesday</option>
+                          <option value="Wednesday">Wednesday</option>
+                          <option value="Thursday">Thursday</option>
+                          <option value="Friday">Friday</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Time Slot *
+                        </label>
+                        <input
+                          type="text"
+                          id="allocatedTime"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                          placeholder="e.g., 10am-1050am"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Format: 10am-1050am or 2pm-250pm</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-blue-700 mt-2">
+                      {selectedClient.serviceType === 'Low Cost' 
+                        ? 'Low Cost clients book monthly blocks. Set their allocated day/time.'
+                        : 'Mid-Range clients can book weekly or in blocks. Set their recurring slot.'}
+                    </p>
+                  </div>
+                )}
+
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Assignment Notes (Optional)</label>
                   <textarea
+                    id="assignmentNotes"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
                     rows={3}
                     placeholder="Add any notes about this assignment..."
@@ -759,24 +836,44 @@ export default function PendingMatchesPage() {
                       setSelectedTC(null);
                     }}
                     disabled={assignLoading}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={async () => {
                       if (!selectedTC) {
-                        showError('Please select a Training Counsellor before assigning.');
+                        showError('Please select a Trainee Counsellor before assigning.');
                         return;
                       }
                       try {
                         setAssignLoading(true);
+                        
+                        // Get allocated day/time if applicable
+                        const allocatedDay = (selectedClient.serviceType === 'Low Cost' || selectedClient.serviceType === 'Mid Range')
+                          ? document.getElementById('allocatedDay')?.value || null
+                          : null;
+                        const allocatedTime = (selectedClient.serviceType === 'Low Cost' || selectedClient.serviceType === 'Mid Range')
+                          ? document.getElementById('allocatedTime')?.value || null
+                          : null;
+
+                        // Validate required fields for Low Cost/Mid-Range
+                        if ((selectedClient.serviceType === 'Low Cost' || selectedClient.serviceType === 'Mid Range') && (!allocatedDay || !allocatedTime)) {
+                          showError('Please set allocated day and time for Low Cost and Mid-Range clients.');
+                          setAssignLoading(false);
+                          return;
+                        }
+
+                        const assignmentNotes = document.getElementById('assignmentNotes')?.value || '';
+
                         await apiService.assignMatch({
                           client_id: selectedClient.uuid || selectedClient.id,
                           tc_id: selectedTC.uuid || selectedTC.id,
                           match_score: selectedTC.matchScore || null,
-                          assignment_notes: '',
-                          send_notification: true
+                          assignment_notes: assignmentNotes,
+                          send_notification: document.getElementById('sendNotification')?.checked ?? true,
+                          allocated_day: allocatedDay,
+                          allocated_time: allocatedTime,
                         });
                         success(`Client "${selectedClient.name}" assigned to "${selectedTC.name}" successfully!`);
                         setShowAssignModal(false);

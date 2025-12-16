@@ -11,24 +11,27 @@ import { formatName, getCounsellorPrefixType } from '@/lib/nameFormatter';
 import DashboardLayout from '@/components/DashboardLayout';
 
 import { 
-
+  
   Users, Search, Filter, ChevronDown, MoreVertical, Eye,
-
+  
   Mail, Phone, Calendar, Edit, Trash2, ArrowUpDown, X,
-
+  
   CheckCircle, Clock, AlertTriangle, Video, FileText,
-
+  
   UserCheck, Activity, ChevronRight, MapPin, User, 
-
+  
   Download, Send, Archive, Plus, ChevronLeft,
-
+  
   CreditCard, Package, AlertCircle, Check, XCircle,
-
+  
   Save, ChevronUp, Award, BookOpen, Briefcase,
-
-  GraduationCap, FileCheck, Shield, Building2, CalendarDays
-
+  
+  GraduationCap, FileCheck, Shield, Building2, CalendarDays,
+  
+  MessageSquare
+  
 } from 'lucide-react';
+import PhotoUpload from '@/components/PhotoUpload';
 
 
 
@@ -45,6 +48,7 @@ export default function IndividualTCDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tc, setTc] = useState(null);
+  const [tcPhoto, setTcPhoto] = useState(null);
 
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [pendingClients, setPendingClients] = useState([]);
@@ -67,6 +71,9 @@ export default function IndividualTCDetailPage() {
   const [showSendEmailConfirmModal, setShowSendEmailConfirmModal] = useState(false);
   const [showSendEmailModal, setShowSendEmailModal] = useState(false);
   const [emailForm, setEmailForm] = useState({ subject: '', message: '' });
+  const [showSendMessageModal, setShowSendMessageModal] = useState(false);
+  const [messageForm, setMessageForm] = useState({ subject: '', message: '', sendEmailNotification: true });
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [showOpenFormConfirmModal, setShowOpenFormConfirmModal] = useState(false);
   const [showDeleteNoteModal, setShowDeleteNoteModal] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState(null);
@@ -91,6 +98,7 @@ export default function IndividualTCDetailPage() {
           name: data.name,
           email: data.email,
           phone: data.phone,
+          photo: data.photo || null,
           status: data.status,
           counsellor_type: data.counsellor_type || 'Trainee',
           qualified_form_completed: data.qualified_form_completed || false,
@@ -164,6 +172,7 @@ export default function IndividualTCDetailPage() {
         };
         
         setTc(transformedData);
+        setTcPhoto(data.photo_url || data.photo || null);
         // Initialize status form with current TC data
         setStatusForm({
           status: transformedData.status,
@@ -210,7 +219,7 @@ export default function IndividualTCDetailPage() {
 
   const getStatusColor = (status) => {
     switch(status) {
-      case 'Active': return 'bg-green-500';
+      case 'Active': return 'bg-[var(--success-primary)]';
       case 'At Capacity': return 'bg-orange-500';
       case 'On Leave': return 'bg-blue-500';
       case 'Away': return 'bg-yellow-500';
@@ -221,7 +230,7 @@ export default function IndividualTCDetailPage() {
 
   const getStatusBadge = (status) => {
     const colors = {
-      'Active': 'bg-green-100 text-green-800',
+      'Active': 'bg-[var(--success-bg)] text-[var(--success-primary)] border border-[var(--success-border)]',
       'At Capacity': 'bg-orange-100 text-orange-800',
       'On Leave': 'bg-blue-100 text-blue-800',
       'Away': 'bg-yellow-100 text-yellow-800',
@@ -251,10 +260,10 @@ export default function IndividualTCDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading practitioner details...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--purple-primary)] mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading practitioner details...</p>
         </div>
       </div>
     );
@@ -262,11 +271,11 @@ export default function IndividualTCDetailPage() {
 
   if (error || !tc) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{error || 'Practitioner not found'}</p>
-          <Link href="/dashboard/training-counsellors" className="mt-4 text-purple-600 hover:text-purple-700">
+          <p className="text-muted-foreground">{error || 'Practitioner not found'}</p>
+          <Link href="/dashboard/training-counsellors" className="mt-4 text-[var(--purple-primary)] hover:text-[var(--purple-primary)]/80">
             Back to Practitioners
           </Link>
         </div>
@@ -278,13 +287,13 @@ export default function IndividualTCDetailPage() {
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200">
+        <div className="bg-card border-b border-border">
           {/* Breadcrumb */}
-          <div className="px-6 py-3 border-b border-gray-100">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Link href="/dashboard/training-counsellors" className="hover:text-purple-600">All Practitioners</Link>
+          <div className="px-6 py-3 border-b border-border">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Link href="/dashboard/training-counsellors" className="hover:text-[var(--purple-primary)]">All Practitioners</Link>
               <ChevronRight className="w-4 h-4" />
-              <span className="text-gray-900 font-medium">{formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type))}</span>
+              <span className="text-foreground font-medium">{formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type))}</span>
             </div>
           </div>
 
@@ -292,20 +301,55 @@ export default function IndividualTCDetailPage() {
           <div className="px-6 py-4">
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-4">
-                <div className={`w-16 h-16 rounded-full ${getInitialsColor()} flex items-center justify-center text-white text-2xl font-bold`}>
-                  {tc.name.split(' ').map(n => n[0]).join('')}
-                </div>
+                {tcPhoto ? (
+                  <PhotoUpload
+                    photoUrl={tcPhoto}
+                    entityId={tc.uuid || tc.id}
+                    entityType="tc"
+                    onUpload={async (id, file) => {
+                      const response = await apiService.uploadTcPhoto(id, file);
+                      setTcPhoto(response.photo_url || response.photo);
+                      return response;
+                    }}
+                    onDelete={async (id) => {
+                      await apiService.deleteTcPhoto(id);
+                      setTcPhoto(null);
+                    }}
+                    size="medium"
+                  />
+                ) : (
+                  <div className="relative">
+                    <div className={`w-16 h-16 rounded-full ${getInitialsColor()} flex items-center justify-center text-white text-2xl font-bold`}>
+                      {tc.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <PhotoUpload
+                      photoUrl={null}
+                      entityId={tc.uuid || tc.id}
+                      entityType="tc"
+                      onUpload={async (id, file) => {
+                        const response = await apiService.uploadTcPhoto(id, file);
+                        setTcPhoto(response.photo || response.photo_url);
+                        return response;
+                      }}
+                      onDelete={async (id) => {
+                        await apiService.deleteTcPhoto(id);
+                        setTcPhoto(null);
+                      }}
+                      size="medium"
+                    />
+                  </div>
+                )}
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-2xl font-bold text-gray-900">{formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type))}</h1>
+                    <h1 className="text-2xl font-bold text-foreground">{formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type))}</h1>
                     {tc.age && (
                       <>
-                        <span className="text-gray-600">•</span>
-                        <span className="text-lg text-gray-600">{tc.age} years old</span>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-lg text-muted-foreground">{tc.age} years old</span>
                       </>
                     )}
-                    <span className="text-gray-600">•</span>
-                    <span className="text-sm text-gray-500">ID: {tc.tc_id || tc.id}</span>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-sm text-muted-foreground">ID: {tc.tc_id || tc.id}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className={`w-3 h-3 rounded-full ${getStatusColor(tc.status)}`}></div>
@@ -314,7 +358,7 @@ export default function IndividualTCDetailPage() {
                     </span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       tc.counsellor_type === 'Qualified' 
-                        ? 'bg-purple-100 text-purple-800' 
+                        ? 'bg-[var(--purple-bg)] text-[var(--purple-primary)] border border-[var(--purple-border)]' 
                         : 'bg-blue-100 text-blue-800'
                     }`}>
                       {tc.counsellor_type || 'Trainee'}
@@ -342,7 +386,7 @@ export default function IndividualTCDetailPage() {
                         <button
                           onClick={() => {
                             if (!tc.email) {
-                              alert('This training counsellor does not have an email address.');
+                              alert('This trainee counsellor does not have an email address.');
                               return;
                             }
                             setShowSendEmailConfirmModal(true);
@@ -372,36 +416,39 @@ export default function IndividualTCDetailPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowStatusModal(true)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2"
+                  className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium flex items-center gap-2"
                 >
                   <Clock className="w-4 h-4" />
                   Change Status
                 </button>
                 <button
                   onClick={() => setShowAssignModal(true)}
-                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2"
-                  style={{ backgroundColor: '#6f1d56' }}
+                  className="px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg font-medium flex items-center gap-2"
                 >
                   <UserCheck className="w-4 h-4" />
                   Assign Client
                 </button>
                 <button 
                   onClick={() => setShowSendEmailModal(true)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2"
+                  className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium flex items-center gap-2"
                 >
                   <Mail className="w-4 h-4" />
                   Send Email
                 </button>
                 <button 
-                  onClick={() => {
-                    // For now, just show an alert - edit functionality can be added later
-                    alert('Edit functionality coming soon. You can update information via the status change modal.');
-                  }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2"
+                  onClick={() => setShowSendMessageModal(true)}
+                  className="px-4 py-2 bg-[var(--purple-primary)] hover:opacity-90 text-white rounded-lg font-medium flex items-center gap-2"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Send Message
+                </button>
+                <Link 
+                  href={`/dashboard/training-counsellors/edit?id=${uuid}`}
+                  className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium flex items-center gap-2"
                 >
                   <Edit className="w-4 h-4" />
                   Edit
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -412,17 +459,17 @@ export default function IndividualTCDetailPage() {
           <div className="p-6 space-y-6">
             {/* Overview Cards */}
             <div className="grid grid-cols-4 gap-4">
-              <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
-                <p className="text-sm text-purple-600 mb-1">Current Clients</p>
-                <p className="text-2xl font-bold text-purple-900">{tc.currentClients}</p>
+              <div className="bg-[var(--purple-bg)] rounded-lg p-4 border border-[var(--purple-border)]">
+                <p className="text-sm text-[var(--purple-primary)] mb-1">Current Clients</p>
+                <p className="text-2xl font-bold text-[var(--purple-primary)]">{tc.currentClients}</p>
               </div>
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
                 <p className="text-sm text-blue-600 mb-1">Sessions Completed</p>
                 <p className="text-2xl font-bold text-blue-900">{tc.totalSessionsCompleted}</p>
               </div>
-              <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-                <p className="text-sm text-green-600 mb-1">Days in System</p>
-                <p className="text-2xl font-bold text-green-900">{tc.daysInSystem}</p>
+              <div className="bg-[var(--success-bg)] rounded-lg p-4 border border-[var(--success-border)]">
+                <p className="text-sm text-[var(--success-primary)] mb-1">Days in System</p>
+                <p className="text-2xl font-bold text-[var(--success-primary)]">{tc.daysInSystem}</p>
               </div>
               <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
                 <p className="text-sm text-orange-600 mb-1">Avg Match Score</p>
@@ -431,15 +478,15 @@ export default function IndividualTCDetailPage() {
             </div>
 
             {/* Journey Timeline */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="bg-card rounded-lg border border-border p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-4">
                 {tc.counsellor_type === 'Qualified' ? 'Counsellor' : 'Trainee Counsellor'} Journey
               </h2>
               <div className="relative">
                 {/* Timeline Line */}
                 <div className="absolute top-6 left-0 right-0 h-0.5 bg-gray-200"></div>
                 <div 
-                  className="absolute top-6 left-0 h-0.5 bg-purple-600 transition-all duration-500"
+                  className="absolute top-6 left-0 h-0.5 bg-[var(--purple-primary)] transition-all duration-500"
                   style={{ 
                     width: `${(() => {
                       const journey = tc.journey || [];
@@ -483,15 +530,15 @@ export default function IndividualTCDetailPage() {
                         {/* Circle */}
                         <div className={`w-12 h-12 rounded-full border-4 flex items-center justify-center relative z-10 ${
                           stage.completed 
-                            ? 'bg-purple-600 border-purple-600' 
+                            ? 'bg-[var(--purple-primary)] border-[var(--purple-primary)]' 
                             : stage.current
-                            ? 'bg-white border-purple-600'
+                            ? 'bg-white border-[var(--purple-primary)]'
                             : 'bg-white border-gray-300'
                         }`}>
                           {stage.completed ? (
                             <Check className="w-6 h-6 text-white" />
                           ) : stage.current ? (
-                            <Clock className="w-6 h-6 text-purple-600" />
+                            <Clock className="w-6 h-6 text-[var(--purple-primary)]" />
                           ) : (
                             <div className="w-3 h-3 rounded-full bg-gray-300"></div>
                           )}
@@ -520,10 +567,10 @@ export default function IndividualTCDetailPage() {
               {/* Left Column - 2/3 width */}
               <div className="col-span-2 space-y-6">
                 {/* Personal Information */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="bg-card rounded-lg border border-border p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
-                    <Link href={`/dashboard/training-counsellors/details/${uuid}`} className="text-purple-600 hover:text-purple-700 text-sm font-medium flex items-center gap-1">
+                    <h2 className="text-lg font-semibold text-foreground">Personal Information</h2>
+                    <Link href={`/dashboard/training-counsellors/details/${uuid}`} className="text-[var(--purple-primary)] hover:text-[var(--purple-primary)]/80 text-sm font-medium flex items-center gap-1">
                       <Edit className="w-4 h-4" />
                       Edit
                     </Link>
@@ -531,47 +578,47 @@ export default function IndividualTCDetailPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Full Name</p>
-                      <p className="text-sm font-medium text-gray-900">{tc.name}</p>
+                      <p className="text-sm text-muted-foreground mb-1">Full Name</p>
+                      <p className="text-sm font-medium text-foreground">{tc.name}</p>
                     </div>
                     {tc.age && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Age</p>
-                        <p className="text-sm font-medium text-gray-900">{tc.age} years old</p>
+                        <p className="text-sm text-muted-foreground mb-1">Age</p>
+                        <p className="text-sm font-medium text-foreground">{tc.age} years old</p>
                       </div>
                     )}
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Email</p>
-                      <p className="text-sm font-medium text-gray-900">{tc.email}</p>
+                      <p className="text-sm text-muted-foreground mb-1">Email</p>
+                      <p className="text-sm font-medium text-foreground">{tc.email}</p>
                     </div>
                     {tc.phone && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Phone</p>
-                        <p className="text-sm font-medium text-gray-900">{tc.phone}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Phone</p>
+                        <p className="text-sm font-medium text-foreground">{tc.phone}</p>
                       </div>
                     )}
                     {tc.gender && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Gender</p>
-                        <p className="text-sm font-medium text-gray-900">{tc.gender}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Gender</p>
+                        <p className="text-sm font-medium text-foreground">{tc.gender}</p>
                       </div>
                     )}
                     {tc.pronouns && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Pronouns</p>
-                        <p className="text-sm font-medium text-gray-900">{tc.pronouns}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Pronouns</p>
+                        <p className="text-sm font-medium text-foreground">{tc.pronouns}</p>
                       </div>
                     )}
                     {tc.ethnicity && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Ethnicity</p>
-                        <p className="text-sm font-medium text-gray-900">{tc.ethnicity}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Ethnicity</p>
+                        <p className="text-sm font-medium text-foreground">{tc.ethnicity}</p>
                       </div>
                     )}
                     {tc.joinedDate && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Joined Date</p>
-                        <p className="text-sm font-medium text-gray-900">{new Date(tc.joinedDate).toLocaleDateString('en-GB')}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Joined Date</p>
+                        <p className="text-sm font-medium text-foreground">{new Date(tc.joinedDate).toLocaleDateString('en-GB')}</p>
                       </div>
                     )}
                   </div>
@@ -579,33 +626,33 @@ export default function IndividualTCDetailPage() {
 
                 {/* Professional Information */}
                 {(tc.course || tc.institution || tc.modality) && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Professional Information</h2>
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Professional Information</h2>
                     <div className="space-y-4">
                       {tc.modality && (
                         <div>
-                          <p className="text-sm text-gray-600 mb-1">Modality</p>
-                          <p className="text-sm font-medium text-gray-900">{tc.modality}</p>
+                          <p className="text-sm text-muted-foreground mb-1">Modality</p>
+                          <p className="text-sm font-medium text-foreground">{tc.modality}</p>
                         </div>
                       )}
                       {tc.course && (
                         <div>
-                          <p className="text-sm text-gray-600 mb-1">Course</p>
-                          <p className="text-sm font-medium text-gray-900">{tc.course}</p>
+                          <p className="text-sm text-muted-foreground mb-1">Course</p>
+                          <p className="text-sm font-medium text-foreground">{tc.course}</p>
                         </div>
                       )}
                       {(tc.institution || tc.expectedGraduation) && (
                         <div className="grid grid-cols-2 gap-4">
                           {tc.institution && (
                             <div>
-                              <p className="text-sm text-gray-600 mb-1">Institution</p>
-                              <p className="text-sm font-medium text-gray-900">{tc.institution}</p>
+                              <p className="text-sm text-muted-foreground mb-1">Institution</p>
+                              <p className="text-sm font-medium text-foreground">{tc.institution}</p>
                             </div>
                           )}
                           {tc.expectedGraduation && (
                             <div>
-                              <p className="text-sm text-gray-600 mb-1">Expected Graduation</p>
-                              <p className="text-sm font-medium text-gray-900">{tc.expectedGraduation}</p>
+                              <p className="text-sm text-muted-foreground mb-1">Expected Graduation</p>
+                              <p className="text-sm font-medium text-foreground">{tc.expectedGraduation}</p>
                             </div>
                           )}
                         </div>
@@ -614,19 +661,19 @@ export default function IndividualTCDetailPage() {
                         <div className="grid grid-cols-2 gap-4">
                           {tc.supervisor && (
                             <div>
-                              <p className="text-sm text-gray-600 mb-1">Supervisor</p>
-                              <p className="text-sm font-medium text-gray-900">{tc.supervisor}</p>
+                              <p className="text-sm text-muted-foreground mb-1">Supervisor</p>
+                              <p className="text-sm font-medium text-foreground">{tc.supervisor}</p>
                             </div>
                           )}
                           {tc.tutorName && (
                             <div>
-                              <p className="text-sm text-gray-600 mb-1">Tutor / Programme Lead</p>
-                              <p className="text-sm font-medium text-gray-900">{tc.tutorName}</p>
+                              <p className="text-sm text-muted-foreground mb-1">Tutor / Programme Lead</p>
+                              <p className="text-sm font-medium text-foreground">{tc.tutorName}</p>
                               {tc.tutorEmail && (
-                                <p className="text-xs text-gray-500 mt-1">{tc.tutorEmail}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{tc.tutorEmail}</p>
                               )}
                               {tc.tutorPhone && (
-                                <p className="text-xs text-gray-500">{tc.tutorPhone}</p>
+                                <p className="text-xs text-muted-foreground">{tc.tutorPhone}</p>
                               )}
                             </div>
                           )}
@@ -634,13 +681,13 @@ export default function IndividualTCDetailPage() {
                       )}
                       {tc.placementLeadName && (
                         <div>
-                          <p className="text-sm text-gray-600 mb-1">Placement Lead</p>
-                          <p className="text-sm font-medium text-gray-900">{tc.placementLeadName}</p>
+                          <p className="text-sm text-muted-foreground mb-1">Placement Lead</p>
+                          <p className="text-sm font-medium text-foreground">{tc.placementLeadName}</p>
                           {tc.placementLeadEmail && (
-                            <p className="text-xs text-gray-500 mt-1">{tc.placementLeadEmail}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{tc.placementLeadEmail}</p>
                           )}
                           {tc.placementLeadPhone && (
-                            <p className="text-xs text-gray-500">{tc.placementLeadPhone}</p>
+                            <p className="text-xs text-muted-foreground">{tc.placementLeadPhone}</p>
                           )}
                         </div>
                       )}
@@ -650,18 +697,18 @@ export default function IndividualTCDetailPage() {
 
                 {/* Availability Schedule */}
                 {tc.availability && Object.keys(tc.availability).length > 0 && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Availability Schedule</h2>
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Availability Schedule</h2>
                     <div className="space-y-3">
                       {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => {
                         const daySlots = tc.availability[day] || [];
                         const hasSlots = daySlots.length > 0;
                         return (
                           <div key={day} className={`flex items-center gap-4 p-3 rounded-lg border ${
-                            hasSlots ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+                            hasSlots ? 'bg-[var(--tag-bg-green)] border-green-200 dark:border-green-800' : 'bg-muted border-border'
                           }`}>
                             <div className="w-28">
-                              <p className={`text-sm font-medium ${hasSlots ? 'text-green-900' : 'text-gray-500'}`}>
+                              <p className={`text-sm font-medium ${hasSlots ? 'text-green-900 dark:text-green-200' : 'text-muted-foreground'}`}>
                                 {day}
                               </p>
                             </div>
@@ -671,14 +718,14 @@ export default function IndividualTCDetailPage() {
                                   {daySlots.map((slot, idx) => {
                                     const slotLabel = timeSlots.find(ts => ts.value === slot)?.label || slot;
                                     return (
-                                      <span key={idx} className="px-3 py-1 bg-green-600 text-white text-sm rounded-full">
+                                      <span key={idx} className="px-3 py-1 bg-[var(--tag-bg-green)] text-[var(--tag-text)] text-sm rounded-full">
                                         {slotLabel}
                                       </span>
                                     );
                                   })}
                                 </div>
                               ) : (
-                                <span className="text-sm text-gray-500 italic">Not available</span>
+                                <span className="text-sm text-muted-foreground italic">Not available</span>
                               )}
                             </div>
                           </div>
@@ -691,15 +738,15 @@ export default function IndividualTCDetailPage() {
                 {/* Clinical Expertise */}
                 {((tc.topicsWithExperience && tc.topicsWithExperience.length > 0) || 
                   (tc.topicsNotReadyFor && tc.topicsNotReadyFor.length > 0)) && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Clinical Expertise</h2>
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Clinical Expertise</h2>
                     <div className="space-y-4">
                       {tc.topicsWithExperience && tc.topicsWithExperience.length > 0 && (
                         <div>
-                          <p className="text-sm font-medium text-gray-900 mb-2">✅ Topics with Experience</p>
+                          <p className="text-sm font-medium text-foreground mb-2">✅ Topics with Experience</p>
                           <div className="flex flex-wrap gap-2">
                             {tc.topicsWithExperience.map((topic, idx) => (
-                              <span key={idx} className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                              <span key={idx} className="px-3 py-1 bg-[var(--tag-bg-green)] text-[var(--tag-text)] text-sm rounded-full">
                                 {topic}
                               </span>
                             ))}
@@ -707,16 +754,16 @@ export default function IndividualTCDetailPage() {
                         </div>
                       )}
                       {tc.topicsNotReadyFor && tc.topicsNotReadyFor.length > 0 && (
-                        <div className="pt-4 border-t border-gray-200">
-                          <p className="text-sm font-medium text-gray-900 mb-2">⚠️ Topics NOT Ready For</p>
+                        <div className="pt-4 border-t border-border">
+                          <p className="text-sm font-medium text-foreground mb-2">⚠️ Topics NOT Ready For</p>
                           <div className="flex flex-wrap gap-2">
                             {tc.topicsNotReadyFor.map((topic, idx) => (
-                              <span key={idx} className="px-3 py-1 bg-red-100 text-red-800 text-sm rounded-full font-medium">
+                              <span key={idx} className="px-3 py-1 bg-[var(--warning-bg)] text-[var(--warning-primary)] text-sm rounded-full font-medium">
                                 {topic}
                               </span>
                             ))}
                           </div>
-                          <p className="text-xs text-gray-600 mt-2 italic">
+                          <p className="text-xs text-muted-foreground mt-2 italic">
                             These topics will show as warnings when matching clients, but won't prevent assignment
                           </p>
                         </div>
@@ -726,24 +773,24 @@ export default function IndividualTCDetailPage() {
                 )}
 
                 {/* Current Clients */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="bg-card rounded-lg border border-border p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-gray-900">Current Clients ({tc.currentClients || 0})</h2>
+                    <h2 className="text-lg font-semibold text-foreground">Current Clients ({tc.currentClients || 0})</h2>
                   </div>
                   {tc.currentClientsList && tc.currentClientsList.length > 0 ? (
                     <div className="space-y-3">
                       {tc.currentClientsList.map(client => (
-                        <div key={client.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div key={client.id} className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                                <User className="w-5 h-5 text-purple-600" />
+                              <div className="w-10 h-10 rounded-full bg-[var(--purple-bg)] flex items-center justify-center">
+                                <User className="w-5 h-5 text-[var(--purple-primary)]" />
                               </div>
                               <div>
-                                <Link href={`/dashboard/client-details/${client.uuid || client.id}`} className="font-semibold text-gray-900 hover:text-purple-600">
+                                <Link href={`/dashboard/client-details/${client.uuid || client.id}`} className="font-semibold text-foreground hover:text-[var(--purple-primary)]">
                                   {client.name}{client.age ? `, ${client.age}` : ''}
                                 </Link>
-                                <p className="text-xs text-gray-500">{client.id}</p>
+                                <p className="text-xs text-muted-foreground">{client.id}</p>
                               </div>
                             </div>
                             {client.sessionsCompleted > 0 && (
@@ -756,28 +803,28 @@ export default function IndividualTCDetailPage() {
                             <div className="grid grid-cols-2 gap-3 text-sm">
                               {client.startDate && (
                                 <div>
-                                  <p className="text-gray-600 text-xs mb-1">Start Date</p>
-                                  <p className="font-medium text-gray-900">{new Date(client.startDate).toLocaleDateString('en-GB')}</p>
+                                  <p className="text-muted-foreground text-xs mb-1">Start Date</p>
+                                  <p className="font-medium text-foreground">{new Date(client.startDate).toLocaleDateString('en-GB')}</p>
                                 </div>
                               )}
                               {client.lastSession && (
                                 <div>
-                                  <p className="text-gray-600 text-xs mb-1">Last Session</p>
-                                  <p className="font-medium text-gray-900">{new Date(client.lastSession).toLocaleDateString('en-GB')}</p>
+                                  <p className="text-muted-foreground text-xs mb-1">Last Session</p>
+                                  <p className="font-medium text-foreground">{new Date(client.lastSession).toLocaleDateString('en-GB')}</p>
                                 </div>
                               )}
                               {client.nextSession && (
                                 <div>
-                                  <p className="text-gray-600 text-xs mb-1">Next Session</p>
-                                  <p className="font-medium text-gray-900">{new Date(client.nextSession).toLocaleDateString('en-GB')}</p>
+                                  <p className="text-muted-foreground text-xs mb-1">Next Session</p>
+                                  <p className="font-medium text-foreground">{new Date(client.nextSession).toLocaleDateString('en-GB')}</p>
                                 </div>
                               )}
                               {client.primaryIssues && client.primaryIssues.length > 0 && (
                                 <div>
-                                  <p className="text-gray-600 text-xs mb-1">Primary Issues</p>
+                                  <p className="text-muted-foreground text-xs mb-1">Primary Issues</p>
                                   <div className="flex flex-wrap gap-1">
                                     {client.primaryIssues.map((issue, idx) => (
-                                      <span key={idx} className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded">
+                                      <span key={idx} className="px-2 py-0.5 bg-muted text-foreground text-xs rounded">
                                         {issue}
                                       </span>
                                     ))}
@@ -790,25 +837,25 @@ export default function IndividualTCDetailPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500 italic text-center py-4">No clients assigned</p>
+                    <p className="text-sm text-muted-foreground italic text-center py-4">No clients assigned</p>
                   )}
                 </div>
 
                 {/* Documents */}
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Documents & Verification</h2>
+                <div className="bg-card rounded-lg border border-border p-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-4">Documents & Verification</h2>
                   {tc.documents && tc.documents.length > 0 ? (
                     <div className="space-y-3">
                       {tc.documents.map((doc, idx) => (
-                        <div key={doc.id || idx} className="border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+                        <div key={doc.id || idx} className="border border-border rounded-lg p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                              <FileCheck className="w-5 h-5 text-blue-600" />
+                            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                              <FileCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                             </div>
                             <div>
-                              <p className="font-medium text-gray-900">{doc.name || doc.type}</p>
+                              <p className="font-medium text-foreground">{doc.name || doc.type}</p>
                               {doc.uploadDate && (
-                                <p className="text-xs text-gray-600">Uploaded: {new Date(doc.uploadDate).toLocaleDateString('en-GB')}</p>
+                                <p className="text-xs text-muted-foreground">Uploaded: {new Date(doc.uploadDate).toLocaleDateString('en-GB')}</p>
                               )}
                             </div>
                           </div>
@@ -818,16 +865,16 @@ export default function IndividualTCDetailPage() {
                               <button 
                                 onClick={() => {
                                   // Create download link
-                                  const link = document.createElement('a');
+                                    const link = document.createElement('a');
                                   link.href = doc.url.startsWith('http') ? doc.url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/storage/${doc.url}`;
                                   link.download = doc.name || 'document';
                                   link.target = '_blank';
                                   link.click();
                                 }}
-                                className="p-2 hover:bg-gray-100 rounded-lg" 
+                                className="p-2 hover:bg-muted rounded-lg" 
                                 title="Download"
                               >
-                                <Download className="w-4 h-4 text-gray-600" />
+                                <Download className="w-4 h-4 text-muted-foreground" />
                               </button>
                             )}
                           </div>
@@ -835,22 +882,32 @@ export default function IndividualTCDetailPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500 italic text-center py-4">No documents uploaded</p>
+                    <p className="text-sm text-muted-foreground italic text-center py-4">No documents uploaded</p>
                   )}
                 </div>
 
                 {/* Admin Notes - Only visible to internal team */}
                 {isInternalTeam && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Admin Notes</h2>
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Admin Notes</h2>
                     <div className="space-y-4">
                       {tc.adminNotes && tc.adminNotes.length > 0 ? (
                         tc.adminNotes.map(note => (
-                          <div key={note.id || note.date} className="border border-gray-200 rounded-lg p-4">
+                          <div key={note.id || note.date} className="border border-border rounded-lg p-4">
                             <div className="flex items-start justify-between mb-2">
                               <div>
-                                <p className="font-medium text-gray-900">{note.author || note.user || 'Admin'}</p>
-                                <p className="text-sm text-gray-600">{note.date || note.created_at || 'Unknown date'}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-foreground">{note.author || note.user?.name || note.user || 'Unknown User'}</p>
+                                  {note.user?.role && (
+                                    <span className="text-xs px-2 py-0.5 bg-[var(--purple-bg)] text-[var(--purple-primary)] rounded-full">
+                                      {note.user.role}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground">{note.date || note.created_at || 'Unknown date'}</p>
+                                {note.user?.email && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">{note.user.email}</p>
+                                )}
                               </div>
                               <div className="flex items-center gap-2">
                                 <button 
@@ -858,18 +915,18 @@ export default function IndividualTCDetailPage() {
                                     setEditingNoteId(note.id);
                                     setEditingNoteContent(note.content || note.description || note.note);
                                   }}
-                                  className="p-2 hover:bg-gray-100 rounded-lg"
+                                  className="p-2 hover:bg-muted rounded-lg"
                                 >
-                                  <Edit className="w-4 h-4 text-gray-600" />
+                                  <Edit className="w-4 h-4 text-muted-foreground" />
                                 </button>
                                 <button 
                                   onClick={() => {
                                     setNoteToDelete(note.id);
                                     setShowDeleteNoteModal(true);
                                   }}
-                                  className="p-2 hover:bg-red-100 rounded-lg"
+                                  className="p-2 hover:bg-[var(--warning-bg)]/20 rounded-lg"
                                 >
-                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                  <Trash2 className="w-4 h-4 text-[var(--warning-primary)]" />
                                 </button>
                               </div>
                             </div>
@@ -878,7 +935,7 @@ export default function IndividualTCDetailPage() {
                                 <textarea
                                   value={editingNoteContent}
                                   onChange={(e) => setEditingNoteContent(e.target.value)}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                                  className="w-full px-3 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent resize-none"
                                   rows={3}
                                 />
                                 <div className="flex items-center justify-end gap-2 mt-2">
@@ -887,7 +944,7 @@ export default function IndividualTCDetailPage() {
                                       setEditingNoteId(null);
                                       setEditingNoteContent('');
                                     }}
-                                    className="px-3 py-1 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
+                                    className="px-3 py-1 border border-border text-muted-foreground rounded-lg hover:bg-muted text-sm"
                                   >
                                     Cancel
                                   </button>
@@ -914,27 +971,27 @@ export default function IndividualTCDetailPage() {
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-sm text-gray-700">{note.content || note.description || note.note}</p>
+                              <p className="text-sm text-foreground">{note.content || note.description || note.note}</p>
                             )}
                           </div>
                         ))
                       ) : (
-                        <p className="text-sm text-gray-500 italic text-center py-4">No admin notes yet</p>
+                        <p className="text-sm text-muted-foreground italic text-center py-4">No admin notes yet</p>
                       )}
 
                       {/* Add New Note */}
-                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                      <div className="border-2 border-dashed border-border rounded-lg p-4">
                         <textarea
                           value={newNote}
                           onChange={(e) => setNewNote(e.target.value)}
                           placeholder="Add a new admin note..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                          className="w-full px-3 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent resize-none"
                           rows={3}
                         />
                         <div className="flex items-center justify-end gap-2 mt-2">
                           <button
                             onClick={() => setNewNote('')}
-                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm"
+                            className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium text-sm"
                           >
                             Cancel
                           </button>
@@ -977,18 +1034,18 @@ export default function IndividualTCDetailPage() {
 
               {/* Right Column - 1/3 width - Performance Summary */}
               <div className="col-span-1">
-                <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Performance Summary</h2>
+                <div className="bg-card rounded-lg border border-border p-6 sticky top-6">
+                  <h2 className="text-lg font-semibold text-foreground mb-4">Performance Summary</h2>
                   <div className="space-y-4">
                     {tc.performance && (
                       <>
                         {tc.performance.clientSatisfaction > 0 && (
                           <div>
                             <div className="flex justify-between items-center mb-1">
-                              <span className="text-sm text-gray-600">Client Satisfaction</span>
-                              <span className="text-sm font-semibold text-gray-900">{tc.performance.clientSatisfaction}/5.0</span>
+                              <span className="text-sm text-muted-foreground">Client Satisfaction</span>
+                              <span className="text-sm font-semibold text-foreground">{tc.performance.clientSatisfaction}/5.0</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-muted rounded-full h-2">
                               <div 
                                 className="bg-green-600 h-2 rounded-full"
                                 style={{ width: `${(tc.performance.clientSatisfaction / 5) * 100}%` }}
@@ -999,10 +1056,10 @@ export default function IndividualTCDetailPage() {
                         {tc.performance.sessionAttendanceRate > 0 && (
                           <div>
                             <div className="flex justify-between items-center mb-1">
-                              <span className="text-sm text-gray-600">Attendance Rate</span>
-                              <span className="text-sm font-semibold text-gray-900">{tc.performance.sessionAttendanceRate}%</span>
+                              <span className="text-sm text-muted-foreground">Attendance Rate</span>
+                              <span className="text-sm font-semibold text-foreground">{tc.performance.sessionAttendanceRate}%</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-muted rounded-full h-2">
                               <div 
                                 className="bg-green-600 h-2 rounded-full"
                                 style={{ width: `${tc.performance.sessionAttendanceRate}%` }}
@@ -1013,10 +1070,10 @@ export default function IndividualTCDetailPage() {
                         {tc.performance.dnaRate > 0 && (
                           <div>
                             <div className="flex justify-between items-center mb-1">
-                              <span className="text-sm text-gray-600">DNA Rate</span>
-                              <span className="text-sm font-semibold text-gray-900">{tc.performance.dnaRate}%</span>
+                              <span className="text-sm text-muted-foreground">DNA Rate</span>
+                              <span className="text-sm font-semibold text-foreground">{tc.performance.dnaRate}%</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-muted rounded-full h-2">
                               <div 
                                 className="bg-red-600 h-2 rounded-full"
                                 style={{ width: `${tc.performance.dnaRate}%` }}
@@ -1025,9 +1082,9 @@ export default function IndividualTCDetailPage() {
                           </div>
                         )}
                         {tc.performance.responseTime && (
-                          <div className="pt-4 border-t border-gray-200">
-                            <p className="text-sm text-gray-600 mb-1">Avg Response Time</p>
-                            <p className="text-xl font-bold text-gray-900">{tc.performance.responseTime}</p>
+                          <div className="pt-4 border-t border-border">
+                            <p className="text-sm text-muted-foreground mb-1">Avg Response Time</p>
+                            <p className="text-xl font-bold text-foreground">{tc.performance.responseTime}</p>
                           </div>
                         )}
                       </>
@@ -1035,10 +1092,10 @@ export default function IndividualTCDetailPage() {
                   </div>
 
                   {/* Quick Actions */}
-                  <div className="mt-6 space-y-2 pt-6 border-t border-gray-200">
+                  <div className="mt-6 space-y-2 pt-6 border-t border-border">
                     <button
                       onClick={() => setShowStatusModal(true)}
-                      className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm"
+                      className="w-full py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium text-sm"
                     >
                       Change Status
                     </button>
@@ -1049,10 +1106,10 @@ export default function IndividualTCDetailPage() {
                     >
                       Assign New Client
                     </button>
-                    <button className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">
+                    <button className="w-full py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium text-sm">
                       Send Message
                     </button>
-                    <button className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">
+                    <button className="w-full py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium text-sm">
                       Download Report
                     </button>
                   </div>
@@ -1068,20 +1125,20 @@ export default function IndividualTCDetailPage() {
         <>
           <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowStatusModal(false)}></div>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Change TC Status</h2>
-                <button onClick={() => setShowStatusModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                  <X className="w-5 h-5 text-gray-600" />
+            <div className="bg-card rounded-lg shadow-2xl max-w-md w-full border border-border">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h2 className="text-xl font-bold text-foreground">Change TC Status</h2>
+                <button onClick={() => setShowStatusModal(false)} className="p-2 hover:bg-muted rounded-lg">
+                  <X className="w-5 h-5 text-muted-foreground" />
                 </button>
               </div>
 
               <div className="p-6 space-y-4">
-                <p className="text-sm text-gray-700">Update status for <strong>{tc.name}</strong></p>
+                <p className="text-sm text-foreground">Update status for <strong>{tc.name}</strong></p>
                 
                 {/* Counsellor Type */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Counsellor Type</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Counsellor Type</label>
                   <SearchableSelect
                     value={statusForm.counsellorType}
                     onChange={(e) => setStatusForm({...statusForm, counsellorType: e.target.value})}
@@ -1095,7 +1152,7 @@ export default function IndividualTCDetailPage() {
 
                 {/* Status */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Status</label>
                   <SearchableSelect
                     value={statusForm.status}
                     onChange={(e) => setStatusForm({...statusForm, status: e.target.value})}
@@ -1129,23 +1186,23 @@ export default function IndividualTCDetailPage() {
 
                 {/* Reason */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Reason (Optional)</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Reason (Optional)</label>
                   <textarea
                     value={statusForm.reason}
                     onChange={(e) => setStatusForm({...statusForm, reason: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                    className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent resize-none"
                     rows={3}
                     placeholder="Add reason for status change..."
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                   <button
                     onClick={() => {
                       setShowStatusModal(false);
                       setStatusForm({ status: tc.status, counsellorType: tc.counsellor_type, reason: '' });
                     }}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                    className="px-6 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium"
                   >
                     Cancel
                   </button>
@@ -1191,11 +1248,11 @@ export default function IndividualTCDetailPage() {
         <>
           <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowAssignModal(false)}></div>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Assign Client to {tc.name}</h2>
-                <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                  <X className="w-5 h-5 text-gray-600" />
+            <div className="bg-card rounded-lg shadow-2xl max-w-2xl w-full border border-border">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h2 className="text-xl font-bold text-foreground">Assign Client to {tc.name}</h2>
+                <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-muted rounded-lg">
+                  <X className="w-5 h-5 text-muted-foreground" />
                 </button>
               </div>
 
@@ -1228,14 +1285,14 @@ export default function IndividualTCDetailPage() {
                   alert(`Failed to assign client: ${err.message || 'Please try again.'}`);
                 }
               }} className="p-6 space-y-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-4">
-                  <p className="text-sm text-green-800">
-                    Select a client from the pending matches list to assign to this training counsellor.
+                <div className="p-4 bg-[var(--tag-bg-green)] border border-green-200 dark:border-green-800 rounded-lg mb-4">
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    Select a client from the pending matches list to assign to this trainee counsellor.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Client <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Select Client <span className="text-red-500">*</span></label>
                   <SearchableSelect
                     value={assignForm.clientId}
                     onChange={(e) => setAssignForm({...assignForm, clientId: e.target.value})}
@@ -1248,11 +1305,11 @@ export default function IndividualTCDetailPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Assignment Notes (Optional)</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Assignment Notes (Optional)</label>
                   <textarea
                     value={assignForm.notes}
                     onChange={(e) => setAssignForm({...assignForm, notes: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
                     rows={3}
                     placeholder="Add any notes about this assignment..."
                   />
@@ -1264,18 +1321,18 @@ export default function IndividualTCDetailPage() {
                     id="sendNotification"
                     checked={assignForm.sendNotification}
                     onChange={(e) => setAssignForm({...assignForm, sendNotification: e.target.checked})}
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-600"
+                    className="w-4 h-4 text-[var(--purple-primary)] border-gray-300 rounded focus:ring-[var(--purple-primary)]"
                   />
-                  <label htmlFor="sendNotification" className="text-sm text-gray-700">
-                    Send notification email to training counsellor
+                  <label htmlFor="sendNotification" className="text-sm text-foreground">
+                    Send notification email to trainee counsellor
                   </label>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
+                <div className="flex items-center justify-end gap-3 pt-6 border-t border-border mt-6">
                   <button
                     type="button"
                     onClick={() => setShowAssignModal(false)}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                    className="px-6 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium"
                   >
                     Cancel
                   </button>
@@ -1338,6 +1395,122 @@ export default function IndividualTCDetailPage() {
         type="info"
         confirmButtonColor="#6f1d56"
       />
+
+      {/* Send Message Modal */}
+      {showSendMessageModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => setShowSendMessageModal(false)}
+          ></div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="bg-card rounded-lg shadow-2xl max-w-2xl w-full border border-border">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h2 className="text-xl font-bold text-foreground">Send Message to {tc?.name}</h2>
+                <button
+                  onClick={() => setShowSendMessageModal(false)}
+                  className="p-2 hover:bg-muted rounded-lg"
+                >
+                  <X className="w-5 h-5 text-muted-foreground" />
+                </button>
+              </div>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!messageForm.subject || !messageForm.message) {
+                    alert('Please fill in both subject and message');
+                    return;
+                  }
+
+                  try {
+                    setSendingMessage(true);
+                    await apiService.sendMessageToCounsellor({
+                      tc_id: tc.db_id || tc.id,
+                      subject: messageForm.subject,
+                      message: messageForm.message,
+                      send_email_notification: messageForm.sendEmailNotification,
+                    });
+                    alert('Message sent successfully!');
+                    setShowSendMessageModal(false);
+                    setMessageForm({ subject: '', message: '', sendEmailNotification: true });
+                  } catch (err) {
+                    console.error('Error sending message:', err);
+                    alert(`Failed to send message: ${err.message || 'Please try again.'}`);
+                  } finally {
+                    setSendingMessage(false);
+                  }
+                }}
+                className="p-6 space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Subject *
+                  </label>
+                  <input
+                    type="text"
+                    value={messageForm.subject}
+                    onChange={(e) => setMessageForm({ ...messageForm, subject: e.target.value })}
+                    className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                    placeholder="Enter message subject"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Message *
+                  </label>
+                  <textarea
+                    value={messageForm.message}
+                    onChange={(e) => setMessageForm({ ...messageForm, message: e.target.value })}
+                    rows={8}
+                    className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                    placeholder="Enter your message"
+                    required
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="sendEmailNotification"
+                    checked={messageForm.sendEmailNotification}
+                    onChange={(e) => setMessageForm({ ...messageForm, sendEmailNotification: e.target.checked })}
+                    className="w-4 h-4 text-[var(--purple-primary)] border-gray-300 rounded focus:ring-[var(--purple-primary)]"
+                  />
+                  <label htmlFor="sendEmailNotification" className="text-sm text-foreground">
+                    Also send email notification (if counsellor has email)
+                  </label>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowSendMessageModal(false)}
+                    className="flex-1 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendingMessage}
+                    className="flex-1 px-4 py-2 bg-[var(--purple-primary)] text-white rounded-lg hover:opacity-90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {sendingMessage ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Send Message
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
     </DashboardLayout>
   );
 }

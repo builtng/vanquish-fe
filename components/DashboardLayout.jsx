@@ -3,12 +3,13 @@
 import React from 'react';
 import DashboardSidebar from './DashboardSidebar';
 import { useSidebar } from '@/contexts/SidebarContext';
+import ThemeToggle from './ThemeToggle';
 
 export default function DashboardLayout({ children }) {
   const { sidebarOpen } = useSidebar();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 dark:bg-[var(--background)] flex transition-colors duration-200">
       {/* Sidebar */}
       <DashboardSidebar />
 

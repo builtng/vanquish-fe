@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Heart, Calendar, Settings, CreditCard, CheckCircle } from 'lucide-react';
 
 export default function ClientIntakeForm() {
@@ -36,11 +36,36 @@ export default function ClientIntakeForm() {
     cardNumber: '',
     expiryDate: '',
     cvv: '',
-    cardName: ''
+    cardName: '',
+    couponCode: ''
   });
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [capacityStatus, setCapacityStatus] = useState({
+    full: false,
+    message: '',
+    alternativeUrl: ''
+  });
+
+  useEffect(() => {
+    const checkCapacity = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/services/ish-capacity`);
+        const data = await response.json();
+        setCapacityStatus({
+          full: data.capacity_full,
+          message: data.message,
+          alternativeUrl: data.alternative_url
+        });
+      } catch (error) {
+        console.error('Error checking capacity:', error);
+      }
+    };
+
+    checkCapacity();
+  }, []);
+
 
   const issues = [
     'Domestic Violence',
@@ -631,6 +656,19 @@ export default function ClientIntakeForm() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Coupon Code <span className="text-gray-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.couponCode}
+                  onChange={(e) => handleInputChange('couponCode', e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  placeholder="Enter discount code"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -669,38 +707,61 @@ export default function ClientIntakeForm() {
           )}
 
           {/* Navigation Buttons */}
+          {/* Navigation Buttons */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
-            <button
-              onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
-              disabled={currentStep === 1}
-              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                currentStep === 1
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              Previous
-            </button>
-
-            <div className="text-sm text-gray-600">
-              Step {currentStep} of 5
-            </div>
-
-            {currentStep < 5 ? (
-              <button
-                onClick={() => setCurrentStep(prev => Math.min(5, prev + 1))}
-                className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
-              >
-                Next
-              </button>
+            {capacityStatus.full ? (
+              <div className="w-full text-center">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <p className="text-yellow-800 font-medium mb-2">
+                    {capacityStatus.message || "This service is currently at capacity."}
+                  </p>
+                  {capacityStatus.alternativeUrl && (
+                    <a
+                      href={capacityStatus.alternativeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center px-6 py-2 border border-transparent text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+                    >
+                      Proceed to Partner Service
+                    </a>
+                  )}
+                </div>
+              </div>
             ) : (
-              <button
-                onClick={handleSubmit}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
-              >
-                <CreditCard className="w-4 h-4" />
-                Complete Booking
-              </button>
+              <>
+                <button
+                  onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
+                  disabled={currentStep === 1}
+                  className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                    currentStep === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Previous
+                </button>
+
+                <div className="text-sm text-gray-600">
+                  Step {currentStep} of 5
+                </div>
+
+                {currentStep < 5 ? (
+                  <button
+                    onClick={() => setCurrentStep(prev => Math.min(5, prev + 1))}
+                    className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSubmit}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Complete Booking
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

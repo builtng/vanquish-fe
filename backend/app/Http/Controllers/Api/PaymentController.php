@@ -29,10 +29,34 @@ class PaymentController extends Controller
             'client_id' => 'required|exists:clients,id',
             'amount' => 'required|numeric|min:0.50',
             'currency' => 'nullable|string|size:3',
+            'coupon_code' => 'nullable|string|exists:coupons,code',
         ]);
 
         $currency = $validated['currency'] ?? 'gbp';
-        $amountInPence = (int)($validated['amount'] * 100); // Convert to pence/cents
+        $originalAmount = $validated['amount'];
+        $finalAmount = $originalAmount;
+        $discountAmount = 0;
+        $couponId = null;
+
+        // Apply coupon if exists
+        if (!empty($validated['coupon_code'])) {
+            $coupon = \App\Models\Coupon::where('code', $validated['coupon_code'])->first();
+            if ($coupon && $coupon->isValid()) {
+                $couponId = $coupon->id;
+                if ($coupon->type === 'fixed') {
+                    $finalAmount = max(0.50, $originalAmount - $coupon->value); // Stripe minimum is mostly 0.50
+                    $discountAmount = $originalAmount - $finalAmount;
+                } elseif ($coupon->type === 'percent') {
+                     $discount = ($originalAmount * $coupon->value) / 100;
+                     $finalAmount = max(0.50, $originalAmount - $discount);
+                     $discountAmount = $originalAmount - $finalAmount;
+                }
+                
+                // Track usage (increment on confirm, but for intent we just validate)
+            }
+        }
+
+        $amountInPence = (int)($finalAmount * 100);
 
         try {
             $client = Client::findOrFail($validated['client_id']);
@@ -48,6 +72,9 @@ class PaymentController extends Controller
                 'metadata' => [
                     'client_id' => $client->id,
                     'client_name' => $client->firstName . ' ' . $client->lastName,
+                    'coupon_code' => $validated['coupon_code'] ?? null,
+                    'original_amount' => $originalAmount,
+                    'discount_amount' => $discountAmount
                 ],
                 'automatic_payment_methods' => [
                     'enabled' => true,
@@ -57,6 +84,8 @@ class PaymentController extends Controller
             return response()->json([
                 'client_secret' => $paymentIntent->client_secret,
                 'payment_intent_id' => $paymentIntent->id,
+                'amount' => $finalAmount,
+                'discount' => $discountAmount
             ]);
         } catch (ApiErrorException $e) {
             Log::error('Stripe Payment Intent Error: ' . $e->getMessage());

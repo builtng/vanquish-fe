@@ -6,9 +6,11 @@ import { usePathname, useParams } from 'next/navigation';
 import apiService from '@/lib/api';
 import * as XLSX from 'xlsx';
 import SessionNotesModal from '@/components/SessionNotesModal';
-import { useToast } from '@/contexts/ToastContext';
+import { useToast } from '@/lib/toast';
 import ConfirmationModal from '@/components/ConfirmationModal';
+import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import DashboardLayout from '@/components/DashboardLayout';
+import PhotoUpload from '@/components/PhotoUpload';
 
 import { 
 
@@ -22,7 +24,7 @@ import {
 
   Download, Send, Archive, Plus, ChevronLeft,
 
-  CreditCard, Package, AlertCircle, Check, XCircle, Building2, Star, CalendarDays
+  CreditCard, Package, AlertCircle, Check, XCircle, Building2, Star, CalendarDays, RefreshCw
 
 } from 'lucide-react';
 
@@ -39,6 +41,7 @@ export default function IndividualClientDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [client, setClient] = useState(null);
+  const [clientPhoto, setClientPhoto] = useState(null);
   const [notification, setNotification] = useState(null);
   const [showAddSessionModal, setShowAddSessionModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -87,12 +90,67 @@ export default function IndividualClientDetailPage() {
       gender: data.gender || null,
       ethnicity: data.ethnicity || null,
       sexualOrientation: data.sexual_orientation || null,
-      stage: data.stage || 'Application',
+      stage: data.stage || 'Application & Assessment form Submitted',
       status: data.status || 'active',
       daysInSystem: data.submitted_date ? Math.floor((new Date() - new Date(data.submitted_date)) / (1000 * 60 * 60 * 24)) : 0,
       voicemailPermission: data.voicemail_permission || null,
       howHeardAbout: data.how_heard_about || null,
-      journey: [],
+      journey: (() => {
+        const stages = [
+          { 
+            name: 'Application & Assessment form Submitted', 
+            date: data.submitted_date,
+            isCompleted: !!data.submitted_date || !!data.id
+          },
+          { 
+            name: 'Consultation Booked', 
+            date: data.consultations && data.consultations.length > 0 ? (data.consultations[0].created_at || data.consultations[0].scheduled_at) : null,
+            isCompleted: data.consultations && data.consultations.length > 0
+          },
+          { 
+            name: 'Consultation Completed', 
+            date: data.consultations && data.consultations.some(c => c.status === 'completed') 
+              ? data.consultations.find(c => c.status === 'completed').updated_at 
+              : null,
+            isCompleted: data.consultations && data.consultations.some(c => c.status === 'completed')
+          },
+          { 
+            name: 'Matched with TC', 
+            date: data.matched_date,
+            isCompleted: !!data.matched_date || !!data.matched_tc
+          },
+          { 
+            name: 'Agreement Sent', 
+            date: data.agreement_sent_at,
+            isCompleted: !!data.agreement_sent_at
+          },
+          { 
+            name: 'Agreement Signed', 
+            date: data.agreement_signed_at,
+            isCompleted: !!data.agreement_signed_at
+          },
+          { 
+            name: 'Sessions Bookable', 
+            date: data.agreement_signed_at, // Usually bookable right after agreement
+            isCompleted: !!data.agreement_signed_at && (data.status === 'active' || !!data.start_date)
+          },
+          { 
+            name: 'Active Therapy', 
+            date: data.start_date,
+            isCompleted: data.status === 'active' || (data.consultations && data.consultations.filter(c => c.status === 'completed').length > 0 && !!data.matched_tc)
+          }
+        ];
+
+        // Determine current stage based on the last completed stage or the client.stage if it matches
+        const currentStageName = data.stage;
+        
+        return stages.map((s, index) => ({
+          stage: s.name,
+          date: s.date ? new Date(s.date).toLocaleDateString('en-GB') : null,
+          completed: s.isCompleted,
+          current: s.name === currentStageName || (s.isCompleted && index === stages.length - 1) && !stages.slice(index + 1).some(next => next.isCompleted)
+        }));
+      })(),
       primaryIssues: data.primary_issues || [],
       additionalDetails: data.additional_details || null,
       medication: data.medication || null,
@@ -187,7 +245,7 @@ export default function IndividualClientDetailPage() {
         
         // Determine status based on stage and session completion
         let status = 'Not Started';
-        const stage = data.stage || 'Application';
+        const stage = data.stage || 'Application & Assessment form Submitted';
         if (stage === 'Completed' || sessionsCompleted >= totalSessions) {
           status = 'Completed';
         } else if (stage === 'Active Therapy' || sessionsCompleted > 0) {
@@ -249,27 +307,55 @@ export default function IndividualClientDetailPage() {
       satisfactionScore: data.satisfaction_score || null,
       feedbackCount: data.feedback_count || 0,
       lastFeedbackSentAt: data.last_feedback_sent_at || null,
-      lastFeedbackDate: data.last_feedback_date || null
+      lastFeedbackDate: data.last_feedback_date || null,
+      agreement: data.agreement_status ? {
+        status: data.agreement_status === 'signed' ? 'Signed' : data.agreement_status === 'sent' ? 'Sent' : 'Not Sent',
+        sentDate: data.agreement_sent_at ? new Date(data.agreement_sent_at).toLocaleDateString('en-GB', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        }) : null,
+        signedDate: data.agreement_signed_at ? new Date(data.agreement_signed_at).toLocaleDateString('en-GB', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }) : null,
+        jotformId: data.agreement_jotform_id || null,
+        signatureUrl: data.agreement_signature_url || null
+      } : null,
+      emergencyContact: (data.emergency_contact_name || data.emergency_contact_phone) ? {
+        name: data.emergency_contact_name || null,
+        phone: data.emergency_contact_phone || null,
+        relationship: data.emergency_contact_relationship || null
+      } : null
     };
   };
 
   // Fetch admin notes
   const fetchAdminNotes = async () => {
+    if (!client?.dbId) return;
+    
     try {
       const logs = await apiService.getActivityLogs({
         model_type: 'App\\Models\\Client',
+        model_id: client.dbId,
+        action: 'admin_note',
         per_page: 100
       });
-      // Filter for admin notes related to this client
-      const clientLogs = logs.data?.filter(log => {
-        // We'll need to match by client ID - this is a simplified version
-        return log.model_type === 'App\\Models\\Client';
-      }) || [];
+      
+      const clientLogs = logs.data || [];
       setAdminNotes(clientLogs.map(log => ({
         id: log.id,
         date: new Date(log.created_at).toLocaleString('en-GB'),
-        author: log.user?.name || 'Admin',
-        content: log.description
+        updatedDate: log.updated_at ? new Date(log.updated_at).toLocaleString('en-GB') : null,
+        author: log.user?.name || 'Unknown User',
+        authorEmail: log.user?.email || null,
+        authorRole: log.user?.role || null,
+        userId: log.user?.id || null,
+        content: log.description,
+        isEdited: log.updated_at && log.updated_at !== log.created_at
       })));
     } catch (err) {
       console.error('Error fetching admin notes:', err);
@@ -287,6 +373,7 @@ export default function IndividualClientDetailPage() {
         const data = await apiService.getClientDetails(uuid);
         const transformedData = transformClientData(data);
         setClient(transformedData);
+        setClientPhoto(data.photo_url || data.photo || null);
         await fetchAdminNotes();
       } catch (err) {
         console.error('Error fetching client details:', err);
@@ -298,6 +385,25 @@ export default function IndividualClientDetailPage() {
 
     fetchClientData();
   }, [uuid]);
+
+  // Auto-refresh notes when window regains focus (for multi-user collaboration)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (client?.dbId && activeNotesTab === 'admin') {
+        fetchAdminNotes();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [client?.dbId, activeNotesTab]);
+
+  // Refresh notes when switching to admin tab
+  useEffect(() => {
+    if (activeNotesTab === 'admin' && client?.dbId) {
+      fetchAdminNotes();
+    }
+  }, [activeNotesTab, client?.dbId]);
 
   // Action Handlers
   const handleSendEmail = async () => {
@@ -354,6 +460,27 @@ export default function IndividualClientDetailPage() {
       setClient(transformedData);
     } catch (err) {
       showError(err.message || 'Failed to send feedback form');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSendAgreement = async () => {
+    if (!client?.email) {
+      showNotification('Client email not available', 'error');
+      return;
+    }
+    
+    try {
+      setActionLoading(true);
+      await apiService.resendAgreement(uuid);
+      success('Agreement email sent successfully!');
+      // Refresh client data
+      const data = await apiService.getClientDetails(uuid);
+      const transformedData = transformClientData(data);
+      setClient(transformedData);
+    } catch (err) {
+      showError(err.message || 'Failed to send agreement email');
     } finally {
       setActionLoading(false);
     }
@@ -451,12 +578,14 @@ export default function IndividualClientDetailPage() {
   const handleResendAgreement = async () => {
     try {
       setActionLoading(true);
-      await apiService.resendAgreement(client.uuid);
-      showNotification('Agreement resent successfully');
-      // Reload client data to get updated agreement status
-      await loadClientDetails();
+      await apiService.resendAgreement(uuid);
+      success('Agreement email sent successfully!');
+      // Refresh client data
+      const data = await apiService.getClientDetails(uuid);
+      const transformedData = transformClientData(data);
+      setClient(transformedData);
     } catch (err) {
-      showNotification(err.message || 'Failed to resend agreement', 'error');
+      showError(err.message || 'Failed to send agreement email');
     } finally {
       setActionLoading(false);
     }
@@ -536,7 +665,7 @@ export default function IndividualClientDetailPage() {
   };
 
   const handleProgressStage = () => {
-    const stages = ['Application', 'Consultation Booked', 'Consultation Completed', 'Pending Match', 'Matched', 'Agreement Pending', 'Active Therapy', 'Completed'];
+    const stages = ['Application & Assessment form Submitted', 'Consultation Booked', 'Consultation Completed', 'Matched with TC', 'Agreement Sent', 'Agreement Signed', 'Sessions Bookable', 'Active Therapy'];
     const currentIndex = stages.indexOf(client.stage);
     if (currentIndex === -1 || currentIndex === stages.length - 1) {
       showError('Cannot progress further');
@@ -653,10 +782,10 @@ export default function IndividualClientDetailPage() {
       const ws4 = XLSX.utils.aoa_to_sheet(packageData);
       XLSX.utils.book_append_sheet(wb, ws4, 'Package');
 
-      // Sheet 5: Matched Training Counsellor
+      // Sheet 5: Matched Trainee Counsellor
       if (client.matchedTC) {
         const tcData = [
-          ['Matched Training Counsellor'],
+          ['Matched Trainee Counsellor'],
           [],
           ['Name', client.matchedTC.name],
           ['Email', client.matchedTC.email],
@@ -720,10 +849,10 @@ export default function IndividualClientDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading client details...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--purple-primary)] mx-auto"></div>
+          <p className="mt-4 text-[var(--text-secondary)]">Loading client details...</p>
         </div>
       </div>
     );
@@ -731,10 +860,10 @@ export default function IndividualClientDetailPage() {
 
   if (error || !client) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--bg-secondary)] flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{error || 'Client not found'}</p>
+          <p className="text-[var(--text-secondary)]">{error || 'Client not found'}</p>
           <Link href="/dashboard/clients" className="mt-4 text-purple-600 hover:text-purple-700">
             Back to Clients
           </Link>
@@ -743,23 +872,7 @@ export default function IndividualClientDetailPage() {
     );
   }
 
-  // Initialize journey timeline if not present
-  if (!client.journey || client.journey.length === 0) {
-    const stages = ['Application', 'Consultation Booked', 'Consultation Completed', 'Pending Match', 'Matched', 'Agreement Pending', 'Active Therapy', 'Completed'];
-    const currentStageIndex = stages.indexOf(client.stage);
-    
-    client.journey = stages.map((stage, index) => {
-      const isCompleted = currentStageIndex !== -1 && index < currentStageIndex;
-      const isCurrent = stage === client.stage;
-      
-      return {
-        stage,
-        date: null,
-        completed: isCompleted,
-        current: isCurrent
-      };
-    });
-  }
+
 
   // Notes data - transform from client data
   // Get consultation notes from all completed consultations
@@ -790,13 +903,13 @@ export default function IndividualClientDetailPage() {
 
     switch(status) {
 
-      case 'urgent': return 'bg-red-500';
+      case 'urgent': return 'bg-red-500 text-white';
 
-      case 'stuck': return 'bg-yellow-500';
+      case 'stuck': return 'bg-yellow-500 text-white';
 
-      case 'active': return 'bg-green-500';
+      case 'active': return 'bg-[var(--success-primary)] text-white';
 
-      default: return 'bg-gray-400';
+      default: return 'bg-gray-400 text-white';
 
     }
 
@@ -808,23 +921,23 @@ export default function IndividualClientDetailPage() {
 
     switch(stage) {
 
-      case 'Application': return 'bg-blue-100 text-blue-800';
+      case 'Application & Assessment form Submitted': return 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200';
 
-      case 'Consultation Booked': return 'bg-purple-100 text-purple-800';
+      case 'Consultation Booked': return 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200';
 
-      case 'Consultation Completed': return 'bg-purple-100 text-purple-800';
+      case 'Consultation Completed': return 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200';
 
-      case 'Matched': return 'bg-green-100 text-green-800';
+      case 'Matched with TC': return 'bg-[var(--success-bg)] text-[var(--success-primary)] border border-[var(--success-border)]';
 
-      case 'Pending Match': return 'bg-yellow-100 text-yellow-800';
+      case 'Agreement Sent': return 'bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-200';
 
-      case 'Agreement Pending': return 'bg-orange-100 text-orange-800';
+      case 'Agreement Signed': return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200';
 
-      case 'Active Therapy': return 'bg-green-100 text-green-800';
+      case 'Sessions Bookable': return 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200';
 
-      case 'Completed': return 'bg-gray-100 text-gray-800';
+      case 'Active Therapy': return 'bg-[var(--success-bg)] text-[var(--success-primary)] border border-[var(--success-border)]';
 
-      default: return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
 
     }
 
@@ -838,7 +951,7 @@ export default function IndividualClientDetailPage() {
 
       case 'Completed':
 
-        return <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full flex items-center gap-1">
+        return <span className="px-2 py-1 bg-[var(--success-bg)] text-[var(--success-primary)] border border-[var(--success-border)] text-xs font-medium rounded-full flex items-center gap-1">
 
           <CheckCircle className="w-3 h-3" /> Completed
 
@@ -846,7 +959,7 @@ export default function IndividualClientDetailPage() {
 
       case 'DNA':
 
-        return <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full flex items-center gap-1">
+        return <span className="px-2 py-1 bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200 text-xs font-medium rounded-full flex items-center gap-1">
 
           <XCircle className="w-3 h-3" /> DNA
 
@@ -854,7 +967,7 @@ export default function IndividualClientDetailPage() {
 
       case 'Scheduled':
 
-        return <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full flex items-center gap-1">
+        return <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs font-medium rounded-full flex items-center gap-1">
 
           <Calendar className="w-3 h-3" /> Scheduled
 
@@ -862,7 +975,7 @@ export default function IndividualClientDetailPage() {
 
       case 'Cancelled':
 
-        return <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full flex items-center gap-1">
+        return <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-medium rounded-full flex items-center gap-1">
 
           <Clock className="w-3 h-3" /> Cancelled
 
@@ -880,7 +993,7 @@ export default function IndividualClientDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gray-50 flex">
+      <div className="min-h-screen bg-[var(--bg-secondary)] flex">
         {/* Notification Toast */}
       {notification && (
         <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 ${
@@ -938,19 +1051,19 @@ export default function IndividualClientDetailPage() {
 
         {/* Header */}
 
-        <div className="bg-white border-b border-gray-200">
+        <div className="bg-[var(--card-bg)] border-b border-[var(--border-color)]">
 
           {/* Breadcrumb */}
 
-          <div className="px-6 py-3 border-b border-gray-100">
+          <div className="px-6 py-3 border-b border-[var(--border-color)]">
 
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
 
               <Link href="/dashboard/clients" className="hover:text-purple-600">All Clients</Link>
 
               <ChevronRight className="w-4 h-4" />
 
-              <span className="text-gray-900 font-medium">{client.name}</span>
+              <span className="text-[var(--text-primary)] font-medium">{client.name}</span>
 
             </div>
 
@@ -965,26 +1078,74 @@ export default function IndividualClientDetailPage() {
             <div className="flex items-start justify-between">
 
               <div className="flex items-start gap-4">
-
-                <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold" style={{ backgroundColor: '#6f1d56' }}>
-
-                  {client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : '??'}
-
-                </div>
+                {clientPhoto ? (
+                  <PhotoUpload
+                    photoUrl={clientPhoto}
+                    entityId={client.uuid || client.id}
+                    entityType="client"
+                    onUpload={async (id, file) => {
+                      const response = await apiService.uploadClientPhoto(id, file);
+                      setClientPhoto(response.photo_url || response.photo);
+                      // Refresh client data
+                      const data = await apiService.getClientDetails(uuid);
+                      const transformedData = transformClientData(data);
+                      setClient(transformedData);
+                      return response;
+                    }}
+                    onDelete={async (id) => {
+                      await apiService.deleteClientPhoto(id);
+                      setClientPhoto(null);
+                      // Refresh client data
+                      const data = await apiService.getClientDetails(uuid);
+                      const transformedData = transformClientData(data);
+                      setClient(transformedData);
+                    }}
+                    size="medium"
+                  />
+                ) : (
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold" style={{ backgroundColor: '#6f1d56' }}>
+                      {client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : '??'}
+                    </div>
+                    <PhotoUpload
+                      photoUrl={null}
+                      entityId={client.uuid || client.id}
+                      entityType="client"
+                      onUpload={async (id, file) => {
+                        const response = await apiService.uploadClientPhoto(id, file);
+                        setClientPhoto(response.photo_url || response.photo);
+                        // Refresh client data
+                        const data = await apiService.getClientDetails(uuid);
+                        const transformedData = transformClientData(data);
+                        setClient(transformedData);
+                        return response;
+                      }}
+                      onDelete={async (id) => {
+                        await apiService.deleteClientPhoto(id);
+                        setClientPhoto(null);
+                        // Refresh client data
+                        const data = await apiService.getClientDetails(uuid);
+                        const transformedData = transformClientData(data);
+                        setClient(transformedData);
+                      }}
+                      size="medium"
+                    />
+                  </div>
+                )}
 
                 <div>
 
                   <div className="flex items-center gap-3 mb-2">
 
-                    <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
+                    <h1 className="text-2xl font-bold text-[var(--text-primary)]">{client.name}</h1>
 
                     <span className="text-gray-600">•</span>
 
-                    <span className="text-lg text-gray-600">{client.age} years old</span>
+                    <span className="text-lg text-[var(--text-secondary)]">{client.age} years old</span>
 
                     <span className="text-gray-600">•</span>
 
-                    <span className="text-sm text-gray-500">ID: {client.id}</span>
+                    <span className="text-sm text-[var(--text-tertiary)]">ID: {client.id}</span>
 
                   </div>
 
@@ -998,7 +1159,7 @@ export default function IndividualClientDetailPage() {
 
                     </span>
 
-                    <span className="text-sm text-gray-600">Last activity: 2 hours ago</span>
+                    <span className="text-sm text-[var(--text-secondary)]">Last activity: 2 hours ago</span>
 
                   </div>
 
@@ -1015,7 +1176,7 @@ export default function IndividualClientDetailPage() {
                 <button 
                   onClick={handleSendEmail}
                   disabled={actionLoading}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
 
                   <Mail className="w-4 h-4" />
 
@@ -1025,7 +1186,7 @@ export default function IndividualClientDetailPage() {
 
                 <button 
                   onClick={handleCall}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2">
+                  className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2">
 
                   <Phone className="w-4 h-4" />
 
@@ -1046,7 +1207,7 @@ export default function IndividualClientDetailPage() {
                   </button>
                 )}
 
-                <Link href={`/dashboard/clients/edit?id=${uuid}`} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2">
+                <Link href={`/dashboard/clients/edit?id=${uuid}`} className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2">
 
                   <Edit className="w-4 h-4" />
 
@@ -1085,54 +1246,54 @@ export default function IndividualClientDetailPage() {
 
             <div className="grid grid-cols-4 gap-4">
 
-              <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+              <div className="bg-[var(--purple-bg)] rounded-lg p-4 border border-[var(--purple-border)]">
 
-                <p className="text-sm text-purple-600 mb-1">Service Type</p>
+                <p className="text-sm text-[var(--purple-primary)] mb-1">Service Type</p>
 
-                <p className="text-xl font-bold text-purple-900">{client.serviceType}</p>
-
-              </div>
-
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-
-                <p className="text-sm text-blue-600 mb-1">Days in System</p>
-
-                <p className="text-xl font-bold text-blue-900">{client.daysInSystem} days</p>
+                <p className="text-xl font-bold text-[var(--purple-primary)]">{client.serviceType}</p>
 
               </div>
 
-              <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+              <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
 
-                <p className="text-sm text-green-600 mb-1">Sessions Completed</p>
+                <p className="text-sm text-blue-600 dark:text-blue-300 mb-1">Days in System</p>
 
-                <p className="text-xl font-bold text-green-900">{client.packageDetails?.sessionsCompleted || 0}/{client.packageDetails?.totalSessions || 0}</p>
+                <p className="text-xl font-bold text-blue-900 dark:text-blue-100">{client.daysInSystem} days</p>
+
+              </div>
+
+              <div className="bg-[var(--success-bg)] rounded-lg p-4 border border-[var(--success-border)]">
+
+                <p className="text-sm text-[var(--success-primary)] mb-1">Sessions Completed</p>
+
+                <p className="text-xl font-bold text-[var(--success-primary)]">{client.packageDetails?.sessionsCompleted || 0}/{client.packageDetails?.totalSessions || 0}</p>
 
               </div>
 
               {(client.satisfactionScore !== null || client.feedbackCount > 0) && (
-                <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-100">
+                <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-lg p-4 border border-yellow-100 dark:border-yellow-800">
 
-                  <p className="text-sm text-yellow-600 mb-1">Client Satisfaction</p>
+                  <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-1">Client Satisfaction</p>
 
                   <div className="flex items-center gap-2">
                     <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                    <p className="text-xl font-bold text-yellow-900">
+                    <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">
                       {client.satisfactionScore ? client.satisfactionScore.toFixed(1) : 'N/A'}
-                      {client.satisfactionScore && <span className="text-sm text-yellow-700">/5.0</span>}
+                      {client.satisfactionScore && <span className="text-sm text-yellow-700 dark:text-yellow-400">/5.0</span>}
                     </p>
                     {client.feedbackCount > 0 && (
-                      <span className="text-xs text-yellow-700">({client.feedbackCount})</span>
+                      <span className="text-xs text-yellow-700 dark:text-yellow-400">({client.feedbackCount})</span>
                     )}
                   </div>
 
                 </div>
               )}
 
-              <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
+              <div className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-4 border border-orange-100 dark:border-orange-800">
 
-                <p className="text-sm text-orange-600 mb-1">Next Session</p>
+                <p className="text-sm text-orange-600 dark:text-orange-300 mb-1">Next Session</p>
 
-                <p className="text-sm font-bold text-orange-900">28 Mar, 10:00 AM</p>
+                <p className="text-sm font-bold text-orange-900 dark:text-orange-100">28 Mar, 10:00 AM</p>
 
               </div>
 
@@ -1142,19 +1303,19 @@ export default function IndividualClientDetailPage() {
 
             {/* Journey Timeline */}
 
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
 
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Client Journey</h2>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Client Journey</h2>
 
               <div className="relative">
 
                 {/* Timeline Line */}
 
-                <div className="absolute top-6 left-0 right-0 h-0.5 bg-gray-200"></div>
+                <div className="absolute top-6 left-0 right-0 h-0.5 bg-[var(--border-color)]"></div>
 
                 <div 
 
-                  className="absolute top-6 left-0 h-0.5 bg-purple-600 transition-all duration-500"
+                  className="absolute top-6 left-0 h-0.5 bg-[var(--purple-primary)] transition-all duration-500"
 
                   style={{ 
                     width: `${client.journey && client.journey.length > 0 
@@ -1182,13 +1343,13 @@ export default function IndividualClientDetailPage() {
 
                         stage.completed 
 
-                          ? 'bg-purple-600 border-purple-600' 
+                          ? 'bg-[var(--purple-primary)] border-[var(--purple-primary)]' 
 
                           : stage.current
 
-                          ? 'bg-white border-purple-600'
+                          ? 'bg-[var(--card-bg)] border-[var(--purple-primary)]'
 
-                          : 'bg-white border-gray-300'
+                          : 'bg-[var(--card-bg)] border-[var(--border-color)]'
 
                       }`}>
 
@@ -1198,11 +1359,11 @@ export default function IndividualClientDetailPage() {
 
                         ) : stage.current ? (
 
-                          <Clock className="w-6 h-6 text-purple-600" />
+                          <Clock className="w-6 h-6 text-[var(--purple-primary)]" />
 
                         ) : (
 
-                          <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+                          <div className="w-3 h-3 rounded-full bg-[var(--text-tertiary)] opacity-30"></div>
 
                         )}
 
@@ -1216,7 +1377,7 @@ export default function IndividualClientDetailPage() {
 
                         <p className={`text-xs font-medium ${
 
-                          stage.completed || stage.current ? 'text-gray-900' : 'text-gray-500'
+                          stage.completed || stage.current ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'
 
                         }`}>
 
@@ -1226,7 +1387,7 @@ export default function IndividualClientDetailPage() {
 
                         {stage.date && (
 
-                          <p className="text-xs text-gray-500 mt-1">{stage.date}</p>
+                          <p className="text-xs text-[var(--text-tertiary)] mt-1">{stage.date}</p>
 
                         )}
 
@@ -1254,13 +1415,13 @@ export default function IndividualClientDetailPage() {
 
                 {/* Personal Information */}
 
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
 
                   <div className="flex items-center justify-between mb-4">
 
-                    <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">Personal Information</h2>
 
-                    <Link href={`/dashboard/clients/edit?id=${uuid}`} className="text-purple-600 hover:text-purple-700 text-sm font-medium flex items-center gap-1">
+                    <Link href={`/dashboard/clients/edit?id=${uuid}`} className="text-[var(--purple-primary)] hover:opacity-80 text-sm font-medium flex items-center gap-1">
 
                       <Edit className="w-4 h-4" />
 
@@ -1274,65 +1435,65 @@ export default function IndividualClientDetailPage() {
 
                     <div>
 
-                      <p className="text-sm text-gray-600 mb-1">Full Name</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Full Name</p>
 
-                      <p className="text-sm font-medium text-gray-900">{client.name}</p>
-
-                    </div>
-
-                    <div>
-
-                      <p className="text-sm text-gray-600 mb-1">Age</p>
-
-                      <p className="text-sm font-medium text-gray-900">{client.age} years old</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{client.name}</p>
 
                     </div>
 
                     <div>
 
-                      <p className="text-sm text-gray-600 mb-1">Email</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Age</p>
 
-                      <p className="text-sm font-medium text-gray-900">{client.email}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{client.age} years old</p>
 
                     </div>
 
                     <div>
 
-                      <p className="text-sm text-gray-600 mb-1">Phone</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Email</p>
 
-                      <p className="text-sm font-medium text-gray-900">{client.phone}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{client.email}</p>
+
+                    </div>
+
+                    <div>
+
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Phone</p>
+
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{client.phone}</p>
 
                     </div>
 
                     <div className="col-span-2">
 
-                      <p className="text-sm text-gray-600 mb-1">Address</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Address</p>
 
-                      <p className="text-sm font-medium text-gray-900">{client.address}, {client.postcode}</p>
-
-                    </div>
-
-                    <div>
-
-                      <p className="text-sm text-gray-600 mb-1">Gender</p>
-
-                      <p className="text-sm font-medium text-gray-900">{client.gender}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{client.address}, {client.postcode}</p>
 
                     </div>
 
                     <div>
 
-                      <p className="text-sm text-gray-600 mb-1">Ethnicity</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Gender</p>
 
-                      <p className="text-sm font-medium text-gray-900">{client.ethnicity}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{client.gender}</p>
 
                     </div>
 
                     <div>
 
-                      <p className="text-sm text-gray-600 mb-1">Sexual Orientation</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Ethnicity</p>
 
-                      <p className="text-sm font-medium text-gray-900">{client.sexualOrientation}</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{client.ethnicity}</p>
+
+                    </div>
+
+                    <div>
+
+                      <p className="text-sm text-[var(--text-secondary)] mb-1">Sexual Orientation</p>
+
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{client.sexualOrientation}</p>
 
                     </div>
 
@@ -1360,9 +1521,9 @@ export default function IndividualClientDetailPage() {
 
                 {/* Clinical Information */}
 
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
 
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Clinical Information</h2>
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Clinical Information</h2>
 
                   
 
@@ -1370,7 +1531,7 @@ export default function IndividualClientDetailPage() {
 
                     <div>
 
-                      <p className="text-sm text-gray-600 mb-2">Primary Issues / Concerns</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-2">Primary Issues / Concerns</p>
 
                       <div className="flex flex-wrap gap-2">
 
@@ -1392,9 +1553,9 @@ export default function IndividualClientDetailPage() {
 
                     <div>
 
-                      <p className="text-sm text-gray-600 mb-2">Additional Details</p>
+                      <p className="text-sm text-[var(--text-secondary)] mb-2">Additional Details</p>
 
-                      <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{client.additionalDetails}</p>
+                      <p className="text-sm text-[var(--text-primary)] bg-[var(--bg-secondary)] p-3 rounded-lg">{client.additionalDetails}</p>
 
                     </div>
 
@@ -1404,33 +1565,33 @@ export default function IndividualClientDetailPage() {
 
                       <div>
 
-                        <p className="text-sm text-gray-600 mb-2">Medication</p>
+                        <p className="text-sm text-[var(--text-secondary)] mb-2">Medication</p>
 
-                        <p className="text-sm text-gray-900">{client.medication}</p>
-
-                      </div>
-
-                      <div>
-
-                        <p className="text-sm text-gray-600 mb-2">Disabilities / Impairments</p>
-
-                        <p className="text-sm text-gray-900">{client.disabilities}</p>
+                        <p className="text-sm text-[var(--text-primary)]">{client.medication}</p>
 
                       </div>
 
                       <div>
 
-                        <p className="text-sm text-gray-600 mb-2">Risk Flags</p>
+                        <p className="text-sm text-[var(--text-secondary)] mb-2">Disabilities / Impairments</p>
 
-                        <p className="text-sm text-gray-900">{client.riskFlags}</p>
+                        <p className="text-sm text-[var(--text-primary)]">{client.disabilities}</p>
 
                       </div>
 
                       <div>
 
-                        <p className="text-sm text-gray-600 mb-2">Substance Misuse</p>
+                        <p className="text-sm text-[var(--text-secondary)] mb-2">Risk Flags</p>
 
-                        <p className="text-sm text-gray-900">{client.substanceMisuse}</p>
+                        <p className="text-sm text-[var(--text-primary)]">{client.riskFlags}</p>
+
+                      </div>
+
+                      <div>
+
+                        <p className="text-sm text-[var(--text-secondary)] mb-2">Substance Misuse</p>
+
+                        <p className="text-sm text-[var(--text-primary)]">{client.substanceMisuse}</p>
 
                       </div>
 
@@ -1453,11 +1614,11 @@ export default function IndividualClientDetailPage() {
                     {Array.isArray(client.availability) && client.availability.length > 0 ? (
                       client.availability.map(avail => (
 
-                      <div key={avail.day} className="flex items-center gap-4 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                      <div key={avail.day} className="flex items-center gap-4 p-3 bg-[var(--purple-bg)] rounded-lg border border-[var(--purple-border)]">
 
                         <div className="w-28">
 
-                          <p className="text-sm font-medium text-purple-900">{avail.day}</p>
+                          <p className="text-sm font-medium text-[var(--purple-primary)]">{avail.day}</p>
 
                         </div>
 
@@ -1465,7 +1626,7 @@ export default function IndividualClientDetailPage() {
 
                           {avail.timeBlocks.map(block => (
 
-                            <span key={block} className="px-3 py-1 bg-purple-600 text-white text-sm rounded-full">
+                            <span key={block} className="px-3 py-1 bg-[var(--purple-primary)] text-white text-sm rounded-full">
 
                               {block}
 
@@ -1488,13 +1649,13 @@ export default function IndividualClientDetailPage() {
 
 
 
-                {/* Matched Training Counsellor */}
+                {/* Matched Trainee Counsellor */}
 
                 {client.matchedTC && (
 
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
 
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Matched Training Counsellor</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Matched Trainee Counsellor</h2>
 
                     
 
@@ -1506,9 +1667,9 @@ export default function IndividualClientDetailPage() {
 
                         <div className="flex items-center gap-3">
 
-                          <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full bg-[var(--purple-bg)] flex items-center justify-center">
 
-                            <User className="w-6 h-6 text-purple-600" />
+                            <User className="w-6 h-6 text-[var(--purple-primary)]" />
 
                           </div>
 
@@ -1524,7 +1685,7 @@ export default function IndividualClientDetailPage() {
 
                         <div className="text-right">
 
-                          <p className="text-2xl font-bold text-purple-600">{client.matchedTC.matchScore}%</p>
+                          <p className="text-2xl font-bold text-[var(--purple-primary)]">{client.matchedTC.matchScore}%</p>
 
                           <p className="text-xs text-gray-600">Match Score</p>
 
@@ -1610,7 +1771,7 @@ export default function IndividualClientDetailPage() {
 
                               <div 
 
-                                className="bg-purple-600 h-2 rounded-full transition-all duration-500"
+                                className="bg-[var(--purple-primary)] h-2 rounded-full transition-all duration-500"
 
                                 style={{ width: `${value.percentage}%` }}
 
@@ -1936,94 +2097,143 @@ export default function IndividualClientDetailPage() {
 
 
 
-                {/* Agreement Status */}
-
-                {client.agreement && (
-
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Client Agreement</h2>
-
-                    
-
-                    <div className="space-y-4">
-
-                      <div className="flex items-center gap-3">
-
-                        {client.agreement.status === 'Signed' ? (
-
-                          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-
-                            <CheckCircle className="w-6 h-6 text-green-600" />
-
-                          </div>
-
-                        ) : (
-
-                          <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-
-                            <Clock className="w-6 h-6 text-yellow-600" />
-
-                          </div>
-
-                        )}
-
-                        <div>
-
-                          <p className="font-medium text-gray-900">Agreement {client.agreement.status}</p>
-
-                          <p className="text-sm text-gray-600">
-
-                            {client.agreement.status === 'Signed' 
-
-                              ? `Signed on ${client.agreement.signedDate}`
-
-                              : `Sent on ${client.agreement.sentDate}`
-
-                            }
-
-                          </p>
-
+                {/* Emergency Contact - Prominently Displayed */}
+                {client.emergencyContact && (client.emergencyContact.name || client.emergencyContact.phone) && (
+                  <div className="bg-red-50 rounded-lg border-2 border-red-200 p-6">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                        <AlertTriangle className="w-6 h-6 text-red-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h2 className="text-lg font-semibold text-red-900 mb-2">Emergency Contact</h2>
+                        <p className="text-sm text-red-700 mb-3">For duty of care and safeguarding concerns - contact immediately if needed</p>
+                        <div className="space-y-2">
+                          {client.emergencyContact.name && (
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-red-600" />
+                              <span className="text-sm font-medium text-red-900">{client.emergencyContact.name}</span>
+                              {client.emergencyContact.relationship && (
+                                <span className="text-sm text-red-700">({client.emergencyContact.relationship})</span>
+                              )}
+                            </div>
+                          )}
+                          {client.emergencyContact.phone && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-red-600" />
+                              <a 
+                                href={`tel:${client.emergencyContact.phone}`}
+                                className="text-sm font-medium text-red-900 hover:text-red-700 underline"
+                              >
+                                {client.emergencyContact.phone}
+                              </a>
+                            </div>
+                          )}
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
+                {/* Agreement Status */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Client Agreement</h2>
+                  
+                  {client.agreement ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        {client.agreement.status === 'Signed' ? (
+                          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="w-6 h-6 text-green-600" />
+                          </div>
+                        ) : client.agreement.status === 'Sent' ? (
+                          <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                            <Clock className="w-6 h-6 text-yellow-600" />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                            <FileText className="w-6 h-6 text-gray-600" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            Agreement {client.agreement.status === 'Signed' ? 'Signed' : client.agreement.status === 'Sent' ? 'Sent' : 'Not Sent'}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {client.agreement.status === 'Signed' 
+                              ? client.agreement.signedDate ? `Signed on ${client.agreement.signedDate}` : 'Signed'
+                              : client.agreement.status === 'Sent' && client.agreement.sentDate
+                              ? `Sent on ${client.agreement.sentDate}`
+                              : 'Agreement has not been sent yet'
+                            }
+                          </p>
+                        </div>
                       </div>
 
-
-
-                      <div className="flex items-center gap-3">
-
-                        <button 
-                          onClick={handleDownloadAgreement}
-                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2">
-
-                          <Download className="w-4 h-4" />
-
-                          Download Agreement
-
-                        </button>
-
-                        {client.agreement && client.agreement.status !== 'Signed' && (
-
+                      {client.agreement.status === 'Signed' && (
+                        <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                          <p className="text-sm text-green-800 font-medium mb-1">✓ Signature Verified</p>
+                          <p className="text-xs text-green-700">
+                            Agreement was signed with signature upload on {client.agreement.signedDate}
+                          </p>
+                          {client.agreement.signatureUrl && (
+                            <a
+                              href={client.agreement.signatureUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 inline-flex items-center gap-2 text-sm text-green-700 hover:text-green-900 underline"
+                            >
+                              <Download className="w-4 h-4" />
+                              View Signature
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3 mt-4">
+                        {client.agreement.status === 'Signed' && client.agreement.jotformId && (
+                          <a
+                            href={`https://form.jotform.com/231635798225060`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2"
+                          >
+                            <Download className="w-4 h-4" />
+                            View Agreement Form
+                          </a>
+                        )}
+                        {client.agreement.status !== 'Signed' && (
                           <button 
                             onClick={handleResendAgreement}
                             disabled={actionLoading}
-                            className="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-
+                            className="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
                             <Send className="w-4 h-4" />
-
-                            Resend Agreement
-
+                            {client.agreement.status === 'Not Sent' ? 'Send Agreement' : 'Resend Agreement'}
                           </button>
-
                         )}
-
                       </div>
-
                     </div>
-
-                  </div>
-
-                )}
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                          <FileText className="w-6 h-6 text-gray-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Agreement Not Sent</p>
+                          <p className="text-sm text-gray-600">Send the agreement form to the client to proceed</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={handleResendAgreement}
+                        disabled={actionLoading}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Send className="w-4 h-4" />
+                        Send Agreement
+                      </button>
+                    </div>
+                  )}
+                </div>
 
 
 
@@ -2031,7 +2241,20 @@ export default function IndividualClientDetailPage() {
 
                 <div className="bg-white rounded-lg border border-gray-200 p-6">
 
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Notes & Activity</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">Notes & Activity</h2>
+                    {activeNotesTab === 'admin' && (
+                      <button
+                        onClick={() => fetchAdminNotes()}
+                        disabled={actionLoading}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Refresh notes to see latest changes"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${actionLoading ? 'animate-spin' : ''}`} />
+                        <span>Refresh</span>
+                      </button>
+                    )}
+                  </div>
 
                   
 
@@ -2181,7 +2404,8 @@ export default function IndividualClientDetailPage() {
 
                       <>
 
-                        {adminNotes.map(note => (
+                        {adminNotes.length > 0 ? (
+                          adminNotes.map(note => (
 
                           <div key={note.id} className="border border-gray-200 rounded-lg p-4">
 
@@ -2189,9 +2413,22 @@ export default function IndividualClientDetailPage() {
 
                               <div>
 
-                                <p className="font-medium text-gray-900">{note.author}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-gray-900">{note.author}</p>
+                                  {note.authorRole && (
+                                    <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                                      {note.authorRole}
+                                    </span>
+                                  )}
+                                </div>
 
-                                <p className="text-sm text-gray-600">{note.date}</p>
+                                <p className="text-sm text-gray-600">
+                                  {note.isEdited ? `Edited: ${note.updatedDate}` : `Created: ${note.date}`}
+                                  {note.isEdited && <span className="text-gray-400 ml-1">(Created: {note.date})</span>}
+                                </p>
+                                {note.authorEmail && (
+                                  <p className="text-xs text-gray-500 mt-0.5">{note.authorEmail}</p>
+                                )}
 
                               </div>
 
@@ -2222,7 +2459,12 @@ export default function IndividualClientDetailPage() {
 
                           </div>
 
-                        ))}
+                        ))
+                        ) : (
+                          <div className="text-center py-8">
+                            <p className="text-sm text-gray-500 italic">No admin notes yet. Add your first note below.</p>
+                          </div>
+                        )}
 
                         
 
@@ -2499,7 +2741,7 @@ export default function IndividualClientDetailPage() {
       />
 
       {/* Delete Note Confirmation Modal */}
-      <ConfirmationModal
+      <DeleteConfirmationModal
         isOpen={showDeleteNoteConfirmModal}
         onClose={() => {
           setShowDeleteNoteConfirmModal(false);
@@ -2508,11 +2750,10 @@ export default function IndividualClientDetailPage() {
         onConfirm={confirmDeleteNote}
         title="Delete Note"
         message="Are you sure you want to delete this note? This action cannot be undone."
+        itemName="this note"
         confirmText="Delete Note"
         cancelText="Cancel"
-        type="danger"
         loading={actionLoading}
-        confirmButtonColor="#dc2626"
       />
 
       {/* Progress Stage Confirmation Modal */}
@@ -2533,7 +2774,7 @@ export default function IndividualClientDetailPage() {
       />
 
       {/* Delete Session Confirmation Modal */}
-      <ConfirmationModal
+      <DeleteConfirmationModal
         isOpen={showDeleteSessionConfirmModal}
         onClose={() => {
           setShowDeleteSessionConfirmModal(false);
@@ -2542,11 +2783,10 @@ export default function IndividualClientDetailPage() {
         onConfirm={confirmDeleteSession}
         title="Delete Session"
         message={`Are you sure you want to delete Session #${sessionToDelete?.sessionNumber || 'N/A'} scheduled for ${sessionToDelete?.date || 'N/A'}? This action cannot be undone.`}
+        itemName={`Session #${sessionToDelete?.sessionNumber || 'N/A'}`}
         confirmText="Delete Session"
         cancelText="Cancel"
-        type="danger"
         loading={actionLoading}
-        confirmButtonColor="#dc2626"
       />
       </div>
     </DashboardLayout>

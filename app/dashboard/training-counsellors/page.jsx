@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import apiService from '@/lib/api';
 import { formatName, getCounsellorPrefixType } from '@/lib/nameFormatter';
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardHeader from '@/components/DashboardHeader';
 
 import { 
 
@@ -284,83 +285,46 @@ export default function ViewAllTrainingCounsellorsPage() {
 
 
   const getStatusBadge = (status, clientCount) => {
-
     if (status === 'Active') {
-
       return (
-
-        <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full flex items-center gap-1 w-fit">
-
+        <span className="px-3 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 text-xs font-medium rounded-full flex items-center gap-1 w-fit">
           <CheckCircle className="w-3 h-3" /> Active ({clientCount} clients)
-
         </span>
-
       );
-
     } else if (status === 'At Capacity') {
-
       return (
-
-        <span className="px-3 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full flex items-center gap-1 w-fit">
-
+        <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-400 ring-1 ring-inset ring-orange-600/20 dark:ring-orange-500/30 text-xs font-medium rounded-full flex items-center gap-1 w-fit">
           <AlertTriangle className="w-3 h-3" /> At Capacity ({clientCount} clients)
-
         </span>
-
       );
-
     } else if (status === 'On Leave') {
-
       return (
-
-        <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full flex items-center gap-1 w-fit">
-
+        <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400 ring-1 ring-inset ring-blue-600/20 dark:ring-blue-500/30 text-xs font-medium rounded-full flex items-center gap-1 w-fit">
           <Clock className="w-3 h-3" /> On Leave
-
         </span>
-
       );
-
     }
-
     return (
-
-      <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">
-
+      <span className="px-3 py-1 bg-slate-100 dark:bg-gray-800/50 text-slate-800 dark:text-gray-400 ring-1 ring-inset ring-gray-500/10 dark:ring-gray-400/20 text-xs font-medium rounded-full">
         Inactive
-
       </span>
-
     );
-
   };
 
 
 
   const getInitialsColor = (name) => {
-
     const colors = [
-
-      'bg-purple-500',
-
-      'bg-blue-500',
-
-      'bg-green-500',
-
-      'bg-yellow-500',
-
-      'bg-red-500',
-
-      'bg-pink-500',
-
-      'bg-indigo-500'
-
+      'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30',
+      'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400 ring-1 ring-inset ring-blue-600/20 dark:ring-blue-500/30',
+      'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30',
+      'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 ring-1 ring-inset ring-yellow-600/20 dark:ring-yellow-500/30',
+      'bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-400 ring-1 ring-inset ring-orange-600/20 dark:ring-orange-500/30',
+      'bg-pink-100 dark:bg-pink-900/20 text-pink-800 dark:text-pink-400 ring-1 ring-inset ring-pink-600/20 dark:ring-pink-500/30',
+      'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-400 ring-1 ring-inset ring-indigo-600/20 dark:ring-indigo-500/30'
     ];
-
     const index = name.charCodeAt(0) % colors.length;
-
     return colors[index];
-
   };
 
 
@@ -430,131 +394,107 @@ export default function ViewAllTrainingCounsellorsPage() {
       <div className="flex flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
 
         {/* Header */}
-
-        <div className="bg-white border-b border-gray-200 flex-shrink-0">
-
-          <div className="px-6 py-4">
-
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-
-              <div>
-
-                <h1 className="text-2xl font-bold text-gray-900">Practitioners</h1>
-
-                <p className="text-sm text-gray-600 mt-1">Managing practitioners and their caseloads</p>
-
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={fetchTrainingCounsellors}
-                  disabled={loading}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2 disabled:opacity-50"
-                  title="Refresh data"
-                >
-                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                  <span className="hidden sm:inline">Refresh</span>
-                </button>
-                <Link
-
-                  href="/dashboard/training-counsellors"
-
-                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 whitespace-nowrap"
-
-                  style={{ backgroundColor: '#6f1d56' }}
-
-                >
-
-                  <Plus className="w-4 h-4" />
-
-                  <span className="hidden sm:inline">Add New TC</span>
-                  <span className="sm:hidden">Add</span>
-
-                </Link>
-              </div>
-
-            </div>
-
-
-
-            {/* Stats Cards */}
-
-            <div className="grid grid-cols-4 gap-4">
-
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-
-                <p className="text-sm text-blue-600 mb-1">Total TCs</p>
-
-                <p className="text-2xl font-bold text-blue-900">{totalTCs}</p>
-
-              </div>
-
-              <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-
-                <p className="text-sm text-green-600 mb-1">Available Now</p>
-
-                <p className="text-2xl font-bold text-green-900">{availableNow}</p>
-
-              </div>
-
-              <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
-
-                <p className="text-sm text-orange-600 mb-1">At Capacity</p>
-
-                <p className="text-2xl font-bold text-orange-900">{atCapacity}</p>
-
-              </div>
-
-              <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
-
-                <p className="text-sm text-purple-600 mb-1">On Leave</p>
-
-                <p className="text-2xl font-bold text-purple-900">{onLeave}</p>
-
-              </div>
-
-            </div>
-
+        <DashboardHeader
+          actions={
+            <>
+              <button
+                onClick={fetchTrainingCounsellors}
+                disabled={loading}
+                className="px-4 py-2 border border-border text-foreground bg-card rounded-lg hover:bg-muted font-medium flex items-center gap-2 disabled:opacity-50 transition-colors"
+                title="Refresh data"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+              <Link
+                href="/dashboard/training-counsellors"
+                className="px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg font-medium flex items-center gap-2 whitespace-nowrap transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Add New TC</span>
+                <span className="sm:hidden">Add</span>
+              </Link>
+            </>
+          }
+        >
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Practitioners</h1>
+            <p className="text-sm text-muted-foreground mt-1">Managing practitioners and their caseloads</p>
           </div>
+        </DashboardHeader>
 
+
+
+        {/* Stats Cards */}
+        <div className="bg-sidebar border-b border-sidebar-border px-6 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-card rounded-xl border border-border p-4 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400 flex items-center justify-center">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total TCs</p>
+                  <p className="text-2xl font-bold text-foreground">{totalTCs}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-card rounded-xl border border-border p-4 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Available Now</p>
+                  <p className="text-2xl font-bold text-foreground">{availableNow}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-xl border border-border p-4 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-400 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">At Capacity</p>
+                  <p className="text-2xl font-bold text-foreground">{atCapacity}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-xl border border-border p-4 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-400 flex items-center justify-center">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">On Leave</p>
+                  <p className="text-2xl font-bold text-foreground">{onLeave}</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-
-
         {/* Filters */}
-
-        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex-shrink-0">
-
+        <div className="bg-sidebar border-b border-sidebar-border px-4 sm:px-6 py-4 flex-shrink-0">
           <div className="flex flex-wrap items-center gap-2 sm:gap-4 overflow-x-hidden">
-
             <div className="flex-1 relative">
-
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <input
-
                 type="text"
-
                 value={searchTerm}
-
                 onChange={(e) => setSearchTerm(e.target.value)}
-
                 placeholder="Search by name or email..."
-
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-
+                className="w-full pl-10 pr-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
               />
-
             </div>
-
             <select
-
               value={filterStatus}
-
               onChange={(e) => setFilterStatus(e.target.value)}
-
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 min-w-[120px] flex-shrink-0"
-
+              className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[120px] flex-shrink-0"
             >
 
               <option value="all">All Status</option>
@@ -570,13 +510,9 @@ export default function ViewAllTrainingCounsellorsPage() {
             </select>
 
             <select
-
               value={filterService}
-
               onChange={(e) => setFilterService(e.target.value)}
-
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 min-w-[160px]"
-
+              className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[160px]"
             >
 
               <option value="all">All Services</option>
@@ -592,13 +528,9 @@ export default function ViewAllTrainingCounsellorsPage() {
             </select>
 
             <select
-
               value={filterModality}
-
               onChange={(e) => setFilterModality(e.target.value)}
-
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 min-w-[180px]"
-
+              className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[180px]"
             >
 
               <option value="all">All Modalities</option>
@@ -632,13 +564,9 @@ export default function ViewAllTrainingCounsellorsPage() {
             </select>
 
             <select
-
               value={filterAvailability}
-
               onChange={(e) => setFilterAvailability(e.target.value)}
-
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 min-w-[140px]"
-
+              className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[140px]"
             >
 
               <option value="all">All Availability</option>
@@ -650,13 +578,9 @@ export default function ViewAllTrainingCounsellorsPage() {
             </select>
 
             <select
-
               value={sortBy}
-
               onChange={(e) => setSortBy(e.target.value)}
-
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 min-w-[150px]"
-
+              className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[150px]"
             >
 
               <option value="availability">Sort: Availability</option>
@@ -674,25 +598,25 @@ export default function ViewAllTrainingCounsellorsPage() {
 
 
         {/* TC Cards Grid */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ minHeight: 0 }}>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-background" style={{ minHeight: 0 }}>
           {loading && trainingCounsellors.length === 0 && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-                <p className="text-gray-600">Loading practitioners...</p>
+                <RefreshCw className="w-8 h-8 text-gray-400 dark:text-[var(--text-tertiary)] animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Loading practitioners...</p>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                 <div>
-                  <p className="text-sm font-medium text-red-900">{error}</p>
+                  <p className="text-sm font-medium text-red-900 dark:text-red-200">{error}</p>
                   <button
                     onClick={fetchTrainingCounsellors}
-                    className="text-sm text-red-700 underline mt-1"
+                    className="text-sm text-red-700 dark:text-red-300 underline mt-1"
                   >
                     Try again
                   </button>
@@ -704,35 +628,27 @@ export default function ViewAllTrainingCounsellorsPage() {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {!loading && filteredTCs.length === 0 && !error && (
               <div className="col-span-2 text-center py-12">
-                <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Practitioners Found</h3>
-                <p className="text-gray-600">Try adjusting your filters or add a new training counsellor</p>
+                <Users className="w-16 h-16 text-gray-400 dark:text-[var(--text-tertiary)] mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No Practitioners Found</h3>
+                <p className="text-muted-foreground">Try adjusting your filters or add a new trainee counsellor</p>
               </div>
             )}
 
             {filteredTCs.map(tc => (
-
               <div
-
                 key={tc.id}
-
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
-
+                className="bg-card rounded-lg border border-border p-6 hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => {
-
                   setSelectedTC(tc);
-
                   setShowDetailPanel(true);
-
                 }}
-
               >
 
                 {/* Header */}
 
                 <div className="flex items-start gap-4 mb-4">
 
-                  <div className={`w-16 h-16 rounded-full ${getInitialsColor(tc.name)} flex items-center justify-center text-white text-xl font-bold flex-shrink-0`}>
+                  <div className={`w-16 h-16 rounded-full ${getInitialsColor(tc.name)} flex items-center justify-center text-xl font-bold flex-shrink-0`}>
 
                     {tc.name.split(' ').map(n => n[0]).join('')}
 
@@ -740,14 +656,13 @@ export default function ViewAllTrainingCounsellorsPage() {
 
                   <div className="flex-1 min-w-0">
 
-                    <Link href={`/dashboard/training-counsellors/details/${tc.uuid || tc.id}`} className="text-lg font-bold text-gray-900 mb-1 hover:text-purple-600 block">{formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type))}</Link>
+                    <Link href={`/dashboard/training-counsellors/details/${tc.uuid || tc.id}`} className="text-lg font-bold text-foreground mb-1 hover:text-purple-600 dark:hover:text-purple-400 block">{formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type))}</Link>
                     {tc.counsellor_type === 'Qualified' && (
-                      <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-medium rounded-full mt-1">
+                      <span className="inline-block px-2 py-0.5 bg-[var(--purple-bg)] text-[var(--purple-primary)] border border-[var(--purple-border)] text-xs font-medium rounded-full mt-1">
                         Qualified
                       </span>
                     )}
-
-                    <p className="text-sm text-gray-600 mb-2">{tc.modality} Specialist</p>
+                    <p className="text-sm text-muted-foreground mb-2">{tc.modality} Specialist</p>
 
                     {getStatusBadge(tc.status, tc.currentClients)}
 
@@ -758,145 +673,76 @@ export default function ViewAllTrainingCounsellorsPage() {
 
 
                 {/* Availability */}
-
-                <div className="mb-4 pb-4 border-b border-gray-200">
-
-                  <div className="flex items-center gap-2 text-sm text-gray-700">
-
-                    <Calendar className="w-4 h-4 text-gray-500" />
-
+                <div className="mb-4 pb-4 border-b border-border">
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
                     <span className="font-medium">Available:</span>
-
                     <span>{formatAvailability(tc.availability)}</span>
-
                   </div>
-
                 </div>
-
-
 
                 {/* Topics With Experience */}
-
                 <div className="mb-4">
-
-                  <p className="text-xs font-medium text-gray-600 mb-2">✅ Experience with:</p>
-
+                  <p className="text-xs font-medium text-muted-foreground mb-2">✅ Experience with:</p>
                   <div className="flex flex-wrap gap-2">
-
                     {tc.topicsWithExperience.slice(0, 4).map(topic => (
-
-                      <span key={topic} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-
+                      <span key={topic} className="px-2.5 py-1 bg-[var(--tag-bg-green)] text-[var(--tag-text)] text-xs font-medium rounded-full">
                         {topic}
-
                       </span>
-
                     ))}
-
                     {tc.topicsWithExperience.length > 4 && (
-
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-
+                      <span className="px-2.5 py-1 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 text-xs font-medium rounded-full shadow-sm">
                         +{tc.topicsWithExperience.length - 4} more
-
                       </span>
-
                     )}
-
                   </div>
-
                 </div>
-
-
 
                 {/* Topics NOT Ready For */}
-
-                <div className="mb-4 pb-4 border-b border-gray-200">
-
+                <div className="mb-4 pb-4 border-b border-border">
                   <button
-
                     onClick={(e) => {
-
                       e.stopPropagation();
-
                       handleOpenTopics(tc.topicsNotReadyFor, 'NOT Ready For');
-
                     }}
-
-                    className="flex items-center gap-2 text-sm hover:bg-red-50 px-2 py-1 rounded transition-colors"
-
+                    className="flex items-center gap-2 text-sm bg-[var(--warning-bg)] text-[var(--warning-primary)] hover:opacity-80 px-2 py-1 rounded transition-colors"
                   >
-
-                    <AlertTriangle className="w-4 h-4 text-red-600" />
-
-                    <span className="font-medium text-red-900">
-
+                    <AlertTriangle className="w-4 h-4 text-[var(--warning-primary)]" />
+                    <span className="font-medium text-[var(--warning-primary)]">
                       ⚠️ {tc.topicsNotReadyFor.length} topics NOT ready for
-
                     </span>
-
-                    <ChevronRight className="w-4 h-4 text-red-600" />
-
+                    <ChevronRight className="w-4 h-4 text-[var(--warning-primary)]" />
                   </button>
-
                 </div>
-
-
 
                 {/* Current Clients */}
-
                 <div className="mb-4">
-
-                  <p className="text-xs font-medium text-gray-600 mb-2">👥 Current Clients:</p>
-
+                  <p className="text-xs font-medium text-muted-foreground mb-2">👥 Current Clients:</p>
                   {tc.currentClients === 0 ? (
-
-                    <p className="text-sm text-gray-500 italic">No clients assigned</p>
-
+                    <p className="text-sm text-gray-500 dark:text-[var(--text-tertiary)] italic">No clients assigned</p>
                   ) : (
-
                     <div className="flex flex-wrap gap-2">
-
                       {tc.currentClientsList.map(client => (
-
-                        <span key={client.id} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-
+                        <span key={client.id} className="px-2.5 py-1 bg-[var(--purple-bg)] text-[var(--purple-primary)] border border-[var(--purple-border)] text-xs font-medium rounded-full">
                           {formatName(client.name, 'client')}, {client.age}
-
                         </span>
-
                       ))}
-
                     </div>
-
                   )}
-
                 </div>
 
-
-
                 {/* Actions */}
-
-                <div className="flex items-center gap-2 pt-4 border-t border-gray-200">
+                <div className="flex items-center gap-2 pt-4 border-t border-border">
 
                   <Link
-
                     href={`/dashboard/training-counsellors/details/${tc.uuid || tc.id}`}
-
                     onClick={(e) => {
-
                       e.stopPropagation();
-
                     }}
-
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm flex items-center justify-center gap-2"
-
+                    className="flex-1 px-4 py-2 border border-[var(--border-color)] text-[var(--button-secondary-text)] rounded-lg bg-[var(--button-secondary-bg)] hover:opacity-90 font-medium text-sm flex items-center justify-center gap-2 transition-colors"
                   >
-
                     <Eye className="w-4 h-4" />
-
                     View Profile
-
                   </Link>
 
                   {tc.status === 'Active' && (
@@ -913,9 +759,7 @@ export default function ViewAllTrainingCounsellorsPage() {
 
                       }}
 
-                      className="flex-1 px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm flex items-center justify-center gap-2"
-
-                      style={{ backgroundColor: '#6f1d56' }}
+                      className="flex-1 px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors"
 
                     >
 
@@ -928,23 +772,14 @@ export default function ViewAllTrainingCounsellorsPage() {
                   )}
 
                   <button
-
                     onClick={(e) => {
-
                       e.stopPropagation();
-
                       window.location.href = `mailto:${tc.email}`;
-
                     }}
-
-                    className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-
+                    className="p-2 border border-border text-foreground rounded-lg hover:bg-muted bg-card"
                     title="Send Email"
-
                   >
-
                     <Mail className="w-4 h-4" />
-
                   </button>
 
                 </div>
@@ -958,17 +793,11 @@ export default function ViewAllTrainingCounsellorsPage() {
 
 
           {filteredTCs.length === 0 && (
-
             <div className="text-center py-12">
-
-              <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Training Counsellors Found</h3>
-
-              <p className="text-gray-600">Try adjusting your filters</p>
-
+              <Users className="w-16 h-16 text-gray-400 dark:text-[var(--text-tertiary)] mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No Trainee Counsellors Found</h3>
+              <p className="text-muted-foreground">Try adjusting your filters</p>
             </div>
-
           )}
 
         </div>
@@ -986,57 +815,31 @@ export default function ViewAllTrainingCounsellorsPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowTopicsModal(false)}></div>
 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-
-            <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full">
-
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-
-                <h2 className="text-xl font-bold text-gray-900">Topics {topicsModalData.type}</h2>
-
-                <button onClick={() => setShowTopicsModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-
-                  <X className="w-5 h-5 text-gray-600" />
-
+            <div className="bg-card rounded-lg shadow-2xl max-w-2xl w-full">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h2 className="text-xl font-bold text-foreground">Topics {topicsModalData.type}</h2>
+                <button onClick={() => setShowTopicsModal(false)} className="p-2 hover:bg-muted rounded-lg">
+                  <X className="w-5 h-5 text-muted-foreground" />
                 </button>
-
               </div>
-
-
 
               <div className="p-6">
-
                 <div className="flex flex-wrap gap-2">
-
                   {topicsModalData.topics.map(topic => (
-
-                    <span key={topic} className="px-3 py-2 bg-red-100 text-red-800 text-sm font-medium rounded-lg border border-red-200">
-
+                    <span key={topic} className="px-3 py-2 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-sm font-medium rounded-lg border border-red-200 dark:border-red-800">
                       {topic}
-
                     </span>
-
                   ))}
-
                 </div>
-
               </div>
 
-
-
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
-
+              <div className="px-6 py-4 border-t border-border flex justify-end">
                 <button
-
                   onClick={() => setShowTopicsModal(false)}
-
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-
+                  className="px-6 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium bg-card"
                 >
-
                   Close
-
                 </button>
-
               </div>
 
             </div>
@@ -1058,25 +861,15 @@ export default function ViewAllTrainingCounsellorsPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowAssignModal(false)}></div>
 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-
-            <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full">
-
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-
+            <div className="bg-card rounded-lg shadow-2xl max-w-2xl w-full">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div>
-
-                  <h2 className="text-xl font-bold text-gray-900">Assign Client</h2>
-
-                  <p className="text-sm text-gray-600 mt-1">Assign a client to {formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}</p>
-
+                  <h2 className="text-xl font-bold text-foreground">Assign Client</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Assign a client to {formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}</p>
                 </div>
-
-                <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-
-                  <X className="w-5 h-5 text-gray-600" />
-
+                <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-muted rounded-lg">
+                  <X className="w-5 h-5 text-muted-foreground" />
                 </button>
-
               </div>
 
 
@@ -1084,51 +877,30 @@ export default function ViewAllTrainingCounsellorsPage() {
               <form onSubmit={handleAssignClient} className="p-6 space-y-4">
 
                 {/* TC Info */}
-
-                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                   <div className="flex items-center gap-3">
-
                     <div className={`w-12 h-12 rounded-full ${getInitialsColor(selectedTC.name)} flex items-center justify-center text-white text-lg font-bold`}>
-
                       {selectedTC.name.split(' ').map(n => n[0]).join('')}
-
                     </div>
-
                     <div>
-
-                      <p className="font-semibold text-purple-900">{formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}</p>
-
-                      <p className="text-sm text-purple-700">{selectedTC.modality} • {selectedTC.currentClients} current clients</p>
-
+                      <p className="font-semibold text-purple-900 dark:text-purple-200">{formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}</p>
+                      <p className="text-sm text-purple-700 dark:text-purple-300">{selectedTC.modality} • {selectedTC.currentClients} current clients</p>
                     </div>
-
                   </div>
-
                 </div>
 
 
 
                 {/* Select Client */}
-
                 <div>
-
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Select Client from Pending Matches <span className="text-red-500">*</span>
-
                   </label>
-
                   <select
-
                     value={assignForm.clientId}
-
                     onChange={(e) => setAssignForm({...assignForm, clientId: e.target.value})}
-
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-
+                    className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                     required
-
                   >
 
                     <option value="">Select a client...</option>
@@ -1150,103 +922,54 @@ export default function ViewAllTrainingCounsellorsPage() {
 
 
                 {/* Notes */}
-
                 <div>
-
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Assignment Notes (Optional)
-
                   </label>
-
                   <textarea
-
                     value={assignForm.notes}
-
                     onChange={(e) => setAssignForm({...assignForm, notes: e.target.value})}
-
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
-
+                    className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
                     rows={3}
-
                     placeholder="Add any notes about this assignment..."
-
                   />
-
                 </div>
-
-
 
                 {/* Send Notification */}
-
                 <div className="flex items-center gap-2">
-
                   <input
-
                     type="checkbox"
-
                     id="sendNotification"
-
                     checked={assignForm.sendNotification}
-
                     onChange={(e) => setAssignForm({...assignForm, sendNotification: e.target.checked})}
-
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded"
-
+                    className="w-4 h-4 text-purple-600 border-input rounded"
                   />
-
-                  <label htmlFor="sendNotification" className="text-sm text-gray-700">
-
+                  <label htmlFor="sendNotification" className="text-sm text-foreground">
                     Send notification emails to client and TC
-
                   </label>
-
                 </div>
-
-
 
                 {/* Info Box */}
-
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                   <div className="flex items-start gap-3">
-
-                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                     <div>
-
-                      <p className="text-sm font-medium text-green-900 mb-1">After Assignment</p>
-
-                      <p className="text-sm text-green-800">
-
+                      <p className="text-sm font-medium text-green-900 dark:text-green-200 mb-1">After Assignment</p>
+                      <p className="text-sm text-green-800 dark:text-green-300">
                         Client will move to "Agreement Pending" stage and receive an agreement form to sign before starting therapy.
-
                       </p>
-
                     </div>
-
                   </div>
-
                 </div>
 
-
-
                 {/* Actions */}
-
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                   <button
-
                     type="button"
-
                     onClick={() => setShowAssignModal(false)}
-
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-
+                    className="px-6 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium bg-card"
                   >
-
                     Cancel
-
                   </button>
 
                   <button

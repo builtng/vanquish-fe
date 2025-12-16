@@ -27,6 +27,13 @@ class TrainingCounsellor extends Model
         'topics_not_ready_for',
         'course',
         'institution',
+        'training_org_address',
+        'tutor_name',
+        'tutor_email',
+        'tutor_phone',
+        'placement_lead_name',
+        'placement_lead_email',
+        'placement_lead_phone',
         'joined_date',
         'last_activity',
         // Qualified Counsellor fields

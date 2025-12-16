@@ -29,12 +29,17 @@ export default function AcceptInductionPage() {
       setInduction(response.induction);
     } catch (err) {
       console.error('Error accepting invitation:', err);
-      if (err.response?.data?.expired) {
+      // Check for expired status from backend (using the new ApiError structure)
+      const isExpired = err.status === 400 && (err.data?.expired || err.response?.data?.expired);
+      const isNotFound = err.status === 404; // Invalid token often means expired/deleted
+      
+      if (isExpired || isNotFound) {
         setStatus('expired');
-        setMessage('This invitation has expired. Please contact the administrator.');
+        // Use backend message if available, otherwise default
+        setMessage(err.message || 'This invitation has expired or is invalid.');
       } else {
         setStatus('error');
-        setMessage(err.response?.data?.message || err.message || 'Failed to accept invitation. Please try again or contact support.');
+        setMessage(err.message || 'Failed to accept invitation. Please try again or contact support.');
       }
     } finally {
       setLoading(false);

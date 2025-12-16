@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import apiService from '@/lib/api';
+import DashboardLayout from '@/components/DashboardLayout';
 
 import { 
 
@@ -13,7 +14,7 @@ import {
 
   CheckCircle, Clock, AlertTriangle, Video, FileText,
 
-  UserCheck, Activity, Menu, Home, ClipboardList,
+  UserCheck, Activity, Home, ClipboardList,
 
   Settings, LogOut, ChevronRight, MapPin, User, 
 
@@ -28,7 +29,6 @@ import {
 export default function IndividualClientDetailPage() {
   const pathname = usePathname();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [client, setClient] = useState(null);
@@ -634,147 +634,8 @@ export default function IndividualClientDetailPage() {
 
 
   return (
-
-    <div className="min-h-screen bg-gray-50 flex">
-
-      {/* Sidebar */}
-
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white border-r border-gray-200 transition-all duration-300 flex flex-col h-screen fixed left-0 top-0 z-30`}>
-
-        <div className="p-4 border-b border-gray-200">
-
-          <div className="flex items-center justify-between">
-
-            {sidebarOpen && (
-
-              <div className="flex items-center gap-3">
-
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: '#6f1d56' }}>
-
-                  VT
-
-                </div>
-
-                <div>
-
-                  <h1 className="text-sm font-bold text-gray-900">Vanquish</h1>
-
-                  <p className="text-xs text-gray-600">Admin</p>
-
-                </div>
-
-              </div>
-
-            )}
-
-            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-lg">
-
-              <Menu className="w-5 h-5 text-gray-600" />
-
-            </button>
-
-          </div>
-
-        </div>
-
-
-
-        <nav className="flex-1 p-4 space-y-2">
-
-          {[
-
-            { id: 'overview', icon: Home, label: 'Overview', href: '/dashboard' },
-
-            { id: 'consultations', icon: Video, label: 'Consultations', badge: 3, href: '/dashboard/consultations' },
-
-            { id: 'matches', icon: UserCheck, label: 'Pending Matches', badge: 8, href: '/dashboard/pending-matches' },
-
-            { id: 'tcs', icon: Users, label: 'Practitioners', href: '/dashboard/training-counsellors' },
-            { id: 'inductions', icon: CalendarDays, label: 'Inductions', href: '/dashboard/inductions' },
-            { id: 'providers', icon: Building2, label: 'Training Providers', href: '/dashboard/training-providers' },
-            { id: 'clients', icon: ClipboardList, label: 'All Clients', href: '/dashboard/clients' },
-
-            { id: 'activity', icon: Activity, label: 'Activity Log', href: '/dashboard/activity-log' }
-
-          ].map(item => {
-
-            const isActive = pathname === item.href || (item.id === 'clients' && pathname?.startsWith('/dashboard/client'));
-
-            return (
-
-              <Link
-
-                key={item.id}
-
-                href={item.href}
-
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-
-                  isActive ? 'bg-purple-100 text-purple-900' : 'text-gray-700 hover:bg-gray-100'
-
-                }`}
-
-              >
-
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-
-                {sidebarOpen && (
-
-                  <>
-
-                    <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
-
-                    {item.badge > 0 && (
-
-                      <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{item.badge}</span>
-
-                    )}
-
-                  </>
-
-                )}
-
-              </Link>
-
-            );
-
-          })}
-
-        </nav>
-
-
-
-        <div className="p-4 border-t border-gray-200 space-y-2">
-
-          <Link
-            href="/dashboard/settings"
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-              pathname === '/dashboard/settings'
-                ? 'bg-purple-100 text-purple-900'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <Settings className="w-5 h-5 flex-shrink-0" />
-            {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
-          </Link>
-
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg">
-
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-
-            {sidebarOpen && <span className="text-sm font-medium">Logout</span>}
-
-          </button>
-
-        </div>
-
-      </div>
-
-
-
-      {/* Main Content */}
-
-      <div className={`flex-1 flex flex-col overflow-hidden ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
+    <DashboardLayout>
+      <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Header */}
 
@@ -1278,13 +1139,13 @@ export default function IndividualClientDetailPage() {
 
 
 
-                {/* Matched Training Counsellor */}
+                {/* Matched Trainee Counsellor */}
 
                 {client.matchedTC && (
 
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
 
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Matched Training Counsellor</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Matched Trainee Counsellor</h2>
 
                     
 
@@ -2199,10 +2060,7 @@ export default function IndividualClientDetailPage() {
         </div>
 
       </div>
-
-    </div>
-
+    </DashboardLayout>
   );
-
 }
 

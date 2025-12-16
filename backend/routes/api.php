@@ -17,12 +17,13 @@ use Illuminate\Support\Facades\Route;
 
 // Public routes with stricter rate limiting
 Route::middleware('throttle:5,1')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->name('login');
     Route::post('/register', [AuthController::class, 'register']);
 });
 
 // Service routes (public)
 Route::get('/services/ish-capacity', [\App\Http\Controllers\Api\ServiceController::class, 'checkIshCapacity']);
+Route::post('/coupons/verify', [\App\Http\Controllers\Api\CouponController::class, 'verify']);
 
 // Client booking routes (public - clients book without auth)
 Route::prefix('client-booking')->group(function () {
@@ -86,7 +87,7 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::delete('/clients/{client}/delete-photo', [ClientController::class, 'deletePhoto']);
     });
     
-    // Training Counsellors (staff and admin only)
+    // Trainee Counsellors (staff and admin only)
     Route::middleware('staff')->group(function () {
         Route::apiResource('training-counsellors', TrainingCounsellorController::class);
         Route::get('/training-counsellors/{tc}/details', [TrainingCounsellorController::class, 'details']);
@@ -141,6 +142,9 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::post('/services/update-capacity', [ServiceController::class, 'updateCapacity']);
         Route::post('/services/update-price', [ServiceController::class, 'updatePrice']);
         Route::get('/services/all', [ServiceController::class, 'getAllServices']);
+        
+        // Coupons
+        Route::apiResource('coupons', \App\Http\Controllers\Api\CouponController::class);
     });
     
     // User Management (admin only)

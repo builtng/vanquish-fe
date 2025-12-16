@@ -13,6 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { StripePaymentWrapper } from "@/components/StripePayment";
+import { toast } from "react-toastify";
 
 export default function VanquishClientIntake() {
   const [formData, setFormData] = useState({
@@ -78,16 +79,68 @@ export default function VanquishClientIntake() {
   const [clientId, setClientId] = useState(null);
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [ishCapacityFull, setIshCapacityFull] = useState(false);
+  const [ishCapacityData, setIshCapacityData] = useState({ message: null, alternative_url: null });
   const [completedSteps, setCompletedSteps] = useState(new Set());
+
   const [errors, setErrors] = useState({});
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [isDiscountApplied, setIsDiscountApplied] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentProps, setPaymentProps] = useState(null);
   const formContentRef = useRef(null);
 
   // Calculate consultation fee based on service type
   const getConsultationFee = () => {
+    let baseFee = 13.0;
     if (formData.serviceType === "Ish") {
-      return 25.0;
+      baseFee = 25.0;
     }
-    return 13.0;
+    return Math.max(0, baseFee - discountAmount);
+  };
+
+  const handleApplyDiscount = async () => {
+    const code = formData.discountCode?.trim().toUpperCase();
+    
+    if (!code) {
+      setDiscountAmount(0);
+      setIsDiscountApplied(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/coupons/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Invalid discount code');
+      }
+
+      const coupon = await response.json();
+      
+      // Calculate discount
+      let newDiscountAmount = 0;
+      const baseFee = getConsultationFee() + discountAmount; // Get original fee (add back current discount)
+      
+      if (coupon.type === 'fixed') {
+        newDiscountAmount = parseFloat(coupon.value);
+      } else {
+        newDiscountAmount = (baseFee * parseFloat(coupon.value)) / 100;
+      }
+
+      setDiscountAmount(newDiscountAmount);
+      setIsDiscountApplied(true);
+      
+      toast.success(`Discount code applied! You saved £${newDiscountAmount.toFixed(2)}`);
+      
+    } catch (error) {
+      toast.error(error.message || 'Invalid discount code');
+      setDiscountAmount(0);
+      setIsDiscountApplied(false);
+    }
   };
 
   // Check Ish's service capacity
@@ -102,13 +155,22 @@ export default function VanquishClientIntake() {
         .then((res) => res.json())
         .then((data) => {
           setIshCapacityFull(data.capacity_full || false);
+          setIshCapacityData({
+            message: data.message || "This service is at capacity at this time. If you would like to work with Ish, you can click here to proceed with our Partner service VQT COACHING & THERAPY",
+            alternative_url: data.alternative_url || "https://pci.jotform.com/form/243161740962456"
+          });
         })
         .catch(() => {
           // Default to available if check fails
           setIshCapacityFull(false);
+          setIshCapacityData({
+            message: "This service is at capacity at this time. If you would like to work with Ish, you can click here to proceed with our Partner service VQT COACHING & THERAPY",
+            alternative_url: "https://pci.jotform.com/form/243161740962456"
+          });
         });
     } else {
       setIshCapacityFull(false);
+      setIshCapacityData({ message: null, alternative_url: null });
     }
   }, [formData.serviceType]);
 
@@ -437,9 +499,12 @@ export default function VanquishClientIntake() {
             referral_reason: formData.referralReason || null,
             referrer_name: formData.referrerName || null,
             referrer_phone: formData.referrerPhone || null,
+
             referrer_org: formData.referrerOrg || null,
             referrer_email: formData.referrerEmail || null,
             terms_accepted: formData.termsAccepted,
+            discount_code: isDiscountApplied ? formData.discountCode : null,
+            consultation_fee: getConsultationFee(),
             create_client: true,
           }),
         }
@@ -465,7 +530,9 @@ export default function VanquishClientIntake() {
               errorMessage = `Validation errors:\n${validationErrors}`;
             } else {
               errorMessage =
-                errorData.message || errorData.error || errorMessage;
+                (errorData.message && errorData.error) 
+                  ? `${errorData.message}: ${errorData.error}` 
+                  : (errorData.message || errorData.error || errorMessage);
             }
           } else {
             const text = await response.text();
@@ -481,7 +548,8 @@ export default function VanquishClientIntake() {
 
       const data = await response.json();
 
-      // If client was created, get the client ID
+      // If client was created, get the client ID and UUID
+      let clientUuid = data.client_uuid;
       if (data.client_id) {
         setClientId(data.client_id);
       } else if (data.form && data.form.client_id) {
@@ -497,8 +565,105 @@ export default function VanquishClientIntake() {
           const clients = await clientResponse.json();
           if (clients.length > 0) {
             setClientId(clients[0].id);
+            clientUuid = clients[0].uuid;
           }
         }
+      }
+
+      // Redirect to JotForm intake form with prefilled data
+      
+      // Handle payment or redirect
+      const fee = getConsultationFee();
+      let currentClientId = data.client_id || (data.form && data.form.client_id);
+      
+      if (!currentClientId && !clientUuid) {
+         // Should have been found in block above, but just in case
+         // Retrieve from state if possible, though state updates are async
+         // Best to rely on what we just found
+      }
+      
+      // If we don't have currentClientId but we logic above found it via email
+      if (!currentClientId && formData.email) {
+          const clientResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/clients?email=${encodeURIComponent(formData.email)}`
+          );
+          if (clientResponse.ok) {
+            const clients = await clientResponse.json();
+            if (clients.length > 0) {
+              currentClientId = clients[0].id;
+              // clientUuid = clients[0].uuid; // Already set above
+            }
+          }
+      }
+      
+      const proceedToRedirect = () => {
+        // Build URL parameters for prefilling JotForm fields
+        const params = new URLSearchParams();
+        
+        // Required parameters
+        params.append('email', formData.email);
+        params.append('client_uuid', clientUuid);
+        
+        // Prefill common fields (JotForm uses q1, q2, q3, etc. or field names)
+        if (formData.firstName) {
+          params.append('q1', formData.firstName); // First Name
+          params.append('first_name', formData.firstName);
+        }
+        if (formData.lastName) {
+          params.append('q2', formData.lastName); // Last Name
+          params.append('last_name', formData.lastName);
+        }
+        if (formData.email) {
+          params.append('q3', formData.email); // Email (also as email param)
+          params.append('q4', formData.email); // Alternative email field
+        }
+        if (formData.phone) {
+          params.append('q5', formData.phone); // Phone
+          params.append('phone', formData.phone);
+        }
+        if (formData.age) {
+          params.append('q6', formData.age); // Age
+          params.append('age', formData.age);
+        }
+        if (formData.gender) {
+          params.append('q7', formData.gender); // Gender
+          params.append('gender', formData.gender);
+        }
+        if (formData.ethnicity) {
+          params.append('q8', formData.ethnicity); // Ethnicity
+          params.append('ethnicity', formData.ethnicity);
+        }
+        if (formData.sexualOrientation) {
+          params.append('q9', formData.sexualOrientation); // Sexual Orientation
+          params.append('sexual_orientation', formData.sexualOrientation);
+        }
+        if (formData.serviceType) {
+          params.append('q10', formData.serviceType); // Service Type
+          params.append('service_type', formData.serviceType);
+        }
+        
+        // Add client UUID as both parameter formats
+        params.append('uuid', clientUuid);
+        params.append('client_id', clientUuid);
+        
+        const jotformUrl = `https://form.jotform.com/231631669909062?${params.toString()}`;
+        window.location.href = jotformUrl;
+      };
+
+      if (fee > 0 && clientUuid && currentClientId) {
+        // Show payment modal
+        setPaymentProps({
+          clientId: currentClientId, // Needs the ID (integer/string ID) for backend, not UUID if backend expects ID
+          amount: fee,
+          couponCode: isDiscountApplied ? formData.discountCode : null,
+          onSuccess: proceedToRedirect,
+          onError: (err) => toast.error(`Payment failed: ${err.message || 'Please try again'}`)
+        });
+        setShowPaymentModal(true);
+      } else if (clientUuid) {
+        // Free or already paid (if logic allowed), redirect immediately
+        proceedToRedirect();
+        return;
       }
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -513,16 +678,16 @@ export default function VanquishClientIntake() {
 
       // Show error in a more user-friendly way
       if (errorMessage.includes("Validation errors:")) {
-        alert(errorMessage);
+        toast.error(errorMessage);
       } else if (
         error.message.includes("Failed to fetch") ||
         error.message.includes("NetworkError")
       ) {
-        alert(
+        toast.error(
           "Network error: Please check your internet connection and ensure the backend server is running."
         );
       } else {
-        alert(errorMessage);
+        toast.error(errorMessage);
       }
     }
   };
@@ -1068,12 +1233,10 @@ export default function VanquishClientIntake() {
                       Service at Capacity
                     </p>
                     <p className="text-sm md:text-base text-orange-800 mb-4">
-                      This service is at capacity at this time. If you would
-                      like to work with Ish, you can proceed with our Partner
-                      service VQT COACHING & THERAPY.
+                      {ishCapacityData.message || "This service is at capacity at this time. If you would like to work with Ish, you can click here to proceed with our Partner service VQT COACHING & THERAPY"}
                     </p>
                     <a
-                      href="https://pci.jotform.com/form/243161740962456"
+                      href={ishCapacityData.alternative_url || "https://pci.jotform.com/form/243161740962456"}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-block px-6 py-3 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors"
@@ -1083,87 +1246,93 @@ export default function VanquishClientIntake() {
                   </div>
                 )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Are you currently on any medication?{" "}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="onMedication"
-                    id="onMedication"
-                    value={formData.onMedication}
-                    onChange={(e) =>
-                      handleInputChange("onMedication", e.target.value)
-                    }
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
-                      errors.onMedication ? "border-red-500" : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Please select</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
-                  {errors.onMedication && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.onMedication}
-                    </p>
-                  )}
                 </div>
 
-                {formData.onMedication === "Yes" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Please mention your medication and what it is prescribed
-                      for <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      name="medicationDetails"
-                      id="medicationDetails"
-                      value={formData.medicationDetails}
-                      onChange={(e) =>
-                        handleInputChange("medicationDetails", e.target.value)
-                      }
-                      rows="3"
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.medicationDetails
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
-                      placeholder="E.g., Sertraline 50mg for anxiety and depression"
-                    />
-                    {errors.medicationDetails && (
-                      <p className="text-red-500 text-xs mt-1">
-                        {errors.medicationDetails}
-                      </p>
+                {!(formData.serviceType === "Ish" && ishCapacityFull) && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Are you currently on any medication?{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="onMedication"
+                        id="onMedication"
+                        value={formData.onMedication}
+                        onChange={(e) =>
+                          handleInputChange("onMedication", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.onMedication ? "border-red-500" : "border-gray-300"
+                        }`}
+                      >
+                        <option value="">Please select</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      {errors.onMedication && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.onMedication}
+                        </p>
+                      )}
+                    </div>
+
+                    {formData.onMedication === "Yes" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Please mention your medication and what it is prescribed
+                          for <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          name="medicationDetails"
+                          id="medicationDetails"
+                          value={formData.medicationDetails}
+                          onChange={(e) =>
+                            handleInputChange("medicationDetails", e.target.value)
+                          }
+                          rows="3"
+                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
+                            errors.medicationDetails
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          placeholder="E.g., Sertraline 50mg for anxiety and depression"
+                        />
+                        {errors.medicationDetails && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors.medicationDetails}
+                          </p>
+                        )}
+                      </div>
                     )}
-                  </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Do you have any disabilities/impairments? If so, please
+                        specify <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        name="disabilities"
+                        id="disabilities"
+                        value={formData.disabilities}
+                        onChange={(e) =>
+                          handleInputChange("disabilities", e.target.value)
+                        }
+                        rows="3"
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.disabilities ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="Please describe any disabilities or impairments, or enter 'N/A' if none"
+                      />
+                      {errors.disabilities && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.disabilities}
+                        </p>
+                      )}
+                    </div>
+                  </>
                 )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Do you have any disabilities/impairments? If so, please
-                    specify <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    name="disabilities"
-                    id="disabilities"
-                    value={formData.disabilities}
-                    onChange={(e) =>
-                      handleInputChange("disabilities", e.target.value)
-                    }
-                    rows="3"
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
-                      errors.disabilities ? "border-red-500" : "border-gray-300"
-                    }`}
-                    placeholder="Please describe any disabilities or impairments, or enter 'N/A' if none"
-                  />
-                  {errors.disabilities && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.disabilities}
-                    </p>
-                  )}
-                </div>
-              </div>
             </div>
           )}
 
@@ -1710,6 +1879,50 @@ export default function VanquishClientIntake() {
                 </p>
               </div>
 
+               {/* Discount Code Section */}
+               <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Have a discount code?
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.discountCode || ''}
+                    onChange={(e) => handleInputChange('discountCode', e.target.value)}
+                    placeholder="Enter code"
+                    disabled={isDiscountApplied}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+                  />
+                  {!isDiscountApplied ? (
+                    <button
+                      type="button"
+                      onClick={handleApplyDiscount}
+                      className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 font-medium transition-colors"
+                    >
+                      Apply
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDiscountAmount(0);
+                        setIsDiscountApplied(false);
+                        handleInputChange('discountCode', '');
+                      }}
+                      className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 font-medium transition-colors border border-red-200"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {isDiscountApplied && (
+                  <p className="text-green-600 text-sm mt-2 flex items-center gap-1">
+                    <CheckCircle className="w-4 h-4" />
+                    Code applied successfully! You saved £{discountAmount.toFixed(2)}
+                  </p>
+                )}
+              </div>
+
               {!clientId ? (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <p className="text-sm text-yellow-800">
@@ -1795,6 +2008,7 @@ export default function VanquishClientIntake() {
           )}
 
           {/* Navigation Buttons */}
+          {!(formData.serviceType === "Ish" && ishCapacityFull) && (
           <div className="flex items-center justify-between mt-8 md:mt-10 pt-6 border-t border-gray-200">
             <button
               type="button"
@@ -1846,8 +2060,59 @@ export default function VanquishClientIntake() {
               </button>
             ) : null}
           </div>
+          )}
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && paymentProps && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden my-8">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Secure Payment</h3>
+                <p className="text-sm text-gray-600">Consultation Fee</p>
+              </div>
+              <button 
+                onClick={() => setShowPaymentModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                title="Cancel payment"
+              >
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                  <span className="text-xl font-bold">&times;</span>
+                </div>
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-6 bg-purple-50 rounded-xl p-4 border border-purple-100 flex justify-between items-center">
+                <span className="text-purple-900 font-medium">Total to Pay</span>
+                <span className="text-2xl font-bold text-purple-900">
+                  £{paymentProps.amount.toFixed(2)}
+                </span>
+              </div>
+              
+              {paymentProps.couponCode && (
+                 <div className="mb-6 bg-green-50 rounded-lg p-3 border border-green-100 text-green-800 text-sm flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Coupon <strong>{paymentProps.couponCode}</strong> applied
+                 </div>
+              )}
+
+              <StripePaymentWrapper 
+                clientId={paymentProps.clientId}
+                amount={paymentProps.amount}
+                couponCode={paymentProps.couponCode}
+                onSuccess={() => {
+                  paymentProps.onSuccess();
+                  setShowPaymentModal(false);
+                }}
+                onError={paymentProps.onError}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

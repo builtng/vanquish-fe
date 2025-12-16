@@ -188,7 +188,7 @@ class TrainingCounsellorSeeder extends Seeder
             );
         }
 
-        $this->command->info('Training Counsellors seeded successfully!');
+        $this->command->info('Trainee Counsellors seeded successfully!');
     }
 }
 

@@ -53,26 +53,32 @@ class TrainingCounsellorController extends Controller
                 }
                 
                 // Add intake form fields to TC object for easier access
-                $tc->training_org_name = $trainingProviderDetails['training_org_name'] ?? $intakeForm->institution ?? null;
-                $tc->training_org_address = $trainingProviderDetails['training_org_address'] ?? null;
-                $tc->course_title = $trainingProviderDetails['course_title'] ?? $intakeForm->course ?? null;
-                $tc->tutor_name = $trainingProviderDetails['tutor_name'] ?? null;
-                $tc->tutor_email = $trainingProviderDetails['tutor_email'] ?? null;
-                $tc->tutor_phone = $trainingProviderDetails['tutor_phone'] ?? null;
-                $tc->placement_lead_name = $trainingProviderDetails['placement_lead_name'] ?? null;
-                $tc->placement_lead_email = $trainingProviderDetails['placement_lead_email'] ?? null;
-                $tc->placement_lead_phone = $trainingProviderDetails['placement_lead_phone'] ?? null;
+                // Add intake form fields to TC object for easier access (prioritize DB columns if set)
+                $tc->training_org_name = $tc->institution ?? $trainingProviderDetails['training_org_name'] ?? $intakeForm->institution ?? null;
+                $tc->training_org_address = $tc->training_org_address ?? $trainingProviderDetails['training_org_address'] ?? null;
+                $tc->course_title = $tc->course ?? $trainingProviderDetails['course_title'] ?? $intakeForm->course ?? null;
+                $tc->tutor_name = $tc->tutor_name ?? $trainingProviderDetails['tutor_name'] ?? null;
+                $tc->tutor_email = $tc->tutor_email ?? $trainingProviderDetails['tutor_email'] ?? null;
+                $tc->tutor_phone = $tc->tutor_phone ?? $trainingProviderDetails['tutor_phone'] ?? null;
+                $tc->placement_lead_name = $tc->placement_lead_name ?? $trainingProviderDetails['placement_lead_name'] ?? null;
+                $tc->placement_lead_email = $tc->placement_lead_email ?? $trainingProviderDetails['placement_lead_email'] ?? null;
+                $tc->placement_lead_phone = $tc->placement_lead_phone ?? $trainingProviderDetails['placement_lead_phone'] ?? null;
             } else {
                 // Fallback to TC fields if no intake form
                 $tc->training_org_name = $tc->institution ?? null;
-                $tc->training_org_address = null;
+                $tc->training_org_address = $tc->training_org_address ?? null;
                 $tc->course_title = $tc->course ?? null;
-                $tc->tutor_name = null;
-                $tc->tutor_email = null;
-                $tc->tutor_phone = null;
-                $tc->placement_lead_name = null;
-                $tc->placement_lead_email = null;
-                $tc->placement_lead_phone = null;
+                // These are now on the model, so we don't need to manually set them to null if they are already null on the model, 
+                // but we should ensure they are accessible via these keys if the frontend expects them.
+                // Since they are columns, they are already on $tc. But let's be explicit if needed or just leave them.
+                // The frontend might expect snake_case properties that match the column names, which match what we added.
+                // But let's keep the assignments to be safe and consistent with the transformation above.
+                // Actually, since they are columns, $tc->tutor_name ALREADY accesses the column.
+                // The code below was forcing them to null when no intake form existed. 
+                // Now that we have columns, we should RESPECT the columns.
+                // So we don't need to do anything here really, except maybe map institution -> training_org_name alias if needed.
+                $tc->training_org_name = $tc->institution ?? null; // Alias
+                $tc->course_title = $tc->course ?? null; // Alias
             }
             return $tc;
         });
@@ -106,7 +112,7 @@ class TrainingCounsellorController extends Controller
             'action' => 'tc_created',
             'model_type' => TrainingCounsellor::class,
             'model_id' => $tc->id,
-            'description' => "Training Counsellor {$tc->name} created",
+            'description' => "Trainee Counsellor {$tc->name} created",
             'ip_address' => $request->ip(),
         ]);
 
@@ -137,7 +143,17 @@ class TrainingCounsellorController extends Controller
             'counsellor_type' => 'sometimes|in:Trainee,Qualified',
             'availability' => 'nullable|array',
             'topics_with_experience' => 'nullable|array',
+            'topics_with_experience' => 'nullable|array',
             'topics_not_ready_for' => 'nullable|array',
+            'course' => 'nullable|string',
+            'institution' => 'nullable|string',
+            'training_org_address' => 'nullable|string',
+            'tutor_name' => 'nullable|string',
+            'tutor_email' => 'nullable|string|email',
+            'tutor_phone' => 'nullable|string',
+            'placement_lead_name' => 'nullable|string',
+            'placement_lead_email' => 'nullable|string|email',
+            'placement_lead_phone' => 'nullable|string',
         ]);
 
         // Check if transitioning from Trainee to Qualified
@@ -147,9 +163,9 @@ class TrainingCounsellorController extends Controller
         $tc->update($validated);
         $tc->update(['last_activity' => now()]);
 
-        $description = "Training Counsellor {$tc->name} updated";
+        $description = "Trainee Counsellor {$tc->name} updated";
         if ($wasTrainee && $becomingQualified) {
-            $description = "Training Counsellor {$tc->name} transitioned to Qualified Counsellor";
+            $description = "Trainee Counsellor {$tc->name} transitioned to Qualified Counsellor";
         }
 
         ActivityLog::create([
@@ -170,7 +186,7 @@ class TrainingCounsellorController extends Controller
         $tc = TrainingCounsellor::where('uuid', $id)->orWhere('tc_id', $id)->firstOrFail();
         $tc->delete();
 
-        return response()->json(['message' => 'Training Counsellor deleted successfully']);
+        return response()->json(['message' => 'Trainee Counsellor deleted successfully']);
     }
 
     /**
@@ -215,6 +231,44 @@ class TrainingCounsellorController extends Controller
                 'intakeForm'
             ])
             ->firstOrFail();
+
+        // Extract training provider details from intake form (same logic as index method)
+        if ($tc->intakeForm && $tc->intakeForm->count() > 0) {
+            $intakeForm = $tc->intakeForm->first();
+            
+            // Try to extract training provider details from additional_info JSON
+            $trainingProviderDetails = [];
+            if ($intakeForm->additional_info) {
+                try {
+                    $decoded = json_decode($intakeForm->additional_info, true);
+                    if (is_array($decoded)) {
+                        $trainingProviderDetails = $decoded;
+                    }
+                } catch (\Exception $e) {
+                    // If not JSON, ignore
+                }
+            }
+            
+            // Add intake form fields to TC object
+            // Add intake form fields to TC object (prioritize DB columns if set)
+            $tc->training_org_name = $tc->institution ?? $trainingProviderDetails['training_org_name'] ?? $intakeForm->institution ?? $tc->institution ?? null;
+            $tc->training_org_address = $tc->training_org_address ?? $trainingProviderDetails['training_org_address'] ?? null;
+            $tc->course_title = $tc->course ?? $trainingProviderDetails['course_title'] ?? $intakeForm->course ?? $tc->course ?? null;
+            $tc->tutor_name = $tc->tutor_name ?? $trainingProviderDetails['tutor_name'] ?? null;
+            $tc->tutor_email = $tc->tutor_email ?? $trainingProviderDetails['tutor_email'] ?? null;
+            $tc->tutor_phone = $tc->tutor_phone ?? $trainingProviderDetails['tutor_phone'] ?? null;
+            $tc->placement_lead_name = $tc->placement_lead_name ?? $trainingProviderDetails['placement_lead_name'] ?? null;
+            $tc->placement_lead_email = $tc->placement_lead_email ?? $trainingProviderDetails['placement_lead_email'] ?? null;
+            $tc->placement_lead_phone = $tc->placement_lead_phone ?? $trainingProviderDetails['placement_lead_phone'] ?? null;
+        } else {
+            // Fallback to TC fields if no intake form
+            $tc->training_org_name = $tc->institution ?? null;
+            $tc->training_org_address = $tc->training_org_address ?? null;
+            $tc->course_title = $tc->course ?? null;
+            // Columns are already on $tc, no need to set to null explicitly unless we want to ensure null if empty string?
+            // Existing code was forcing null because columns didn't exist.
+            // Now we just set the aliases.
+        }
 
         // Format documents from file path columns
         $documents = [];
@@ -344,7 +398,7 @@ class TrainingCounsellorController extends Controller
             'action' => 'tc_transitioned_to_qualified',
             'model_type' => TrainingCounsellor::class,
             'model_id' => $tc->id,
-            'description' => "Training Counsellor {$tc->name} transitioned to Qualified Counsellor",
+            'description' => "Trainee Counsellor {$tc->name} transitioned to Qualified Counsellor",
             'ip_address' => $request->ip(),
         ]);
 
@@ -505,7 +559,7 @@ class TrainingCounsellorController extends Controller
         // Check if email exists
         if (!$tc->email) {
             return response()->json([
-                'message' => 'Training counsellor does not have an email address',
+                'message' => 'Trainee counsellor does not have an email address',
             ], 400);
         }
 
@@ -546,7 +600,7 @@ class TrainingCounsellorController extends Controller
         // Check if email exists
         if (!$tc->email) {
             return response()->json([
-                'message' => 'Training counsellor does not have an email address',
+                'message' => 'Trainee counsellor does not have an email address',
             ], 400);
         }
 
@@ -640,7 +694,7 @@ class TrainingCounsellorController extends Controller
             'action' => 'tc_photo_uploaded',
             'model_type' => TrainingCounsellor::class,
             'model_id' => $tc->id,
-            'description' => "Photo uploaded for training counsellor {$tc->name}",
+            'description' => "Photo uploaded for trainee counsellor {$tc->name}",
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
@@ -686,7 +740,7 @@ class TrainingCounsellorController extends Controller
             'action' => 'tc_photo_deleted',
             'model_type' => TrainingCounsellor::class,
             'model_id' => $tc->id,
-            'description' => "Photo deleted for training counsellor {$tc->name}",
+            'description' => "Photo deleted for trainee counsellor {$tc->name}",
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);

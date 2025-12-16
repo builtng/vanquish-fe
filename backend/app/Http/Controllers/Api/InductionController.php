@@ -125,7 +125,13 @@ class InductionController extends Controller
      */
     public function acceptInvitation(Request $request, $token)
     {
-        $attendee = InductionAttendee::where('acceptance_token', $token)->firstOrFail();
+        try {
+            $attendee = InductionAttendee::where('acceptance_token', $token)->firstOrFail();
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Invalid or expired invitation token.',
+            ], 404);
+        }
 
         if (!$attendee->canAccept()) {
             return response()->json([

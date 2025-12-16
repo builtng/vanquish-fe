@@ -9,7 +9,12 @@ import {
 } from '@stripe/react-stripe-js';
 import { CreditCard, Lock, AlertCircle, CheckCircle } from 'lucide-react';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+const STRIPE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = STRIPE_KEY ? loadStripe(STRIPE_KEY) : null;
+
+if (!STRIPE_KEY) {
+  console.error("Critical Error: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not defined in environment variables. Payment system will not function.");
+}
 
 export function StripePaymentForm({ clientId, amount, onSuccess, onError }) {
   const stripe = useStripe();
@@ -153,7 +158,7 @@ export function StripePaymentForm({ clientId, amount, onSuccess, onError }) {
   );
 }
 
-export function StripePaymentWrapper({ clientId, amount, onSuccess, onError }) {
+export function StripePaymentWrapper({ clientId, amount, couponCode, onSuccess, onError }) {
   const [clientSecret, setClientSecret] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -170,6 +175,7 @@ export function StripePaymentWrapper({ clientId, amount, onSuccess, onError }) {
             client_id: clientId,
             amount: amount,
             currency: 'gbp',
+            coupon_code: couponCode,
           }),
         });
 
@@ -248,6 +254,19 @@ export function StripePaymentWrapper({ clientId, amount, onSuccess, onError }) {
       },
     },
   };
+
+  if (!stripePromise) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <AlertCircle className="w-10 h-10 text-red-600 mx-auto mb-3" />
+        <h3 className="text-lg font-bold text-red-900 mb-2">Configuration Error</h3>
+        <p className="text-red-700 font-medium">Payment system is not configured.</p>
+        <p className="text-sm text-red-600 mt-2">
+          Error: <code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code> is missing.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <Elements stripe={stripePromise} options={options}>

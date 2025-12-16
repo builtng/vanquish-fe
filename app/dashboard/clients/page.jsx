@@ -8,6 +8,7 @@ import { useToast } from '@/contexts/ToastContext';
 import SearchableSelect from '@/components/SearchableSelect';
 import { formatName } from '@/lib/nameFormatter';
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardHeader from '@/components/DashboardHeader';
 import { 
   Users, Search, Filter, ChevronDown, MoreVertical, Eye,
   Mail, Phone, Calendar, Edit, Trash2, ArrowUpDown, X,
@@ -68,7 +69,7 @@ export default function ViewAllClients() {
         age: client.age || null,
         email: client.email || '',
         phone: client.phone || '',
-        stage: client.stage || 'Application',
+        stage: client.stage || 'Application & Assessment form Submitted',
         matchedTC: client.matched_tc ? (client.matched_tc.name || client.matched_tc.full_name) : null,
         matchedTcId: client.matched_tc_id,
         serviceType: client.service_type || null,
@@ -125,15 +126,15 @@ export default function ViewAllClients() {
 
   const getStageBadgeColor = (stage) => {
     switch(stage) {
-      case 'Application': return 'bg-blue-100 text-blue-800';
-      case 'Consultation Booked': return 'bg-purple-100 text-purple-800';
-      case 'Consultation Completed': return 'bg-purple-100 text-purple-800';
-      case 'Matched': return 'bg-green-100 text-green-800';
-      case 'Pending Match': return 'bg-yellow-100 text-yellow-800';
-      case 'Agreement Pending': return 'bg-orange-100 text-orange-800';
-      case 'Active Therapy': return 'bg-green-100 text-green-800';
-      case 'Completed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Application & Assessment form Submitted': return 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200';
+      case 'Consultation Booked': return 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200';
+      case 'Consultation Completed': return 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200';
+      case 'Matched with TC': return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200';
+      case 'Agreement Sent': return 'bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-200';
+      case 'Agreement Signed': return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200';
+      case 'Sessions Bookable': return 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200';
+      case 'Active Therapy': return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200';
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
     }
   };
 
@@ -156,14 +157,14 @@ export default function ViewAllClients() {
   const paginatedClients = filteredClients.slice(startIndex, startIndex + itemsPerPage);
 
   const ClientDetailPanel = ({ client, onClose }) => (
-    <div className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl z-50 overflow-y-auto">
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+    <div className="fixed inset-y-0 right-0 w-[500px] bg-white dark:bg-[var(--card-bg)] shadow-2xl z-50 overflow-y-auto">
+      <div className="sticky top-0 bg-white dark:bg-[var(--card-bg)] border-b border-gray-200 dark:border-[var(--card-border)] p-6 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{formatName(client.name, 'client')}</h2>
-          <p className="text-sm text-gray-600">{client.email}</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{formatName(client.name, 'client')}</h2>
+          <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">{client.email}</p>
         </div>
-        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-          <X className="w-6 h-6 text-gray-600" />
+        <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors">
+          <X className="w-6 h-6 text-gray-600 dark:text-[var(--text-secondary)]" />
         </button>
       </div>
 
@@ -178,13 +179,13 @@ export default function ViewAllClients() {
 
         {/* Quick Info */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-purple-50 rounded-lg p-4">
-            <p className="text-sm text-purple-600 mb-1">Age</p>
-            <p className="text-2xl font-bold text-purple-900">{client.age}</p>
+          <div className="bg-purple-50 dark:bg-purple-900/10 rounded-lg p-4">
+            <p className="text-sm text-purple-600 dark:text-purple-300 mb-1">Age</p>
+            <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{client.age}</p>
           </div>
-          <div className="bg-blue-50 rounded-lg p-4">
-            <p className="text-sm text-blue-600 mb-1">Service Type</p>
-            <p className="text-sm font-bold text-blue-900">{client.serviceType}</p>
+          <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4">
+            <p className="text-sm text-blue-600 dark:text-blue-300 mb-1">Service Type</p>
+            <p className="text-sm font-bold text-blue-900 dark:text-blue-100">{client.serviceType}</p>
           </div>
         </div>
 
@@ -215,7 +216,7 @@ export default function ViewAllClients() {
           <h3 className="text-lg font-semibold text-gray-900 mb-3">Primary Issues</h3>
           <div className="flex flex-wrap gap-2">
             {client.primaryIssues.map(issue => (
-              <span key={issue} className="px-3 py-1 bg-red-100 text-red-800 text-sm rounded-full">
+              <span key={issue} className="px-3 py-1 bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200 text-sm rounded-full">
                 {issue}
               </span>
             ))}
@@ -225,14 +226,14 @@ export default function ViewAllClients() {
         {/* Matched TC */}
         {client.matchedTC && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Matched Training Counsellor</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Matched Trainee Counsellor</h3>
             <div className="border border-gray-200 rounded-lg p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
                 <User className="w-5 h-5 text-purple-600" />
               </div>
               <div>
                 <p className="font-medium text-gray-900">{formatName(client.matchedTC, 'tc')}</p>
-                <p className="text-sm text-gray-600">Training Counsellor</p>
+                <p className="text-sm text-gray-600">Trainee Counsellor</p>
               </div>
             </div>
           </div>
@@ -241,14 +242,14 @@ export default function ViewAllClients() {
         {/* Satisfaction Score */}
         {(client.satisfactionScore !== null || client.feedbackCount > 0) && (
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">Client Satisfaction</h3>
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-3">Client Satisfaction</h3>
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
               <div className="flex items-center gap-3 mb-2">
                 <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
                     {client.satisfactionScore ? client.satisfactionScore.toFixed(1) : 'N/A'}
-                    {client.satisfactionScore && <span className="text-sm text-gray-600">/5.0</span>}
+                    {client.satisfactionScore && <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">/5.0</span>}
                   </p>
                   <p className="text-xs text-gray-600">{client.feedbackCount} feedback{client.feedbackCount !== 1 ? 's' : ''} received</p>
                 </div>
@@ -324,34 +325,33 @@ export default function ViewAllClients() {
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">All Clients</h1>
-                <p className="text-sm text-gray-600 mt-1">{filteredClients.length} clients total</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={fetchClients}
-                  disabled={loading}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2 disabled:opacity-50"
-                  title="Refresh data"
-                >
-                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
-                <Link href="/dashboard/clients/edit" className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2" style={{ backgroundColor: '#6f1d56' }}>
-                  <Users className="w-4 h-4" />
-                  Add New Client
-                </Link>
-              </div>
-            </div>
+        <DashboardHeader
+          actions={
+            <>
+              <button
+                onClick={fetchClients}
+                disabled={loading}
+                className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-700 dark:text-[var(--text-primary)] bg-white dark:bg-[var(--card-bg)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 transition-colors"
+                title="Refresh data"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <Link href="/dashboard/clients/edit" className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 transition-opacity" style={{ backgroundColor: '#6f1d56' }}>
+                <Users className="w-4 h-4" />
+                Add New Client
+              </Link>
+            </>
+          }
+        >
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">All Clients</h1>
+            <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">{filteredClients.length} clients total</p>
           </div>
-        </div>
+        </DashboardHeader>
 
         {/* Filters */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -360,7 +360,7 @@ export default function ViewAllClients() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by name or email..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
               />
             </div>
             <div className="min-w-[120px] flex-shrink-0">
@@ -369,10 +369,13 @@ export default function ViewAllClients() {
                 onChange={(e) => setFilterStage(e.target.value)}
                 options={[
                   { value: 'all', label: 'All Stages' },
-                  { value: 'Application', label: 'Application' },
+                  { value: 'Application & Assessment form Submitted', label: 'Application & Assessment form Submitted' },
                   { value: 'Consultation Booked', label: 'Consultation Booked' },
-                  { value: 'Pending Match', label: 'Pending Match' },
-                  { value: 'Agreement Pending', label: 'Agreement Pending' },
+                  { value: 'Consultation Completed', label: 'Consultation Completed' },
+                  { value: 'Matched with TC', label: 'Matched with TC' },
+                  { value: 'Agreement Sent', label: 'Agreement Sent' },
+                  { value: 'Agreement Signed', label: 'Agreement Signed' },
+                  { value: 'Sessions Bookable', label: 'Sessions Bookable' },
                   { value: 'Active Therapy', label: 'Active Therapy' }
                 ]}
                 placeholder="All Stages"
@@ -422,25 +425,25 @@ export default function ViewAllClients() {
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto bg-gray-50 dark:bg-[var(--background)]">
           {loading && allClients.length === 0 && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-                <p className="text-gray-600">Loading clients...</p>
+                <RefreshCw className="w-8 h-8 text-gray-400 dark:text-[var(--text-tertiary)] animate-spin mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-[var(--text-secondary)]">Loading clients...</p>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 m-6">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 m-6">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                 <div>
-                  <p className="text-sm font-medium text-red-900">{error}</p>
+                  <p className="text-sm font-medium text-red-900 dark:text-red-200">{error}</p>
                   <button
                     onClick={fetchClients}
-                    className="text-sm text-red-700 underline mt-1"
+                    className="text-sm text-red-700 dark:text-red-300 underline mt-1"
                   >
                     Try again
                   </button>
@@ -451,55 +454,55 @@ export default function ViewAllClients() {
 
           {!loading && !error && (
             <table className="w-full">
-              <thead className="bg-gray-50 sticky top-0">
+              <thead className="bg-gray-50 dark:bg-[var(--card-bg)] sticky top-0">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
                     Client
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
                     Stage
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
                     Matched TC
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
                     Service
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
                     Satisfaction
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
                     Last Activity
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-[var(--background)] divide-y divide-gray-200 dark:divide-[var(--card-border)]">
                 {paginatedClients.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="px-6 py-12 text-center">
-                      <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No Clients Found</h3>
-                      <p className="text-gray-600">Try adjusting your filters or add a new client</p>
+                      <Users className="w-16 h-16 text-gray-400 dark:text-[var(--text-tertiary)] mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-2">No Clients Found</h3>
+                      <p className="text-gray-600 dark:text-[var(--text-secondary)]">Try adjusting your filters or add a new client</p>
                     </td>
                   </tr>
                 ) : (
                   paginatedClients.map(client => (
-                <tr key={client.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={client.id} className="hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className={`w-3 h-3 rounded-full ${getStatusColor(client.status)}`}></div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <Link href={`/dashboard/client-details/${client.uuid || client.id}`} className="font-medium text-gray-900 hover:text-purple-600">
+                      <Link href={`/dashboard/client-details/${client.uuid || client.id}`} className="font-medium text-gray-900 dark:text-[var(--text-primary)] hover:text-purple-600 dark:hover:text-purple-400">
                         {client.name}
                       </Link>
-                      <p className="text-sm text-gray-600">{client.age} years old</p>
+                      <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">{client.age} years old</p>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -509,29 +512,29 @@ export default function ViewAllClients() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {client.matchedTC ? (
-                      <span className="text-sm text-gray-900">{formatName(client.matchedTC, 'tc')}</span>
+                      <span className="text-sm text-gray-900 dark:text-[var(--text-primary)]">{formatName(client.matchedTC, 'tc')}</span>
                     ) : (
-                      <span className="text-sm text-gray-400 italic">Not assigned</span>
+                      <span className="text-sm text-gray-400 dark:text-[var(--text-tertiary)] italic">Not assigned</span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900">{client.serviceType}</span>
+                    <span className="text-sm text-gray-900 dark:text-[var(--text-primary)]">{client.serviceType}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {client.satisfactionScore !== null ? (
                       <div className="flex items-center gap-2">
                         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                        <span className="text-sm font-semibold text-gray-900">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-[var(--text-primary)]">
                           {client.satisfactionScore.toFixed(1)}
                         </span>
-                        <span className="text-xs text-gray-500">({client.feedbackCount})</span>
+                        <span className="text-xs text-gray-500 dark:text-[var(--text-tertiary)]">({client.feedbackCount})</span>
                       </div>
                     ) : (
-                      <span className="text-sm text-gray-400 italic">No feedback</span>
+                      <span className="text-sm text-gray-400 dark:text-[var(--text-tertiary)] italic">No feedback</span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-600">{client.lastActivity}</span>
+                    <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">{client.lastActivity}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
@@ -542,9 +545,16 @@ export default function ViewAllClients() {
                       >
                         <Eye className="w-4 h-4 text-purple-600" />
                       </Link>
-                      <button className="p-2 hover:bg-blue-100 rounded-lg transition-colors" title="Send Email">
+                      {/* <button className="p-2 hover:bg-blue-100 rounded-lg transition-colors" title="Send Email">
                         <Mail className="w-4 h-4 text-blue-600" />
-                      </button>
+                      </button> */}
+                      <Link
+                        href={`/dashboard/clients/edit?id=${client.uuid || client.id}`}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Edit Client"
+                      >
+                        <Edit className="w-4 h-4 text-gray-600" />
+                      </Link>
                       {(client.stage === 'Active Therapy' || client.stage === 'Completed') && (
                         <button 
                           onClick={async () => {
@@ -563,9 +573,9 @@ export default function ViewAllClients() {
                           <Send className="w-4 h-4 text-green-600" />
                         </button>
                       )}
-                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="More">
+                      {/* <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="More">
                         <MoreVertical className="w-4 h-4 text-gray-600" />
-                      </button>
+                      </button> */}
                     </div>
                   </td>
                 </tr>
@@ -577,10 +587,10 @@ export default function ViewAllClients() {
         </div>
 
         {/* Pagination */}
-        <div className="bg-white border-t border-gray-200 px-6 py-4">
+        <div className="bg-white dark:bg-[var(--sidebar-bg)] border-t border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-gray-700 dark:text-[var(--text-secondary)]">
                 Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredClients.length)} of {filteredClients.length} clients
               </span>
               <SearchableSelect
@@ -602,17 +612,17 @@ export default function ViewAllClients() {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
               </button>
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-gray-700 dark:text-[var(--text-secondary)]">
                 Page {currentPage} of {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next
               </button>

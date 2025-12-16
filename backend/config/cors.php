@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
-    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,https://vanquish0.vercel.app,http://vanquish.gen6ixx.com,https://vanquish.gen6ixx.com')),
+    'allowed_origins' => explode(',', env('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,https://vanquish0.vercel.app,http://vanquish.gen6ixx.com,https://vanquish.gen6ixx.com,http://localhost:3001,http://127.0.0.1:3001')),
 
     'allowed_origins_patterns' => [],
 

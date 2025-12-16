@@ -61,7 +61,7 @@ class ActivityLogSeeder extends Seeder
                 'action' => 'tc_created',
                 'model_type' => TrainingCounsellor::class,
                 'model_id' => $sarah->id ?? 1,
-                'description' => 'Training Counsellor Sarah Johnson created',
+                'description' => 'Trainee Counsellor Sarah Johnson created',
                 'ip_address' => '127.0.0.1',
                 'created_at' => Carbon::parse('2024-08-15 09:00'),
             ],

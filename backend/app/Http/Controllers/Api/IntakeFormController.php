@@ -92,19 +92,62 @@ class IntakeFormController extends Controller
             
             // Optionally create client from intake form
             if ($request->has('create_client') && $request->create_client) {
-                $client = Client::create([
-                    'client_id' => 'CL' . str_pad(Client::count() + 1, 3, '0', STR_PAD_LEFT),
-                    'name' => "{$validated['first_name']} {$validated['last_name']}",
-                    'email' => $validated['email'],
-                    'phone' => $validated['phone'] ?? null,
-                    'age' => $validated['age'] ?? null,
-                    'gender' => $validated['gender'] ?? null,
-                    'service_type' => $validated['service_type'] ?? null,
-                    'primary_issues' => $validated['support_areas'] ?? [],
-                    'availability' => $validated['availability'] ?? [],
-                    'submitted_date' => now(),
-                    'stage' => 'Application & Assessment form Submitted',
-                ]);
+                // Check if client with email already exists
+                $client = Client::withTrashed()->where('email', $validated['email'])->first();
+
+                if ($client) {
+                    if ($client->trashed()) {
+                        $client->restore();
+                    }
+                    
+                    // Update existing client details
+                    $client->update([
+                        'name' => "{$validated['first_name']} {$validated['last_name']}",
+                        'phone' => $validated['phone'] ?? $client->phone,
+                        'age' => $validated['age'] ?? $client->age,
+                        'gender' => $validated['gender'] ?? $client->gender,
+                        'service_type' => $validated['service_type'] ?? $client->service_type,
+                        'primary_issues' => $validated['support_areas'] ?? $client->primary_issues ?? [],
+                        'availability' => $validated['availability'] ?? $client->availability ?? [],
+                        'submitted_date' => now(),
+                        'stage' => 'Application & Assessment form Submitted',
+                    ]);
+                } else {
+                    // Generate a unique client_id safely
+                    $latestClient = Client::withTrashed()
+                        ->where('client_id', 'LIKE', 'CL%')
+                        ->orderBy('id', 'desc')
+                        ->first();
+
+                    $nextNum = 1;
+                    if ($latestClient && preg_match('/^CL(\d+)$/', $latestClient->client_id, $matches)) {
+                        $nextNum = intval($matches[1]) + 1;
+                    } else {
+                        $nextNum = Client::withTrashed()->count() + 1;
+                    }
+
+                    $newClientId = 'CL' . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
+
+                    // Ensure uniqueness
+                    while (Client::withTrashed()->where('client_id', $newClientId)->exists()) {
+                        $nextNum++;
+                        $newClientId = 'CL' . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
+                    }
+
+                    $client = Client::create([
+                        'client_id' => $newClientId,
+                        'name' => "{$validated['first_name']} {$validated['last_name']}",
+                        'email' => $validated['email'],
+                        'phone' => $validated['phone'] ?? null,
+                        'age' => $validated['age'] ?? null,
+                        'gender' => $validated['gender'] ?? null,
+                        'service_type' => $validated['service_type'] ?? null,
+                        'primary_issues' => $validated['support_areas'] ?? [],
+                        'availability' => $validated['availability'] ?? [],
+                        'submitted_date' => now(),
+                        'stage' => 'Application & Assessment form Submitted',
+                    ]);
+                }
 
                 $form->update(['client_id' => $client->id]);
                 $clientId = $client->id;
@@ -129,6 +172,7 @@ class IntakeFormController extends Controller
                 'client_uuid' => $clientUuid,
             ], 201);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Intake Form Error: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Failed to create intake form',
                 'error' => $e->getMessage(),
@@ -276,21 +320,63 @@ class IntakeFormController extends Controller
 
             // Optionally create TC from intake form
             if ($request->has('create_tc') && $request->create_tc) {
-                $tc = TrainingCounsellor::create([
-                    'tc_id' => 'TC' . str_pad(TrainingCounsellor::count() + 1, 3, '0', STR_PAD_LEFT),
-                    'name' => $validated['name'],
-                    'email' => $validated['email'],
-                    'phone' => $validated['phone'] ?? null,
-                    'modality' => $validated['modality'] ?? null,
-                    'course' => $validated['course'] ?? null,
-                    'institution' => $validated['institution'] ?? null,
-                    'topics_with_experience' => $validated['topics_with_experience'] ?? [],
-                    'topics_not_ready_for' => $validated['topics_not_ready_for'] ?? [],
-                    'availability' => $validated['availability'] ?? [],
-                    'joined_date' => now(),
-                    'last_activity' => now(),
-                    'status' => 'Active',
-                ]);
+                // Check if TC with email already exists
+                $tc = TrainingCounsellor::withTrashed()->where('email', $validated['email'])->first();
+
+                if ($tc) {
+                    if ($tc->trashed()) {
+                        $tc->restore();
+                    }
+                    
+                    $tc->update([
+                        'name' => $validated['name'],
+                        'phone' => $validated['phone'] ?? $tc->phone,
+                        'modality' => $validated['modality'] ?? $tc->modality,
+                        'course' => $validated['course'] ?? $validated['course_title'] ?? $tc->course,
+                        'institution' => $validated['institution'] ?? $validated['training_org_name'] ?? $tc->institution,
+                        'topics_with_experience' => $validated['topics_with_experience'] ?? $tc->topics_with_experience ?? [],
+                        'topics_not_ready_for' => $validated['topics_not_ready_for'] ?? $tc->topics_not_ready_for ?? [],
+                        'availability' => $validated['availability'] ?? $tc->availability ?? [],
+                        'last_activity' => now(),
+                    ]);
+                } else {
+                    // Generate unique TC ID safely
+                    $latestTc = TrainingCounsellor::withTrashed()
+                        ->where('tc_id', 'LIKE', 'TC%')
+                        ->orderBy('id', 'desc')
+                        ->first();
+
+                    $nextNum = 1;
+                    if ($latestTc && preg_match('/^TC(\d+)$/', $latestTc->tc_id, $matches)) {
+                        $nextNum = intval($matches[1]) + 1;
+                    } else {
+                        $nextNum = TrainingCounsellor::withTrashed()->count() + 1;
+                    }
+
+                    $newTcId = 'TC' . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
+
+                    // Ensure uniqueness
+                    while (TrainingCounsellor::withTrashed()->where('tc_id', $newTcId)->exists()) {
+                        $nextNum++;
+                        $newTcId = 'TC' . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
+                    }
+
+                    $tc = TrainingCounsellor::create([
+                        'tc_id' => $newTcId,
+                        'name' => $validated['name'],
+                        'email' => $validated['email'],
+                        'phone' => $validated['phone'] ?? null,
+                        'modality' => $validated['modality'] ?? null,
+                        'course' => $validated['course'] ?? $validated['course_title'] ?? null,
+                        'institution' => $validated['institution'] ?? $validated['training_org_name'] ?? null,
+                        'topics_with_experience' => $validated['topics_with_experience'] ?? [],
+                        'topics_not_ready_for' => $validated['topics_not_ready_for'] ?? [],
+                        'availability' => $validated['availability'] ?? [],
+                        'joined_date' => now(),
+                        'last_activity' => now(),
+                        'status' => 'Active',
+                    ]);
+                }
 
                 $form->update(['tc_id' => $tc->id]);
             }

@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import apiService from '@/lib/api';
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardHeader from '@/components/DashboardHeader';
 import {
   Users,
   Video,
@@ -26,6 +27,10 @@ import {
   X,
   Eye,
   EyeOff,
+  AlertCircle,
+  ToggleLeft,
+  ToggleRight,
+  Calendar,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -110,37 +115,35 @@ export default function SettingsPage() {
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-6 py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-              <p className="text-sm text-gray-600 mt-1">Manage your account settings and preferences</p>
-            </div>
+        <DashboardHeader>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">Settings</h1>
+            <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">Manage your account settings and preferences</p>
           </div>
-        </div>
+        </DashboardHeader>
 
         {/* Settings Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-[var(--background)]">
           <div className="space-y-6">
             {/* Profile Settings */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
               <div className="flex items-center gap-3 mb-6">
                 <User className="w-5 h-5 text-purple-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Profile Settings</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)]">Profile Settings</h2>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-2">Full Name</label>
                   <input
                     type="text"
                     value={profile.name}
                     onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="Enter your full name"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-2">Email Address</label>
                   <input
                     type="email"
                     value={profile.email}
@@ -233,8 +236,29 @@ export default function SettingsPage() {
               </div>
             </div> */}
 
+            {/* Service & Booking Settings - Admin Only */}
+            {authUser && authUser.role === 'admin' && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Building2 className="w-5 h-5 text-purple-600" />
+                    <h2 className="text-lg font-semibold text-gray-900">Service Capacity Settings</h2>
+                  </div>
+                  <ServiceSettingsSection />
+                </div>
+
+                <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Calendar className="w-5 h-5 text-purple-600" />
+                    <h2 className="text-lg font-semibold text-gray-900">Booking System Settings</h2>
+                  </div>
+                  <BookingSettingsSection />
+                </div>
+              </div>
+            )}
+
             {/* Security Settings */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
               <div className="flex items-center gap-3 mb-6">
                 <Shield className="w-5 h-5 text-purple-600" />
                 <h2 className="text-lg font-semibold text-gray-900">Security</h2>
@@ -279,7 +303,7 @@ export default function SettingsPage() {
         <>
           <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowPasswordModal(false)}></div>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-md w-full">
               <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">Change Password</h2>
                 <button onClick={() => setShowPasswordModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -444,8 +468,8 @@ export default function SettingsPage() {
             setBackupCodes([]);
           }}></div>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between sticky top-0 bg-white dark:bg-[var(--card-bg)]">
                 <h2 className="text-xl font-bold text-gray-900">Two-Factor Authentication</h2>
                 <button onClick={async () => {
                   // Refresh user data before closing to ensure we have latest 2FA status
@@ -765,3 +789,213 @@ export default function SettingsPage() {
   );
 }
 
+// Service Settings Component
+function ServiceSettingsSection() {
+  const { success, error: showError } = useToast();
+  const [ishCapacity, setIshCapacity] = useState({
+    capacity_full: false,
+    capacity_message: '',
+    alternative_url: '',
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    loadIshCapacity();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadIshCapacity = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.checkIshCapacity();
+      setIshCapacity({
+        capacity_full: data.capacity_full || false,
+        capacity_message: data.message || '',
+        alternative_url: data.alternative_url || '',
+      });
+    } catch (err) {
+      showError('Failed to load service settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveIshCapacity = async () => {
+    try {
+      setSaving(true);
+      await apiService.updateServiceCapacity({
+        service_name: 'Ish',
+        capacity_full: ishCapacity.capacity_full,
+        capacity_message: ishCapacity.capacity_message || null,
+        alternative_url: ishCapacity.alternative_url || null,
+      });
+      success('Ish service capacity updated successfully!');
+    } catch (err) {
+      showError(err.message || 'Failed to update service capacity');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+        <p className="text-sm text-gray-600 mt-2">Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Ish Service Capacity */}
+      <div className="border border-gray-200 dark:border-[var(--card-border)] rounded-lg p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-[var(--text-primary)]">Ish's Service Capacity</h3>
+            <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">
+              Toggle capacity status and customize the message shown to clients
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={ishCapacity.capacity_full}
+              onChange={(e) => setIshCapacity({ ...ishCapacity, capacity_full: e.target.checked })}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+          </label>
+        </div>
+
+        {ishCapacity.capacity_full && (
+          <div className="space-y-3 mt-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-2">
+                Capacity Message
+              </label>
+              <textarea
+                value={ishCapacity.capacity_message}
+                onChange={(e) => setIshCapacity({ ...ishCapacity, capacity_message: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                rows={3}
+                placeholder="This service is at capacity at this time. If you would like to work with Ish, you can proceed with our Partner service VQT COACHING & THERAPY."
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-2">
+                Alternative Service URL
+              </label>
+              <input
+                type="url"
+                value={ishCapacity.alternative_url}
+                onChange={(e) => setIshCapacity({ ...ishCapacity, alternative_url: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="https://pci.jotform.com/form/243161740962456"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={handleSaveIshCapacity}
+            disabled={saving}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+          >
+            <Save className="w-4 h-4" />
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Booking Settings Component
+function BookingSettingsSection() {
+  const { success, error: showError } = useToast();
+  const [bookingUrl, setBookingUrl] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setLoading(true);
+      const services = await apiService.getAllServices();
+      const bookingService = services.find(s => s.service_name === 'TrafftBooking');
+      if (bookingService) {
+        setBookingUrl(bookingService.alternative_url || '');
+      }
+    } catch (err) {
+      console.error('Failed to load booking settings:', err);
+      // Don't show error to user as it might just be empty initially
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await apiService.updateServiceCapacity({
+        service_name: 'TrafftBooking',
+        capacity_full: false, // Default
+        alternative_url: bookingUrl,
+      });
+      success('Booking settings updated successfully!');
+    } catch (err) {
+      showError(err.message || 'Failed to update booking settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="text-center py-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+        <p className="text-sm text-gray-600 mt-2">Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="border border-gray-200 dark:border-[var(--card-border)] rounded-lg p-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-2">
+            Global Booking System URL
+          </label>
+          <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mb-2">
+            This URL will be used for general client bookings (e.g., Trafft booking page).
+          </p>
+          <input
+            type="url"
+            value={bookingUrl}
+            onChange={(e) => setBookingUrl(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="https://vanquishtherapiesvqt.trafft.com/booking?service=4"
+          />
+        </div>
+
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+          >
+            <Save className="w-4 h-4" />
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

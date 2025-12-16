@@ -2,344 +2,130 @@
 
 import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import {
-  CheckCircle,
-  Clock,
-  AlertTriangle,
-  Calendar,
-  XCircle,
-  Ban,
-  UserCheck,
-  FileText,
-  Video,
-  Users,
-  Activity,
-  CreditCard
+import DashboardHeader from '@/components/DashboardHeader';
+import { 
+  FileText, Video, UserCheck, CheckCircle, Clock, AlertTriangle, 
+  CreditCard, Activity, Mail, Sparkles, BookOpen, Palette
 } from 'lucide-react';
 
 export default function ColorGuidePage() {
+  const colors = [
+    { name: 'Emerald', label: 'Success / Completed', classes: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30' },
+    { name: 'Blue', label: 'Primary / Created', classes: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30' },
+    { name: 'Teal', label: 'Matched', classes: 'bg-teal-100 text-teal-800 dark:bg-teal-500/20 dark:text-teal-300 border border-teal-200 dark:border-teal-500/30' },
+    { name: 'Amber', label: 'Status Change / Review', classes: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30' },
+    { name: 'Violet', label: 'Consultation', classes: 'bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-300 border border-violet-200 dark:border-violet-500/30' },
+    { name: 'Indigo', label: 'Documents', classes: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30' },
+    { name: 'Slate', label: 'Notes / System', classes: 'bg-slate-100 text-slate-800 dark:bg-slate-500/20 dark:text-slate-300 border border-slate-200 dark:border-slate-500/30' },
+    { name: 'Sky', label: 'Communication', classes: 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300 border border-sky-200 dark:border-sky-500/30' },
+    { name: 'Rose', label: 'Danger / Deletion', classes: 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30' },
+    { name: 'Purple', label: 'Transition / Admin', classes: 'bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30' },
+  ];
+
   return (
     <DashboardLayout>
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">Color Indicator Guide</h1>
-          <p className="text-sm text-gray-600 mt-1">Understanding color codes and indicators throughout the system</p>
-        </div>
-      </div>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <DashboardHeader>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground">System Color Guide</h1>
+          </div>
+          <p className="text-sm text-muted-foreground">Reference for the new unified color system (Activity Log & Badges)</p>
+        </DashboardHeader>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="space-y-8">
-          
-          {/* Client Status Indicators */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Client Status Indicators
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-4 h-4 rounded-full bg-red-500"></div>
+        <div className="flex-1 overflow-y-auto p-6 bg-background">
+          <div className="space-y-8">
+            
+            {/* New Main Color Palette */}
+            <section className="bg-card rounded-xl border border-border p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-400 flex items-center justify-center">
+                  <Palette className="w-5 h-5" />
+                </div>
                 <div>
-                  <p className="font-medium text-gray-900">Red Dot - Urgent</p>
-                  <p className="text-sm text-gray-600">Client requires immediate attention or has urgent status</p>
+                  <h2 className="text-lg font-bold text-foreground">Unified Color System</h2>
+                  <p className="text-sm text-muted-foreground">Light Mode: bg-*-100 | Dark Mode: bg-*-500/20 + border</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="w-4 h-4 rounded-full bg-yellow-500"></div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {colors.map((color) => (
+                  <div key={color.name} className="flex items-center justify-between p-4 rounded-lg border border-border bg-card shadow-sm">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{color.name}</p>
+                      <p className="text-xs text-muted-foreground">{color.label}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${color.classes}`}>
+                      Badge Preview
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Client Stage Badges - Updated */}
+            <section className="bg-card rounded-xl border border-border p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400 flex items-center justify-center">
+                  <FileText className="w-5 h-5" />
+                </div>
                 <div>
-                  <p className="font-medium text-gray-900">Yellow Dot - Stuck</p>
-                  <p className="text-sm text-gray-600">Client is stuck in current stage and needs review</p>
+                  <h2 className="text-lg font-bold text-foreground">Client Stages (Applied)</h2>
+                  <p className="text-sm text-muted-foreground">Using the new unified colors</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                <div>
-                  <p className="font-medium text-gray-900">Green Dot - Active</p>
-                  <p className="text-sm text-gray-600">Client is actively progressing through the system</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted">
+                    <span className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 text-xs font-medium rounded-full">
+                      Application
+                    </span>
+                    <span className="text-sm text-muted-foreground">Initial State (Blue)</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted">
+                    <span className="px-3 py-1 bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-300 border border-violet-200 dark:border-violet-500/30 text-xs font-medium rounded-full">
+                      Consultation Booked
+                    </span>
+                    <span className="text-sm text-muted-foreground">Consultation (Violet)</span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted">
+                    <span className="px-3 py-1 bg-teal-100 text-teal-800 dark:bg-teal-500/20 dark:text-teal-300 border border-teal-200 dark:border-teal-500/30 text-xs font-medium rounded-full">
+                      Matched
+                    </span>
+                    <span className="text-sm text-muted-foreground">Matched (Teal)</span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted">
+                    <span className="px-3 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 text-xs font-medium rounded-full">
+                      Active Therapy
+                    </span>
+                    <span className="text-sm text-muted-foreground">Success/Active (Emerald)</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted">
+                    <span className="px-3 py-1 bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 text-xs font-medium rounded-full">
+                      Prioritised
+                    </span>
+                    <span className="text-sm text-muted-foreground">Review Needed (Amber)</span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted">
+                    <span className="px-3 py-1 bg-slate-100 text-slate-800 dark:bg-slate-500/20 dark:text-slate-300 border border-slate-200 dark:border-slate-500/30 text-xs font-medium rounded-full">
+                      Completed
+                    </span>
+                    <span className="text-sm text-muted-foreground">Inactive (Slate)</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="w-4 h-4 rounded-full bg-gray-400"></div>
-                <div>
-                  <p className="font-medium text-gray-900">Gray Dot - Default</p>
-                  <p className="text-sm text-gray-600">Standard status or no special status assigned</p>
-                </div>
-              </div>
-            </div>
-          </div>
+            </section>
 
-          {/* Client Stage Badges */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Client Stage Badges
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">Application</span>
-                <p className="text-sm text-gray-600">Initial application submitted</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-purple-100 text-purple-800 text-sm font-medium rounded-full">Consultation Booked</span>
-                <p className="text-sm text-gray-600">Consultation scheduled</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-purple-100 text-purple-800 text-sm font-medium rounded-full">Consultation Completed</span>
-                <p className="text-sm text-gray-600">Consultation finished</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">Pending Match</span>
-                <p className="text-sm text-gray-600">Awaiting practitioner assignment</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Matched</span>
-                <p className="text-sm text-gray-600">Client matched with practitioner</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-orange-100 text-orange-800 text-sm font-medium rounded-full">Agreement Pending</span>
-                <p className="text-sm text-gray-600">Waiting for agreement signature</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Active Therapy</span>
-                <p className="text-sm text-gray-600">Currently in active therapy sessions</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-medium rounded-full">Completed</span>
-                <p className="text-sm text-gray-600">Therapy completed</p>
-              </div>
-            </div>
           </div>
-
-          {/* Consultation Status Badges */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Video className="w-5 h-5" />
-              Consultation Status Badges
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> Booked
-                </span>
-                <p className="text-sm text-gray-600">Consultation scheduled</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" /> Completed
-                </span>
-                <p className="text-sm text-gray-600">Consultation finished</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full flex items-center gap-1">
-                  <XCircle className="w-3 h-3" /> No Show
-                </span>
-                <p className="text-sm text-gray-600">Client did not attend</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-medium rounded-full flex items-center gap-1">
-                  <Ban className="w-3 h-3" /> Cancelled
-                </span>
-                <p className="text-sm text-gray-600">Consultation cancelled</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Session Status Badges */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Session Status Badges
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" /> Completed
-                </span>
-                <p className="text-sm text-gray-600">Session completed successfully</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> Scheduled
-                </span>
-                <p className="text-sm text-gray-600">Session scheduled</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full flex items-center gap-1">
-                  <XCircle className="w-3 h-3" /> DNA
-                </span>
-                <p className="text-sm text-gray-600">Did Not Attend - client missed session</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-medium rounded-full flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Cancelled
-                </span>
-                <p className="text-sm text-gray-600">Session cancelled</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment Status Badges */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              Payment Status Badges
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Paid</span>
-                <p className="text-sm text-gray-600">Payment received and confirmed</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">Pending</span>
-                <p className="text-sm text-gray-600">Payment pending or awaiting confirmation</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-purple-100 text-purple-800 text-sm font-medium rounded-full">Waived</span>
-                <p className="text-sm text-gray-600">Payment waived or not required</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Urgency Indicators */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
-              Urgency Indicators
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">HIGH</div>
-                <div>
-                  <p className="font-medium text-gray-900">High Urgency</p>
-                  <p className="text-sm text-gray-600">Requires immediate attention - clients waiting, risk flags, or urgent consultations</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">MEDIUM</div>
-                <div>
-                  <p className="font-medium text-gray-900">Medium Urgency</p>
-                  <p className="text-sm text-gray-600">Needs attention soon but not critical</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">LOW</div>
-                <div>
-                  <p className="font-medium text-gray-900">Low Urgency</p>
-                  <p className="text-sm text-gray-600">Standard priority, no immediate action required</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Activity Log Colors */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5" />
-              Activity Log Color Codes
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Client Assigned</span>
-                <p className="text-sm text-gray-600">Client assigned to practitioner</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Client TC Matched</span>
-                <p className="text-sm text-gray-600">Client matched with training counsellor</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Consultation Completed</span>
-                <p className="text-sm text-gray-600">Consultation finished</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Agreement Signed</span>
-                <p className="text-sm text-gray-600">Agreement document signed</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">Session Completed</span>
-                <p className="text-sm text-gray-600">Therapy session completed</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">Client Created</span>
-                <p className="text-sm text-gray-600">New client added to system</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">TC Created</span>
-                <p className="text-sm text-gray-600">New training counsellor added</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-purple-100 text-purple-800 text-sm font-medium rounded-full">Consultation Booked</span>
-                <p className="text-sm text-gray-600">Consultation scheduled</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">Status Changed</span>
-                <p className="text-sm text-gray-600">Client or consultation status updated</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-indigo-100 text-indigo-800 text-sm font-medium rounded-full">Document Uploaded</span>
-                <p className="text-sm text-gray-600">Document added to client file</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-cyan-100 text-cyan-800 text-sm font-medium rounded-full">Email Sent</span>
-                <p className="text-sm text-gray-600">Email notification sent</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-medium rounded-full">Note Added</span>
-                <p className="text-sm text-gray-600">Note or comment added</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">Risk Flag</span>
-                <p className="text-sm text-gray-600">Risk flag identified or updated</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar Badge Colors */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <UserCheck className="w-5 h-5" />
-              Sidebar Badge Colors
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">5</span>
-                <div>
-                  <p className="font-medium text-gray-900">Red Badge</p>
-                  <p className="text-sm text-gray-600">Shows count of items requiring attention (e.g., upcoming consultations, pending matches)</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="px-2 py-0.5 bg-gray-300 text-gray-600 text-xs rounded-full">0</span>
-                <div>
-                  <p className="font-medium text-gray-900">Gray Badge</p>
-                  <p className="text-sm text-gray-600">Shows zero count when there are no items</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Priority Colors */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5" />
-              Priority Colors (Dashboard Alerts)
-            </h2>
-            <div className="space-y-4">
-              <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg">
-                <p className="font-medium text-red-900 mb-1">High Priority (Red)</p>
-                <p className="text-sm text-red-800">Critical items requiring immediate attention - consultations today, risk flags, urgent clients</p>
-              </div>
-              <div className="p-4 bg-orange-50 border-2 border-orange-200 rounded-lg">
-                <p className="font-medium text-orange-900 mb-1">Medium Priority (Orange)</p>
-                <p className="text-sm text-orange-800">Items that need attention soon - clients stuck in stages, pending reviews</p>
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
     </DashboardLayout>
   );
 }
-

@@ -9,6 +9,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import { formatName } from '@/lib/nameFormatter';
 import SearchableSelect from '@/components/SearchableSelect';
 import DashboardLayout from '@/components/DashboardLayout';
+import DashboardHeader from '@/components/DashboardHeader';
 
 import { 
 
@@ -541,29 +542,29 @@ export default function ConsultationsManagementPageFixed() {
 
     return (
 
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
 
         <div className="flex items-center justify-between mb-6">
 
-          <h3 className="text-xl font-bold text-gray-900">November 2025</h3>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">November 2025</h3>
 
           <div className="flex items-center gap-2">
 
-            <button className="p-2 hover:bg-gray-100 rounded-lg">
+            <button className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors">
 
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
 
             </button>
 
-            <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+            <button className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] text-sm font-medium transition-colors">
 
               Today
 
             </button>
 
-            <button className="p-2 hover:bg-gray-100 rounded-lg">
+            <button className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors">
 
-              <ChevronRight className="w-5 h-5 text-gray-600" />
+              <ChevronRight className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
 
             </button>
 
@@ -611,15 +612,15 @@ export default function ConsultationsManagementPageFixed() {
 
                 key={day}
 
-                className={`aspect-square border rounded-lg p-2 hover:bg-gray-50 transition-colors ${
+                className={`aspect-square border rounded-lg p-2 hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors ${
 
-                  isToday ? 'border-purple-600 bg-purple-50' : 'border-gray-200'
+                  isToday ? 'border-purple-600 dark:border-purple-400 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-[var(--card-border)]'
 
                 }`}
 
               >
 
-                <div className={`text-sm font-medium mb-1 ${isToday ? 'text-purple-900' : 'text-gray-900'}`}>
+                <div className={`text-sm font-medium mb-1 ${isToday ? 'text-purple-900 dark:text-purple-100' : 'text-gray-900 dark:text-[var(--text-primary)]'}`}>
 
                   {day}
 
@@ -669,29 +670,29 @@ export default function ConsultationsManagementPageFixed() {
 
 
 
-        <div className="flex items-center gap-6 mt-6 pt-6 border-t border-gray-200">
+        <div className="flex items-center gap-6 mt-6 pt-6 border-t border-gray-200 dark:border-[var(--card-border)]">
 
           <div className="flex items-center gap-2">
 
-            <div className="w-4 h-4 rounded bg-blue-100"></div>
+            <div className="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30"></div>
 
-            <span className="text-sm text-gray-700">Booked</span>
+            <span className="text-sm text-gray-700 dark:text-[var(--text-primary)]">Booked</span>
 
           </div>
 
           <div className="flex items-center gap-2">
 
-            <div className="w-4 h-4 rounded bg-green-100"></div>
+            <div className="w-4 h-4 rounded bg-green-100 dark:bg-green-900/30"></div>
 
-            <span className="text-sm text-gray-700">Completed</span>
+            <span className="text-sm text-gray-700 dark:text-[var(--text-primary)]">Completed</span>
 
           </div>
 
           <div className="flex items-center gap-2">
 
-            <div className="w-4 h-4 rounded bg-red-100"></div>
+            <div className="w-4 h-4 rounded bg-red-100 dark:bg-red-900/30"></div>
 
-            <span className="text-sm text-gray-700">No Show</span>
+            <span className="text-sm text-gray-700 dark:text-[var(--text-primary)]">No Show</span>
 
           </div>
 
@@ -713,19 +714,19 @@ export default function ConsultationsManagementPageFixed() {
 
       {filteredConsultations.length === 0 ? (
 
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+        <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-12 text-center">
 
-          <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <Calendar className="w-16 h-16 text-gray-400 dark:text-[var(--text-tertiary)] mx-auto mb-4" />
 
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Consultations Found</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-2">No Consultations Found</h3>
 
-          <p className="text-gray-600 mb-4">There are no consultations matching your current filters.</p>
+          <p className="text-gray-600 dark:text-[var(--text-secondary)] mb-4">There are no consultations matching your current filters.</p>
 
           <button
 
             onClick={() => setShowBookModal(true)}
 
-            className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium"
+            className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium transition-opacity"
 
             style={{ backgroundColor: '#6f1d56' }}
 
@@ -741,7 +742,7 @@ export default function ConsultationsManagementPageFixed() {
 
         filteredConsultations.map(consultation => (
 
-          <div key={consultation.id} className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+          <div key={consultation.id} className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6 hover:shadow-md transition-shadow">
 
             <div className="flex items-start justify-between">
 
@@ -759,19 +760,19 @@ export default function ConsultationsManagementPageFixed() {
 
                   <div className="flex items-center gap-3 mb-2">
 
-                    <Link href={`/dashboard/client-details/${consultation.clientUuid || consultation.clientId}`} className="text-lg font-semibold text-gray-900 hover:text-purple-600">
+                    <Link href={`/dashboard/client-details/${consultation.clientUuid || consultation.clientId}`} className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] hover:text-purple-600 dark:hover:text-purple-400">
 
                       {formatName(consultation.clientName || 'Unknown Client', 'client')}
 
                     </Link>
 
-                    <span className="text-gray-600">•</span>
+                    <span className="text-gray-600 dark:text-[var(--text-secondary)]">•</span>
 
-                    <span className="text-sm text-gray-600">{consultation.clientAge} years old</span>
+                    <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">{consultation.clientAge} years old</span>
 
-                    <span className="text-gray-600">•</span>
+                    <span className="text-gray-600 dark:text-[var(--text-secondary)]">•</span>
 
-                    <span className="text-xs text-gray-500">{consultation.clientId}</span>
+                    <span className="text-xs text-gray-500 dark:text-[var(--text-tertiary)]">{consultation.clientId}</span>
 
                   </div>
 
@@ -791,33 +792,33 @@ export default function ConsultationsManagementPageFixed() {
 
                     <div className="flex items-center gap-2">
 
-                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <Calendar className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
 
-                      <span className="text-gray-700">{consultation.date} at {consultation.time}</span>
-
-                    </div>
-
-                    <div className="flex items-center gap-2">
-
-                      <User className="w-4 h-4 text-gray-500" />
-
-                      <span className="text-gray-700">Conducted by: {formatName(consultation.conductedBy, 'tc')}</span>
+                      <span className="text-gray-700 dark:text-[var(--text-primary)]">{consultation.date} at {consultation.time}</span>
 
                     </div>
 
                     <div className="flex items-center gap-2">
 
-                      <Package className="w-4 h-4 text-gray-500" />
+                      <User className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
 
-                      <span className="text-gray-700">{consultation.serviceRequested}</span>
+                      <span className="text-gray-700 dark:text-[var(--text-primary)]">Conducted by: {formatName(consultation.conductedBy, 'tc')}</span>
 
                     </div>
 
                     <div className="flex items-center gap-2">
 
-                      <CreditCard className="w-4 h-4 text-gray-500" />
+                      <Package className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
 
-                      <span className="text-gray-700">£{consultation.paymentAmount} - {consultation.paymentStatus}</span>
+                      <span className="text-gray-700 dark:text-[var(--text-primary)]">{consultation.serviceRequested}</span>
+
+                    </div>
+
+                    <div className="flex items-center gap-2">
+
+                      <CreditCard className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
+
+                      <span className="text-gray-700 dark:text-[var(--text-primary)]">£{consultation.paymentAmount} - {consultation.paymentStatus}</span>
 
                     </div>
 
@@ -827,11 +828,11 @@ export default function ConsultationsManagementPageFixed() {
 
                   {consultation.status === 'Completed' && consultation.outcome && (
 
-                    <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
 
-                      <p className="text-sm font-medium text-green-900 mb-1">Outcome: {consultation.outcome}</p>
+                      <p className="text-sm font-medium text-green-900 dark:text-green-200 mb-1">Outcome: {consultation.outcome}</p>
 
-                      <p className="text-sm text-green-800">Recommended: {consultation.recommendedService}</p>
+                      <p className="text-sm text-green-800 dark:text-green-300">Recommended: {consultation.recommendedService}</p>
 
                     </div>
 
@@ -841,9 +842,9 @@ export default function ConsultationsManagementPageFixed() {
 
                   {consultation.notes && (
 
-                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="mt-3 p-3 bg-gray-50 dark:bg-[var(--hover-bg)] rounded-lg">
 
-                      <p className="text-sm text-gray-700">{consultation.notes}</p>
+                      <p className="text-sm text-gray-700 dark:text-[var(--text-primary)]">{consultation.notes}</p>
 
                     </div>
 
@@ -958,87 +959,72 @@ export default function ConsultationsManagementPageFixed() {
 
   return (
     <DashboardLayout>
-      {/* Header */}
-
-        <div className="bg-white border-b border-gray-200">
-
-          <div className="px-6 py-4">
-
-            <div className="flex items-center justify-between mb-4">
-
-              <div>
-
-                <h1 className="text-2xl font-bold text-gray-900">Consultations</h1>
-
-              </div>
-
-              <button
-
-                onClick={() => setShowBookModal(true)}
-
-                className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2"
-
-                style={{ backgroundColor: '#6f1d56' }}
-
-              >
-
-                <Plus className="w-4 h-4" />
-
-                Book Consultation
-
-              </button>
-
-            </div>
-
-
-
-            {/* Stats Cards */}
-
-            <div className="grid grid-cols-4 gap-4">
-
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-
-                <p className="text-sm text-blue-600 mb-1">Today's Consultations</p>
-
-                <p className="text-2xl font-bold text-blue-900">{todayCount}</p>
-
-              </div>
-
-              <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
-
-                <p className="text-sm text-purple-600 mb-1">This Week</p>
-
-                <p className="text-2xl font-bold text-purple-900">{thisWeekCount}</p>
-
-              </div>
-
-              <div className="bg-green-50 rounded-lg p-4 border border-green-100">
-
-                <p className="text-sm text-green-600 mb-1">Completed This Month</p>
-
-                <p className="text-2xl font-bold text-green-900">{completedThisMonth}</p>
-
-              </div>
-
-              <div className="bg-orange-50 rounded-lg p-4 border border-orange-100">
-
-                <p className="text-sm text-orange-600 mb-1">Pending Payment</p>
-
-                <p className="text-2xl font-bold text-orange-900">{pendingPayment}</p>
-
-              </div>
-
-            </div>
-
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <DashboardHeader
+          actions={
+            <button
+              onClick={() => setShowBookModal(true)}
+              className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 transition-opacity"
+              style={{ backgroundColor: '#6f1d56' }}
+            >
+              <Plus className="w-4 h-4" />
+              Book Consultation
+            </button>
+          }
+        >
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">Consultations</h1>
           </div>
+        </DashboardHeader>
 
+        {/* Stats Cards */}
+        <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
+          <div className="grid grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <Video className="w-4 h-4" />
+                </div>
+                <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">Today's Consultations</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{todayCount}</p>
+            </div>
+
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">This Week</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{thisWeekCount}</p>
+            </div>
+
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4" />
+                </div>
+                <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">Completed This Month</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{completedThisMonth}</p>
+            </div>
+
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">Pending Payment</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{pendingPayment}</p>
+            </div>
+          </div>
         </div>
 
-
-
         {/* Filters & View Toggle */}
-
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
 
           <div className="flex items-center justify-between mb-4">
 
@@ -1056,7 +1042,7 @@ export default function ConsultationsManagementPageFixed() {
 
                 placeholder="Search by client name or ID..."
 
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
 
               />
 
@@ -1164,25 +1150,25 @@ export default function ConsultationsManagementPageFixed() {
 
         {/* Content */}
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-[var(--background)]">
           {loading && consultations.length === 0 && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-                <p className="text-gray-600">Loading consultations...</p>
+                <RefreshCw className="w-8 h-8 text-gray-400 dark:text-[var(--text-tertiary)] animate-spin mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-[var(--text-secondary)]">Loading consultations...</p>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                 <div>
-                  <p className="text-sm font-medium text-red-900">{error}</p>
+                  <p className="text-sm font-medium text-red-900 dark:text-red-200">{error}</p>
                   <button
                     onClick={() => window.location.reload()}
-                    className="text-sm text-red-700 underline mt-1"
+                    className="text-sm text-red-700 dark:text-red-300 underline mt-1"
                   >
                     Try again
                   </button>
@@ -1194,6 +1180,7 @@ export default function ConsultationsManagementPageFixed() {
           {!loading && (viewMode === 'list' ? <ListViewComponent /> : <CalendarViewComponent />)}
 
         </div>
+      </div>
 
       {/* Book Modal */}
 
@@ -1205,15 +1192,15 @@ export default function ConsultationsManagementPageFixed() {
 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 
-            <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
 
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div className="sticky top-0 bg-white dark:bg-[var(--card-bg)] border-b border-gray-200 dark:border-[var(--card-border)] px-6 py-4 flex items-center justify-between">
 
-                <h2 className="text-xl font-bold text-gray-900">Book New Consultation</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">Book New Consultation</h2>
 
-                <button onClick={() => setShowBookModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <button onClick={() => setShowBookModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors">
 
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
 
                 </button>
 
@@ -1430,23 +1417,23 @@ export default function ConsultationsManagementPageFixed() {
 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 
-            <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
 
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+              <div className="sticky top-0 bg-white dark:bg-[var(--card-bg)] border-b border-gray-200 dark:border-[var(--card-border)] px-6 py-4">
 
                 <div className="flex items-center justify-between">
 
                   <div>
 
-                    <h2 className="text-xl font-bold text-gray-900">Mark Consultation as Completed</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">Mark Consultation as Completed</h2>
 
-                    <p className="text-sm text-gray-600 mt-1">{formatName(selectedConsultation.clientName || 'Unknown Client', 'client')} - {selectedConsultation.date} {selectedConsultation.time}</p>
+                    <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">{formatName(selectedConsultation.clientName || 'Unknown Client', 'client')} - {selectedConsultation.date} {selectedConsultation.time}</p>
 
                   </div>
 
-                  <button onClick={() => setShowCompleteModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <button onClick={() => setShowCompleteModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors">
 
-                    <X className="w-5 h-5 text-gray-600" />
+                    <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
 
                   </button>
 
@@ -1653,18 +1640,18 @@ export default function ConsultationsManagementPageFixed() {
 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 
-            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-md w-full">
 
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between">
 
-                <h2 className="text-xl font-bold text-gray-900">Reschedule Consultation</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">Reschedule Consultation</h2>
 
                 <button onClick={() => {
                   setShowRescheduleModal(false);
                   setRescheduleForm({ date: '', time: '', sendNotification: true });
-                }} className="p-2 hover:bg-gray-100 rounded-lg">
+                }} className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors">
 
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
 
                 </button>
 
@@ -1831,11 +1818,11 @@ export default function ConsultationsManagementPageFixed() {
 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 
-            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-md w-full">
 
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)]">
 
-                <h2 className="text-xl font-bold text-gray-900">Cancel Consultation</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">Cancel Consultation</h2>
 
               </div>
 
