@@ -9,6 +9,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import SearchableSelect from '@/components/SearchableSelect';
 import { formatName, getCounsellorPrefixType } from '@/lib/nameFormatter';
 import DashboardLayout from '@/components/DashboardLayout';
+import { showToast } from '@/lib/toast';
 
 import { 
   
@@ -69,8 +70,6 @@ export default function IndividualTCDetailPage() {
   const [editingNoteContent, setEditingNoteContent] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [showSendEmailConfirmModal, setShowSendEmailConfirmModal] = useState(false);
-  const [showSendEmailModal, setShowSendEmailModal] = useState(false);
-  const [emailForm, setEmailForm] = useState({ subject: '', message: '' });
   const [showSendMessageModal, setShowSendMessageModal] = useState(false);
   const [messageForm, setMessageForm] = useState({ subject: '', message: '', sendEmailNotification: true });
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -78,6 +77,7 @@ export default function IndividualTCDetailPage() {
   const [showDeleteNoteModal, setShowDeleteNoteModal] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState(null);
   const [addingNote, setAddingNote] = useState(false);
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
   // Fetch TC data from API
   useEffect(() => {
@@ -386,7 +386,7 @@ export default function IndividualTCDetailPage() {
                         <button
                           onClick={() => {
                             if (!tc.email) {
-                              alert('This trainee counsellor does not have an email address.');
+                              showToast.error('This trainee counsellor does not have an email address.');
                               return;
                             }
                             setShowSendEmailConfirmModal(true);
@@ -427,13 +427,6 @@ export default function IndividualTCDetailPage() {
                 >
                   <UserCheck className="w-4 h-4" />
                   Assign Client
-                </button>
-                <button 
-                  onClick={() => setShowSendEmailModal(true)}
-                  className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium flex items-center gap-2"
-                >
-                  <Mail className="w-4 h-4" />
-                  Send Email
                 </button>
                 <button 
                   onClick={() => setShowSendMessageModal(true)}
@@ -954,13 +947,13 @@ export default function IndividualTCDetailPage() {
                                         await apiService.updateActivityLog(note.id, {
                                           description: editingNoteContent
                                         });
-                                        alert('Note updated successfully!');
+                                        showToast.success('Note updated successfully!');
                                         setEditingNoteId(null);
                                         setEditingNoteContent('');
                                         window.location.reload();
                                       } catch (error) {
                                         console.error('Error updating note:', error);
-                                        alert('Failed to update note. Please try again.');
+                                        showToast.error('Failed to update note. Please try again.');
                                       }
                                     }}
                                     className="px-3 py-1 text-white rounded-lg hover:opacity-90 text-sm"
@@ -998,7 +991,7 @@ export default function IndividualTCDetailPage() {
                           <button
                             onClick={async () => {
                               if (!newNote.trim()) {
-                                alert('Please enter a note before saving.');
+                                showToast.warning('Please enter a note before saving.');
                                 return;
                               }
                               try {
@@ -1009,12 +1002,12 @@ export default function IndividualTCDetailPage() {
                                   model_id: tc.db_id || tc.id,
                                   description: newNote.trim()
                                 });
-                                alert('Note added successfully!');
+                                showToast.success('Note added successfully!');
                                 setNewNote('');
                                 window.location.reload();
                               } catch (error) {
                                 console.error('Error adding note:', error);
-                                alert('Failed to add note. Please try again.');
+                                showToast.error('Failed to add note. Please try again.');
                               } finally {
                                 setAddingNote(false);
                               }
@@ -1106,11 +1099,29 @@ export default function IndividualTCDetailPage() {
                     >
                       Assign New Client
                     </button>
-                    <button className="w-full py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium text-sm">
+                    <button 
+                      onClick={() => setShowSendMessageModal(true)}
+                      className="w-full py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium text-sm"
+                    >
                       Send Message
                     </button>
-                    <button className="w-full py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium text-sm">
-                      Download Report
+                    <button 
+                      onClick={async () => {
+                        try {
+                          setDownloadingReport(true);
+                          await apiService.downloadTrainingCounsellorReport(tc.uuid || tc.id);
+                          // Success - file will be downloaded automatically
+                        } catch (error) {
+                          console.error('Error downloading report:', error);
+                          showToast.error('Failed to download report. Please try again.');
+                        } finally {
+                          setDownloadingReport(false);
+                        }
+                      }}
+                      disabled={downloadingReport}
+                      className="w-full py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {downloadingReport ? 'Downloading...' : 'Download Report'}
                     </button>
                   </div>
                 </div>
@@ -1217,10 +1228,10 @@ export default function IndividualTCDetailPage() {
                         await apiService.updateTrainingCounsellor(tc.uuid || tc.id, updateData);
 
                         if (statusForm.counsellorType === 'Qualified' && tc.counsellor_type !== 'Qualified') {
-                          alert('Status updated to Qualified Counsellor. The counsellor will need to complete the Qualified Counsellor form.');
+                          showToast.success('Status updated to Qualified Counsellor. The counsellor will need to complete the Qualified Counsellor form.');
                           setShowOpenFormConfirmModal(true);
                         } else {
-                          alert('Status updated successfully!');
+                          showToast.success('Status updated successfully!');
                         }
 
                         setShowStatusModal(false);
@@ -1228,7 +1239,7 @@ export default function IndividualTCDetailPage() {
                         window.location.reload();
                       } catch (error) {
                         console.error('Error updating status:', error);
-                        alert('Error updating status. Please try again.');
+                        showToast.error('Error updating status. Please try again.');
                       }
                     }}
                     className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium"
@@ -1259,7 +1270,7 @@ export default function IndividualTCDetailPage() {
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 if (!assignForm.clientId || !tc) {
-                  alert('Please select a client to assign.');
+                  showToast.warning('Please select a client to assign.');
                   return;
                 }
 
@@ -1273,7 +1284,7 @@ export default function IndividualTCDetailPage() {
                     send_notification: assignForm.sendNotification,
                   });
 
-                  alert(`Client "${client.name}" assigned to "${tc.name}"!\n\nClient will now move to "Agreement Pending" stage.`);
+                  showToast.success(`Client "${client.name}" assigned to "${tc.name}"! Client will now move to "Agreement Pending" stage.`);
                   
                   setShowAssignModal(false);
                   setAssignForm({ clientId: '', notes: '', sendNotification: true });
@@ -1282,7 +1293,7 @@ export default function IndividualTCDetailPage() {
                   window.location.reload();
                 } catch (err) {
                   console.error('Error assigning client:', err);
-                  alert(`Failed to assign client: ${err.message || 'Please try again.'}`);
+                  showToast.error(`Failed to assign client: ${err.message || 'Please try again.'}`);
                 }
               }} className="p-6 space-y-4">
                 <div className="p-4 bg-[var(--tag-bg-green)] border border-green-200 dark:border-green-800 rounded-lg mb-4">
@@ -1358,13 +1369,13 @@ export default function IndividualTCDetailPage() {
           try {
             setSendingEmail(true);
             const response = await apiService.sendQualifiedFormEmail(tc.uuid || tc.id);
-            alert(`Email sent successfully to ${tc.email}!\n\nTheir UUID: ${response.tc_uuid || tc.uuid}`);
+            showToast.success(`Email sent successfully to ${tc.email}! UUID: ${response.tc_uuid || tc.uuid}`);
             setShowSendEmailConfirmModal(false);
             // Optionally refresh the page to update any status
             window.location.reload();
           } catch (error) {
             console.error('Error sending email:', error);
-            alert('Failed to send email. Please try again.');
+            showToast.error('Failed to send email. Please try again.');
             setShowSendEmailConfirmModal(false);
           } finally {
             setSendingEmail(false);
@@ -1418,7 +1429,7 @@ export default function IndividualTCDetailPage() {
                 onSubmit={async (e) => {
                   e.preventDefault();
                   if (!messageForm.subject || !messageForm.message) {
-                    alert('Please fill in both subject and message');
+                    showToast.warning('Please fill in both subject and message');
                     return;
                   }
 
@@ -1430,12 +1441,12 @@ export default function IndividualTCDetailPage() {
                       message: messageForm.message,
                       send_email_notification: messageForm.sendEmailNotification,
                     });
-                    alert('Message sent successfully!');
+                    showToast.success('Message sent successfully!');
                     setShowSendMessageModal(false);
                     setMessageForm({ subject: '', message: '', sendEmailNotification: true });
                   } catch (err) {
                     console.error('Error sending message:', err);
-                    alert(`Failed to send message: ${err.message || 'Please try again.'}`);
+                    showToast.error(`Failed to send message: ${err.message || 'Please try again.'}`);
                   } finally {
                     setSendingMessage(false);
                   }

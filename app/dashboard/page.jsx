@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { toast } from 'react-toastify';
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
@@ -553,7 +554,7 @@ export default function ClientDashboard() {
       console.log('Dashboard report exported successfully');
     } catch (err) {
       console.error('Error exporting dashboard report:', err);
-      alert('Failed to export dashboard report. Please try again.');
+      toast.error('Failed to export dashboard report. Please try again.');
     }
   };
 
@@ -984,7 +985,7 @@ export default function ClientDashboard() {
                 e.preventDefault();
                 // Handle form submission here
                 console.log("New client data:", newClientForm);
-                alert("Client added successfully! (This is a demo)");
+                toast.success("Client added successfully! (This is a demo)");
                 setIsNewClientModalOpen(false);
                 // Reset form
                 setNewClientForm({

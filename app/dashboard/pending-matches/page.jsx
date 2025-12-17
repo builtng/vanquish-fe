@@ -798,9 +798,9 @@ export default function PendingMatchesPage() {
                           type="text"
                           id="allocatedTime"
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
-                          placeholder="e.g., 10am-1050am"
+                          placeholder="e.g., 10:00am-10:50am"
                         />
-                        <p className="text-xs text-gray-500 mt-1">Format: 10am-1050am or 2pm-250pm</p>
+                        <p className="text-xs text-gray-500 mt-1">Format: 10:00am-10:50am or 2:00pm-2:50pm</p>
                       </div>
                     </div>
                     <p className="text-xs text-blue-700 mt-2">

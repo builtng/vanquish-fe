@@ -7,9 +7,11 @@ use App\Models\TrainingCounsellor;
 use App\Models\ActivityLog;
 use App\Mail\QualifiedCounsellorFormEmail;
 use App\Mail\GenericTrainingCounsellorEmail;
+use App\Mail\TrainingCounsellorWelcomeEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TrainingCounsellorController extends Controller
 {
@@ -106,6 +108,18 @@ class TrainingCounsellorController extends Controller
         $validated['last_activity'] = now();
 
         $tc = TrainingCounsellor::create($validated);
+
+        // Send welcome email to new trainee counsellor
+        try {
+            Mail::to($tc->email)->send(new TrainingCounsellorWelcomeEmail(
+                $tc->name,
+                $tc->tc_id,
+                $tc->email,
+                $tc->modality
+            ));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send TC welcome email: ' . $e->getMessage());
+        }
 
         ActivityLog::create([
             'user_id' => $request->user()->id,
@@ -757,5 +771,132 @@ class TrainingCounsellorController extends Controller
     {
         $baseUrl = $request->getSchemeAndHttpHost();
         return $baseUrl . '/storage/' . $path;
+    }
+
+    /**
+     * Download training counsellor report as PDF
+     */
+    public function downloadReport(Request $request, $id)
+    {
+        // Find by UUID or fall back to tc_id for backward compatibility
+        $tc = TrainingCounsellor::where('uuid', $id)
+            ->orWhere('tc_id', $id)
+            ->with(['clients', 'consultations', 'intakeForm'])
+            ->firstOrFail();
+
+        // Extract training provider details from intake form (same logic as details method)
+        if ($tc->intakeForm && $tc->intakeForm->count() > 0) {
+            $intakeForm = $tc->intakeForm->first();
+            
+            $trainingProviderDetails = [];
+            if ($intakeForm->additional_info) {
+                try {
+                    $decoded = json_decode($intakeForm->additional_info, true);
+                    if (is_array($decoded)) {
+                        $trainingProviderDetails = $decoded;
+                    }
+                } catch (\Exception $e) {
+                    // If not JSON, ignore
+                }
+            }
+            
+            $tc->training_org_name = $tc->institution ?? $trainingProviderDetails['training_org_name'] ?? $intakeForm->institution ?? null;
+            $tc->training_org_address = $tc->training_org_address ?? $trainingProviderDetails['training_org_address'] ?? null;
+            $tc->course_title = $tc->course ?? $trainingProviderDetails['course_title'] ?? $intakeForm->course ?? null;
+            $tc->tutor_name = $tc->tutor_name ?? $trainingProviderDetails['tutor_name'] ?? null;
+            $tc->tutor_email = $tc->tutor_email ?? $trainingProviderDetails['tutor_email'] ?? null;
+            $tc->tutor_phone = $tc->tutor_phone ?? $trainingProviderDetails['tutor_phone'] ?? null;
+            $tc->placement_lead_name = $tc->placement_lead_name ?? $trainingProviderDetails['placement_lead_name'] ?? null;
+            $tc->placement_lead_email = $tc->placement_lead_email ?? $trainingProviderDetails['placement_lead_email'] ?? null;
+            $tc->placement_lead_phone = $tc->placement_lead_phone ?? $trainingProviderDetails['placement_lead_phone'] ?? null;
+        }
+
+        // Format documents
+        $documents = collect();
+        $documentFields = [
+            'qualification_document' => 'Course Certificate',
+            'dbs_certificate_qualified' => 'DBS Certificate',
+            'insurance_qualified' => 'Professional Indemnity Insurance',
+            'self_employment_proof' => 'Self Employment Proof',
+            'professional_membership' => 'Professional Membership',
+        ];
+
+        // Add intake form documents
+        if ($tc->intakeForm && $tc->intakeForm->count() > 0) {
+            $intakeForm = $tc->intakeForm->first();
+            if ($intakeForm->dbs_certificate) {
+                $documents->push([
+                    'id' => 'dbs_intake',
+                    'name' => 'DBS Certificate',
+                    'type' => 'DBS',
+                    'uploadDate' => $intakeForm->created_at ? $intakeForm->created_at->format('Y-m-d') : null,
+                    'status' => 'Verified',
+                ]);
+            }
+            if ($intakeForm->insurance_certificate) {
+                $documents->push([
+                    'id' => 'insurance_intake',
+                    'name' => 'Professional Indemnity Insurance',
+                    'type' => 'Insurance',
+                    'uploadDate' => $intakeForm->created_at ? $intakeForm->created_at->format('Y-m-d') : null,
+                    'status' => 'Verified',
+                ]);
+            }
+            if ($intakeForm->student_id) {
+                $documents->push([
+                    'id' => 'student_id',
+                    'name' => 'Student ID',
+                    'type' => 'ID',
+                    'uploadDate' => $intakeForm->created_at ? $intakeForm->created_at->format('Y-m-d') : null,
+                    'status' => 'Verified',
+                ]);
+            }
+        }
+
+        // Add qualified counsellor documents
+        foreach ($documentFields as $field => $name) {
+            if ($tc->$field) {
+                $documents->push([
+                    'id' => $field,
+                    'name' => $name,
+                    'type' => str_replace('_qualified', '', $field),
+                    'uploadDate' => $tc->created_at ? $tc->created_at->format('Y-m-d') : null,
+                    'status' => 'Verified',
+                ]);
+            }
+        }
+
+        // Get clients
+        $clients = $tc->clients;
+
+        // Calculate statistics
+        $totalSessions = $tc->consultations->count();
+        $completedSessions = $tc->consultations->where('status', 'completed')->count();
+
+        // Generate PDF
+        $pdf = Pdf::loadView('pdf.training-counsellor-report', [
+            'tc' => $tc,
+            'documents' => $documents,
+            'clients' => $clients,
+            'totalSessions' => $totalSessions,
+            'completedSessions' => $completedSessions,
+        ]);
+
+        // Set paper size and orientation
+        $pdf->setPaper('A4', 'portrait');
+
+        // Log activity
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'report_downloaded',
+            'model_type' => TrainingCounsellor::class,
+            'model_id' => $tc->id,
+            'description' => "Report downloaded for {$tc->name}",
+            'ip_address' => $request->ip(),
+        ]);
+
+        // Return PDF download
+        $sanitizedName = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '_', $tc->name));
+        return $pdf->download("TC_{$sanitizedName}_REPORT.pdf");
     }
 }

@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { toast } from 'react-toastify';
 import apiService from '@/lib/api';
+import { formatTimeSlotDisplay } from '@/lib/timeFormatter';
 import {
   Calendar,
   Clock,
@@ -83,7 +85,7 @@ function ClientBookingContent() {
         sessions_count: sessionsCount,
       });
 
-      alert(`Successfully booked ${sessionsCount} sessions!`);
+      toast.success(`Successfully booked ${sessionsCount} sessions!`);
       setShowBookingModal(false);
       
       // Refresh data
@@ -263,7 +265,7 @@ function ClientBookingContent() {
               <div>
                 <p className="text-sm text-gray-600">Allocated Day & Time</p>
                 <p className="font-medium text-gray-900">
-                  {client.allocated_day} {client.allocated_time}
+                  {client.allocated_day} {formatTimeSlotDisplay(client.allocated_time)}
                 </p>
               </div>
             )}
@@ -369,7 +371,7 @@ function ClientBookingContent() {
                         required
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Sessions will be scheduled weekly on {client?.allocated_day} at {client?.allocated_time}
+                        Sessions will be scheduled weekly on {client?.allocated_day} at {formatTimeSlotDisplay(client?.allocated_time)}
                       </p>
                     </div>
                     <div className="mb-4">

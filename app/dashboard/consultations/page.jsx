@@ -189,7 +189,7 @@ export default function ConsultationsManagementPageFixed() {
 
     const fetchTrainingCounsellors = async () => {
       try {
-        const data = await apiService.getTrainingCounsellors({ status: 'active' });
+        const data = await apiService.getTrainingCounsellors({ status: 'Active' });
         const tcsData = Array.isArray(data) ? data : [];
         setTrainingCounsellors(tcsData);
       } catch (err) {

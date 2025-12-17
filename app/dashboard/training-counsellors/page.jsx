@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { toast } from 'react-toastify';
 import apiService from '@/lib/api';
 import { formatName, getCounsellorPrefixType } from '@/lib/nameFormatter';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -12,7 +13,7 @@ import {
 
   Users, Search, Filter, ChevronDown, MoreVertical, Eye,
 
-  Mail, Phone, Calendar, Edit, Trash2, ArrowUpDown, X,
+  Phone, Calendar, Edit, Trash2, ArrowUpDown, X,
 
   CheckCircle, Clock, AlertTriangle, Video, FileText,
 
@@ -359,7 +360,7 @@ export default function ViewAllTrainingCounsellorsPage() {
     e.preventDefault();
 
     if (!assignForm.clientId || !selectedTC) {
-      alert('Please select a client to assign.');
+      toast.error('Please select a client to assign.');
       return;
     }
 
@@ -373,7 +374,7 @@ export default function ViewAllTrainingCounsellorsPage() {
         send_notification: assignForm.sendNotification,
       });
 
-      alert(`Client "${formatName(client.name, 'client')}" assigned to "${formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}"!\n\nClient will now move to "Agreement Pending" stage.`);
+      toast.success(`Client "${formatName(client.name, 'client')}" assigned to "${formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}"!\n\nClient will now move to "Agreement Pending" stage.`);
       
       setShowAssignModal(false);
       setAssignForm({ clientId: '', notes: '', sendNotification: true });
@@ -383,7 +384,7 @@ export default function ViewAllTrainingCounsellorsPage() {
       fetchPendingClients();
     } catch (err) {
       console.error('Error assigning client:', err);
-      alert(`Failed to assign client: ${err.message || 'Please try again.'}`);
+      toast.error(`Failed to assign client: ${err.message || 'Please try again.'}`);
     }
   };
 
@@ -771,16 +772,7 @@ export default function ViewAllTrainingCounsellorsPage() {
 
                   )}
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.location.href = `mailto:${tc.email}`;
-                    }}
-                    className="p-2 border border-border text-foreground rounded-lg hover:bg-muted bg-card"
-                    title="Send Email"
-                  >
-                    <Mail className="w-4 h-4" />
-                  </button>
+
 
                 </div>
 

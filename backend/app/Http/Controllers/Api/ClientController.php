@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ClientController extends Controller
 {
@@ -355,11 +356,6 @@ class ClientController extends Controller
 
     public function assignMatch(Request $request)
     {
-        // Authorization check
-        if (!Gate::allows('update', Client::class)) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
         $validated = $request->validate([
             'client_id' => 'required',
             'tc_id' => 'required',
@@ -380,21 +376,69 @@ class ClientController extends Controller
             ->orWhere('id', $validated['tc_id'])
             ->firstOrFail();
 
-        // Create match
-        $match = ClientTcMatch::create([
-            'client_id' => $client->id,
-            'tc_id' => $tc->id,
-            'match_score' => $validated['match_score'] ?? null,
-            'assignment_notes' => $validated['assignment_notes'] ?? null,
-            'status' => 'assigned',
-            'assigned_date' => now(),
-            'send_notification' => $validated['send_notification'] ?? true,
-        ]);
+        // Authorization check - moved after finding the client
+        if (!Gate::allows('update', $client)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Check if match already exists
+        $existingMatch = ClientTcMatch::where('client_id', $client->id)
+            ->where('tc_id', $tc->id)
+            ->first();
+
+        $isNewMatch = !$existingMatch;
+
+        if ($existingMatch) {
+            // Update existing match instead of creating a new one
+            $existingMatch->update([
+                'match_score' => $validated['match_score'] ?? $existingMatch->match_score,
+                'assignment_notes' => $validated['assignment_notes'] ?? $existingMatch->assignment_notes,
+                'status' => 'assigned',
+                'assigned_date' => $existingMatch->assigned_date ?? now(),
+                'send_notification' => $validated['send_notification'] ?? true,
+            ]);
+
+            $match = $existingMatch;
+
+            // Log the update
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'client_tc_match_updated',
+                'model_type' => ClientTcMatch::class,
+                'model_id' => $match->id,
+                'description' => "{$request->user()->name} updated match between client {$client->name} and TC {$tc->name}",
+                'ip_address' => $request->ip(),
+            ]);
+        } else {
+            // Create new match
+            $match = ClientTcMatch::create([
+                'client_id' => $client->id,
+                'tc_id' => $tc->id,
+                'match_score' => $validated['match_score'] ?? null,
+                'assignment_notes' => $validated['assignment_notes'] ?? null,
+                'status' => 'assigned',
+                'assigned_date' => now(),
+                'send_notification' => $validated['send_notification'] ?? true,
+            ]);
+
+            // Update TC client count only for new matches
+            $tc->increment('current_clients');
+
+            // Log the new match
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'client_tc_matched',
+                'model_type' => ClientTcMatch::class,
+                'model_id' => $match->id,
+                'description' => "{$request->user()->name} matched client {$client->name} with TC {$tc->name}",
+                'ip_address' => $request->ip(),
+            ]);
+        }
 
         // Update client
         $updateData = [
             'matched_tc_id' => $tc->id,
-            'matched_date' => now(),
+            'matched_date' => $client->matched_date ?? now(),
             'stage' => 'Matched with TC',
         ];
 
@@ -406,27 +450,58 @@ class ClientController extends Controller
 
         $client->update($updateData);
 
-        // Update TC client count
-        $tc->increment('current_clients');
+        // Send notification emails if requested
+        $shouldSendNotification = $validated['send_notification'] ?? true;
+        
+        if ($shouldSendNotification) {
+            try {
+                // Send email to client
+                if ($client->email) {
+                    Mail::to($client->email)->send(new \App\Mail\ClientMatchNotificationEmail(
+                        $client->name,
+                        $tc->name,
+                        $tc->modality ?? null,
+                        $validated['match_score'] ?? null,
+                        $validated['allocated_day'] ?? null,
+                        $validated['allocated_time'] ?? null
+                    ));
+                }
 
-        // Check if activity log already exists for this match to prevent duplicates
-        $existingLog = ActivityLog::where('action', 'client_tc_matched')
-            ->where('model_type', ClientTcMatch::class)
-            ->where('model_id', $match->id)
-            ->first();
+                // Send email to TC
+                if ($tc->email) {
+                    Mail::to($tc->email)->send(new \App\Mail\TcMatchNotificationEmail(
+                        $tc->name,
+                        $client->name,
+                        $client->age ?? null,
+                        $client->service_type ?? null,
+                        $validated['match_score'] ?? null,
+                        $validated['assignment_notes'] ?? null,
+                        $validated['allocated_day'] ?? null,
+                        $validated['allocated_time'] ?? null
+                    ));
+                }
 
-        if (!$existingLog) {
-            ActivityLog::create([
-                'user_id' => $request->user()->id,
-                'action' => 'client_tc_matched',
-                'model_type' => ClientTcMatch::class,
-                'model_id' => $match->id,
-                'description' => "{$request->user()->name} matched client {$client->name} with TC {$tc->name}",
-                'ip_address' => $request->ip(),
-            ]);
+                // Log email notifications
+                ActivityLog::create([
+                    'user_id' => $request->user()->id,
+                    'action' => 'match_notifications_sent',
+                    'model_type' => ClientTcMatch::class,
+                    'model_id' => $match->id,
+                    'description' => "Match notification emails sent to {$client->name} and {$tc->name}",
+                    'ip_address' => $request->ip(),
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to send match notification emails', [
+                    'match_id' => $match->id,
+                    'client_id' => $client->id,
+                    'tc_id' => $tc->id,
+                    'error' => $e->getMessage(),
+                ]);
+                // Don't fail the entire request if email fails
+            }
         }
 
-        return response()->json($match->load(['client', 'tc']), 201);
+        return response()->json($match->load(['client', 'tc']), $isNewMatch ? 201 : 200);
     }
 
     public function sendEmail(Request $request, $id)
@@ -809,5 +884,89 @@ class ClientController extends Controller
     {
         $baseUrl = $request->getSchemeAndHttpHost();
         return $baseUrl . '/storage/' . $path;
+    }
+
+    /**
+     * Download client report as PDF
+     */
+    public function downloadReport(Request $request, $id)
+    {
+        // Find by UUID or fall back to client_id for backward compatibility
+        $client = Client::where('uuid', $id)
+            ->orWhere('client_id', $id)
+            ->with([
+                'matchedTc',
+                'consultations',
+                'intakeForm'
+            ])
+            ->firstOrFail();
+
+        // Authorization check
+        if (!Gate::allows('view', $client)) {
+            // Allow if user is staff/admin even if policy might be stricter
+            // But let's stick to standard gate check or role check
+            if ($request->user()->role !== 'admin' && $request->user()->role !== 'staff') {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        }
+
+        // Extract Intake Form Data
+        $emergencyContact = [];
+        $gpDetails = [];
+        
+        if ($client->intakeForm && $client->intakeForm->count() > 0) {
+            $intake = $client->intakeForm->first();
+            
+            // Parse emergency contact
+            if ($intake->emergency_contact) {
+                try {
+                    $decoded = json_decode($intake->emergency_contact, true);
+                    if (is_array($decoded)) {
+                        $emergencyContact = $decoded;
+                    }
+                } catch (\Exception $e) { /* ignore */ }
+            }
+            
+            // Parse GP details
+            if ($intake->gp_details) {
+                try {
+                    $decoded = json_decode($intake->gp_details, true);
+                    if (is_array($decoded)) {
+                        $gpDetails = $decoded;
+                    }
+                } catch (\Exception $e) { /* ignore */ }
+            }
+        }
+
+        // Get consultations sorted by date
+        $consultations = $client->consultations->sortByDesc('scheduled_at');
+
+        // Generate PDF
+        $pdf = Pdf::loadView('pdf.client-report', [
+            'client' => $client,
+            'emergencyContact' => $emergencyContact,
+            'gpDetails' => $gpDetails,
+            'consultations' => $consultations,
+        ]);
+
+        // Set paper size and orientation
+        $pdf->setPaper('A4', 'portrait');
+
+        // Log activity
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'report_downloaded',
+            'model_type' => Client::class,
+            'model_id' => $client->id,
+            'description' => "Report downloaded for client {$client->name}",
+            'ip_address' => $request->ip(),
+        ]);
+
+        // Return PDF download with requested format: TC_{NAME}_REPORT.pdf
+        // Note: For clients, maybe CL_{NAME}_REPORT.pdf is better?
+        // User asked for "TC_CHARLES_REPORT.pdf" for TCs.
+        // For clients, I will use "CLIENT_CHARLES_REPORT.pdf" to differentiate.
+        $sanitizedName = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '_', $client->name));
+        return $pdf->download("CLIENT_{$sanitizedName}_REPORT.pdf");
     }
 }

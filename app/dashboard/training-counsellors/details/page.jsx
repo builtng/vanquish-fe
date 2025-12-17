@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
 import { useAuth } from '@/contexts/AuthContext';
 import apiService from '@/lib/api';
 import SearchableSelect from '@/components/SearchableSelect';
@@ -546,7 +547,7 @@ export default function IndividualTCDetailPage() {
                         <button
                           onClick={() => {
                             if (!tc.email) {
-                              alert('This trainee counsellor does not have an email address.');
+                              toast.error('This trainee counsellor does not have an email address.');
                               return;
                             }
                             setShowSendEmailConfirmModal(true);
@@ -1585,11 +1586,11 @@ export default function IndividualTCDetailPage() {
 
                         // If transitioning to Qualified, show notification
                         if (statusForm.counsellorType === 'Qualified' && tc.counsellor_type !== 'Qualified') {
-                          alert('Status updated to Qualified Counsellor. The counsellor will need to complete the Qualified Counsellor form.');
+                          toast.info('Status updated to Qualified Counsellor. The counsellor will need to complete the Qualified Counsellor form.');
                           // Optionally redirect to form or show link
                           setShowOpenFormConfirmModal(true);
                         } else {
-                          alert('Status updated successfully!');
+                          toast.success('Status updated successfully!');
                         }
 
                         setShowStatusModal(false);
@@ -1598,7 +1599,7 @@ export default function IndividualTCDetailPage() {
                         window.location.reload();
                       } catch (error) {
                         console.error('Error updating status:', error);
-                        alert('Error updating status. Please try again.');
+                        toast.error('Error updating status. Please try again.');
                       }
                     }}
                     className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium"
@@ -1697,7 +1698,7 @@ export default function IndividualTCDetailPage() {
 
                     onClick={() => {
 
-                      alert('Client assigned successfully!');
+                      toast.success('Client assigned successfully!');
 
                       setShowAssignModal(false);
 
@@ -1733,13 +1734,13 @@ export default function IndividualTCDetailPage() {
           try {
             setSendingEmail(true);
             const response = await apiService.sendQualifiedFormEmail(tc.uuid || tc.id);
-            alert(`Email sent successfully to ${tc.email}!\n\nTheir UUID: ${response.tc_uuid || tc.uuid}`);
+            toast.success(`Email sent successfully to ${tc.email}!\n\nTheir UUID: ${response.tc_uuid || tc.uuid}`);
             setShowSendEmailConfirmModal(false);
             // Optionally refresh the page to update any status
             window.location.reload();
           } catch (error) {
             console.error('Error sending email:', error);
-            alert('Failed to send email. Please try again.');
+            toast.error('Failed to send email. Please try again.');
             setShowSendEmailConfirmModal(false);
           } finally {
             setSendingEmail(false);

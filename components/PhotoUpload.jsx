@@ -140,17 +140,17 @@ export default function PhotoUpload({
               className="w-full h-full object-cover"
             />
             {!uploading && !deleting && (
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center gap-2">
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2 bg-black/50">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="opacity-0 group-hover:opacity-100 p-2 bg-white rounded-full hover:bg-gray-100 transition-all"
+                  className="p-2 bg-white rounded-full hover:bg-gray-100 transition-all"
                   title="Change photo"
                 >
                   <Camera className="w-4 h-4 text-gray-700" />
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="opacity-0 group-hover:opacity-100 p-2 bg-white rounded-full hover:bg-red-100 transition-all"
+                  className="p-2 bg-white rounded-full hover:bg-red-100 transition-all"
                   title="Delete photo"
                 >
                   <X className="w-4 h-4 text-red-600" />

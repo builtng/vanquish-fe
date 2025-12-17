@@ -38,11 +38,6 @@ class Induction extends Model
         return $this->belongsTo(TrainingCounsellor::class, 'tc_id');
     }
 
-    public function getTrainingCounsellorAttribute()
-    {
-        return $this->trainingCounsellor();
-    }
-
     public function attendees(): HasMany
     {
         return $this->hasMany(InductionAttendee::class);

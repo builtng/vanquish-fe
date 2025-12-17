@@ -73,6 +73,7 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
     Route::middleware('staff')->group(function () {
         Route::apiResource('clients', ClientController::class);
         Route::get('/clients/{client}/details', [ClientController::class, 'details']);
+        Route::get('/clients/{client}/download-report', [ClientController::class, 'downloadReport']);
         Route::post('/clients/{client}/progress-stage', [ClientController::class, 'progressStage']);
         Route::post('/clients/{client}/send-email', [ClientController::class, 'sendEmail']);
         Route::post('/clients/{client}/send-feedback-form', [ClientController::class, 'sendFeedbackForm']);
@@ -91,6 +92,7 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
     Route::middleware('staff')->group(function () {
         Route::apiResource('training-counsellors', TrainingCounsellorController::class);
         Route::get('/training-counsellors/{tc}/details', [TrainingCounsellorController::class, 'details']);
+        Route::get('/training-counsellors/{tc}/download-report', [TrainingCounsellorController::class, 'downloadReport']);
         Route::post('/training-counsellors/{tc}/transition-to-qualified', [TrainingCounsellorController::class, 'transitionToQualified']);
         Route::post('/training-counsellors/{tc}/send-email', [TrainingCounsellorController::class, 'sendEmail']);
     });

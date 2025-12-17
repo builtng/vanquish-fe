@@ -20,7 +20,7 @@
             <p style="margin: 0 0 25px 0; color: #333333; font-size: 16px; line-height: 1.7;">Dear {{ $tcName }},</p>
             
             <div style="white-space: pre-wrap; line-height: 1.8; color: #333333; font-size: 16px; margin: 0 0 30px 0;">
-                {!! nl2br(e($message)) !!}
+                {!! nl2br(e($emailBody)) !!}
             </div>
             
             <p style="margin: 30px 0 0 0; color: #333333; font-size: 16px; line-height: 1.7;">Best regards,<br>

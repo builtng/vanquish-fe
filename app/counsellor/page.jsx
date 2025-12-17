@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import apiService from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
+import PublicFormWrapper from "@/components/PublicFormWrapper";
 
 export default function VanquishTCApplication() {
   const [formData, setFormData] = useState({
@@ -649,7 +650,18 @@ export default function VanquishTCApplication() {
       setSubmitted(true);
     } catch (error) {
       console.error('Form submission error:', error);
-      setSubmitError(error.message || 'Failed to submit form. Please try again.');
+      
+      // Check if error has validation errors from backend
+      if (error.data && error.data.errors) {
+        const validationErrors = error.data.errors;
+        const errorMessages = Object.entries(validationErrors)
+          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .join('\n');
+        setSubmitError(`Validation failed:\n${errorMessages}`);
+      } else {
+        setSubmitError(error.message || 'Failed to submit form. Please try again.');
+      }
+      
       // Scroll to top to show error
       if (formContentRef.current) {
         formContentRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -671,42 +683,47 @@ export default function VanquishTCApplication() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-12 h-12 text-green-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">
-            Application Submitted!
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Thank you for applying to join Vanquish Therapies as a Trainee
-            Counsellor. We'll review your application and be in touch soon.
-          </p>
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-purple-900 font-medium mb-2">
-              Next Steps:
+      <PublicFormWrapper>
+      <div className="min-h-screen" style={{ background: 'var(--bg-secondary)' }}>
+        <div className="flex items-center justify-center p-4 min-h-screen">
+          <div className="card rounded-2xl shadow-xl p-8 max-w-md w-full text-center border">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'var(--success-bg)', border: '2px solid var(--success-border)' }}>
+              <CheckCircle className="w-12 h-12" style={{ color: 'var(--success-primary)' }} />
+            </div>
+            <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
+              Application Submitted!
+            </h2>
+            <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
+              Thank you for applying to join Vanquish Therapies as a Trainee
+              Counsellor. We'll review your application and be in touch soon.
             </p>
-            <p className="text-xs text-purple-700 text-left">
-              • Stage 1: Application review (you are here)
-              <br />
-              • Stage 2: Short virtual video interview (5 questions)
-              <br />• Stage 3: Face-to-face virtual interview
+            <div className="rounded-lg p-4 mb-6 border" style={{ backgroundColor: 'var(--purple-bg)', borderColor: 'var(--purple-border)' }}>
+              <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+                Next Steps:
+              </p>
+              <p className="text-xs text-left" style={{ color: 'var(--text-secondary)' }}>
+                • Stage 1: Application review (you are here)
+                <br />
+                • Stage 2: Short virtual video interview (5 questions)
+                <br />• Stage 3: Face-to-face virtual interview
+              </p>
+            </div>
+            <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
+              A confirmation email has been sent to {formData.email}
             </p>
           </div>
-          <p className="text-sm text-gray-500">
-            A confirmation email has been sent to {formData.email}
-          </p>
         </div>
       </div>
+      </PublicFormWrapper>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 md:py-8 px-4">
+    <PublicFormWrapper>
+    <div className="min-h-screen py-4 md:py-8 px-4" style={{ background: 'var(--bg-secondary)' }}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6">
+        <div className="card rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border">
           <div className="flex items-center justify-between mb-4 md:mb-6">
             <div className="flex items-center gap-3 md:gap-4">
               <div
@@ -716,10 +733,10 @@ export default function VanquishTCApplication() {
                 VT
               </div>
               <div>
-                <h1 className="text-lg md:text-2xl font-bold text-gray-900">
+                <h1 className="text-lg md:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
                   Vanquish Therapies
                 </h1>
-                <p className="text-sm md:text-base text-gray-600 mt-0.5 md:mt-1">
+                <p className="text-sm md:text-base mt-0.5 md:mt-1" style={{ color: 'var(--text-secondary)' }}>
                   Trainee Counsellor Application (Stage 1)
                 </p>
               </div>
@@ -2446,8 +2463,8 @@ export default function VanquishTCApplication() {
             <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 rounded">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-red-900">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-900 whitespace-pre-line">
                     {submitError}
                   </p>
                 </div>
@@ -2539,5 +2556,6 @@ export default function VanquishTCApplication() {
         </div>
       </div>
     </div>
+    </PublicFormWrapper>
   );
 }

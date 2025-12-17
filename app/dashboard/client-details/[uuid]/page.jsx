@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
+import { toast } from 'react-toastify';
+import { useAuth } from '@/contexts/AuthContext';
 import apiService from '@/lib/api';
-import * as XLSX from 'xlsx';
+
 import SessionNotesModal from '@/components/SessionNotesModal';
-import { useToast } from '@/lib/toast';
+import { useToast, showToast } from '@/lib/toast';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -35,6 +37,7 @@ export default function IndividualClientDetailPage() {
   const params = useParams();
   const uuid = params?.uuid;
   const { success, error: showError } = useToast();
+  const { user } = useAuth();
 
   const [activeNotesTab, setActiveNotesTab] = useState('consultation');
   const [editingSection, setEditingSection] = useState(null);
@@ -53,6 +56,7 @@ export default function IndividualClientDetailPage() {
   const [editingNoteText, setEditingNoteText] = useState('');
   const [showSessionNotesModal, setShowSessionNotesModal] = useState(false);
   const [showArchiveConfirmModal, setShowArchiveConfirmModal] = useState(false);
+  const [showUnarchiveConfirmModal, setShowUnarchiveConfirmModal] = useState(false);
   const [showDeleteNoteConfirmModal, setShowDeleteNoteConfirmModal] = useState(false);
   const [showProgressStageConfirmModal, setShowProgressStageConfirmModal] = useState(false);
   const [showDeleteSessionConfirmModal, setShowDeleteSessionConfirmModal] = useState(false);
@@ -60,6 +64,7 @@ export default function IndividualClientDetailPage() {
   const [nextStage, setNextStage] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
   const [sessionToDelete, setSessionToDelete] = useState(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
   // Show notification and auto-hide
   const showNotification = (message, type = 'success') => {
@@ -506,6 +511,27 @@ export default function IndividualClientDetailPage() {
     }
   };
 
+  const handleUnarchive = () => {
+    setShowUnarchiveConfirmModal(true);
+  };
+
+  const confirmUnarchive = async () => {
+    try {
+      setActionLoading(true);
+      await apiService.unarchiveClient(uuid);
+      success('Client unarchived successfully');
+      // Refresh client data
+      const data = await apiService.getClientDetails(uuid);
+      const transformedData = transformClientData(data);
+      setClient(transformedData);
+      setShowUnarchiveConfirmModal(false);
+    } catch (err) {
+      showError(err.message || 'Failed to unarchive client');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleAddSession = async (sessionData) => {
     try {
       setActionLoading(true);
@@ -696,154 +722,16 @@ export default function IndividualClientDetailPage() {
     setShowAddSessionModal(true);
   };
 
-
-  const handleDownloadReport = () => {
+  const handleDownloadReport = async () => {
     try {
-      // Create a new workbook
-      const wb = XLSX.utils.book_new();
-
-      // Sheet 1: Client Overview
-      const overviewData = [
-        ['Client Report'],
-        [],
-        ['Client Information'],
-        ['Name', client.name],
-        ['Client ID', client.client_id],
-        ['Email', client.email],
-        ['Phone', client.phone],
-        ['Age', client.age],
-        ['Gender', client.gender],
-        ['Ethnicity', client.ethnicity],
-        ['Sexual Orientation', client.sexualOrientation],
-        [],
-        ['Status Information'],
-        ['Stage', client.stage],
-        ['Status', client.status],
-        ['Days in System', client.daysInSystem],
-        ['Service Type', client.serviceType],
-        [],
-        ['Address'],
-        ['Address', client.address],
-        ['Postcode', client.postcode],
-      ];
-
-      const ws1 = XLSX.utils.aoa_to_sheet(overviewData);
-      XLSX.utils.book_append_sheet(wb, ws1, 'Overview');
-
-      // Sheet 2: Clinical Information
-      const clinicalData = [
-        ['Clinical Information'],
-        [],
-        ['Primary Issues / Concerns'],
-        ...(client.primaryIssues?.map(issue => [issue]) || [['None']]),
-        [],
-        ['Additional Details', client.additionalDetails || 'N/A'],
-        [],
-        ['Medication', client.medication || 'None'],
-        ['Disabilities / Impairments', client.disabilities || 'None'],
-        ['Risk Flags', client.riskFlags || 'None'],
-        ['Substance Misuse', client.substanceMisuse || 'None'],
-      ];
-
-      const ws2 = XLSX.utils.aoa_to_sheet(clinicalData);
-      XLSX.utils.book_append_sheet(wb, ws2, 'Clinical Info');
-
-      // Sheet 3: Sessions
-      const sessionsData = [
-        ['Session', 'Date', 'Time', 'TC Name', 'Duration', 'Status', 'Notes'],
-        ...(client.sessions?.map(session => [
-          session.sessionNumber,
-          session.date || 'N/A',
-          session.time || 'N/A',
-          session.tcName || 'N/A',
-          session.duration || 'N/A',
-          session.status || 'N/A',
-          session.notes || 'N/A'
-        ]) || [])
-      ];
-
-      const ws3 = XLSX.utils.aoa_to_sheet(sessionsData);
-      XLSX.utils.book_append_sheet(wb, ws3, 'Sessions');
-
-      // Sheet 4: Package Summary
-      const packageData = [
-        ['Package Summary'],
-        [],
-        ['Package Name', client.packageDetails?.name || 'N/A'],
-        ['Total Sessions', client.packageDetails?.totalSessions || 0],
-        ['Sessions Completed', client.packageDetails?.sessionsCompleted || 0],
-        ['Sessions DNA', client.packageDetails?.sessionsDNA || 0],
-        ['Sessions Remaining', client.packageDetails?.sessionsRemaining || 0],
-        ['Status', client.packageDetails?.status || 'N/A'],
-        ['Start Date', client.packageDetails?.startDate || 'N/A'],
-        ['Expected End Date', client.packageDetails?.expectedEndDate || 'N/A'],
-      ];
-
-      const ws4 = XLSX.utils.aoa_to_sheet(packageData);
-      XLSX.utils.book_append_sheet(wb, ws4, 'Package');
-
-      // Sheet 5: Matched Trainee Counsellor
-      if (client.matchedTC) {
-        const tcData = [
-          ['Matched Trainee Counsellor'],
-          [],
-          ['Name', client.matchedTC.name],
-          ['Email', client.matchedTC.email],
-          ['Phone', client.matchedTC.phone],
-          ['Modality', client.matchedTC.modality || 'N/A'],
-          ['Current Caseload', `${client.matchedTC.currentClients}/${client.matchedTC.maxClients}`],
-          ['Match Score', `${client.matchedTC.matchScore}%`],
-        ];
-
-        const ws5 = XLSX.utils.aoa_to_sheet(tcData);
-        XLSX.utils.book_append_sheet(wb, ws5, 'Matched TC');
-      }
-
-      // Sheet 6: Payment History
-      const paymentData = [
-        ['Payment History'],
-        [],
-        ['ID', 'Date', 'Type', 'Description', 'Amount', 'Status', 'Method'],
-        ...(client.payments?.map(payment => [
-          payment.id,
-          payment.date,
-          payment.type,
-          payment.description,
-          `£${payment.amount}`,
-          payment.status,
-          payment.method
-        ]) || []),
-        [],
-        ['Total Paid', `£${client.payments?.reduce((sum, p) => sum + p.amount, 0) || 0}`]
-      ];
-
-      const ws6 = XLSX.utils.aoa_to_sheet(paymentData);
-      XLSX.utils.book_append_sheet(wb, ws6, 'Payments');
-
-      // Sheet 7: Availability
-      if (client.availability && client.availability.length > 0) {
-        const availabilityData = [
-          ['Availability Schedule'],
-          [],
-          ['Day', 'Time Blocks'],
-          ...client.availability.map(avail => [
-            avail.day,
-            avail.timeBlocks?.join(', ') || 'N/A'
-          ])
-        ];
-
-        const ws7 = XLSX.utils.aoa_to_sheet(availabilityData);
-        XLSX.utils.book_append_sheet(wb, ws7, 'Availability');
-      }
-
-      // Generate Excel file and download
-      const fileName = `client-report-${client.client_id}-${new Date().toISOString().split('T')[0]}.xlsx`;
-      XLSX.writeFile(wb, fileName);
-      
-      showNotification('Report downloaded successfully');
-    } catch (err) {
-      console.error('Error generating report:', err);
-      showNotification('Failed to generate report', 'error');
+      setDownloadingReport(true);
+      await apiService.downloadClientReport(client.uuid || client.id);
+      // Success is handled by the browser download
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      showToast.error('Failed to download report. Please try again.');
+    } finally {
+      setDownloadingReport(false);
     }
   };
 
@@ -1077,7 +965,7 @@ export default function IndividualClientDetailPage() {
 
             <div className="flex items-start justify-between">
 
-              <div className="flex items-start gap-4">
+              <div className={`flex items-start gap-4 ${client.status === 'archived' ? 'pointer-events-none' : ''}`}>
                 {clientPhoto ? (
                   <PhotoUpload
                     photoUrl={clientPhoto}
@@ -1175,7 +1063,7 @@ export default function IndividualClientDetailPage() {
 
                 <button 
                   onClick={handleSendEmail}
-                  disabled={actionLoading}
+                  disabled={actionLoading || client.status === 'archived'}
                   className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
 
                   <Mail className="w-4 h-4" />
@@ -1186,7 +1074,8 @@ export default function IndividualClientDetailPage() {
 
                 <button 
                   onClick={handleCall}
-                  className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2">
+                  disabled={client.status === 'archived'}
+                  className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
 
                   <Phone className="w-4 h-4" />
 
@@ -1197,7 +1086,7 @@ export default function IndividualClientDetailPage() {
                 {(client.stage === 'Active Therapy' || client.stage === 'Completed') && (
                   <button 
                     onClick={handleSendFeedbackForm}
-                    disabled={actionLoading || (client.lastFeedbackSentAt && new Date(client.lastFeedbackSentAt) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000))}
+                    disabled={actionLoading || (client.lastFeedbackSentAt && new Date(client.lastFeedbackSentAt) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)) || client.status === 'archived'}
                     className="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
 
                     <Send className="w-4 h-4" />
@@ -1207,7 +1096,9 @@ export default function IndividualClientDetailPage() {
                   </button>
                 )}
 
-                <Link href={`/dashboard/clients/edit?id=${uuid}`} className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2">
+                <Link 
+                  href={`/dashboard/clients/edit?id=${uuid}`} 
+                  className={`px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 ${client.status === 'archived' ? 'opacity-50 pointer-events-none cursor-not-allowed' : ''}`}>
 
                   <Edit className="w-4 h-4" />
 
@@ -1216,13 +1107,17 @@ export default function IndividualClientDetailPage() {
                 </Link>
 
                 <button 
-                  onClick={handleArchive}
-                  disabled={actionLoading || client.status === 'archived'}
-                  className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                  onClick={client.status === 'archived' ? handleUnarchive : handleArchive}
+                  disabled={actionLoading || (client.status === 'archived' && user?.role !== 'admin')}
+                  className={`px-4 py-2 border rounded-lg font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    client.status === 'archived' 
+                      ? 'border-green-300 text-green-700 hover:bg-green-50' 
+                      : 'border-red-300 text-red-700 hover:bg-red-50'
+                  }`}>
 
                   <Archive className="w-4 h-4" />
 
-                  {client.status === 'archived' ? 'Archived' : 'Archive'}
+                  {client.status === 'archived' ? 'Unarchive' : 'Archive'}
 
                 </button>
 
@@ -1913,7 +1808,7 @@ export default function IndividualClientDetailPage() {
 
                     <button 
                       onClick={() => setShowAddSessionModal(true)}
-                      disabled={actionLoading}
+                      disabled={actionLoading || client.status === 'archived'}
                       className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
                       style={{ backgroundColor: '#6f1d56' }}>
 
@@ -1983,7 +1878,7 @@ export default function IndividualClientDetailPage() {
                                 </button>
                                 <button 
                                   onClick={() => handleDeleteSession(session)}
-                                  disabled={actionLoading}
+                                  disabled={actionLoading || client.status === 'archived'}
                                   className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                   title="Delete Session">
                                   <Trash2 className="w-4 h-4 text-red-600" />
@@ -2203,7 +2098,7 @@ export default function IndividualClientDetailPage() {
                         {client.agreement.status !== 'Signed' && (
                           <button 
                             onClick={handleResendAgreement}
-                            disabled={actionLoading}
+                            disabled={actionLoading || client.status === 'archived'}
                             className="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Send className="w-4 h-4" />
@@ -2225,7 +2120,7 @@ export default function IndividualClientDetailPage() {
                       </div>
                       <button 
                         onClick={handleResendAgreement}
-                        disabled={actionLoading}
+                        disabled={actionLoading || client.status === 'archived'}
                         className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Send className="w-4 h-4" />
@@ -2246,7 +2141,7 @@ export default function IndividualClientDetailPage() {
                     {activeNotesTab === 'admin' && (
                       <button
                         onClick={() => fetchAdminNotes()}
-                        disabled={actionLoading}
+                        disabled={actionLoading || client.status === 'archived'}
                         className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Refresh notes to see latest changes"
                       >
@@ -2257,7 +2152,6 @@ export default function IndividualClientDetailPage() {
                   </div>
 
                   
-
                   {/* Tabs */}
 
                   <div className="flex items-center gap-2 border-b border-gray-200 mb-4">
@@ -2436,7 +2330,8 @@ export default function IndividualClientDetailPage() {
 
                                 <button 
                                   onClick={() => handleEditNote(note)}
-                                  className="p-2 hover:bg-gray-100 rounded-lg">
+                                  disabled={client.status === 'archived'}
+                                  className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
 
                                   <Edit className="w-4 h-4 text-gray-600" />
 
@@ -2444,7 +2339,7 @@ export default function IndividualClientDetailPage() {
 
                                 <button 
                                   onClick={() => handleDeleteNote(note.id)}
-                                  disabled={actionLoading}
+                                  disabled={actionLoading || client.status === 'archived'}
                                   className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
 
                                   <Trash2 className="w-4 h-4 text-red-600" />
@@ -2489,7 +2384,7 @@ export default function IndividualClientDetailPage() {
                               </button>
                               <button 
                                 onClick={handleUpdateNote}
-                                disabled={actionLoading}
+                                disabled={actionLoading || client.status === 'archived'}
                                 className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
                                 style={{ backgroundColor: '#6f1d56' }}>
                                 Update Note
@@ -2502,7 +2397,8 @@ export default function IndividualClientDetailPage() {
                               value={newNoteText}
                               onChange={(e) => setNewNoteText(e.target.value)}
                             placeholder="Add a new admin note..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                            disabled={client.status === 'archived'}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                             rows={3}
                           ></textarea>
                           <div className="flex items-center justify-end gap-2 mt-2">
@@ -2516,7 +2412,7 @@ export default function IndividualClientDetailPage() {
                             </button>
                               <button 
                                 onClick={handleAddAdminNote}
-                                disabled={actionLoading}
+                                disabled={actionLoading || client.status === 'archived'}
                                 className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
                                 style={{ backgroundColor: '#6f1d56' }}>
                               Add Note
@@ -2687,7 +2583,7 @@ export default function IndividualClientDetailPage() {
 
                     <button 
                       onClick={handleProgressStage}
-                      disabled={actionLoading || client.stage === 'Completed'}
+                      disabled={actionLoading || client.stage === 'Completed' || client.status === 'archived'}
                       className="w-full py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed" 
                       style={{ backgroundColor: '#6f1d56' }}>
 
@@ -2697,7 +2593,7 @@ export default function IndividualClientDetailPage() {
 
                     <button 
                       onClick={handleBookNextSession}
-                      disabled={actionLoading}
+                      disabled={actionLoading || client.status === 'archived'}
                       className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
 
                       Book Next Session
@@ -2706,10 +2602,9 @@ export default function IndividualClientDetailPage() {
 
                     <button 
                       onClick={handleDownloadReport}
-                      className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">
-
-                      Download Report
-
+                      disabled={downloadingReport || client.status === 'archived'}
+                      className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                      {downloadingReport ? 'Downloading...' : 'Download Report'}
                     </button>
 
                   </div>
@@ -2738,6 +2633,20 @@ export default function IndividualClientDetailPage() {
         type="warning"
         loading={actionLoading}
         confirmButtonColor="#f59e0b"
+      />
+
+      {/* Unarchive Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showUnarchiveConfirmModal}
+        onClose={() => setShowUnarchiveConfirmModal(false)}
+        onConfirm={confirmUnarchive}
+        title="Unarchive Client"
+        message={`Are you sure you want to unarchive ${client?.name}? This will mark the client as active.`}
+        confirmText="Unarchive Client"
+        cancelText="Cancel"
+        type="info"
+        loading={actionLoading}
+        confirmButtonColor="#10b981"
       />
 
       {/* Delete Note Confirmation Modal */}
@@ -2803,7 +2712,7 @@ function AddSessionFormComponent({ client, onSubmit, onCancel, loading }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!dateTime) {
-      alert('Please select a date and time');
+      toast.error('Please select a date and time');
       return;
     }
     onSubmit({ dateTime, notes, sendConfirmation });
@@ -2875,7 +2784,7 @@ function EmailFormComponent({ clientEmail, onSubmit, onCancel, loading }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!subject.trim() || !message.trim()) {
-      alert('Please fill in both subject and message');
+      toast.error('Please fill in both subject and message');
       return;
     }
     onSubmit(subject, message);

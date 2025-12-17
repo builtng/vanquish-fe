@@ -78,7 +78,7 @@ class MessageController extends Controller
         if (($validated['send_email_notification'] ?? true) && $tc->email) {
             try {
                 $emailMessage = $validated['message'];
-                if ($validated['related_client_id']) {
+                if (isset($validated['related_client_id']) && $validated['related_client_id']) {
                     $client = \App\Models\Client::find($validated['related_client_id']);
                     if ($client) {
                         $emailMessage .= "\n\nRelated to client: {$client->name}";

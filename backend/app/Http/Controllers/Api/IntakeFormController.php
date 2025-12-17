@@ -8,6 +8,9 @@ use App\Models\TcIntakeForm;
 use App\Models\Client;
 use App\Models\TrainingCounsellor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ClientWelcomeEmail;
+use App\Mail\TrainingCounsellorWelcomeEmail;
 
 class IntakeFormController extends Controller
 {
@@ -147,6 +150,17 @@ class IntakeFormController extends Controller
                         'submitted_date' => now(),
                         'stage' => 'Application & Assessment form Submitted',
                     ]);
+                    
+                    // Send welcome email to new client
+                    try {
+                        Mail::to($client->email)->send(new ClientWelcomeEmail(
+                            $client->name,
+                            $client->client_id,
+                            $client->email
+                        ));
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Failed to send client welcome email: ' . $e->getMessage());
+                    }
                 }
 
                 $form->update(['client_id' => $client->id]);
@@ -183,6 +197,21 @@ class IntakeFormController extends Controller
     public function tcIntake(Request $request)
     {
         try {
+            // Parse JSON strings for array fields if they come as strings (from FormData)
+            $arrayFields = ['topics_with_experience', 'topics_not_ready_for', 'availability'];
+            foreach ($arrayFields as $field) {
+                if ($request->has($field) && is_string($request->input($field))) {
+                    try {
+                        $decoded = json_decode($request->input($field), true);
+                        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                            $request->merge([$field => $decoded]);
+                        }
+                    } catch (\Exception $e) {
+                        // If parsing fails, leave as is and let validation handle it
+                    }
+                }
+            }
+
             // Validate form fields
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
@@ -376,6 +405,18 @@ class IntakeFormController extends Controller
                         'last_activity' => now(),
                         'status' => 'Active',
                     ]);
+                    
+                    // Send welcome email to new trainee counsellor
+                    try {
+                        Mail::to($tc->email)->send(new TrainingCounsellorWelcomeEmail(
+                            $tc->name,
+                            $tc->tc_id,
+                            $tc->email,
+                            $tc->modality
+                        ));
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Failed to send TC welcome email: ' . $e->getMessage());
+                    }
                 }
 
                 $form->update(['tc_id' => $tc->id]);

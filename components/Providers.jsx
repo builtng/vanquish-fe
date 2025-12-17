@@ -7,7 +7,7 @@ import { ToastProvider } from "@/contexts/ToastContext";
 
 export function Providers({ children }) {
   return (
-    <ThemeProvider attribute="data-theme" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="data-theme" defaultTheme="light" enableSystem>
       <AuthProvider>
         <SidebarProvider>
           <ToastProvider>

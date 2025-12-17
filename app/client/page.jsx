@@ -13,6 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { StripePaymentWrapper } from "@/components/StripePayment";
+import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { toast } from "react-toastify";
 
 export default function VanquishClientIntake() {
@@ -705,38 +706,43 @@ export default function VanquishClientIntake() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-12 h-12 text-green-600" />
+      <PublicFormWrapper>
+        <div className="min-h-screen" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="flex items-center justify-center p-4 min-h-screen">
+            <div className="card rounded-2xl shadow-xl p-8 max-w-md w-full text-center border">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'var(--success-bg)', border: '2px solid var(--success-border)' }}>
+                <CheckCircle className="w-12 h-12" style={{ color: 'var(--success-primary)' }} />
+              </div>
+              <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Thank You!</h2>
+              <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
+                Your information has been submitted successfully. We'll be in touch
+                within 24 hours to confirm your consultation appointment.
+              </p>
+              <div className="rounded-lg p-4 mb-6 border" style={{ backgroundColor: 'var(--purple-bg)', borderColor: 'var(--purple-border)' }}>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  Consultation Fee: £{getConsultationFee().toFixed(2)} Paid
+                </p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  A confirmation email has been sent to {formData.email}
+                </p>
+              </div>
+              <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
+                Taking the first step towards healing takes courage. We're here to
+                support you on your journey.
+              </p>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-3">Thank You!</h2>
-          <p className="text-gray-600 mb-6">
-            Your information has been submitted successfully. We'll be in touch
-            within 24 hours to confirm your consultation appointment.
-          </p>
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-purple-900 font-medium">
-              Consultation Fee: £{getConsultationFee().toFixed(2)} Paid
-            </p>
-            <p className="text-xs text-purple-700 mt-1">
-              A confirmation email has been sent to {formData.email}
-            </p>
-          </div>
-          <p className="text-sm text-gray-500">
-            Taking the first step towards healing takes courage. We're here to
-            support you on your journey.
-          </p>
         </div>
-      </div>
+      </PublicFormWrapper>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 md:py-8 px-4">
+    <PublicFormWrapper>
+    <div className="min-h-screen py-4 md:py-8 px-4" style={{ background: 'var(--bg-secondary)' }}>
       <div className="max-w-4xl mx-auto">
         {/* Header with Logo */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6">
+        <div className="card rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border">
           <div className="flex items-center justify-between mb-4 md:mb-6">
             <div className="flex items-center gap-3 md:gap-4">
               <div
@@ -746,10 +752,10 @@ export default function VanquishClientIntake() {
                 VT
               </div>
               <div>
-                <h1 className="text-lg md:text-2xl font-bold text-gray-900">
+                <h1 className="text-lg md:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
                   Vanquish Therapies
                 </h1>
-                <p className="text-sm md:text-base text-gray-600 mt-0.5 md:mt-1">
+                <p className="text-sm md:text-base mt-0.5 md:mt-1" style={{ color: 'var(--text-secondary)' }}>
                   Client Intake Form
                 </p>
               </div>
@@ -765,11 +771,11 @@ export default function VanquishClientIntake() {
               >
                 Step {currentStep} of 8
               </span>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm " style={{ color: "var(--text-secondary)" }}>
                 {steps[currentStep - 1].title}
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full  rounded-full h-2" style={{ backgroundColor: "var(--border-color)" }}>
               <div
                 className="h-2 rounded-full transition-all duration-300"
                 style={{
@@ -868,10 +874,10 @@ export default function VanquishClientIntake() {
           {currentStep === 1 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold  mb-2" style={{ color: "var(--text-primary)" }}>
                   Personal Information
                 </h2>
-                <p className="text-sm md:text-base text-gray-600">
+                <p className="text-sm md:text-base " style={{ color: "var(--text-secondary)" }}>
                   Please provide your contact details so we can reach you.
                 </p>
               </div>
@@ -893,7 +899,7 @@ export default function VanquishClientIntake() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     First Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -917,7 +923,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Last Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -941,7 +947,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -958,13 +964,13 @@ export default function VanquishClientIntake() {
                   {errors.email && (
                     <p className="text-red-500 text-xs mt-1">{errors.email}</p>
                   )}
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs  mt-1" style={{ color: "var(--text-tertiary)" }}>
                     We primarily communicate via email and WhatsApp
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Phone Number <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -984,7 +990,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Age <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -1005,7 +1011,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Is it okay for us to leave you a voicemail?{" "}
                     <span className="text-red-500">*</span>
                   </label>
@@ -1032,7 +1038,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Are you currently in therapy/counselling anywhere else?{" "}
                     <span className="text-red-500">*</span>
                   </label>
@@ -1067,17 +1073,17 @@ export default function VanquishClientIntake() {
           {currentStep === 2 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold  mb-2" style={{ color: "var(--text-primary)" }}>
                   About You
                 </h2>
-                <p className="text-sm md:text-base text-gray-600">
+                <p className="text-sm md:text-base " style={{ color: "var(--text-secondary)" }}>
                   This information helps us match you with the right counsellor.
                 </p>
               </div>
 
               <div className="space-y-4 md:space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Gender <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -1104,7 +1110,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Ethnicity <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -1136,7 +1142,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Sexual Orientation <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -1185,17 +1191,17 @@ export default function VanquishClientIntake() {
           {currentStep === 3 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold  mb-2" style={{ color: "var(--text-primary)" }}>
                   Medical & Service Information
                 </h2>
-                <p className="text-sm md:text-base text-gray-600">
+                <p className="text-sm md:text-base " style={{ color: "var(--text-secondary)" }}>
                   Help us understand your needs and ensure your safety.
                 </p>
               </div>
 
               <div className="space-y-4 md:space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Please select the service you require{" "}
                     <span className="text-red-500">*</span>
                   </label>
@@ -1251,7 +1257,7 @@ export default function VanquishClientIntake() {
                 {!(formData.serviceType === "Ish" && ishCapacityFull) && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                         Are you currently on any medication?{" "}
                         <span className="text-red-500">*</span>
                       </label>
@@ -1279,7 +1285,7 @@ export default function VanquishClientIntake() {
 
                     {formData.onMedication === "Yes" && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                           Please mention your medication and what it is prescribed
                           for <span className="text-red-500">*</span>
                         </label>
@@ -1307,7 +1313,7 @@ export default function VanquishClientIntake() {
                     )}
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                         Do you have any disabilities/impairments? If so, please
                         specify <span className="text-red-500">*</span>
                       </label>
@@ -1340,20 +1346,20 @@ export default function VanquishClientIntake() {
           {currentStep === 4 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold  mb-2" style={{ color: "var(--text-primary)" }}>
                   Your Concerns
                 </h2>
-                <p className="text-sm md:text-base text-gray-600">
+                <p className="text-sm md:text-base " style={{ color: "var(--text-secondary)" }}>
                   Tell us what areas you would like support with.
                 </p>
               </div>
 
               <div className="space-y-4 md:space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <label className="block text-sm font-medium  mb-3" style={{ color: "var(--text-primary)" }}>
                     Areas you require support with{" "}
                     <span className="text-red-500">*</span>
-                    <span className="text-sm font-normal text-gray-500 ml-2">
+                    <span className="text-sm font-normal  ml-2" style={{ color: "var(--text-tertiary)" }}>
                       (Select all that apply)
                     </span>
                   </label>
@@ -1367,16 +1373,16 @@ export default function VanquishClientIntake() {
                       {supportAreasList.map((area) => (
                         <label
                           key={area}
-                          className="flex items-start gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded"
+                          className="flex items-start gap-3 cursor-pointer hover: p-2 rounded" style={{ backgroundColor: "var(--bg-secondary)" }}
                         >
                           <input
                             type="checkbox"
                             checked={formData.supportAreas.includes(area)}
                             onChange={() => handleSupportAreaToggle(area)}
-                            className="mt-1 w-5 h-5 rounded border-gray-300"
+                            className="mt-1 w-5 h-5 rounded " style={{ borderColor: "var(--input-border)" }}
                             style={{ accentColor: "#6f1d56" }}
                           />
-                          <span className="text-sm text-gray-700">{area}</span>
+                          <span className="text-sm " style={{ color: "var(--text-primary)" }}>{area}</span>
                         </label>
                       ))}
                     </div>
@@ -1387,14 +1393,14 @@ export default function VanquishClientIntake() {
                     </p>
                   )}
                   {formData.supportAreas.length > 0 && (
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-sm  mt-2" style={{ color: "var(--text-secondary)" }}>
                       Selected: {formData.supportAreas.length} area(s)
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Please provide more details about your concerns{" "}
                     <span className="text-red-500">*</span>
                   </label>
@@ -1421,7 +1427,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Please provide details of any identified risk issues or
                     substance misuse
                   </label>
@@ -1431,7 +1437,7 @@ export default function VanquishClientIntake() {
                       handleInputChange("riskIssues", e.target.value)
                     }
                     rows="3"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border  rounded-lg focus:ring-2 focus:border-transparent" style={{ borderColor: "var(--input-border)" }}
                     placeholder="Please describe any risk factors we should be aware of, or enter 'N/A' if none"
                   />
                 </div>
@@ -1454,10 +1460,10 @@ export default function VanquishClientIntake() {
           {currentStep === 5 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold  mb-2" style={{ color: "var(--text-primary)" }}>
                   Your Availability
                 </h2>
-                <p className="text-sm md:text-base text-gray-600">
+                <p className="text-sm md:text-base " style={{ color: "var(--text-secondary)" }}>
                   Select all time slots when you're available for weekly
                   counselling sessions.
                 </p>
@@ -1495,12 +1501,12 @@ export default function VanquishClientIntake() {
                         }`}
                       >
                         <div
-                          className="px-4 py-3 font-semibold text-sm capitalize bg-gray-100 border-b border-gray-300"
+                          className="px-4 py-3 font-semibold text-sm capitalize  border-b " style={{ borderColor: "var(--input-border)" }} style={{ backgroundColor: "var(--hover-bg)" }}
                           style={{ color: "#6f1d56" }}
                         >
                           {day}
                           {day === "friday" && (
-                            <span className="ml-2 text-xs font-normal text-gray-600">
+                            <span className="ml-2 text-xs font-normal " style={{ color: "var(--text-secondary)" }}>
                               (Last session at 5:00 PM - 5:50 PM)
                             </span>
                           )}
@@ -1510,7 +1516,7 @@ export default function VanquishClientIntake() {
                             {slotsToShow.map((slot) => (
                               <label
                                 key={slot.value}
-                                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 border border-gray-200 transition-colors"
+                                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover: border  transition-colors" style={{ borderColor: "var(--border-color)" }} style={{ backgroundColor: "var(--bg-secondary)" }}
                               >
                                 <input
                                   type="checkbox"
@@ -1520,11 +1526,11 @@ export default function VanquishClientIntake() {
                                   onChange={() =>
                                     handleAvailabilityToggle(day, slot.value)
                                   }
-                                  className="w-5 h-5 rounded border-gray-300"
+                                  className="w-5 h-5 rounded " style={{ borderColor: "var(--input-border)" }}
                                   style={{ accentColor: "#6f1d56" }}
                                 />
                                 <div className="flex-1">
-                                  <span className="text-sm font-medium text-gray-900">
+                                  <span className="text-sm font-medium " style={{ color: "var(--text-primary)" }}>
                                     {slot.label}
                                   </span>
                                   <span
@@ -1593,10 +1599,10 @@ export default function VanquishClientIntake() {
           {currentStep === 6 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold  mb-2" style={{ color: "var(--text-primary)" }}>
                   Counsellor Preferences
                 </h2>
-                <p className="text-sm md:text-base text-gray-600">
+                <p className="text-sm md:text-base " style={{ color: "var(--text-secondary)" }}>
                   These preferences are optional and help us find the best match
                   for you.
                 </p>
@@ -1611,7 +1617,7 @@ export default function VanquishClientIntake() {
 
               <div className="space-y-4 md:space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Gender Preference
                   </label>
                   <select
@@ -1619,7 +1625,7 @@ export default function VanquishClientIntake() {
                     onChange={(e) =>
                       handleInputChange("genderPreference", e.target.value)
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border  rounded-lg focus:ring-2 focus:border-transparent" style={{ borderColor: "var(--input-border)" }}
                   >
                     <option value="No preference">No preference</option>
                     <option value="Male">
@@ -1635,7 +1641,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Age Preference
                   </label>
                   <select
@@ -1643,7 +1649,7 @@ export default function VanquishClientIntake() {
                     onChange={(e) =>
                       handleInputChange("agePreference", e.target.value)
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border  rounded-lg focus:ring-2 focus:border-transparent" style={{ borderColor: "var(--input-border)" }}
                   >
                     <option value="No preference">No preference</option>
                     <option value="Younger">
@@ -1657,7 +1663,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Ethnicity Preference
                   </label>
                   <select
@@ -1665,7 +1671,7 @@ export default function VanquishClientIntake() {
                     onChange={(e) =>
                       handleInputChange("ethnicityPreference", e.target.value)
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border  rounded-lg focus:ring-2 focus:border-transparent" style={{ borderColor: "var(--input-border)" }}
                   >
                     <option value="No preference">No preference</option>
                     <option value="Prefer same">
@@ -1675,7 +1681,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Sexual Orientation Preference
                   </label>
                   <select
@@ -1683,7 +1689,7 @@ export default function VanquishClientIntake() {
                     onChange={(e) =>
                       handleInputChange("orientationPreference", e.target.value)
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border  rounded-lg focus:ring-2 focus:border-transparent" style={{ borderColor: "var(--input-border)" }}
                   >
                     <option value="No preference">No preference</option>
                     <option value="LGBTQ+">Prefer LGBTQ+ counsellor </option>
@@ -1700,17 +1706,17 @@ export default function VanquishClientIntake() {
           {currentStep === 7 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold  mb-2" style={{ color: "var(--text-primary)" }}>
                   Referral Information
                 </h2>
-                <p className="text-sm md:text-base text-gray-600">
+                <p className="text-sm md:text-base " style={{ color: "var(--text-secondary)" }}>
                   Help us understand how you found us.
                 </p>
               </div>
 
               <div className="space-y-4 md:space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     How did you become aware of our services?{" "}
                     <span className="text-red-500">*</span>
                   </label>
@@ -1746,7 +1752,7 @@ export default function VanquishClientIntake() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                     Reasons for Referral
                   </label>
                   <textarea
@@ -1755,7 +1761,7 @@ export default function VanquishClientIntake() {
                       handleInputChange("referralReason", e.target.value)
                     }
                     rows="3"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border  rounded-lg focus:ring-2 focus:border-transparent" style={{ borderColor: "var(--input-border)" }}
                     placeholder="Please provide any additional context about your referral"
                   />
                 </div>
@@ -1766,7 +1772,7 @@ export default function VanquishClientIntake() {
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                           Referrer's Name
                         </label>
                         <input
@@ -1775,13 +1781,13 @@ export default function VanquishClientIntake() {
                           onChange={(e) =>
                             handleInputChange("referrerName", e.target.value)
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                          className="w-full px-4 py-3 border  rounded-lg focus:ring-2 focus:border-transparent" style={{ borderColor: "var(--input-border)" }}
                           placeholder="Full name"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                           Referrer's Phone
                         </label>
                         <input
@@ -1790,13 +1796,13 @@ export default function VanquishClientIntake() {
                           onChange={(e) =>
                             handleInputChange("referrerPhone", e.target.value)
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                          className="w-full px-4 py-3 border  rounded-lg focus:ring-2 focus:border-transparent" style={{ borderColor: "var(--input-border)" }}
                           placeholder="+44 7700 900000"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                           Organization Name (if applicable)
                         </label>
                         <input
@@ -1805,13 +1811,13 @@ export default function VanquishClientIntake() {
                           onChange={(e) =>
                             handleInputChange("referrerOrg", e.target.value)
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                          className="w-full px-4 py-3 border  rounded-lg focus:ring-2 focus:border-transparent" style={{ borderColor: "var(--input-border)" }}
                           placeholder="Organization name"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                           Referrer's Email
                         </label>
                         <input
@@ -1820,7 +1826,7 @@ export default function VanquishClientIntake() {
                           onChange={(e) =>
                             handleInputChange("referrerEmail", e.target.value)
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                          className="w-full px-4 py-3 border  rounded-lg focus:ring-2 focus:border-transparent" style={{ borderColor: "var(--input-border)" }}
                           placeholder="email@example.com"
                         />
                       </div>
@@ -1835,10 +1841,10 @@ export default function VanquishClientIntake() {
           {currentStep === 8 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold  mb-2" style={{ color: "var(--text-primary)" }}>
                   Consultation Payment
                 </h2>
-                <p className="text-sm md:text-base text-gray-600">
+                <p className="text-sm md:text-base " style={{ color: "var(--text-secondary)" }}>
                   Secure your consultation appointment with a small admin fee.
                 </p>
               </div>
@@ -1862,7 +1868,7 @@ export default function VanquishClientIntake() {
                     >
                       Initial Consultation
                     </p>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-xs  mt-1" style={{ color: "var(--text-secondary)" }}>
                       Assessment and admin fee
                     </p>
                   </div>
@@ -1873,7 +1879,7 @@ export default function VanquishClientIntake() {
                     £{getConsultationFee().toFixed(2)}
                   </p>
                 </div>
-                <p className="text-xs md:text-sm text-gray-700">
+                <p className="text-xs md:text-sm " style={{ color: "var(--text-primary)" }}>
                   This consultation fee helps us ensure commitment to your
                   therapeutic journey.
                 </p>
@@ -1881,7 +1887,7 @@ export default function VanquishClientIntake() {
 
                {/* Discount Code Section */}
                <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium  mb-2" style={{ color: "var(--text-primary)" }}>
                   Have a discount code?
                 </label>
                 <div className="flex gap-2">
@@ -1891,7 +1897,7 @@ export default function VanquishClientIntake() {
                     onChange={(e) => handleInputChange('discountCode', e.target.value)}
                     placeholder="Enter code"
                     disabled={isDiscountApplied}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+                    className="flex-1 px-4 py-2 border  rounded-lg focus:ring-2 focus:border-transparent disabled: disabled:" style={{ borderColor: "var(--input-border)" }} style={{ color: "var(--text-tertiary)" }} style={{ backgroundColor: "var(--hover-bg)" }}
                   />
                   {!isDiscountApplied ? (
                     <button
@@ -1954,7 +1960,7 @@ export default function VanquishClientIntake() {
                 />
               )}
 
-              <div className="space-y-4 pt-4 border-t border-gray-200">
+              <div className="space-y-4 pt-4 border-t " style={{ borderColor: "var(--border-color)" }}>
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -1962,10 +1968,10 @@ export default function VanquishClientIntake() {
                     onChange={(e) =>
                       handleInputChange("termsAccepted", e.target.checked)
                     }
-                    className="mt-1 w-5 h-5 rounded border-gray-300"
+                    className="mt-1 w-5 h-5 rounded " style={{ borderColor: "var(--input-border)" }}
                     style={{ accentColor: "#6f1d56" }}
                   />
-                  <span className="text-sm text-gray-700">
+                  <span className="text-sm " style={{ color: "var(--text-primary)" }}>
                     I understand that missing more than one session or failing
                     to book sessions for a week or more, without communication,
                     may result in my reserved space being released.{" "}
@@ -1973,8 +1979,8 @@ export default function VanquishClientIntake() {
                   </span>
                 </label>
 
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <p className="text-xs text-gray-600">
+                <div className=" border  rounded-lg p-4" style={{ borderColor: "var(--border-color)" }} style={{ backgroundColor: "var(--bg-secondary)" }}>
+                  <p className="text-xs " style={{ color: "var(--text-secondary)" }}>
                     🔒 Your payment information is secure and encrypted. This
                     consultation/admin fee is non-refundable.
                   </p>
@@ -2009,7 +2015,7 @@ export default function VanquishClientIntake() {
 
           {/* Navigation Buttons */}
           {!(formData.serviceType === "Ish" && ishCapacityFull) && (
-          <div className="flex items-center justify-between mt-8 md:mt-10 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-between mt-8 md:mt-10 pt-6 border-t " style={{ borderColor: "var(--border-color)" }}>
             <button
               type="button"
               onClick={handlePrevious}
@@ -2025,7 +2031,7 @@ export default function VanquishClientIntake() {
               <span className="md:hidden">Back</span>
             </button>
 
-            <div className="text-sm text-gray-600 font-medium md:hidden">
+            <div className="text-sm  font-medium md:hidden" style={{ color: "var(--text-secondary)" }}>
               {currentStep}/8
             </div>
 
@@ -2068,17 +2074,17 @@ export default function VanquishClientIntake() {
       {showPaymentModal && paymentProps && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden my-8">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center " style={{ backgroundColor: "var(--bg-secondary)" }}>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Secure Payment</h3>
-                <p className="text-sm text-gray-600">Consultation Fee</p>
+                <h3 className="text-lg font-bold " style={{ color: "var(--text-primary)" }}>Secure Payment</h3>
+                <p className="text-sm " style={{ color: "var(--text-secondary)" }}>Consultation Fee</p>
               </div>
               <button 
                 onClick={() => setShowPaymentModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className=" hover: transition-colors" style={{ color: "var(--text-tertiary)" }} style={{ color: "var(--text-secondary)" }}
                 title="Cancel payment"
               >
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full  flex items-center justify-center" style={{ backgroundColor: "var(--border-color)" }}>
                   <span className="text-xl font-bold">&times;</span>
                 </div>
               </button>
@@ -2114,5 +2120,6 @@ export default function VanquishClientIntake() {
         </div>
       )}
     </div>
+  </PublicFormWrapper>
   );
 }

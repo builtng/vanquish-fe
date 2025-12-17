@@ -11,8 +11,8 @@ class GenericClientEmail extends Mailable
     use Queueable, SerializesModels;
 
     public $clientName;
-    public $subject;
-    public $message;
+    public $emailSubject;
+    public $emailMessage;
 
     /**
      * Create a new message instance.
@@ -20,8 +20,8 @@ class GenericClientEmail extends Mailable
     public function __construct($clientName, $subject, $message)
     {
         $this->clientName = $clientName;
-        $this->subject = $subject;
-        $this->message = $message;
+        $this->emailSubject = $subject;
+        $this->emailMessage = $message;
     }
 
     /**
@@ -29,12 +29,12 @@ class GenericClientEmail extends Mailable
      */
     public function build()
     {
-        return $this->subject($this->subject)
+        return $this->subject($this->emailSubject)
             ->view('emails.generic-client')
             ->with([
                 'clientName' => $this->clientName,
-                'message' => $this->message,
+                'subject' => $this->emailSubject,
+                'message' => $this->emailMessage,
             ]);
     }
 }
-

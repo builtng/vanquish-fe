@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { toast } from 'react-toastify';
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import apiService from "@/lib/api";
@@ -130,7 +131,7 @@ export default function CouponsPage() {
       fetchCoupons();
     } catch (error) {
       console.error("Failed to delete coupon:", error);
-      alert("Failed to delete coupon.");
+      toast.error("Failed to delete coupon.");
     }
   };
 

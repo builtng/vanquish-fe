@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { toast } from 'react-toastify';
 import {
   User,
   Shield,
@@ -275,11 +276,11 @@ function QualifiedCounsellorFormContent() {
         body: JSON.stringify(submitData),
       });
 
-      alert("Qualified Counsellor form submitted successfully!");
+      toast.success("Qualified Counsellor form submitted successfully!");
       router.push("/dashboard/training-counsellors");
     } catch (error) {
       console.error("Error submitting form:", error);
-      alert("Error submitting form. Please try again.");
+      toast.error("Error submitting form. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
