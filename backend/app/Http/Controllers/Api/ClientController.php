@@ -163,7 +163,7 @@ class ClientController extends Controller
         return response()->json($client->load('matchedTc'));
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         // Find by UUID or fall back to client_id for backward compatibility
         $client = Client::where('uuid', $id)->orWhere('client_id', $id)->firstOrFail();
@@ -504,6 +504,68 @@ class ClientController extends Controller
         return response()->json($match->load(['client', 'tc']), $isNewMatch ? 201 : 200);
     }
 
+    public function unassignMatch(Request $request)
+    {
+        $validated = $request->validate([
+            'client_id' => 'required',
+        ]);
+
+        // Find by UUID or ID
+        $client = Client::where('uuid', $validated['client_id'])
+            ->orWhere('id', $validated['client_id'])
+            ->firstOrFail();
+
+        // Authorization check
+        if (!Gate::allows('update', $client)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if (!$client->matched_tc_id) {
+            return response()->json(['message' => 'Client is not assigned to any TC'], 400);
+        }
+
+        $tcId = $client->matched_tc_id;
+        $tc = \App\Models\TrainingCounsellor::find($tcId);
+
+        // Update match record status
+        $match = ClientTcMatch::where('client_id', $client->id)
+            ->where('tc_id', $tcId)
+            ->where('status', 'assigned')
+            ->first();
+
+        if ($match) {
+            $match->update([
+                'status' => 'unassigned',
+                'unassigned_at' => now(),
+            ]);
+        }
+
+        // Decrement TC client count
+        if ($tc) {
+            $tc->decrement('current_clients');
+        }
+
+        // Update client status
+        $oldTcName = $tc ? $tc->name : 'Unknown TC';
+        $client->update([
+            'matched_tc_id' => null,
+            'matched_date' => null,
+            'stage' => 'Consultation Completed', // Go back to pending matches
+        ]);
+
+        // Log activity
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'client_tc_unassigned',
+            'model_type' => Client::class,
+            'model_id' => $client->id,
+            'description' => "{$request->user()->name} unassigned client {$client->name} from TC {$oldTcName}",
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['message' => 'Client unassigned successfully']);
+    }
+
     public function sendEmail(Request $request, $id)
     {
         // Find by UUID or fall back to client_id for backward compatibility
@@ -547,7 +609,7 @@ class ClientController extends Controller
                 'client_uuid' => $client->uuid,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Failed to send email to client', [
+            \Illuminate\Support\Facades\Log::error('Failed to send email to client', [
                 'client_id' => $client->id,
                 'error' => $e->getMessage(),
             ]);
@@ -606,7 +668,7 @@ class ClientController extends Controller
                 'last_feedback_sent_at' => $client->last_feedback_sent_at,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Failed to send feedback form email', [
+            \Illuminate\Support\Facades\Log::error('Failed to send feedback form email', [
                 'client_id' => $client->id,
                 'error' => $e->getMessage(),
             ]);
@@ -658,7 +720,7 @@ class ClientController extends Controller
                 'agreement_sent_at' => $client->agreement_sent_at,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Failed to resend agreement email', [
+            \Illuminate\Support\Facades\Log::error('Failed to resend agreement email', [
                 'client_id' => $client->id,
                 'error' => $e->getMessage(),
             ]);

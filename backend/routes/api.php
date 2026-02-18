@@ -131,6 +131,7 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::get('/pending-matches', [ClientController::class, 'pendingMatches']);
         Route::get('/pending-matches/count', [ClientController::class, 'pendingMatchesCount']);
         Route::post('/matches', [ClientController::class, 'assignMatch']);
+        Route::post('/unassign-match', [ClientController::class, 'unassignMatch']);
     });
 
     // Activity Logs (staff and admin only)
