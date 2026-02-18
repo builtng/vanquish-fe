@@ -130,6 +130,34 @@ export default function CompletedMatchesPage() {
     }
   };
 
+  const handleUnassign = async (clientId) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to unassign this practitioner? The client will be moved back to Pending Matches.",
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await apiService.unassignMatch(clientId);
+      success("Practitioner unassigned successfully");
+      await fetchClients();
+      if (
+        selectedClient &&
+        (selectedClient.uuid === clientId || selectedClient.id === clientId)
+      ) {
+        setSelectedClient(null);
+      }
+    } catch (err) {
+      console.error("Error unassigning practitioner:", err);
+      showError(err.message || "Failed to unassign practitioner");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Initial fetch and refresh on filter changes
   useEffect(() => {
     fetchClients();
@@ -439,6 +467,13 @@ export default function CompletedMatchesPage() {
               Send Feedback Form
             </button>
           )}
+          <button
+            onClick={() => handleUnassign(client.uuid || client.id)}
+            className="w-full py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium flex items-center justify-center gap-2"
+          >
+            <UserCheck className="w-4 h-4" />
+            Unassign Practitioner
+          </button>
           <button className="w-full py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium">
             Archive Client
           </button>
@@ -753,6 +788,15 @@ export default function CompletedMatchesPage() {
                               <Send className="w-4 h-4 text-green-600" />
                             </button>
                           )}
+                          <button
+                            onClick={() =>
+                              handleUnassign(client.uuid || client.id)
+                            }
+                            className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                            title="Unassign Practitioner"
+                          >
+                            <UserCheck className="w-4 h-4 text-red-600" />
+                          </button>
                           {/* <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="More">
                         <MoreVertical className="w-4 h-4 text-gray-600" />
                       </button> */}

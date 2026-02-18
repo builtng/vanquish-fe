@@ -302,14 +302,7 @@ export default function VanquishClientIntake() {
             "Please provide details about your concerns";
         break;
 
-      case 5: // Assessment (CORE 34)
-        if (Object.keys(formData.core34).length < 34) {
-          stepErrors.core34 =
-            "Please answer all 34 questions before proceeding.";
-        }
-        break;
-
-      case 6: // Availability
+      case 5: // Availability
         const hasAvailability = Object.values(formData.availability).some(
           (day) => day.length > 0,
         );
@@ -317,12 +310,19 @@ export default function VanquishClientIntake() {
           stepErrors.availability = "Please select at least one time slot";
         break;
 
-      case 7: // Preferences (optional - no validation needed)
+      case 6: // Preferences (optional - no validation needed)
         break;
 
-      case 8: // Referral
+      case 7: // Referral
         if (!formData.hearAboutUs)
           stepErrors.hearAboutUs = "This field is required";
+        break;
+
+      case 8: // Assessment (CORE 34)
+        if (Object.keys(formData.core34).length < 34) {
+          stepErrors.core34 =
+            "Please answer all 34 questions before proceeding.";
+        }
         break;
 
       case 9: // Payment
@@ -1692,147 +1692,6 @@ export default function VanquishClientIntake() {
               </div>
             )}
 
-            {/* Step 8: Assessment (CORE 34) - moved to be last before payment */}
-            {currentStep === 8 && (
-              <div className="space-y-4 md:space-y-6">
-                <div>
-                  <h2
-                    className="text-2xl md:text-3xl font-bold mb-4"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    Assessment (CORE 34)
-                  </h2>
-                  <div
-                    className="text-base md:text-lg mb-4 space-y-2"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    <p className="font-bold">
-                      Important - Please read this information before you start
-                      completing the below section:
-                    </p>
-                    <p>
-                      This section has 34 statements about how you have been
-                      over the last week.
-                    </p>
-                    <p>
-                      Please ensure you read each statement and think about how
-                      often you have felt that way over the last week. Then tick
-                      the box that relates closest to how you have felt.
-                    </p>
-                    <p className="text-base italic">
-                      This core 34 has been taken from The CORE System Trust:
-                      http://www.coresystemtrust.org.uk/copyright.pdf
-                    </p>
-                  </div>
-                </div>
-
-                {errors.core34 && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                    <p className="text-red-600 font-medium">{errors.core34}</p>
-                  </div>
-                )}
-
-                <div
-                  className="overflow-x-auto rounded-lg border border-gray-200"
-                  id="core34"
-                >
-                  <table className="w-full min-w-[800px] border-collapse">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="p-4 text-left font-semibold text-gray-700 w-1/3 sticky left-0 bg-gray-50 z-10">
-                          Question
-                        </th>
-                        {core34Options.map((option) => (
-                          <th
-                            key={option}
-                            className="p-4 text-center font-semibold text-gray-700 text-base w-[13%]"
-                          >
-                            {option}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {core34Questions.map((question, index) => (
-                        <tr
-                          key={index}
-                          className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                            index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
-                          } ${
-                            errors.core34 &&
-                            !formData.core34[index] &&
-                            "bg-red-50"
-                          }`}
-                        >
-                          <td className="p-4 text-gray-800 font-medium sticky left-0 bg-inherit z-10 border-r border-gray-100">
-                            {index + 1}. {question}
-                            {errors.core34 && !formData.core34[index] && (
-                              <span className="text-red-500 ml-2 text-sm">
-                                *Required
-                              </span>
-                            )}
-                          </td>
-                          {core34Options.map((option, optIndex) => (
-                            <td key={optIndex} className="p-4 text-center">
-                              <label className="flex items-center justify-center w-full h-full cursor-pointer">
-                                <input
-                                  type="radio"
-                                  name={`core34_q${index}`}
-                                  value={option}
-                                  checked={formData.core34[index] === option}
-                                  onChange={() =>
-                                    handleCore34Change(index, option)
-                                  }
-                                  className="w-5 h-5 cursor-pointer accent-[#6f1d56]"
-                                />
-                                <span className="sr-only">{option}</span>
-                              </label>
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Mobile View - Cards for small screens where table might be hard to read */}
-                <div className="md:hidden space-y-6 mt-6">
-                  {core34Questions.map((question, index) => (
-                    <div
-                      key={`mobile-${index}`}
-                      className={`border rounded-lg p-4 ${
-                        errors.core34 && !formData.core34[index]
-                          ? "border-red-300 bg-red-50"
-                          : "border-gray-200"
-                      }`}
-                    >
-                      <p className="font-medium mb-3">
-                        {index + 1}. {question}
-                      </p>
-                      <div className="space-y-2">
-                        {core34Options.map((option) => (
-                          <label
-                            key={option}
-                            className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200"
-                          >
-                            <input
-                              type="radio"
-                              name={`mobile_core34_q${index}`}
-                              value={option}
-                              checked={formData.core34[index] === option}
-                              onChange={() => handleCore34Change(index, option)}
-                              className="w-5 h-5 accent-[#6f1d56]"
-                            />
-                            <span className="text-sm">{option}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Step 5: Availability - moved up from step 6 */}
             {currentStep === 5 && (
               <div className="space-y-4 md:space-y-6">
@@ -2305,6 +2164,147 @@ export default function VanquishClientIntake() {
               </div>
             )}
 
+            {/* Step 8: Assessment (CORE 34) - moved to be last before payment */}
+            {currentStep === 8 && (
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Assessment (CORE 34)
+                  </h2>
+                  <div
+                    className="text-base md:text-lg mb-4 space-y-2"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <p className="font-bold">
+                      Important - Please read this information before you start
+                      completing the below section:
+                    </p>
+                    <p>
+                      This section has 34 statements about how you have been
+                      over the last week.
+                    </p>
+                    <p>
+                      Please ensure you read each statement and think about how
+                      often you have felt that way over the last week. Then tick
+                      the box that relates closest to how you have felt.
+                    </p>
+                    <p className="text-base italic">
+                      This core 34 has been taken from The CORE System Trust:
+                      http://www.coresystemtrust.org.uk/copyright.pdf
+                    </p>
+                  </div>
+                </div>
+
+                {errors.core34 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <p className="text-red-600 font-medium">{errors.core34}</p>
+                  </div>
+                )}
+
+                <div
+                  className="overflow-x-auto rounded-lg border border-gray-200"
+                  id="core34"
+                >
+                  <table className="w-full min-w-[800px] border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="p-4 text-left font-semibold text-gray-700 w-1/3 sticky left-0 bg-gray-50 z-10">
+                          Question
+                        </th>
+                        {core34Options.map((option) => (
+                          <th
+                            key={option}
+                            className="p-4 text-center font-semibold text-gray-700 text-base w-[13%]"
+                          >
+                            {option}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {core34Questions.map((question, index) => (
+                        <tr
+                          key={index}
+                          className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                            index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                          } ${
+                            errors.core34 &&
+                            !formData.core34[index] &&
+                            "bg-red-50"
+                          }`}
+                        >
+                          <td className="p-4 text-gray-800 font-medium sticky left-0 bg-inherit z-10 border-r border-gray-100">
+                            {index + 1}. {question}
+                            {errors.core34 && !formData.core34[index] && (
+                              <span className="text-red-500 ml-2 text-sm">
+                                *Required
+                              </span>
+                            )}
+                          </td>
+                          {core34Options.map((option, optIndex) => (
+                            <td key={optIndex} className="p-4 text-center">
+                              <label className="flex items-center justify-center w-full h-full cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name={`core34_q${index}`}
+                                  value={option}
+                                  checked={formData.core34[index] === option}
+                                  onChange={() =>
+                                    handleCore34Change(index, option)
+                                  }
+                                  className="w-5 h-5 cursor-pointer accent-[#6f1d56]"
+                                />
+                                <span className="sr-only">{option}</span>
+                              </label>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View - Cards for small screens where table might be hard to read */}
+                <div className="md:hidden space-y-6 mt-6">
+                  {core34Questions.map((question, index) => (
+                    <div
+                      key={`mobile-${index}`}
+                      className={`border rounded-lg p-4 ${
+                        errors.core34 && !formData.core34[index]
+                          ? "border-red-300 bg-red-50"
+                          : "border-gray-200"
+                      }`}
+                    >
+                      <p className="font-medium mb-3">
+                        {index + 1}. {question}
+                      </p>
+                      <div className="space-y-2">
+                        {core34Options.map((option) => (
+                          <label
+                            key={option}
+                            className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer border border-transparent hover:border-gray-200"
+                          >
+                            <input
+                              type="radio"
+                              name={`mobile_core34_q${index}`}
+                              value={option}
+                              checked={formData.core34[index] === option}
+                              onChange={() => handleCore34Change(index, option)}
+                              className="w-5 h-5 accent-[#6f1d56]"
+                            />
+                            <span className="text-sm">{option}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Step 9: Payment & Terms */}
             {currentStep === 9 && (
               <div className="space-y-4 md:space-y-6">
@@ -2548,10 +2548,10 @@ export default function VanquishClientIntake() {
                   className="text-sm  font-medium md:hidden"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  {currentStep}/8
+                  {currentStep}/{steps.length}
                 </div>
 
-                {currentStep < 8 ? (
+                {currentStep < steps.length ? (
                   <button
                     type="button"
                     onClick={handleNext}

@@ -78,6 +78,18 @@ export default function PendingMatchesPage() {
 
         const data = await apiService.getPendingMatches(params);
 
+        // Time slot mapping helper
+        const formatTimeSlot = (slot) => {
+          const slotMap = {
+            "morning-early": "10-11am",
+            "morning-late": "11am-1pm",
+            "afternoon-early": "1-4pm",
+            "afternoon-late": "4-5pm",
+            evening: "5-7pm",
+          };
+          return slotMap[slot] || slot.replace("-", " ");
+        };
+
         // Transform API data to match component structure
         const transformedData = data.map((client) => ({
           id: client.uuid || client.id,
@@ -88,7 +100,7 @@ export default function PendingMatchesPage() {
           phone: client.phone || null,
           serviceType: client.service_type || null,
           submittedDate: client.submitted_date || null,
-          daysWaiting: client.days_waiting || 0,
+          daysWaiting: Math.floor(client.days_waiting || 0),
           urgency:
             client.urgency ||
             (client.status === "urgent"
@@ -100,7 +112,7 @@ export default function PendingMatchesPage() {
           preferredModality: client.preferred_modality || null,
           availability: client.availability
             ? Object.entries(client.availability).flatMap(([day, slots]) =>
-                slots.map((slot) => `${day} ${slot.replace("-", " ")}`),
+                slots.map((slot) => `${day} ${formatTimeSlot(slot)}`),
               )
             : [],
           location: client.address
@@ -526,6 +538,17 @@ export default function PendingMatchesPage() {
                   if (filterUrgency !== "all") params.urgency = filterUrgency;
 
                   const data = await apiService.getPendingMatches(params);
+                  const formatTimeSlot = (slot) => {
+                    const slotMap = {
+                      "morning-early": "10-11am",
+                      "morning-late": "11am-1pm",
+                      "afternoon-early": "1-4pm",
+                      "afternoon-late": "4-5pm",
+                      evening: "5-7pm",
+                    };
+                    return slotMap[slot] || slot.replace("-", " ");
+                  };
+
                   const transformedData = data.map((client) => ({
                     id: client.uuid || client.id,
                     uuid: client.uuid || client.id,
@@ -535,7 +558,7 @@ export default function PendingMatchesPage() {
                     phone: client.phone || null,
                     serviceType: client.service_type || null,
                     submittedDate: client.submitted_date || null,
-                    daysWaiting: client.days_waiting || 0,
+                    daysWaiting: Math.floor(client.days_waiting || 0),
                     urgency:
                       client.urgency ||
                       (client.status === "urgent"
@@ -549,7 +572,7 @@ export default function PendingMatchesPage() {
                       ? Object.entries(client.availability).flatMap(
                           ([day, slots]) =>
                             slots.map(
-                              (slot) => `${day} ${slot.replace("-", " ")}`,
+                              (slot) => `${day} ${formatTimeSlot(slot)}`,
                             ),
                         )
                       : [],
@@ -757,7 +780,7 @@ export default function PendingMatchesPage() {
                           phone: client.phone || null,
                           serviceType: client.service_type || null,
                           submittedDate: client.submitted_date || null,
-                          daysWaiting: client.days_waiting || 0,
+                          daysWaiting: Math.floor(client.days_waiting || 0),
                           urgency:
                             client.urgency ||
                             (client.status === "urgent"
@@ -770,10 +793,21 @@ export default function PendingMatchesPage() {
                           availability: client.availability
                             ? Object.entries(client.availability).flatMap(
                                 ([day, slots]) =>
-                                  slots.map(
-                                    (slot) =>
-                                      `${day} ${slot.replace("-", " ")}`,
-                                  ),
+                                  slots.map((slot) => {
+                                    const slotMap = {
+                                      "morning-early": "10-11am",
+                                      "morning-late": "11am-1pm",
+                                      "afternoon-early": "1-4pm",
+                                      "afternoon-late": "4-5pm",
+                                      evening: "5-7pm",
+                                    };
+                                    const formattedSlot =
+                                      slotMap[slot] ||
+                                      (typeof slot === "string"
+                                        ? slot.replace("-", " ")
+                                        : slot);
+                                    return `${day} ${formattedSlot}`;
+                                  }),
                               )
                             : [],
                           location: client.address
@@ -1231,7 +1265,7 @@ export default function PendingMatchesPage() {
                           phone: client.phone || null,
                           serviceType: client.service_type || null,
                           submittedDate: client.submitted_date || null,
-                          daysWaiting: client.days_waiting || 0,
+                          daysWaiting: Math.floor(client.days_waiting || 0),
                           urgency:
                             client.urgency ||
                             (client.status === "urgent"
@@ -1244,10 +1278,21 @@ export default function PendingMatchesPage() {
                           availability: client.availability
                             ? Object.entries(client.availability).flatMap(
                                 ([day, slots]) =>
-                                  slots.map(
-                                    (slot) =>
-                                      `${day} ${slot.replace("-", " ")}`,
-                                  ),
+                                  slots.map((slot) => {
+                                    const slotMap = {
+                                      "morning-early": "10-11am",
+                                      "morning-late": "11am-1pm",
+                                      "afternoon-early": "1-4pm",
+                                      "afternoon-late": "4-5pm",
+                                      evening: "5-7pm",
+                                    };
+                                    const formattedSlot =
+                                      slotMap[slot] ||
+                                      (typeof slot === "string"
+                                        ? slot.replace("-", " ")
+                                        : slot);
+                                    return `${day} ${formattedSlot}`;
+                                  }),
                               )
                             : [],
                           location: client.address

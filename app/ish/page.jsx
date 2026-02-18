@@ -1124,48 +1124,6 @@ export default function IshClientIntake() {
               </div>
             )}
 
-            {/* Step 8: Assessment (CORE 34) - moved to be last before payment */}
-            {currentStep === 8 && (
-              <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
-                  Assessment (CORE 34)
-                </h2>
-                <div className="overflow-x-auto border rounded-lg">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="p-3 text-left">Statement</th>
-                        {core34Options.map((opt) => (
-                          <th key={opt} className="p-3 text-center">
-                            {opt}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {core34Questions.map((q, i) => (
-                        <tr key={i} className="border-t">
-                          <td className="p-3">
-                            {i + 1}. {q}
-                          </td>
-                          {core34Options.map((opt) => (
-                            <td key={opt} className="p-3 text-center">
-                              <input
-                                type="radio"
-                                checked={formData.core34[i] === opt}
-                                onChange={() => handleCore34Change(i, opt)}
-                                className="accent-[#6f1d56]"
-                              />
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
             {/* Step 5: Availability - moved up from step 6 */}
             {currentStep === 5 && (
               <div className="space-y-4 md:space-y-6">
@@ -1268,6 +1226,48 @@ export default function IshClientIntake() {
               </div>
             )}
 
+            {/* Step 8: Assessment (CORE 34) - moved to be last before payment */}
+            {currentStep === 8 && (
+              <div className="space-y-4 md:space-y-6">
+                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
+                  Assessment (CORE 34)
+                </h2>
+                <div className="overflow-x-auto border rounded-lg">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="p-3 text-left">Statement</th>
+                        {core34Options.map((opt) => (
+                          <th key={opt} className="p-3 text-center">
+                            {opt}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {core34Questions.map((q, i) => (
+                        <tr key={i} className="border-t">
+                          <td className="p-3">
+                            {i + 1}. {q}
+                          </td>
+                          {core34Options.map((opt) => (
+                            <td key={opt} className="p-3 text-center">
+                              <input
+                                type="radio"
+                                checked={formData.core34[i] === opt}
+                                onChange={() => handleCore34Change(i, opt)}
+                                className="accent-[#6f1d56]"
+                              />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {currentStep === 9 && (
               <div className="space-y-4 md:space-y-6">
                 <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
@@ -1305,15 +1305,7 @@ export default function IshClientIntake() {
                   </button>
                 </div>
 
-                {!clientId ? (
-                  <button
-                    onClick={handleSubmit}
-                    disabled={!formData.termsAccepted}
-                    className="w-full py-4 bg-[#6f1d56] text-white rounded-lg font-bold text-lg disabled:opacity-50"
-                  >
-                    Save & Proceed to Payment
-                  </button>
-                ) : (
+                {clientId && (
                   <StripePaymentWrapper
                     clientId={clientId}
                     amount={getConsultationFee()}
@@ -1339,24 +1331,35 @@ export default function IshClientIntake() {
             )}
 
             {/* Nav Buttons */}
-            {!(formData.serviceType === "Ish" && ishCapacityFull) &&
-              currentStep < 9 && (
-                <div className="flex justify-between mt-10 pt-6 border-t">
-                  <button
-                    onClick={handlePrevious}
-                    disabled={currentStep === 1}
-                    className="px-6 py-2 bg-gray-200 rounded-lg text-gray-700 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
+            {!(formData.serviceType === "Ish" && ishCapacityFull) && (
+              <div className="flex justify-between mt-10 pt-6 border-t">
+                <button
+                  onClick={handlePrevious}
+                  disabled={currentStep === 1}
+                  className="px-6 py-2 bg-gray-200 rounded-lg text-gray-700 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                {currentStep < steps.length ? (
                   <button
                     onClick={handleNext}
                     className="px-8 py-2 bg-[#6f1d56] text-white rounded-lg"
                   >
                     Next
                   </button>
-                </div>
-              )}
+                ) : (
+                  !clientId && (
+                    <button
+                      onClick={handleSubmit}
+                      disabled={!formData.termsAccepted}
+                      className="px-8 py-2 bg-[#6f1d56] text-white rounded-lg disabled:opacity-50"
+                    >
+                      Save & Proceed to Payment
+                    </button>
+                  )
+                )}
+              </div>
+            )}
           </div>
         </div>
 

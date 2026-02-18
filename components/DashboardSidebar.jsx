@@ -134,6 +134,11 @@ export default function DashboardSidebar() {
     return () => clearInterval(interval);
   }, []);
 
+  const [matchesExpanded, setMatchesExpanded] = useState(
+    pathname?.startsWith("/dashboard/pending-matches") ||
+      pathname?.startsWith("/dashboard/completed-matches"),
+  );
+
   const menuItems = [
     { id: "overview", icon: Home, label: "Overview", href: "/dashboard" },
     {
@@ -144,17 +149,25 @@ export default function DashboardSidebar() {
       href: "/dashboard/consultations",
     },
     {
-      id: "matches",
+      id: "all-matches",
       icon: UserCheck,
-      label: "Pending Matches",
-      badge: pendingMatchesCount,
-      href: "/dashboard/pending-matches",
-    },
-    {
-      id: "completed-matches",
-      icon: CheckCheck,
-      label: "Completed Matches",
-      href: "/dashboard/completed-matches",
+      label: "All Matches",
+      isExpandable: true,
+      expanded: matchesExpanded,
+      onToggle: () => setMatchesExpanded(!matchesExpanded),
+      subItems: [
+        {
+          id: "matches",
+          label: "Pending Matches",
+          badge: pendingMatchesCount,
+          href: "/dashboard/pending-matches",
+        },
+        {
+          id: "completed-matches",
+          label: "Completed Matches",
+          href: "/dashboard/completed-matches",
+        },
+      ],
     },
     {
       id: "tcs",
@@ -247,7 +260,7 @@ export default function DashboardSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -258,29 +271,86 @@ export default function DashboardSidebar() {
             (item.id === "tcs" &&
               pathname?.startsWith("/dashboard/training-counsellors/details"));
 
+          if (item.isExpandable) {
+            const isAnySubItemActive = item.subItems.some(
+              (sub) => pathname === sub.href,
+            );
+
+            return (
+              <div key={item.id} className="space-y-1">
+                <button
+                  onClick={item.onToggle}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    isAnySubItemActive && !item.expanded
+                      ? "bg-[#6f1c56] text-white font-semibold"
+                      : "text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  {sidebarOpen && (
+                    <>
+                      <span className="flex-1 text-left text-sm font-medium">
+                        {item.label}
+                      </span>
+                      {item.expanded ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                    </>
+                  )}
+                </button>
+
+                {item.expanded && sidebarOpen && (
+                  <div className="ml-9 space-y-1">
+                    {item.subItems.map((subItem) => {
+                      const isSubActive = pathname === subItem.href;
+                      return (
+                        <Link
+                          key={subItem.id}
+                          href={subItem.href}
+                          className={`flex items-center justify-between px-4 py-2 rounded-lg text-sm transition-colors ${
+                            isSubActive
+                              ? "bg-purple-50 dark:bg-purple-900/20 text-[#6f1c56] dark:text-purple-300 font-semibold"
+                              : "text-gray-600 dark:text-[var(--text-secondary)] hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)]"
+                          }`}
+                        >
+                          <span>{subItem.label}</span>
+                          {subItem.badge !== undefined && subItem.badge > 0 && (
+                            <span
+                              className={`px-2 py-0.5 text-xs rounded-full font-semibold ${
+                                isSubActive
+                                  ? "bg-[#6f1c56] text-white"
+                                  : "bg-red-500 text-white"
+                              }`}
+                            >
+                              {subItem.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           return (
             <Link
               key={item.id}
               href={item.href}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
-                  ? "dark:bg-purple-900/30 font-semibold shadow-sm"
+                  ? "dark:bg-purple-900/30 font-semibold shadow-sm text-white"
                   : "text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
               }`}
-              style={
-                isActive ? { backgroundColor: "#6f1c56", color: "#ffffff" } : {}
-              }
+              style={isActive ? { backgroundColor: "#6f1c56" } : {}}
             >
-              <item.icon
-                className={`w-5 h-5 flex-shrink-0 ${isActive ? "dark:text-purple-300" : ""}`}
-                style={isActive ? { color: "#ffffff" } : {}}
-              />
+              <item.icon className="w-5 h-5 flex-shrink-0" />
               {sidebarOpen && (
                 <>
-                  <span
-                    className={`flex-1 text-left text-sm font-medium ${isActive ? "dark:text-purple-300" : ""}`}
-                    style={isActive ? { color: "#ffffff" } : {}}
-                  >
+                  <span className="flex-1 text-left text-sm font-medium">
                     {item.label}
                   </span>
                   {item.badge !== undefined && (
