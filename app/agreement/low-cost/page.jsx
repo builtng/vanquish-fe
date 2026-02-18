@@ -5,8 +5,9 @@ import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { FileText, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { toast } from "react-toastify";
+import { Suspense } from "react";
 
-export default function LowCostAgreementPage() {
+function LowCostAgreementContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const signatureRef = useRef(null);
@@ -797,5 +798,19 @@ export default function LowCostAgreementPage() {
         </div>
       </div>
     </PublicFormWrapper>
+  );
+}
+
+export default function LowCostAgreementPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+          <Loader2 className="animate-spin h-12 w-12 text-[#6366f1]" />
+        </div>
+      }
+    >
+      <LowCostAgreementContent />
+    </Suspense>
   );
 }
