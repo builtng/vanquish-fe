@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\ClientBookingController;
 use App\Http\Controllers\Api\JotFormWebhookController;
+use App\Http\Controllers\Api\ClientAgreementController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes with stricter rate limiting
@@ -49,6 +50,7 @@ Route::post('/jotform/intake-webhook', [JotFormWebhookController::class, 'handle
 Route::middleware('throttle:10,1')->group(function () {
     Route::post('/client-intake', [IntakeFormController::class, 'clientIntake']);
     Route::post('/tc-intake', [IntakeFormController::class, 'tcIntake']);
+    Route::post('/client-agreement/submit', [ClientAgreementController::class, 'submitAgreement']);
 });
 
 // Induction acceptance (public - TCs need to accept without auth)
@@ -62,13 +64,13 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
     Route::post('/user/change-password', [AuthController::class, 'changePassword']);
-    
+
     // 2FA routes
     Route::post('/2fa/initiate', [AuthController::class, 'initiate2FASetup']);
     Route::post('/2fa/verify', [AuthController::class, 'verify2FASetup']);
     Route::post('/2fa/disable', [AuthController::class, 'disable2FA']);
     Route::post('/2fa/regenerate', [AuthController::class, 'regenerate2FACode']);
-    
+
     // Clients (staff and admin only)
     Route::middleware('staff')->group(function () {
         Route::apiResource('clients', ClientController::class);
@@ -81,13 +83,13 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::post('/clients/{client}/update-satisfaction', [ClientController::class, 'updateSatisfactionScore']);
         Route::get('/clients/eligible-for-feedback', [ClientController::class, 'getEligibleForFeedback']);
     });
-    
+
     // Client photo upload (admin only)
     Route::middleware('admin')->group(function () {
         Route::post('/clients/{client}/upload-photo', [ClientController::class, 'uploadPhoto']);
         Route::delete('/clients/{client}/delete-photo', [ClientController::class, 'deletePhoto']);
     });
-    
+
     // Trainee Counsellors (staff and admin only)
     Route::middleware('staff')->group(function () {
         Route::apiResource('training-counsellors', TrainingCounsellorController::class);
@@ -96,25 +98,25 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::post('/training-counsellors/{tc}/transition-to-qualified', [TrainingCounsellorController::class, 'transitionToQualified']);
         Route::post('/training-counsellors/{tc}/send-email', [TrainingCounsellorController::class, 'sendEmail']);
     });
-    
+
     // Counsellor portal endpoints (counsellors can access their own data)
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/counsellor/my-data', [TrainingCounsellorController::class, 'getOwnData']);
     });
-    
+
     // TC photo upload (admin only)
     Route::middleware('admin')->group(function () {
         Route::post('/training-counsellors/{tc}/upload-photo', [TrainingCounsellorController::class, 'uploadPhoto']);
         Route::delete('/training-counsellors/{tc}/delete-photo', [TrainingCounsellorController::class, 'deletePhoto']);
     });
-    
+
     // Qualified Counsellor Form (staff and admin only - TCs submit through public form)
     Route::middleware('staff')->group(function () {
         Route::post('/qualified-counsellor/submit', [TrainingCounsellorController::class, 'submitQualifiedForm']);
         Route::post('/qualified-counsellor/upload-document', [TrainingCounsellorController::class, 'uploadDocument']);
         Route::post('/training-counsellors/{tc}/send-qualified-form-email', [TrainingCounsellorController::class, 'sendQualifiedFormEmail']);
     });
-    
+
     // Consultations (staff and admin only)
     Route::middleware('staff')->group(function () {
         Route::get('/consultation-stats', [ConsultationController::class, 'stats']);
@@ -123,14 +125,14 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::post('/consultations/{consultation}/cancel', [ConsultationController::class, 'cancel']);
         Route::post('/consultations/{consultation}/reschedule', [ConsultationController::class, 'reschedule']);
     });
-    
+
     // Pending Matches (staff and admin only)
     Route::middleware('staff')->group(function () {
         Route::get('/pending-matches', [ClientController::class, 'pendingMatches']);
         Route::get('/pending-matches/count', [ClientController::class, 'pendingMatchesCount']);
         Route::post('/matches', [ClientController::class, 'assignMatch']);
     });
-    
+
     // Activity Logs (staff and admin only)
     Route::middleware('staff')->group(function () {
         Route::get('/activity-logs', [ActivityLogController::class, 'index']);
@@ -138,45 +140,44 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::put('/activity-logs/{id}', [ActivityLogController::class, 'update']);
         Route::delete('/activity-logs/{id}', [ActivityLogController::class, 'destroy']);
     });
-    
+
     // Service Management (admin only)
     Route::middleware('admin')->group(function () {
         Route::post('/services/update-capacity', [ServiceController::class, 'updateCapacity']);
         Route::post('/services/update-price', [ServiceController::class, 'updatePrice']);
         Route::get('/services/all', [ServiceController::class, 'getAllServices']);
-        
+
         // Coupons
         Route::apiResource('coupons', \App\Http\Controllers\Api\CouponController::class);
     });
-    
+
     // User Management (admin only)
     Route::middleware('admin')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::get('/users-count', [UserController::class, 'count']);
     });
-    
+
     // Inductions (staff and admin only)
     Route::middleware('staff')->group(function () {
         Route::apiResource('inductions', InductionController::class);
         Route::post('/inductions/{id}/add-attendees', [InductionController::class, 'addAttendees']);
     });
-    
+
     // Messages (all authenticated users)
     Route::prefix('messages')->group(function () {
         Route::get('/', [MessageController::class, 'index']);
         Route::get('/unread-count', [MessageController::class, 'unreadCount']);
         Route::get('/{id}', [MessageController::class, 'show']);
         Route::post('/{id}/mark-read', [MessageController::class, 'markAsRead']);
-        
+
         // Staff/admin can send to counsellors
         Route::middleware('staff')->group(function () {
             Route::post('/send-to-counsellor', [MessageController::class, 'sendToCounsellor']);
         });
-        
+
         // Counsellors can send to staff
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/send-to-staff', [MessageController::class, 'sendToStaff']);
         });
     });
 });
-

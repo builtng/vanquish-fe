@@ -28,7 +28,7 @@ class ClientBookingConfirmationEmail extends Mailable
         $this->clientName = $clientName;
         $this->bookingType = $bookingType;
         $this->tcName = $tcName;
-        $this->scheduledAt = $scheduledAt;
+        $this->scheduledAt = $scheduledAt; // Can be string or array
         $this->location = $location;
         $this->duration = $duration;
         $this->calendarLink = $calendarLink;

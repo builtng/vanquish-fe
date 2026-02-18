@@ -48,6 +48,11 @@ class Client extends Model
         'emergency_contact_name',
         'emergency_contact_phone',
         'emergency_contact_relationship',
+        'gp_name',
+        'gp_practice_name',
+        'gp_practice_phone',
+        'current_address',
+        'case_study_consent',
         'last_feedback_sent_at',
         'last_feedback_date',
         'satisfaction_score',
@@ -152,7 +157,7 @@ class Client extends Model
     public function resolveRouteBinding($value, $field = null)
     {
         $field = $field ?: $this->getRouteKeyName();
-        
+
         // Try UUID first, then fall back to client_id for backward compatibility
         return $this->where($field, $value)
             ->orWhere('client_id', $value)

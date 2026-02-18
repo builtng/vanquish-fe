@@ -9,8 +9,10 @@ use App\Models\TrainingCounsellor;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BookingNotificationEmail;
+use App\Mail\ClientBookingConfirmationEmail;
 
 class ClientBookingController extends Controller
 {
@@ -25,7 +27,7 @@ class ClientBookingController extends Controller
         ]);
 
         $query = Client::where('email', $validated['email']);
-        
+
         if (isset($validated['client_uuid'])) {
             $query->where('uuid', $validated['client_uuid']);
         }
@@ -53,7 +55,7 @@ class ClientBookingController extends Controller
 
         // Get upcoming sessions
         $upcomingSessions = $client->getUpcomingSessions(20);
-        
+
         // Get next session needing booking (for Low Cost)
         $nextSessionNeedingBooking = null;
         if ($client->service_type === 'Low Cost') {
@@ -62,6 +64,7 @@ class ClientBookingController extends Controller
 
         return response()->json([
             'client' => [
+                'id' => $client->id,
                 'uuid' => $client->uuid,
                 'name' => $client->name,
                 'email' => $client->email,
@@ -91,22 +94,31 @@ class ClientBookingController extends Controller
         }
 
         $tc = TrainingCounsellor::find($client->matched_tc_id);
-        
+
         if (!$tc || !$tc->availability) {
             return response()->json(['message' => 'Counsellor availability not set'], 400);
         }
 
         // For Low Cost: only show allocated day/time
         if ($client->service_type === 'Low Cost' && $client->allocated_day && $client->allocated_time) {
+            $dayOfWeek = $this->getDayOfWeekNumber($client->allocated_day);
+            $nextSessionDate = Carbon::now()->next($dayOfWeek);
+
+            // If next session is within 48 hours, it's CLOSED. Skip to the following week.
+            if (Carbon::now()->diffInHours($nextSessionDate, false) < 48) {
+                $nextSessionDate->addWeek();
+            }
+
             return response()->json([
                 'slots' => [
                     [
                         'day' => $client->allocated_day,
                         'time' => $client->allocated_time,
+                        'date' => $nextSessionDate->format('Y-m-d'),
                         'available' => true,
                     ]
                 ],
-                'booking_type' => 'block', // Must book block of 4
+                'booking_type' => 'block',
             ]);
         }
 
@@ -116,7 +128,7 @@ class ClientBookingController extends Controller
             $slots = [];
             $dayOfWeek = $this->getDayOfWeekNumber($client->allocated_day);
             $startDate = Carbon::now()->next($dayOfWeek);
-            
+
             for ($i = 0; $i < 4; $i++) {
                 $date = $startDate->copy()->addWeeks($i);
                 $slots[] = [
@@ -136,7 +148,7 @@ class ClientBookingController extends Controller
         // For Counselling & Coaching: show all TC availability
         $slots = [];
         $availability = $tc->availability ?? [];
-        
+
         foreach (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as $day) {
             if (isset($availability[strtolower($day)]) && is_array($availability[strtolower($day)])) {
                 foreach ($availability[strtolower($day)] as $time) {
@@ -186,6 +198,22 @@ class ClientBookingController extends Controller
         // Send notification to TC
         $this->notifyCounsellor($session);
 
+        // Send confirmation to Client
+        if ($client->email) {
+            try {
+                Mail::to($client->email)->send(new ClientBookingConfirmationEmail(
+                    $client->name,
+                    'session',
+                    $session->tc ? $session->tc->name : 'Your Counsellor',
+                    $session->scheduled_at,
+                    'Online', // Default location
+                    50 // Default duration
+                ));
+            } catch (\Exception $e) {
+                Log::error('Failed to send session confirmation to client: ' . $e->getMessage());
+            }
+        }
+
         return response()->json([
             'message' => 'Session booked successfully',
             'session' => $session->load(['client', 'tc']),
@@ -200,7 +228,7 @@ class ClientBookingController extends Controller
         $validated = $request->validate([
             'client_uuid' => 'required|string',
             'start_date' => 'required|date|after:now',
-            'sessions_count' => 'required|integer|in:3,4', // Can be 3 or 4
+            'sessions_count' => 'nullable|integer|in:3,4',
         ]);
 
         $client = Client::where('uuid', $validated['client_uuid'])->firstOrFail();
@@ -218,21 +246,48 @@ class ClientBookingController extends Controller
             return response()->json(['message' => 'Day and time not allocated for this client'], 400);
         }
 
-        // Calculate session dates (weekly on allocated day)
         $startDate = Carbon::parse($validated['start_date']);
-        $sessionsCount = $validated['sessions_count'];
-        
-        // Ensure start date matches allocated day
-        $dayOfWeek = $this->getDayOfWeekNumber($client->allocated_day);
-        $startDate->next($dayOfWeek);
+        $sessionsCount = $validated['sessions_count'] ?? 4;
+
+        // --- 48-hour rule check ---
+        $now = Carbon::now();
+        if ($now->diffInHours($startDate, false) < 48) {
+            return response()->json(['message' => 'Sessions must be booked at least 48 hours in advance. This slot is now closed.'], 400);
+        }
+
+        // --- Penalty/Deadline Check ---
+        if ($client->next_booking_deadline && $now->gt(Carbon::parse($client->next_booking_deadline))) {
+            $sessionsCount = 3; // Enforce penalty
+            Log::info("Penalty applied for client {$client->uuid}: deadline was {$client->next_booking_deadline}");
+        }
+
+        // --- Session Continuity Check ---
+        $lastSession = $client->sessions()->where('status', 'scheduled')->orderBy('scheduled_at', 'desc')->first();
+        if ($lastSession) {
+            $expectedNextDate = Carbon::parse($lastSession->scheduled_at)->addWeek();
+            if (!$startDate->isSameDay($expectedNextDate)) {
+                // If they missed a week, ensure we skip exactly that week and apply penalty if not already
+                if ($startDate->gt($expectedNextDate)) {
+                    $sessionsCount = 3;
+                } else {
+                    return response()->json(['message' => 'Invalid start date. Sessions must follow the previous block continuously.'], 400);
+                }
+            }
+        } else {
+            // First block: ensure it matches allocated day
+            $dayOfWeek = $this->getDayOfWeekNumber($client->allocated_day);
+            if ($startDate->dayOfWeek !== $dayOfWeek) {
+                return response()->json(['message' => "Invalid start date. Your allocated day is {$client->allocated_day}."], 400);
+            }
+        }
 
         $sessions = [];
         $bookingDeadline = null;
 
         for ($i = 0; $i < $sessionsCount; $i++) {
             $sessionDate = $startDate->copy()->addWeeks($i);
-            
-            // Set booking deadline for next block (48hrs before 5th session if 4 sessions, or 4th if 3)
+
+            // Set booking deadline for next block (48hrs before what would be the next session)
             if ($i === $sessionsCount - 1) {
                 $nextSessionDate = $sessionDate->copy()->addWeek();
                 $bookingDeadline = $nextSessionDate->copy()->subHours(48)->format('Y-m-d');
@@ -249,11 +304,11 @@ class ClientBookingController extends Controller
                 'total_sessions_in_block' => $sessionsCount,
                 'payment_status' => 'pending',
                 'booking_deadline' => $i === $sessionsCount - 1 ? $bookingDeadline : null,
+                'auto_deduction_applied' => $sessionsCount === 3,
             ]);
 
             $sessions[] = $session;
 
-            // Send notification for first session
             if ($i === 0) {
                 $this->notifyCounsellor($session);
             }
@@ -264,10 +319,29 @@ class ClientBookingController extends Controller
             'next_booking_deadline' => $bookingDeadline,
         ]);
 
+        // Send confirmation to Client
+        if ($client->email) {
+            try {
+                $sessionDates = collect($sessions)->map(fn($s) => $s->scheduled_at->format('Y-m-d H:i:s'))->toArray();
+
+                Mail::to($client->email)->send(new ClientBookingConfirmationEmail(
+                    $client->name,
+                    'Block of ' . count($sessions) . ' Sessions' . ($sessionsCount === 3 ? ' (Penalty Applied)' : ''),
+                    $client->matchedTc ? $client->matchedTc->name : 'Your Counsellor',
+                    $sessionDates,
+                    'Online',
+                    50
+                ));
+            } catch (\Exception $e) {
+                Log::error('Failed to send block booking confirmation to client: ' . $e->getMessage());
+            }
+        }
+
         return response()->json([
-            'message' => "Block of {$sessionsCount} sessions booked successfully",
+            'message' => "Block of {$sessionsCount} sessions booked successfully" . ($sessionsCount === 3 ? " (Penalty applied for missing deadline)" : ""),
             'sessions' => Session::whereIn('id', collect($sessions)->pluck('id'))->with(['client', 'tc'])->get(),
             'next_booking_deadline' => $bookingDeadline,
+            'penalty_applied' => $sessionsCount === 3,
         ], 201);
     }
 
@@ -290,6 +364,7 @@ class ClientBookingController extends Controller
 
         return response()->json([
             'client' => [
+                'id' => $client->id,
                 'uuid' => $client->uuid,
                 'name' => $client->name,
                 'service_type' => $client->service_type,
@@ -318,7 +393,7 @@ class ClientBookingController extends Controller
                     ['notes' => $session->notes]
                 ));
             } catch (\Exception $e) {
-                \Log::error('Failed to send booking notification: ' . $e->getMessage());
+                Log::error('Failed to send booking notification: ' . $e->getMessage());
             }
         }
     }
@@ -339,4 +414,3 @@ class ClientBookingController extends Controller
         return $days[$dayName] ?? Carbon::MONDAY;
     }
 }
-

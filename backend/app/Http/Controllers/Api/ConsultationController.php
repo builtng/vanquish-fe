@@ -9,6 +9,7 @@ use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BookingNotificationEmail;
+use App\Mail\ClientBookingConfirmationEmail;
 
 class ConsultationController extends Controller
 {
@@ -57,7 +58,7 @@ class ConsultationController extends Controller
         // Send notification to TC if assigned
         if ($consultation->tc_id && $consultation->tc) {
             $tc = $consultation->tc;
-            
+
             // Send email notification if TC has email
             if ($tc->email) {
                 try {
@@ -79,15 +80,31 @@ class ConsultationController extends Controller
                     'from_user_id' => $request->user()->id,
                     'to_tc_id' => $tc->id,
                     'subject' => "New Consultation Booking: {$consultation->client->name}",
-                    'message' => "A consultation has been scheduled for {$consultation->client->name} on " . 
-                                \Carbon\Carbon::parse($consultation->scheduled_at)->format('l, F j, Y \a\t g:i A') . 
-                                ($consultation->notes ? "\n\nNotes: {$consultation->notes}" : ''),
+                    'message' => "A consultation has been scheduled for {$consultation->client->name} on " .
+                        \Carbon\Carbon::parse($consultation->scheduled_at)->format('l, F j, Y \a\t g:i A') .
+                        ($consultation->notes ? "\n\nNotes: {$consultation->notes}" : ''),
                     'type' => 'staff_to_counsellor',
                     'related_client_id' => $consultation->client_id,
                     'related_consultation_id' => $consultation->id,
                 ]);
             } catch (\Exception $e) {
                 \Log::error('Failed to create consultation booking message: ' . $e->getMessage());
+            }
+        }
+
+        // Send confirmation email to client
+        if ($consultation->client && $consultation->client->email) {
+            try {
+                Mail::to($consultation->client->email)->send(new ClientBookingConfirmationEmail(
+                    $consultation->client->name,
+                    'consultation',
+                    $consultation->tc ? $consultation->tc->name : 'Assigned Counsellor',
+                    $consultation->scheduled_at,
+                    'Online', // Default location
+                    50 // Default duration
+                ));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send consultation confirmation to client: ' . $e->getMessage());
             }
         }
 
@@ -118,7 +135,7 @@ class ConsultationController extends Controller
     public function destroy(Request $request, $id)
     {
         $consultation = Consultation::findOrFail($id);
-        
+
         ActivityLog::create([
             'user_id' => $request->user()->id,
             'action' => 'consultation_deleted',
@@ -127,7 +144,7 @@ class ConsultationController extends Controller
             'description' => "Consultation deleted for client {$consultation->client->name}",
             'ip_address' => $request->ip(),
         ]);
-        
+
         $consultation->delete();
 
         return response()->json(['message' => 'Consultation deleted successfully']);
@@ -152,7 +169,7 @@ class ConsultationController extends Controller
         if ($validated['recommended_service'] === 'Coaching/Counselling') {
             $paymentAmount = 25.00;
         }
-        
+
         $consultation->update([
             'status' => 'completed',
             'completed_at' => now(),
@@ -226,18 +243,18 @@ class ConsultationController extends Controller
             'today_count' => Consultation::where('status', 'scheduled')
                 ->whereDate('scheduled_at', $today)
                 ->count(),
-            
+
             'upcoming_count' => Consultation::where('status', 'scheduled')
                 ->whereDate('scheduled_at', '>=', $today)
                 ->count(),
-            
+
             'this_week_count' => Consultation::where('status', 'scheduled')
                 ->count(),
-            
+
             'completed_this_month' => Consultation::where('status', 'completed')
                 ->where('completed_at', '>=', $startOfMonth)
                 ->count(),
-            
+
             'pending_payment' => Consultation::where('payment_status', 'pending')
                 ->count(),
         ];

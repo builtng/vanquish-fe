@@ -1,103 +1,178 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>You've Been Matched with a Counsellor</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Great News! You've Been Matched</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
+    </style>
+    <![endif]-->
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-    <!-- Email Container -->
-    <div style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #6f1d56 0%, #8b2469 100%); color: #ffffff; padding: 40px 20px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: 0.5px;">Great News!</h1>
-            <p style="margin: 15px 0 0 0; font-size: 16px; opacity: 0.95;">You've been matched with a counsellor</p>
-        </div>
-        
-        <!-- Content -->
-        <div style="background-color: #ffffff; padding: 40px 30px; border-top: none;">
-            <p style="margin: 0 0 20px 0; color: #333333; font-size: 16px; line-height: 1.7;">Dear {{ $clientName }},</p>
-            
-            <p style="margin: 0 0 25px 0; color: #333333; font-size: 16px; line-height: 1.7;">We're pleased to inform you that you have been matched with a trainee counsellor who will be supporting you on your therapeutic journey.</p>
-            
-            <!-- Match Confirmation Badge -->
-            <div style="background-color: #f0fdf4; border-left: 4px solid #22c55e; padding: 20px; margin: 25px 0; border-radius: 4px; text-align: center;">
-                <p style="margin: 0; color: #22c55e; font-size: 48px; line-height: 1;">✓</p>
-                <p style="margin: 10px 0 0 0; color: #333333; font-size: 16px; font-weight: 600;">Successfully Matched</p>
-            </div>
-            
-            <!-- Counsellor Details Card -->
-            <div style="background-color: #f9f9f9; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #6f1d56;">
-                <h3 style="margin: 0 0 15px 0; color: #6f1d56; font-size: 18px; font-weight: 600;">Your Counsellor</h3>
-                <p style="margin: 0 0 12px 0; color: #333333; font-size: 15px;"><strong style="color: #6f1d56;">Name:</strong> {{ $tcName }}</p>
-                @if(isset($modality) && $modality)
-                    <p style="margin: 0 0 12px 0; color: #333333; font-size: 15px;"><strong style="color: #6f1d56;">Modality:</strong> {{ $modality }}</p>
-                @endif
-                @if(isset($matchScore) && $matchScore)
-                    <p style="margin: 0; color: #333333; font-size: 15px;"><strong style="color: #6f1d56;">Match Score:</strong> {{ $matchScore }}%</p>
-                @endif
-            </div>
-            
-            @if(isset($allocatedDay) && isset($allocatedTime))
-            <!-- Allocated Session Time -->
-            <div style="background-color: #e0f2fe; border-left: 4px solid #0ea5e9; padding: 20px; margin: 25px 0; border-radius: 4px;">
-                <p style="margin: 0 0 10px 0; color: #333333; font-size: 15px; font-weight: 600;">📅 Your Allocated Session Time</p>
-                <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.7;">
-                    <strong style="color: #0ea5e9;">Day:</strong> {{ $allocatedDay }}<br>
-                    <strong style="color: #0ea5e9;">Time:</strong> {{ $allocatedTime }}
-                </p>
-            </div>
-            @endif
-            
-            <!-- Next Steps -->
-            <h2 style="color: #6f1d56; margin: 35px 0 20px 0; font-size: 20px; font-weight: 600;">What Happens Next?</h2>
-            
-            <div style="background-color: #f9f9f9; padding: 25px; border-radius: 8px; margin: 20px 0;">
-                <div style="margin-bottom: 20px;">
-                    <p style="margin: 0 0 8px 0; color: #6f1d56; font-size: 16px; font-weight: 600;">1. Initial Contact</p>
-                    <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.7;">Your counsellor will reach out to you shortly to introduce themselves and schedule your first session.</p>
-                </div>
-                
-                <div style="margin-bottom: 20px; padding-top: 20px; border-top: 1px solid #e5e5e5;">
-                    <p style="margin: 0 0 8px 0; color: #6f1d56; font-size: 16px; font-weight: 600;">2. First Session</p>
-                    <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.7;">During your first session, you'll discuss your goals, expectations, and create a plan for your therapeutic journey together.</p>
-                </div>
-                
-                <div style="padding-top: 20px; border-top: 1px solid #e5e5e5;">
-                    <p style="margin: 0 0 8px 0; color: #6f1d56; font-size: 16px; font-weight: 600;">3. Ongoing Support</p>
-                    <p style="margin: 0; color: #333333; font-size: 15px; line-height: 1.7;">Regular sessions will be scheduled based on your availability and therapeutic needs.</p>
-                </div>
-            </div>
-            
-            <!-- Important Information -->
-            <div style="background-color: #fef3c7; border-left: 4px solid #eab308; padding: 20px; margin: 25px 0; border-radius: 4px;">
-                <p style="margin: 0 0 10px 0; color: #333333; font-size: 15px; font-weight: 600;">📌 Important Information</p>
-                <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #333333; font-size: 14px; line-height: 1.8;">
-                    <li>All sessions are confidential and conducted in a safe, supportive environment</li>
-                    <li>Your counsellor works under qualified supervision</li>
-                    <li>If you have any concerns, please don't hesitate to contact us</li>
-                </ul>
-            </div>
-            
-            <!-- Support Section -->
-            <div style="background-color: #fce7f3; border-left: 4px solid #ec4899; padding: 20px; margin: 25px 0; border-radius: 4px;">
-                <p style="margin: 0 0 10px 0; color: #333333; font-size: 15px; font-weight: 600;">💬 Questions or Concerns?</p>
-                <p style="margin: 0; color: #333333; font-size: 14px; line-height: 1.7;">
-                    If you have any questions about your match or need to discuss anything, our support team is here to help. Please contact us directly.
-                </p>
-            </div>
-            
-            <p style="margin: 30px 0 0 0; color: #333333; font-size: 16px; line-height: 1.7;">We're excited for you to begin this journey and look forward to supporting your wellbeing.</p>
-            
-            <p style="margin: 25px 0 0 0; color: #333333; font-size: 16px; line-height: 1.7;">Warm regards,<br>
-            <strong style="color: #6f1d56;">The Vanquish Therapies Team</strong></p>
-        </div>
-        
-        <!-- Footer -->
-        <div style="background-color: #f9f9f9; padding: 25px 30px; text-align: center; border-top: 1px solid #e5e5e5;">
-            <p style="margin: 0 0 8px 0; color: #666666; font-size: 12px; line-height: 1.5;">This is an automated email. Please do not reply to this message.</p>
-            <p style="margin: 0; color: #666666; font-size: 12px; line-height: 1.5;">If you have any questions or concerns, please contact us directly.</p>
-        </div>
-    </div>
+
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8fafc;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <!-- Main Container -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                    <!-- Header with Gradient -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #7c2d6f 0%, #9b3d8a 50%, #6f1d56 100%); padding: 50px 40px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2;">Great News!</h1>
+                            <p style="margin: 12px 0 0 0; color: rgba(255, 255, 255, 0.95); font-size: 16px; font-weight: 400;">You've been matched with a counsellor 🎉</p>
+                        </td>
+                    </tr>
+
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 40px;">
+                            <p style="margin: 0 0 24px 0; color: #1f2937; font-size: 18px; line-height: 1.6; font-weight: 600;">Dear {{ $clientName }},</p>
+
+                            <p style="margin: 0 0 32px 0; color: #4b5563; font-size: 16px; line-height: 1.7;">We're pleased to inform you that you have been matched with a trainee counsellor who will be supporting you on your therapeutic journey.</p>
+
+                            <!-- Counsellor Details Card -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 32px 0; background-color: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden;">
+                                <tr>
+                                    <td style="padding: 24px; border-bottom: 1px solid #e5e7eb; background-color: #f3f4f6;">
+                                        <h3 style="margin: 0; color: #1f2937; font-size: 16px; font-weight: 700;">👤 Your Counsellor</h3>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 24px;">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                            <tr>
+                                                <td style="padding-bottom: 16px; border-bottom: 1px solid #e5e7eb;">
+                                                    <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Name</p>
+                                                    <p style="margin: 0; color: #1f2937; font-size: 16px; font-weight: 500;">{{ $tcName }}</p>
+                                                </td>
+                                            </tr>
+                                            @if(isset($modality) && $modality)
+                                            <tr>
+                                                <td style="padding: 16px 0; {{ (isset($matchScore) && $matchScore) ? 'border-bottom: 1px solid #e5e7eb;' : '' }}">
+                                                    <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Modality</p>
+                                                    <p style="margin: 0; color: #1f2937; font-size: 16px; font-weight: 500;">{{ $modality }}</p>
+                                                </td>
+                                            </tr>
+                                            @endif
+                                            @if(isset($matchScore) && $matchScore)
+                                            <tr>
+                                                <td style="padding-top: 16px;">
+                                                    <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Match Score</p>
+                                                    <div style="display: flex; align-items: center;">
+                                                        <div style="width: 100%; height: 8px; background-color: #e5e7eb; border-radius: 4px; overflow: hidden; max-width: 150px; display: inline-block;">
+                                                            <div style="width: {{ $matchScore }}%; height: 100%; background: linear-gradient(90deg, #6f1d56, #9b3d8a);"></div>
+                                                        </div>
+                                                        <span style="color: #6f1d56; font-weight: 700; margin-left: 12px;">{{ $matchScore }}%</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            @endif
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            @if(isset($allocatedDay) && isset($allocatedTime))
+                            <!-- Allocated Session Time -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 32px 0; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px; border-left: 4px solid #3b82f6;">
+                                <tr>
+                                    <td style="padding: 24px;">
+                                        <p style="margin: 0 0 16px 0; color: #1e40af; font-size: 16px; font-weight: 700;">
+                                            📅 Your Allocated Session Time
+                                        </p>
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                            <tr>
+                                                <td style="padding-bottom: 8px;">
+                                                    <span style="color: #1e3a8a; font-weight: 600; font-size: 15px;">Day:</span>
+                                                    <span style="color: #1f2937; font-size: 15px; margin-left: 8px;">{{ $allocatedDay }}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <span style="color: #1e3a8a; font-weight: 600; font-size: 15px;">Time:</span>
+                                                    <span style="color: #1f2937; font-size: 15px; margin-left: 8px;">{{ $allocatedTime }}</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            @endif
+
+                            <h2 style="color: #6f1d56; margin: 48px 0 24px 0; font-size: 24px; font-weight: 700; letter-spacing: -0.3px;">What Happens Next?</h2>
+
+                            <!-- Next Steps Timeline -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #ffffff;">
+                                <!-- Step 1 -->
+                                <tr>
+                                    <td style="width: 48px; vertical-align: top; padding-bottom: 32px;">
+                                        <div style="width: 36px; height: 36px; background-color: #fce7f3; color: #9d174d; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px;">1</div>
+                                    </td>
+                                    <td style="vertical-align: top; padding-bottom: 32px;">
+                                        <p style="margin: 0 0 8px 0; color: #1f2937; font-size: 17px; font-weight: 600;">Initial Contact</p>
+                                        <p style="margin: 0; color: #4b5563; font-size: 15px; line-height: 1.6;">Your counsellor will reach out to you shortly to introduce themselves and schedule your first session.</p>
+                                    </td>
+                                </tr>
+                                <!-- Step 2 -->
+                                <tr>
+                                    <td style="width: 48px; vertical-align: top; padding-bottom: 32px;">
+                                        <div style="width: 36px; height: 36px; background-color: #fce7f3; color: #9d174d; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px;">2</div>
+                                    </td>
+                                    <td style="vertical-align: top; padding-bottom: 32px;">
+                                        <p style="margin: 0 0 8px 0; color: #1f2937; font-size: 17px; font-weight: 600;">First Session</p>
+                                        <p style="margin: 0; color: #4b5563; font-size: 15px; line-height: 1.6;">During your first session, you'll discuss your goals, expectations, and create a plan for your therapeutic journey together.</p>
+                                    </td>
+                                </tr>
+                                <!-- Step 3 -->
+                                <tr>
+                                    <td style="width: 48px; vertical-align: top;">
+                                        <div style="width: 36px; height: 36px; background-color: #fce7f3; color: #9d174d; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px;">3</div>
+                                    </td>
+                                    <td style="vertical-align: top;">
+                                        <p style="margin: 0 0 8px 0; color: #1f2937; font-size: 17px; font-weight: 600;">Ongoing Support</p>
+                                        <p style="margin: 0; color: #4b5563; font-size: 15px; line-height: 1.6;">Regular sessions will be scheduled based on your availability and therapeutic needs.</p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Important Information -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 40px 0 0 0; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; border-left: 4px solid #f59e0b;">
+                                <tr>
+                                    <td style="padding: 24px;">
+                                        <p style="margin: 0 0 12px 0; color: #92400e; font-size: 16px; font-weight: 700;">📌 Important Information</p>
+                                        <ul style="margin: 0; padding-left: 20px; color: #78350f; font-size: 14px; line-height: 1.7;">
+                                            <li style="margin-bottom: 6px;">All sessions are confidential and conducted in a safe, supportive environment</li>
+                                            <li style="margin-bottom: 6px;">Your counsellor works under qualified supervision</li>
+                                            <li>If you have any concerns, please don't hesitate to contact us</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 40px 0 0 0; color: #4b5563; font-size: 16px; line-height: 1.7;">We're excited for you to begin this journey and look forward to supporting your wellbeing.</p>
+
+                            <div style="margin: 32px 0 0 0; border-top: 1px solid #e5e7eb; padding-top: 24px;">
+                                <p style="margin: 0 0 4px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">Warm regards,</p>
+                                <p style="margin: 0; color: #6f1d56; font-size: 16px; font-weight: 700;">The Vanquish Therapies Team</p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background: linear-gradient(to bottom, #f9fafb, #f3f4f6); padding: 32px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 13px; line-height: 1.5;">This is an automated email from Vanquish Therapies. Please do not reply to this message.</p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px; line-height: 1.5;">© {{ date('Y') }} Vanquish Therapies. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
+
 </html>

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import apiService from "@/lib/api";
@@ -16,7 +16,7 @@ import {
   Search,
   Filter,
   RefreshCw,
-  X
+  X,
 } from "lucide-react";
 
 export default function CouponsPage() {
@@ -25,7 +25,7 @@ export default function CouponsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [getError, setGetError] = useState(null);
-  
+
   // Form State
   const [editingCoupon, setEditingCoupon] = useState(null);
   const [formData, setFormData] = useState({
@@ -35,7 +35,7 @@ export default function CouponsPage() {
     starts_at: "",
     expires_at: "",
     usage_limit: "",
-    is_active: true
+    is_active: true,
   });
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -68,7 +68,7 @@ export default function CouponsPage() {
         starts_at: coupon.starts_at ? coupon.starts_at.substring(0, 16) : "",
         expires_at: coupon.expires_at ? coupon.expires_at.substring(0, 16) : "",
         usage_limit: coupon.usage_limit || "",
-        is_active: coupon.is_active
+        is_active: coupon.is_active,
       });
     } else {
       setEditingCoupon(null);
@@ -79,7 +79,7 @@ export default function CouponsPage() {
         starts_at: "",
         expires_at: "",
         usage_limit: "",
-        is_active: true
+        is_active: true,
       });
     }
     setFormError(null);
@@ -99,7 +99,7 @@ export default function CouponsPage() {
 
     try {
       const payload = { ...formData };
-      
+
       // Clean up empty date strings
       if (!payload.starts_at) payload.starts_at = null;
       if (!payload.expires_at) payload.expires_at = null;
@@ -110,19 +110,25 @@ export default function CouponsPage() {
       } else {
         await apiService.createCoupon(payload);
       }
-      
+
       handleCloseModal();
       fetchCoupons();
     } catch (error) {
       console.error("Failed to save coupon:", error);
-      setFormError(error.message || "Failed to save coupon. Please check your inputs.");
+      setFormError(
+        error.message || "Failed to save coupon. Please check your inputs.",
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this coupon? This action cannot be undone.")) {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this coupon? This action cannot be undone.",
+      )
+    ) {
       return;
     }
 
@@ -135,9 +141,11 @@ export default function CouponsPage() {
     }
   };
 
-  const filteredCoupons = coupons.filter(coupon => 
-    coupon.code.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCoupons = coupons
+    .filter((coupon) =>
+      coupon.code.toLowerCase().includes(searchQuery.toLowerCase()),
+    )
+    .sort((a, b) => b.id - a.id); // Sort by ID descending (newest first)
 
   return (
     <DashboardLayout>
@@ -178,12 +186,14 @@ export default function CouponsPage() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
             />
           </div>
-          <button 
-            onClick={fetchCoupons} 
+          <button
+            onClick={fetchCoupons}
             className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             title="Refresh list"
           >
-            <RefreshCw className={`w-5 h-5 text-gray-600 dark:text-gray-300 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-5 h-5 text-gray-600 dark:text-gray-300 ${loading ? "animate-spin" : ""}`}
+            />
           </button>
         </div>
 
@@ -199,9 +209,13 @@ export default function CouponsPage() {
         ) : filteredCoupons.length === 0 ? (
           <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
             <Tag className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No coupons found</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              No coupons found
+            </h3>
             <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
-              {searchQuery ? "No coupons match your search." : "Get started by creating your first discount coupon."}
+              {searchQuery
+                ? "No coupons match your search."
+                : "Get started by creating your first discount coupon."}
             </p>
             {!searchQuery && (
               <button
@@ -218,17 +232,32 @@ export default function CouponsPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Code</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Discount</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Usage</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Validity</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Actions</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Code
+                    </th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Discount
+                    </th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Usage
+                    </th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Validity
+                    </th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredCoupons.map((coupon) => (
-                    <tr key={coupon.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <tr
+                      key={coupon.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
@@ -241,11 +270,14 @@ export default function CouponsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                          {coupon.type === 'fixed' ? '£' : ''}{Number(coupon.value).toFixed(2)}{coupon.type === 'percent' ? '%' : ''} OFF
+                          {coupon.type === "fixed" ? "£" : ""}
+                          {Number(coupon.value).toFixed(2)}
+                          {coupon.type === "percent" ? "%" : ""} OFF
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                        {coupon.used_count} / {coupon.usage_limit ? coupon.usage_limit : '∞'}
+                        {coupon.used_count} /{" "}
+                        {coupon.usage_limit ? coupon.usage_limit : "∞"}
                       </td>
                       <td className="px-6 py-4">
                         {coupon.is_active ? (
@@ -262,11 +294,20 @@ export default function CouponsPage() {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                         {coupon.expires_at ? (
-                          <span className={new Date(coupon.expires_at) < new Date() ? "text-red-500 font-medium" : ""}>
-                            Expires {new Date(coupon.expires_at).toLocaleDateString()}
+                          <span
+                            className={
+                              new Date(coupon.expires_at) < new Date()
+                                ? "text-red-500 font-medium"
+                                : ""
+                            }
+                          >
+                            Expires{" "}
+                            {new Date(coupon.expires_at).toLocaleDateString()}
                           </span>
                         ) : (
-                          <span className="text-gray-400 italic">No expiry</span>
+                          <span className="text-gray-400 italic">
+                            No expiry
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -304,7 +345,7 @@ export default function CouponsPage() {
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                 {editingCoupon ? "Edit Coupon" : "Create New Coupon"}
               </h3>
-              <button 
+              <button
                 onClick={handleCloseModal}
                 className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
               >
@@ -328,7 +369,12 @@ export default function CouponsPage() {
                   type="text"
                   required
                   value={formData.code}
-                  onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      code: e.target.value.toUpperCase(),
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 uppercase font-mono"
                   placeholder="e.g. SUMMER2025"
                 />
@@ -341,7 +387,9 @@ export default function CouponsPage() {
                   </label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData({...formData, type: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, type: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800"
                   >
                     <option value="fixed">Fixed Amount (£)</option>
@@ -358,7 +406,9 @@ export default function CouponsPage() {
                     min="0"
                     step="0.01"
                     value={formData.value}
-                    onChange={(e) => setFormData({...formData, value: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, value: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500"
                     placeholder="0.00"
                   />
@@ -373,7 +423,9 @@ export default function CouponsPage() {
                   <input
                     type="datetime-local"
                     value={formData.starts_at}
-                    onChange={(e) => setFormData({...formData, starts_at: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, starts_at: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
@@ -384,7 +436,9 @@ export default function CouponsPage() {
                   <input
                     type="datetime-local"
                     value={formData.expires_at}
-                    onChange={(e) => setFormData({...formData, expires_at: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, expires_at: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500"
                   />
                 </div>
@@ -398,7 +452,9 @@ export default function CouponsPage() {
                   type="number"
                   min="1"
                   value={formData.usage_limit}
-                  onChange={(e) => setFormData({...formData, usage_limit: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, usage_limit: e.target.value })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500"
                   placeholder="Unlimited if empty"
                 />
@@ -409,10 +465,15 @@ export default function CouponsPage() {
                   type="checkbox"
                   id="is_active"
                   checked={formData.is_active}
-                  onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, is_active: e.target.checked })
+                  }
                   className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500 border-gray-300"
                 />
-                <label htmlFor="is_active" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="is_active"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Coupon is active
                 </label>
               </div>

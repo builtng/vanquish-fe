@@ -30,9 +30,9 @@ class ClientController extends Controller
         // Search - sanitize input
         if ($request->has('search')) {
             $search = Str::limit($request->search, 100); // Limit search length
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -207,7 +207,7 @@ class ClientController extends Controller
         }
 
         $response = $client->toArray();
-        
+
         // Add photo_url if photo exists
         if ($client->photo) {
             $response['photo_url'] = $this->getStorageUrl($request, $client->photo);
@@ -225,7 +225,7 @@ class ClientController extends Controller
         if (!Gate::allows('update', $client)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-        
+
         $request->validate([
             'stage' => 'required|in:Application & Assessment form Submitted,Consultation Booked,Consultation Completed,Matched with TC,Agreement Sent,Agreement Signed,Sessions Bookable,Active Therapy',
         ]);
@@ -252,14 +252,14 @@ class ClientController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $query = Client::where('stage', 'Matched with TC')
+        $query = Client::where('stage', 'Consultation Completed')
             ->with(['matchedTc']);
 
         if ($request->has('search')) {
             $search = Str::limit($request->search, 100);
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -270,15 +270,15 @@ class ClientController extends Controller
             }
         }
 
-        $clients = $query->get()->map(function($client) {
-            $client->days_waiting = $client->submitted_date 
-                ? now()->diffInDays($client->submitted_date) 
+        $clients = $query->get()->map(function ($client) {
+            $client->days_waiting = $client->submitted_date
+                ? now()->diffInDays($client->submitted_date)
                 : 0;
-            
+
             // Calculate urgency based on multiple factors
             $urgency = $this->calculateUrgency($client);
             $client->urgency = $urgency;
-            
+
             return $client;
         });
 
@@ -286,7 +286,7 @@ class ClientController extends Controller
         if ($request->has('urgency') && $request->urgency !== 'all') {
             $validUrgencies = ['high', 'medium', 'low'];
             if (in_array($request->urgency, $validUrgencies)) {
-                $clients = $clients->filter(function($client) use ($request) {
+                $clients = $clients->filter(function ($client) use ($request) {
                     return $client->urgency === $request->urgency;
                 })->values();
             }
@@ -302,7 +302,7 @@ class ClientController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $count = Client::where('stage', 'Matched with TC')->count();
+        $count = Client::where('stage', 'Consultation Completed')->count();
         return response()->json(['count' => $count]);
     }
 
@@ -316,14 +316,14 @@ class ClientController extends Controller
     private function calculateUrgency($client)
     {
         $urgencyScore = 0;
-        
+
         // Status-based urgency
         if ($client->status === 'urgent') {
             $urgencyScore += 3;
         } elseif ($client->status === 'stuck') {
             $urgencyScore += 2;
         }
-        
+
         // Days waiting urgency
         $daysWaiting = $client->submitted_date ? now()->diffInDays($client->submitted_date) : 0;
         if ($daysWaiting >= 7) {
@@ -333,17 +333,17 @@ class ClientController extends Controller
         } elseif ($daysWaiting > 0) {
             $urgencyScore += 1; // Low priority for 1-2 days
         }
-        
+
         // Risk flags urgency
         if ($client->risk_flags && $client->risk_flags !== 'None reported' && trim($client->risk_flags) !== '') {
             $urgencyScore += 3; // High priority for any risk flags
         }
-        
+
         // Service type urgency (Low Cost clients may need faster matching)
         if ($client->service_type === 'Low Cost') {
             $urgencyScore += 1;
         }
-        
+
         // Determine final urgency level
         if ($urgencyScore >= 5) {
             return 'high';
@@ -452,7 +452,7 @@ class ClientController extends Controller
 
         // Send notification emails if requested
         $shouldSendNotification = $validated['send_notification'] ?? true;
-        
+
         if ($shouldSendNotification) {
             try {
                 // Send email to client
@@ -513,7 +513,7 @@ class ClientController extends Controller
         if (!Gate::allows('update', $client)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-        
+
         $validated = $request->validate([
             'subject' => 'required|string|max:255',
             'message' => 'required|string|max:5000',
@@ -566,7 +566,7 @@ class ClientController extends Controller
         if (!Gate::allows('update', $client)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-        
+
         // Check if email exists
         if (!$client->email) {
             return response()->json([
@@ -625,7 +625,7 @@ class ClientController extends Controller
         if (!Gate::allows('update', $client)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-        
+
         // Check if email exists
         if (!$client->email) {
             return response()->json([
@@ -635,7 +635,7 @@ class ClientController extends Controller
 
         // Send email
         try {
-            Mail::to($client->email)->send(new ClientAgreementEmail($client->name, $client->email, $client->uuid));
+            Mail::to($client->email)->send(new ClientAgreementEmail($client->name, $client->email, $client->uuid, $client->service_type));
 
             // Update client record
             $client->update([
@@ -677,7 +677,7 @@ class ClientController extends Controller
         if (!Gate::allows('update', $client)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
-        
+
         $validated = $request->validate([
             'satisfaction_score' => 'required|numeric|min:0|max:5',
         ]);
@@ -686,7 +686,7 @@ class ClientController extends Controller
         $currentScore = $client->satisfaction_score ?? 0;
         $currentCount = $client->feedback_count ?? 0;
         $newScore = $validated['satisfaction_score'];
-        
+
         // Calculate weighted average
         $totalScore = ($currentScore * $currentCount) + $newScore;
         $newCount = $currentCount + 1;
@@ -731,23 +731,23 @@ class ClientController extends Controller
         // Get clients who are eligible for feedback forms (3+ months since last feedback or never sent)
         $query = Client::where('stage', 'Active Therapy')
             ->orWhere('stage', 'Completed')
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->whereNull('last_feedback_sent_at')
-                  ->orWhereRaw('DATEDIFF(NOW(), last_feedback_sent_at) >= 90');
+                    ->orWhereRaw('DATEDIFF(NOW(), last_feedback_sent_at) >= 90');
             })
             ->with(['matchedTc']);
 
         if ($request->has('search')) {
             $search = Str::limit($request->search, 100);
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
-        $clients = $query->get()->map(function($client) {
-            $client->months_since_feedback = $client->last_feedback_sent_at 
-                ? now()->diffInMonths($client->last_feedback_sent_at) 
+        $clients = $query->get()->map(function ($client) {
+            $client->months_since_feedback = $client->last_feedback_sent_at
+                ? now()->diffInMonths($client->last_feedback_sent_at)
                 : null;
             return $client;
         });
@@ -773,12 +773,12 @@ class ClientController extends Controller
         ]);
 
         $file = $request->file('photo');
-        
+
         // Additional security checks
         $originalName = $file->getClientOriginalName();
         $extension = strtolower($file->getClientOriginalExtension());
         $mimeType = $file->getMimeType();
-        
+
         // Validate file extension
         $allowedExtensions = ['jpg', 'jpeg', 'png'];
         if (!in_array($extension, $allowedExtensions)) {
@@ -786,7 +786,7 @@ class ClientController extends Controller
                 'message' => 'Invalid file type. Allowed types: JPG, JPEG, PNG',
             ], 422);
         }
-        
+
         // Validate MIME type
         $allowedMimeTypes = ['image/jpeg', 'image/png'];
         if (!in_array($mimeType, $allowedMimeTypes)) {
@@ -794,11 +794,11 @@ class ClientController extends Controller
                 'message' => 'Invalid file MIME type.',
             ], 422);
         }
-        
+
         // Sanitize filename
         $sanitizedName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
         $sanitizedName = substr($sanitizedName, 0, 255);
-        
+
         // Generate unique filename to prevent overwrites
         $filename = time() . '_' . uniqid() . '_' . $sanitizedName;
 
@@ -913,10 +913,10 @@ class ClientController extends Controller
         // Extract Intake Form Data
         $emergencyContact = [];
         $gpDetails = [];
-        
+
         if ($client->intakeForm && $client->intakeForm->count() > 0) {
             $intake = $client->intakeForm->first();
-            
+
             // Parse emergency contact
             if ($intake->emergency_contact) {
                 try {
@@ -924,9 +924,10 @@ class ClientController extends Controller
                     if (is_array($decoded)) {
                         $emergencyContact = $decoded;
                     }
-                } catch (\Exception $e) { /* ignore */ }
+                } catch (\Exception $e) { /* ignore */
+                }
             }
-            
+
             // Parse GP details
             if ($intake->gp_details) {
                 try {
@@ -934,7 +935,8 @@ class ClientController extends Controller
                     if (is_array($decoded)) {
                         $gpDetails = $decoded;
                     }
-                } catch (\Exception $e) { /* ignore */ }
+                } catch (\Exception $e) { /* ignore */
+                }
             }
         }
 
