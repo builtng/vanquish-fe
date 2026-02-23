@@ -286,7 +286,7 @@ export default function ConsultationsManagementPageFixed() {
   const getFilteredConsultations = () => {
     const today = new Date().toISOString().split("T")[0];
 
-    let filtered = consultations;
+    let filtered = [...consultations];
 
     if (searchTerm) {
       filtered = filtered.filter(
@@ -320,7 +320,8 @@ export default function ConsultationsManagementPageFixed() {
         break;
     }
 
-    return filtered;
+    // Sort card details by DESC order
+    return filtered.sort((a, b) => b.id - a.id);
   };
 
   const filteredConsultations = getFilteredConsultations();
@@ -754,15 +755,6 @@ export default function ConsultationsManagementPageFixed() {
 
                       <span className="text-gray-700 dark:text-[var(--text-primary)]">
                         {consultation.date} at {consultation.time}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
-
-                      <span className="text-gray-700 dark:text-[var(--text-primary)]">
-                        Conducted by:{" "}
-                        {formatName(consultation.conductedBy, "tc")}
                       </span>
                     </div>
 

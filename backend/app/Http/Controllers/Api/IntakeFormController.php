@@ -42,6 +42,12 @@ class IntakeFormController extends Controller
                 'orientation_preference' => 'nullable|string|max:255',
                 'hear_about_us' => 'nullable|string|max:255',
                 'referral_reason' => 'nullable|string',
+                'whatsapp_agreement' => 'nullable|string',
+                'partner_email' => 'nullable|email|max:255',
+                'partner_phone' => 'nullable|string|max:255',
+                'working_with_another_reason' => 'nullable|string',
+                'location_of_residence' => 'nullable|string|max:255',
+                'referral_type' => 'nullable|string|max:255',
                 'referrer_name' => 'nullable|string|max:255',
                 'referrer_phone' => 'nullable|string|max:255',
                 'referrer_org' => 'nullable|string|max:255',
@@ -82,6 +88,12 @@ class IntakeFormController extends Controller
                 'orientation_preference' => $validated['orientation_preference'] ?? 'No preference',
                 'hear_about_us' => $validated['hear_about_us'] ?? null,
                 'referral_reason' => $validated['referral_reason'] ?? null,
+                'whatsapp_agreement' => $validated['whatsapp_agreement'] ?? null,
+                'partner_email' => $validated['partner_email'] ?? null,
+                'partner_phone' => $validated['partner_phone'] ?? null,
+                'working_with_another_reason' => $validated['working_with_another_reason'] ?? null,
+                'location_of_residence' => $validated['location_of_residence'] ?? null,
+                'referral_type' => $validated['referral_type'] ?? null,
                 'referrer_name' => $validated['referrer_name'] ?? null,
                 'referrer_phone' => $validated['referrer_phone'] ?? null,
                 'referrer_org' => $validated['referrer_org'] ?? null,
@@ -92,7 +104,7 @@ class IntakeFormController extends Controller
 
             $clientId = null;
             $client = null;
-            
+
             // Optionally create client from intake form
             if ($request->has('create_client') && $request->create_client) {
                 // Check if client with email already exists
@@ -102,7 +114,7 @@ class IntakeFormController extends Controller
                     if ($client->trashed()) {
                         $client->restore();
                     }
-                    
+
                     // Update existing client details
                     $client->update([
                         'name' => "{$validated['first_name']} {$validated['last_name']}",
@@ -112,6 +124,12 @@ class IntakeFormController extends Controller
                         'service_type' => $validated['service_type'] ?? $client->service_type,
                         'primary_issues' => $validated['support_areas'] ?? $client->primary_issues ?? [],
                         'availability' => $validated['availability'] ?? $client->availability ?? [],
+                        'whatsapp_agreement' => $validated['whatsapp_agreement'] ?? $client->whatsapp_agreement,
+                        'partner_email' => $validated['partner_email'] ?? $client->partner_email,
+                        'partner_phone' => $validated['partner_phone'] ?? $client->partner_phone,
+                        'working_with_another_reason' => $validated['working_with_another_reason'] ?? $client->working_with_another_reason,
+                        'location_of_residence' => $validated['location_of_residence'] ?? $client->location_of_residence,
+                        'referral_type' => $validated['referral_type'] ?? $client->referral_type,
                         'submitted_date' => now(),
                         'stage' => 'Application & Assessment form Submitted',
                     ]);
@@ -147,10 +165,16 @@ class IntakeFormController extends Controller
                         'service_type' => $validated['service_type'] ?? null,
                         'primary_issues' => $validated['support_areas'] ?? [],
                         'availability' => $validated['availability'] ?? [],
+                        'whatsapp_agreement' => $validated['whatsapp_agreement'] ?? null,
+                        'partner_email' => $validated['partner_email'] ?? null,
+                        'partner_phone' => $validated['partner_phone'] ?? null,
+                        'working_with_another_reason' => $validated['working_with_another_reason'] ?? null,
+                        'location_of_residence' => $validated['location_of_residence'] ?? null,
+                        'referral_type' => $validated['referral_type'] ?? null,
                         'submitted_date' => now(),
                         'stage' => 'Application & Assessment form Submitted',
                     ]);
-                    
+
                     // Send welcome email to new client
                     try {
                         Mail::to($client->email)->send(new ClientWelcomeEmail(
@@ -262,7 +286,7 @@ class IntakeFormController extends Controller
             if (!empty($validated['placement_lead_name'])) $trainingProviderDetails['placement_lead_name'] = $validated['placement_lead_name'];
             if (!empty($validated['placement_lead_email'])) $trainingProviderDetails['placement_lead_email'] = $validated['placement_lead_email'];
             if (!empty($validated['placement_lead_phone'])) $trainingProviderDetails['placement_lead_phone'] = $validated['placement_lead_phone'];
-            
+
             // Merge with existing additional_info if it exists
             $existingAdditionalInfo = $validated['additional_info'] ?? null;
             if ($existingAdditionalInfo) {
@@ -275,7 +299,7 @@ class IntakeFormController extends Controller
                     // If additional_info is not JSON, keep it as is
                 }
             }
-            
+
             // Prepare form data
             $formData = [
                 'name' => $validated['name'],
@@ -304,12 +328,12 @@ class IntakeFormController extends Controller
             foreach ($documentFields as $requestField => $dbField) {
                 if ($request->hasFile($requestField)) {
                     $file = $request->file($requestField);
-                    
+
                     // Additional security checks
                     $originalName = $file->getClientOriginalName();
                     $extension = strtolower($file->getClientOriginalExtension());
                     $mimeType = $file->getMimeType();
-                    
+
                     // Validate file extension
                     $allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
                     if (!in_array($extension, $allowedExtensions)) {
@@ -317,7 +341,7 @@ class IntakeFormController extends Controller
                             'message' => 'Invalid file type. Allowed types: PDF, DOC, DOCX, JPG, JPEG, PNG',
                         ], 422);
                     }
-                    
+
                     // Validate MIME type
                     $allowedMimeTypes = [
                         'application/pdf',
@@ -331,14 +355,14 @@ class IntakeFormController extends Controller
                             'message' => 'Invalid file MIME type.',
                         ], 422);
                     }
-                    
+
                     // Sanitize filename
                     $sanitizedName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
                     $sanitizedName = substr($sanitizedName, 0, 255); // Limit filename length
-                    
+
                     // Generate unique filename to prevent overwrites
                     $filename = time() . '_' . uniqid() . '_' . $sanitizedName;
-                    
+
                     $path = $file->storeAs("tc_intake_forms/documents/{$dbField}", $filename, 'public');
                     $formData[$dbField] = $path;
                 }
@@ -356,7 +380,7 @@ class IntakeFormController extends Controller
                     if ($tc->trashed()) {
                         $tc->restore();
                     }
-                    
+
                     $tc->update([
                         'name' => $validated['name'],
                         'phone' => $validated['phone'] ?? $tc->phone,
@@ -405,7 +429,7 @@ class IntakeFormController extends Controller
                         'last_activity' => now(),
                         'status' => 'Active',
                     ]);
-                    
+
                     // Send welcome email to new trainee counsellor
                     try {
                         Mail::to($tc->email)->send(new TrainingCounsellorWelcomeEmail(

@@ -63,6 +63,12 @@ class Client extends Model
         'jotform_intake_data',
         'jotform_intake_submission_id',
         'jotform_intake_completed_at',
+        'whatsapp_agreement',
+        'partner_email',
+        'partner_phone',
+        'working_with_another_reason',
+        'location_of_residence',
+        'referral_type',
     ];
 
     protected $casts = [

@@ -44,6 +44,12 @@ class ClientIntakeForm extends Model
         'postcode',
         'terms_accepted',
         'status',
+        'whatsapp_agreement',
+        'partner_email',
+        'partner_phone',
+        'working_with_another_reason',
+        'location_of_residence',
+        'referral_type',
     ];
 
     protected $casts = [

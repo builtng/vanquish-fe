@@ -2,8 +2,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   User,
-  Heart,
-  Briefcase,
   Calendar,
   MessageCircle,
   CreditCard,
@@ -23,27 +21,15 @@ export default function IshClientIntake() {
     lastName: "",
     email: "",
     phone: "",
-    age: "",
+    whatsappAgreement: "",
     voicemailOk: "",
+    partnerEmail: "",
+    partnerPhone: "",
     currentlyInTherapy: "",
+    workingWithAnotherReason: "",
+    locationOfResidence: "",
 
-    // Demographics
-    gender: "",
-    ethnicity: "",
-    sexualOrientation: "",
-
-    // Medical & Service
-    serviceType: "Ish",
-    onMedication: "",
-    medicationDetails: "",
-    disabilities: "",
-
-    // Concerns
-    supportAreas: [],
-    concernsDetails: "",
-    riskIssues: "",
-
-    // Availability - Detailed time slots
+    // Availability
     availability: {
       monday: [],
       tuesday: [],
@@ -52,36 +38,22 @@ export default function IshClientIntake() {
       friday: [],
     },
 
-    // Preferences
-    genderPreference: "No preference",
-    agePreference: "No preference",
-    ethnicityPreference: "No preference",
-    orientationPreference: "No preference",
-
     // Referral
     hearAboutUs: "",
-    referralReason: "",
-    referrerName: "",
-    referrerPhone: "",
-    referrerOrg: "",
-    referrerEmail: "",
+    referralType: "",
+
+    // Concerns
+    supportAreas: [],
+    concernsDetails: "",
 
     // Payment
-    cardName: "",
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
     discountCode: "",
     termsAccepted: false,
-
-    // Core 34 Assessment
-    core34: {},
   });
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [clientId, setClientId] = useState(null);
-  const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [ishCapacityFull, setIshCapacityFull] = useState(false);
   const [ishCapacityData, setIshCapacityData] = useState({
     message: null,
@@ -96,7 +68,6 @@ export default function IshClientIntake() {
   const [paymentProps, setPaymentProps] = useState(null);
   const formContentRef = useRef(null);
 
-  // Calculate consultation fee based on service type - Always Ish for this page
   const getConsultationFee = () => {
     let baseFee = 25.0;
     return Math.max(0, baseFee - discountAmount);
@@ -130,9 +101,8 @@ export default function IshClientIntake() {
 
       const coupon = await response.json();
 
-      // Calculate discount
       let newDiscountAmount = 0;
-      const baseFee = getConsultationFee() + discountAmount; // Get original fee (add back current discount)
+      const baseFee = getConsultationFee() + discountAmount;
 
       if (coupon.type === "fixed") {
         newDiscountAmount = parseFloat(coupon.value);
@@ -153,7 +123,6 @@ export default function IshClientIntake() {
     }
   };
 
-  // Check capacity status for Ish
   useEffect(() => {
     fetch(
       `${
@@ -173,7 +142,6 @@ export default function IshClientIntake() {
         });
       })
       .catch(() => {
-        // Default to available if check fails
         setIshCapacityFull(false);
         setIshCapacityData({
           message:
@@ -200,52 +168,6 @@ export default function IshClientIntake() {
     "High sensitivity",
   ];
 
-  const core34Questions = [
-    "I have felt terribly alone and isolated",
-    "I have felt tense, anxious or nervous",
-    "I have felt I have someone to turn to for support when needed",
-    "I have felt O.K about myself",
-    "I have felt totally lacking in energy and enthusiasm",
-    "I have been physically violent to others",
-    "I have felt able to cope when things go wrong",
-    "I have been troubled by aches, pains or other physical problems",
-    "I have thought of hurting myself",
-    "Talking to people has felt too much for me",
-    "Tension and anxiety have prevented me from doing important things",
-    "I have been happy with the things I have done",
-    "I have been disturbed by unwanted thoughts and feelings",
-    "I have felt like crying",
-    "I have felt panic or terror",
-    "I made plans to end my life",
-    "I have felt overwhelmed by my problems",
-    "I have had difficulty getting to sleep or staying asleep",
-    "I have felt warmth or affection for someone",
-    "My problems have been impossible to put to one side",
-    "I have been able to do most things I needed to",
-    "I have threatened or intimidated another person",
-    "I have felt despairing or hopeless",
-    "I have thought it would be better if I were dead",
-    "I have felt criticised by other people",
-    "I have thought I have no friends",
-    "I have felt unhappy",
-    "Unwanted images or memories have been distressing me",
-    "I have been irritable when with other people",
-    "I have thought I am to blame for my problems and difficulties",
-    "I have felt optimistic about my future",
-    "I have achieved the things I wanted to",
-    "I have felt humiliated or shamed by other people",
-    "I have hurt myself physically or taken dangerous risks with my health",
-  ];
-
-  const core34Options = [
-    "Not at all",
-    "Only occasionally",
-    "Sometimes",
-    "Often",
-    "Most or all the time",
-  ];
-
-  // Time slots - 50 minute intervals
   const timeSlots = [
     { value: "10am-1050am", label: "10:00 AM - 10:50 AM", category: "Morning" },
     { value: "11am-1150am", label: "11:00 AM - 11:50 AM", category: "Morning" },
@@ -262,7 +184,6 @@ export default function IshClientIntake() {
     { value: "6pm-650pm", label: "6:00 PM - 6:50 PM", category: "Evening" },
   ];
 
-  // Friday time slots (last slot at 5pm-5:50pm)
   const fridayTimeSlots = [
     { value: "10am-1050am", label: "10:00 AM - 10:50 AM", category: "Morning" },
     { value: "11am-1150am", label: "11:00 AM - 11:50 AM", category: "Morning" },
@@ -278,87 +199,50 @@ export default function IshClientIntake() {
     { value: "5pm-550pm", label: "5:00 PM - 5:50 PM", category: "Evening" },
   ];
 
-  // Validation functions for each step
   const validateStep = (step) => {
     const stepErrors = {};
 
     switch (step) {
       case 1: // Personal Information
-        if (!formData.firstName.trim())
-          stepErrors.firstName = "First name is required";
-        if (!formData.lastName.trim())
-          stepErrors.lastName = "Last name is required";
-        if (
-          !formData.email.trim() ||
-          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
-        ) {
+        if (!formData.firstName.trim()) stepErrors.firstName = "First name is required";
+        if (!formData.lastName.trim()) stepErrors.lastName = "Last name is required";
+        if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
           stepErrors.email = "Valid email is required";
         }
-        if (!formData.phone.trim())
-          stepErrors.phone = "Phone number is required";
-        if (!formData.age || parseInt(formData.age) < 18)
-          stepErrors.age = "Age (18+) is required";
-        if (!formData.voicemailOk)
-          stepErrors.voicemailOk = "This field is required";
-        if (!formData.currentlyInTherapy)
-          stepErrors.currentlyInTherapy = "This field is required";
-        break;
-
-      case 2: // About You (Demographics)
-        if (!formData.gender) stepErrors.gender = "Gender is required";
-        if (!formData.ethnicity) stepErrors.ethnicity = "Ethnicity is required";
-        if (!formData.sexualOrientation)
-          stepErrors.sexualOrientation = "Sexual orientation is required";
-        break;
-
-      case 3: // Medical & Service
-        if (!formData.serviceType)
-          stepErrors.serviceType = "Service type is required";
-        if (!formData.onMedication)
-          stepErrors.onMedication = "This field is required";
-        if (
-          formData.onMedication === "Yes" &&
-          !formData.medicationDetails.trim()
-        ) {
-          stepErrors.medicationDetails = "Please provide medication details";
+        if (!formData.phone.trim()) stepErrors.phone = "Phone number is required";
+        if (!formData.whatsappAgreement) stepErrors.whatsappAgreement = "This field is required";
+        if (!formData.voicemailOk) stepErrors.voicemailOk = "This field is required";
+        if (!formData.partnerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.partnerEmail)) {
+          stepErrors.partnerEmail = "Partner's valid email is required";
         }
-        if (!formData.disabilities.trim())
-          stepErrors.disabilities =
-            "This field is required (enter 'N/A' if none)";
+        if (!formData.partnerPhone.trim()) stepErrors.partnerPhone = "Partner's contact number is required";
+        if (!formData.currentlyInTherapy) stepErrors.currentlyInTherapy = "This field is required";
+        if (formData.currentlyInTherapy === "Yes" && !formData.workingWithAnotherReason.trim()) {
+          stepErrors.workingWithAnotherReason = "Please explain reasons for working with another Therapist/Coach";
+        }
+        if (!formData.locationOfResidence.trim()) stepErrors.locationOfResidence = "Location is required";
+        break;
+
+      case 2: // Availability
+        const hasAvailability = Object.values(formData.availability).some(
+          (day) => day.length > 0,
+        );
+        if (!hasAvailability) {
+          stepErrors.availability = "Please select at least one time slot";
+        }
+        break;
+
+      case 3: // Referral
+        if (!formData.hearAboutUs) stepErrors.hearAboutUs = "This field is required";
+        if (!formData.referralType) stepErrors.referralType = "Please select a referral type";
         break;
 
       case 4: // Concerns
         if (formData.supportAreas.length === 0)
           stepErrors.supportAreas = "Please select at least one support area";
-        if (!formData.concernsDetails.trim())
-          stepErrors.concernsDetails =
-            "Please provide details about your concerns";
         break;
 
-      case 5: // Availability
-        const hasAvailability = Object.values(formData.availability).some(
-          (day) => day.length > 0,
-        );
-        if (!hasAvailability)
-          stepErrors.availability = "Please select at least one time slot";
-        break;
-
-      case 6: // Preferences (optional - no validation needed)
-        break;
-
-      case 7: // Referral
-        if (!formData.hearAboutUs)
-          stepErrors.hearAboutUs = "This field is required";
-        break;
-
-      case 8: // Assessment (CORE 34)
-        if (Object.keys(formData.core34).length < 34) {
-          stepErrors.core34 =
-            "Please answer all 34 questions before proceeding.";
-        }
-        break;
-
-      case 9: // Payment
+      case 5: // Payment
         if (!formData.termsAccepted)
           stepErrors.termsAccepted = "You must accept the terms";
         break;
@@ -370,7 +254,6 @@ export default function IshClientIntake() {
     return stepErrors;
   };
 
-  // Scroll to top of form content when step changes
   useEffect(() => {
     if (formContentRef.current) {
       formContentRef.current.scrollIntoView({
@@ -380,31 +263,24 @@ export default function IshClientIntake() {
     }
   }, [currentStep]);
 
-  // Handle step navigation
   const handleStepChange = (newStep) => {
-    // Allow going back without validation
     if (newStep < currentStep) {
       setCurrentStep(newStep);
       setErrors({});
       return;
     }
 
-    // Validate current step before moving forward
     const stepErrors = validateStep(currentStep);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
-      // Scroll to first error after a brief delay
       setTimeout(() => {
         const firstErrorField = Object.keys(stepErrors)[0];
         let errorElement =
           document.querySelector(`[name="${firstErrorField}"]`) ||
           document.querySelector(`#${firstErrorField}`);
 
-        // For checkbox groups and special fields, find the container using data-field
         if (!errorElement) {
-          errorElement = document.querySelector(
-            `[data-field="${firstErrorField}"]`,
-          );
+          errorElement = document.querySelector(`[data-field="${firstErrorField}"]`);
         }
 
         if (errorElement) {
@@ -416,52 +292,33 @@ export default function IshClientIntake() {
           ) {
             errorElement.focus();
           }
-        } else {
-          // Fallback: scroll to form content
-          if (formContentRef.current) {
-            formContentRef.current.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            });
-          }
+        } else if (formContentRef.current) {
+          formContentRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
         }
       }, 100);
       return;
     }
 
-    // Mark current step as completed
     setCompletedSteps((prev) => new Set([...prev, currentStep]));
     setErrors({});
     setCurrentStep(newStep);
   };
 
-  // Handle next button click
-  const handleNext = () => {
-    handleStepChange(currentStep + 1);
-  };
-
-  // Handle previous button click
-  const handlePrevious = () => {
-    handleStepChange(currentStep - 1);
-  };
-
-  // Handle step indicator click
+  const handleNext = () => handleStepChange(currentStep + 1);
+  const handlePrevious = () => handleStepChange(currentStep - 1);
   const handleStepClick = (stepNumber) => {
-    // Allow clicking on completed steps or previous steps
     if (completedSteps.has(stepNumber) || stepNumber < currentStep) {
       handleStepChange(stepNumber);
-    } else if (stepNumber === currentStep) {
-      // Already on this step
-      return;
-    } else {
-      // Try to validate and move forward step by step
+    } else if (stepNumber !== currentStep) {
       handleStepChange(stepNumber);
     }
   };
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error for this field when user starts typing
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -478,28 +335,10 @@ export default function IshClientIntake() {
         ? prev.supportAreas.filter((a) => a !== area)
         : [...prev.supportAreas, area],
     }));
-    // Clear error when user makes a selection
     if (errors.supportAreas) {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors.supportAreas;
-        return newErrors;
-      });
-    }
-  };
-
-  const handleCore34Change = (questionIndex, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      core34: {
-        ...prev.core34,
-        [questionIndex]: value,
-      },
-    }));
-    if (errors.core34) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors.core34;
         return newErrors;
       });
     }
@@ -515,7 +354,6 @@ export default function IshClientIntake() {
           : [...prev.availability[day], slot],
       },
     }));
-    // Clear error when user makes a selection
     if (errors.availability) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -526,19 +364,15 @@ export default function IshClientIntake() {
   };
 
   const handleSubmit = async () => {
-    // Validate step 9 before submitting
-    const stepErrors = validateStep(9);
+    const stepErrors = validateStep(5);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
       return;
     }
 
-    if (!formData.termsAccepted) {
-      return;
-    }
+    if (!formData.termsAccepted) return;
 
     try {
-      // First, submit the intake form to create client
       const response = await fetch(
         `${
           process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
@@ -553,39 +387,28 @@ export default function IshClientIntake() {
             last_name: formData.lastName,
             email: formData.email,
             phone: formData.phone || null,
-            age: formData.age ? parseInt(formData.age) : null,
+            whatsapp_agreement: formData.whatsappAgreement,
             voicemail_ok: formData.voicemailOk === "Yes",
+            partner_email: formData.partnerEmail,
+            partner_phone: formData.partnerPhone,
             currently_in_therapy: formData.currentlyInTherapy === "Yes",
-            gender: formData.gender || null,
-            ethnicity: formData.ethnicity || null,
-            sexual_orientation: formData.sexualOrientation || null,
-            service_type: formData.serviceType || "Ish",
-            on_medication: formData.onMedication === "Yes",
-            medication_details: formData.medicationDetails || null,
-            disabilities: formData.disabilities || null,
+            working_with_another_reason: formData.workingWithAnotherReason || null,
+            location_of_residence: formData.locationOfResidence,
+
+            service_type: "Ish",
             support_areas: formData.supportAreas || [],
             concerns_details: formData.concernsDetails || null,
-            risk_issues: formData.riskIssues || null,
-            core34_answers: formData.core34 || {},
             availability: formData.availability || {},
-            gender_preference: formData.genderPreference || "No preference",
-            age_preference: formData.agePreference || "No preference",
-            ethnicity_preference:
-              formData.ethnicityPreference || "No preference",
-            orientation_preference:
-              formData.orientationPreference || "No preference",
+
             hear_about_us: formData.hearAboutUs || null,
-            referral_reason: formData.referralReason || null,
-            referrer_name: formData.referrerName || null,
-            referrer_phone: formData.referrerPhone || null,
-            referrer_org: formData.referrerOrg || null,
-            referrer_email: formData.referrerEmail || null,
+            referral_type: formData.referralType || null,
+
             terms_accepted: formData.termsAccepted,
             discount_code: isDiscountApplied ? formData.discountCode : null,
             consultation_fee: getConsultationFee(),
             create_client: true,
           }),
-        },
+        }
       );
 
       if (!response.ok) {
@@ -596,15 +419,11 @@ export default function IshClientIntake() {
             const errorData = await response.json();
             if (errorData.errors) {
               const validationErrors = Object.entries(errorData.errors)
-                .map(
-                  ([field, messages]) =>
-                    `${field}: ${Array.isArray(messages) ? messages.join(", ") : messages}`,
-                )
+                .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(", ") : messages}`)
                 .join("\n");
               errorMessage = `Validation errors:\n${validationErrors}`;
             } else {
-              errorMessage =
-                errorData.message || errorData.error || errorMessage;
+              errorMessage = errorData.message || errorData.error || errorMessage;
             }
           }
         } catch (e) {}
@@ -612,43 +431,21 @@ export default function IshClientIntake() {
       }
 
       const data = await response.json();
-      let clientUuid = data.client_uuid;
-      let currentClientId =
-        data.client_id || (data.form && data.form.client_id);
-
-      const proceedToRedirect = () => {
-        const params = new URLSearchParams();
-        params.append("email", formData.email);
-        params.append("client_uuid", clientUuid);
-        if (formData.firstName) {
-          params.append("q1", formData.firstName);
-          params.append("first_name", formData.firstName);
-        }
-        if (formData.lastName) {
-          params.append("q2", formData.lastName);
-          params.append("last_name", formData.lastName);
-        }
-        params.append("service_type", "Ish");
-        params.append("uuid", clientUuid);
-        params.append("client_id", clientUuid);
-
-        const jotformUrl = `https://pci.jotform.com/form/253505449240454?${params.toString()}`;
-        window.location.href = jotformUrl;
-      };
+      let clientIdFromRes = data.client_id || (data.form && data.form.client_id);
+      setClientId(clientIdFromRes);
 
       const fee = getConsultationFee();
-      if (fee > 0 && clientUuid && currentClientId) {
+      if (fee > 0 && clientIdFromRes) {
         setPaymentProps({
-          clientId: currentClientId,
+          clientId: clientIdFromRes,
           amount: fee,
           couponCode: isDiscountApplied ? formData.discountCode : null,
-          onSuccess: proceedToRedirect,
-          onError: (err) =>
-            toast.error(`Payment failed: ${err.message || "Please try again"}`),
+          onSuccess: () => setSubmitted(true),
+          onError: (err) => toast.error(`Payment failed: ${err.message || "Please try again"}`),
         });
         setShowPaymentModal(true);
-      } else if (clientUuid) {
-        proceedToRedirect();
+      } else {
+        setSubmitted(true);
       }
     } catch (error) {
       toast.error(error.message || "Failed to submit form.");
@@ -657,14 +454,10 @@ export default function IshClientIntake() {
 
   const steps = [
     { number: 1, title: "Personal", icon: User },
-    { number: 2, title: "About You", icon: Heart },
-    { number: 3, title: "Medical", icon: Briefcase },
+    { number: 2, title: "Availability", icon: Calendar },
+    { number: 3, title: "Referral", icon: User },
     { number: 4, title: "Concerns", icon: MessageCircle },
-    { number: 5, title: "Availability", icon: Calendar },
-    { number: 6, title: "Preferences", icon: Heart },
-    { number: 7, title: "Referral", icon: User },
-    { number: 8, title: "Assessment", icon: CheckCircle },
-    { number: 9, title: "Payment", icon: CreditCard },
+    { number: 5, title: "Payment", icon: CreditCard },
   ];
 
   if (submitted) {
@@ -675,7 +468,7 @@ export default function IshClientIntake() {
           style={{ background: "var(--bg-secondary)" }}
         >
           <div className="flex items-center justify-center p-4 min-h-screen">
-            <div className="card rounded-2xl shadow-xl p-8 max-w-md w-full text-center border text-primary">
+            <div className="card rounded-2xl shadow-xl p-8 max-w-md w-full text-center border text-primary bg-white">
               <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 bg-green-50 border-2 border-green-200">
                 <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
@@ -688,8 +481,7 @@ export default function IshClientIntake() {
                 </p>
                 <p className="mb-4 font-medium">
                   <strong>
-                    IF YOU HAVE NOT RECEIVED A CONFIRMATION EMAIL, CONTACT US AT
-                    LEAST 48 HOURS BEFORE YOUR CONSULTATION.
+                    IF YOU HAVE NOT RECEIVED A CONFIRMATION EMAIL, CONTACT US AT LEAST 48 HOURS BEFORE YOUR CONSULTATION.
                   </strong>
                 </p>
               </div>
@@ -715,7 +507,6 @@ export default function IshClientIntake() {
         style={{ background: "var(--bg-secondary)" }}
       >
         <div className="max-w-4xl mx-auto">
-          {/* Header with Logo */}
           <div className="card rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border bg-white">
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <div className="flex items-center gap-3 md:gap-4">
@@ -727,30 +518,27 @@ export default function IshClientIntake() {
                 </div>
                 <div>
                   <h1 className="text-lg md:text-2xl font-bold text-primary">
-                    Ish's Intake Form
+                    Consultation Sheet
                   </h1>
-                  <p className="text-base md:text-lg mt-0.5 md:mt-1 text-secondary">
-                    Coaching & Counselling Intake
+                  <p className="text-sm mt-0.5 md:mt-1 text-secondary">
+                    By completing this form, you (client) are giving permission for your information to be shared within Vanquish Therapies for the purpose of appointment scheduling.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Desktop Progress */}
             <div className="hidden md:block">
               <div className="relative">
                 <div className="flex items-center justify-between">
                   {steps.map((step, index) => {
                     const isCompleted = completedSteps.has(step.number);
                     const isCurrent = currentStep === step.number;
-                    const isAccessible =
-                      isCompleted || step.number <= currentStep;
+                    const isAccessible = isCompleted || step.number <= currentStep;
 
                     return (
                       <React.Fragment key={step.number}>
                         <div
-                          className="flex flex-col items-center"
-                          style={{ width: "11.11%" }}
+                          className="flex flex-col items-center flex-1"
                         >
                           <button
                             type="button"
@@ -790,7 +578,7 @@ export default function IshClientIntake() {
                         </div>
                         {index < steps.length - 1 && (
                           <div
-                            className={`h-1 flex-1 mx-2 rounded transition-colors ${currentStep > step.number ? "" : "bg-gray-200"}`}
+                            className={`h-1 mx-2 rounded transition-colors w-full ${currentStep > step.number ? "" : "bg-gray-200"}`}
                             style={
                               currentStep > step.number
                                 ? { backgroundColor: "#6f1d56" }
@@ -815,6 +603,30 @@ export default function IshClientIntake() {
                 <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
                   Personal Information
                 </h2>
+                <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
+                  (Please be advised that all required fields must be completed in the form. Failure to do so may result in an error. Therefore, it is crucial that you carefully review the form and provide accurate and complete information to avoid any issues. For any fields that do not apply to you, please enter "N/A.")
+                </div>
+                
+                {ishCapacityFull && (
+                   <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-5 mb-6">
+                     <p className="text-orange-900 font-bold mb-3">
+                       Service at Capacity
+                     </p>
+                     <p className="text-orange-800 mb-4">
+                       {ishCapacityData.message}
+                     </p>
+                     <a
+                       href={ishCapacityData.alternative_url}
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       className="inline-block px-6 py-3 bg-orange-600 text-white rounded-lg font-medium"
+                     >
+                       Continue with VQT COACHING & THERAPY
+                     </a>
+                   </div>
+                )}
+                
+                {!ishCapacityFull && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   <div>
                     <label className="block text-base font-medium mb-2 text-primary">
@@ -823,16 +635,10 @@ export default function IshClientIntake() {
                     <input
                       type="text"
                       value={formData.firstName}
-                      onChange={(e) =>
-                        handleInputChange("firstName", e.target.value)
-                      }
+                      onChange={(e) => handleInputChange("firstName", e.target.value)}
                       className={`w-full px-4 py-3 border rounded-lg ${errors.firstName ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.firstName && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.firstName}
-                      </p>
-                    )}
+                    {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
                   </div>
                   <div>
                     <label className="block text-base font-medium mb-2 text-primary">
@@ -841,16 +647,10 @@ export default function IshClientIntake() {
                     <input
                       type="text"
                       value={formData.lastName}
-                      onChange={(e) =>
-                        handleInputChange("lastName", e.target.value)
-                      }
+                      onChange={(e) => handleInputChange("lastName", e.target.value)}
                       className={`w-full px-4 py-3 border rounded-lg ${errors.lastName ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.lastName && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.lastName}
-                      </p>
-                    )}
+                    {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
                   </div>
                   <div>
                     <label className="block text-base font-medium mb-2 text-primary">
@@ -859,234 +659,202 @@ export default function IshClientIntake() {
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) =>
-                        handleInputChange("email", e.target.value)
-                      }
+                      onChange={(e) => handleInputChange("email", e.target.value)}
                       className={`w-full px-4 py-3 border rounded-lg ${errors.email ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.email && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.email}
-                      </p>
-                    )}
+                    {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                   </div>
                   <div>
                     <label className="block text-base font-medium mb-2 text-primary">
-                      Phone Number <span className="text-red-500">*</span>
+                      Tel: <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) =>
-                        handleInputChange("phone", e.target.value)
-                      }
+                      onChange={(e) => handleInputChange("phone", e.target.value)}
                       className={`w-full px-4 py-3 border rounded-lg ${errors.phone ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.phone && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.phone}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Age <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="18"
-                      value={formData.age}
-                      onChange={(e) => handleInputChange("age", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.age ? "border-red-500" : "border-gray-300"}`}
-                    />
-                    {errors.age && (
-                      <p className="text-red-500 text-sm mt-1">{errors.age}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Voicemail OK? <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.voicemailOk}
-                      onChange={(e) =>
-                        handleInputChange("voicemailOk", e.target.value)
-                      }
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.voicemailOk ? "border-red-500" : "border-gray-300"}`}
-                    >
-                      <option value="">Select</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
+                    {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-base font-medium mb-2 text-primary">
-                      Currently in therapy elsewhere?{" "}
-                      <span className="text-red-500">*</span>
+                      We primarily communicate through Emails and WhatsApp. Do you agree to this method of communication? <span className="text-red-500">*</span>
                     </label>
                     <select
-                      value={formData.currentlyInTherapy}
-                      onChange={(e) =>
-                        handleInputChange("currentlyInTherapy", e.target.value)
-                      }
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.currentlyInTherapy ? "border-red-500" : "border-gray-300"}`}
+                      value={formData.whatsappAgreement}
+                      onChange={(e) => handleInputChange("whatsappAgreement", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg ${errors.whatsappAgreement ? "border-red-500" : "border-gray-300"}`}
                     >
-                      <option value="">Select</option>
+                      <option value="">Please Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No WhatsApp">I prefer emails but not WhatsApp (This is the only messaging/texting platform we use currently).</option>
+                    </select>
+                    {errors.whatsappAgreement && <p className="text-red-500 text-sm mt-1">{errors.whatsappAgreement}</p>}
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-base font-medium mb-2 text-primary">
+                      Is it okay for us to leave you a voicemail? <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.voicemailOk}
+                      onChange={(e) => handleInputChange("voicemailOk", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg ${errors.voicemailOk ? "border-red-500" : "border-gray-300"}`}
+                    >
+                      <option value="">Please Select</option>
                       <option value="Yes">Yes</option>
                       <option value="No">No</option>
                     </select>
+                    {errors.voicemailOk && <p className="text-red-500 text-sm mt-1">{errors.voicemailOk}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-base font-medium mb-2 text-primary">
+                      Partner's Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.partnerEmail}
+                      onChange={(e) => handleInputChange("partnerEmail", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg ${errors.partnerEmail ? "border-red-500" : "border-gray-300"}`}
+                    />
+                    {errors.partnerEmail && <p className="text-red-500 text-sm mt-1">{errors.partnerEmail}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-base font-medium mb-2 text-primary">
+                      Partner's Contact No. <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.partnerPhone}
+                      onChange={(e) => handleInputChange("partnerPhone", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg ${errors.partnerPhone ? "border-red-500" : "border-gray-300"}`}
+                    />
+                    {errors.partnerPhone && <p className="text-red-500 text-sm mt-1">{errors.partnerPhone}</p>}
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-base font-medium mb-2 text-primary">
+                      Are you currently in Therapy/Counselling or Coaching anywhere else? <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.currentlyInTherapy}
+                      onChange={(e) => handleInputChange("currentlyInTherapy", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg ${errors.currentlyInTherapy ? "border-red-500" : "border-gray-300"}`}
+                    >
+                      <option value="">Please Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                    {errors.currentlyInTherapy && <p className="text-red-500 text-sm mt-1">{errors.currentlyInTherapy}</p>}
+                  </div>
+                  {formData.currentlyInTherapy === "Yes" && (
+                    <div className="md:col-span-2">
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Please explain reasons for working with another Therapist/Counsellor or Coach <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={formData.workingWithAnotherReason}
+                        onChange={(e) => handleInputChange("workingWithAnotherReason", e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.workingWithAnotherReason ? "border-red-500" : "border-gray-300"}`}
+                        placeholder="Reasons..."
+                      />
+                      {errors.workingWithAnotherReason && <p className="text-red-500 text-sm mt-1">{errors.workingWithAnotherReason}</p>}
+                    </div>
+                  )}
+                  <div className="md:col-span-2">
+                    <label className="block text-base font-medium mb-2 text-primary">
+                      Please state where you reside in the world. Please note, our Practice is based in the UK. Therefore, the Consultations and Session times are scheduled in UK time. <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.locationOfResidence}
+                      onChange={(e) => handleInputChange("locationOfResidence", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg ${errors.locationOfResidence ? "border-red-500" : "border-gray-300"}`}
+                      placeholder="Your location..."
+                    />
+                    {errors.locationOfResidence && <p className="text-red-500 text-sm mt-1">{errors.locationOfResidence}</p>}
                   </div>
                 </div>
+                )}
               </div>
             )}
 
             {currentStep === 2 && (
               <div className="space-y-4 md:space-y-6">
                 <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
-                  About You
+                  Availability
                 </h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Gender <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.gender}
-                      onChange={(e) =>
-                        handleInputChange("gender", e.target.value)
-                      }
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.gender ? "border-red-500" : "border-gray-300"}`}
-                    >
-                      <option value="">Select</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Non-binary">Non-binary</option>
-                      <option value="Other">Other</option>
-                    </select>
+                {["monday", "tuesday", "wednesday", "thursday", "friday"].map((day) => (
+                  <div key={day} className="border rounded-lg p-4 mb-4">
+                    <h3 className="font-bold capitalize mb-3 text-purple-900">{day}</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {(day === "friday" ? fridayTimeSlots : timeSlots).map((slot) => (
+                        <label
+                          key={slot.value}
+                          className="flex items-center gap-3 p-2 bg-gray-50 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.availability[day].includes(slot.value)}
+                            onChange={() => handleAvailabilityToggle(day, slot.value)}
+                            className="accent-[#6f1d56]"
+                          />
+                          <span>{slot.label}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Ethnicity <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.ethnicity}
-                      onChange={(e) =>
-                        handleInputChange("ethnicity", e.target.value)
-                      }
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.ethnicity ? "border-red-500" : "border-gray-300"}`}
-                    >
-                      <option value="">Select</option>
-                      <option value="Asian">Asian</option>
-                      <option value="Black">Black</option>
-                      <option value="White">White</option>
-                      <option value="Mixed">Mixed</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Sexual Orientation <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.sexualOrientation}
-                      onChange={(e) =>
-                        handleInputChange("sexualOrientation", e.target.value)
-                      }
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.sexualOrientation ? "border-red-500" : "border-gray-300"}`}
-                    >
-                      <option value="">Select</option>
-                      <option value="Heterosexual">Heterosexual</option>
-                      <option value="Gay">Gay</option>
-                      <option value="Lesbian">Lesbian</option>
-                      <option value="Bisexual">Bisexual</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                </div>
+                ))}
+                {errors.availability && <p className="text-red-500 text-sm">{errors.availability}</p>}
               </div>
             )}
 
             {currentStep === 3 && (
               <div className="space-y-4 md:space-y-6">
                 <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
-                  Medical & Service
+                  Referral Information
                 </h2>
-                <div className="p-4 bg-purple-50 rounded-lg border border-purple-100 mb-6">
-                  <p className="text-purple-900 font-medium">
-                    Selected Service: Ish's Services (Coaching/Counselling)
-                  </p>
-                </div>
-
-                {ishCapacityFull && (
-                  <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-5 mb-6">
-                    <p className="text-orange-900 font-bold mb-3">
-                      Service at Capacity
-                    </p>
-                    <p className="text-orange-800 mb-4">
-                      {ishCapacityData.message}
-                    </p>
-                    <a
-                      href={ishCapacityData.alternative_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block px-6 py-3 bg-orange-600 text-white rounded-lg font-medium"
+                <div>
+                    <label className="block text-base font-medium mb-2 text-primary">
+                      How did you become aware of my services? <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.hearAboutUs}
+                      onChange={(e) => handleInputChange("hearAboutUs", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg ${errors.hearAboutUs ? "border-red-500" : "border-gray-300"}`}
                     >
-                      Continue with VQT COACHING & THERAPY
-                    </a>
-                  </div>
-                )}
-
-                {!ishCapacityFull && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        On Medication? <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={formData.onMedication}
-                        onChange={(e) =>
-                          handleInputChange("onMedication", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.onMedication ? "border-red-500" : "border-gray-300"}`}
-                      >
-                        <option value="">Select</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                      </select>
-                    </div>
-                    {formData.onMedication === "Yes" && (
-                      <textarea
-                        value={formData.medicationDetails}
-                        onChange={(e) =>
-                          handleInputChange("medicationDetails", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border rounded-lg"
-                        placeholder="Details..."
-                      />
-                    )}
-                    <div>
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Disabilities? <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        value={formData.disabilities}
-                        onChange={(e) =>
-                          handleInputChange("disabilities", e.target.value)
-                        }
-                        className="w-full px-4 py-3 border rounded-lg"
-                        placeholder="N/A if none"
-                      />
-                    </div>
-                  </div>
-                )}
+                      <option value="">Please Select</option>
+                      <option value="Online (Google, Bing etc)">Online (Google, Bing etc)</option>
+                      <option value="Social Media (Facebook, Instagram)">Social Media (Facebook, Instagram)</option>
+                      <option value="Referral">Referral</option>
+                      <option value="Word of mouth">Word of mouth</option>
+                      <option value="Billboard">Billboard</option>
+                    </select>
+                    {errors.hearAboutUs && <p className="text-red-500 text-sm mt-1">{errors.hearAboutUs}</p>}
+                </div>
+                <div>
+                    <label className="block text-base font-medium mb-2 text-primary">
+                      Please click below to select the referral type: <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.referralType}
+                      onChange={(e) => handleInputChange("referralType", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg ${errors.referralType ? "border-red-500" : "border-gray-300"}`}
+                    >
+                      <option value="">Please Select</option>
+                      <option value="Self-Referral">Self-Referral</option>
+                      <option value="Referred Through an Organisation">Referred Through an Organisation</option>
+                      <option value="Referred Through an Individual">Referred Through an Individual</option>
+                    </select>
+                    {errors.referralType && <p className="text-red-500 text-sm mt-1">{errors.referralType}</p>}
+                </div>
               </div>
             )}
 
             {currentStep === 4 && (
               <div className="space-y-4 md:space-y-6">
                 <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
-                  Your Concerns
+                  Areas You Require Support With
                 </h2>
+                <p className="text-sm text-gray-700">We have listed a few areas below you may require support with.*</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                   {supportAreasList.map((area) => (
                     <label
@@ -1103,183 +871,55 @@ export default function IshClientIntake() {
                     </label>
                   ))}
                 </div>
-                <textarea
-                  value={formData.concernsDetails}
-                  onChange={(e) =>
-                    handleInputChange("concernsDetails", e.target.value)
-                  }
-                  className="w-full px-4 py-3 border rounded-lg"
-                  placeholder="Details about concerns..."
-                  rows="4"
-                />
-                <textarea
-                  value={formData.riskIssues}
-                  onChange={(e) =>
-                    handleInputChange("riskIssues", e.target.value)
-                  }
-                  className="w-full px-4 py-3 border rounded-lg"
-                  placeholder="Risk issues / substance misuse..."
-                  rows="2"
-                />
+                {errors.supportAreas && <p className="text-red-500 text-sm -mt-4 mb-4">{errors.supportAreas}</p>}
+
+                <div className="mt-4">
+                  <label className="block text-base font-medium mb-2 text-primary">
+                    Please use this box to specify and describe details related to the above selected areas or mention anything else not listed above that you would like support with. <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={formData.concernsDetails}
+                    onChange={(e) => handleInputChange("concernsDetails", e.target.value)}
+                    className="w-full px-4 py-3 border rounded-lg"
+                    placeholder="Details about concerns..."
+                    rows="4"
+                  />
+                </div>
               </div>
             )}
 
-            {/* Step 5: Availability - moved up from step 6 */}
             {currentStep === 5 && (
               <div className="space-y-4 md:space-y-6">
                 <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
-                  Availability
+                  Payment & Acknowledgement
                 </h2>
-                {["monday", "tuesday", "wednesday", "thursday", "friday"].map(
-                  (day) => (
-                    <div key={day} className="border rounded-lg p-4 mb-4">
-                      <h3 className="font-bold capitalize mb-3 text-purple-900">
-                        {day}
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {(day === "friday" ? fridayTimeSlots : timeSlots).map(
-                          (slot) => (
-                            <label
-                              key={slot.value}
-                              className="flex items-center gap-3 p-2 bg-gray-50 rounded cursor-pointer"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={formData.availability[day].includes(
-                                  slot.value,
-                                )}
-                                onChange={() =>
-                                  handleAvailabilityToggle(day, slot.value)
-                                }
-                                className="accent-[#6f1d56]"
-                              />
-                              <span>{slot.label}</span>
-                            </label>
-                          ),
-                        )}
-                      </div>
-                    </div>
-                  ),
-                )}
-              </div>
-            )}
 
-            {/* Step 6: Preferences - moved up from step 7 */}
-            {currentStep === 6 && (
-              <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
-                  Preferences (Optional)
-                </h2>
-                <div className="space-y-4">
-                  <select
-                    value={formData.genderPreference}
-                    onChange={(e) =>
-                      handleInputChange("genderPreference", e.target.value)
-                    }
-                    className="w-full px-4 py-3 border rounded-lg"
-                  >
-                    <option value="No preference">No gender preference</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                  <select
-                    value={formData.agePreference}
-                    onChange={(e) =>
-                      handleInputChange("agePreference", e.target.value)
-                    }
-                    className="w-full px-4 py-3 border rounded-lg"
-                  >
-                    <option value="No preference">No age preference</option>
-                    <option value="Younger">Younger</option>
-                    <option value="Older">Older</option>
-                  </select>
+                <div className="bg-gray-50 p-6 rounded-lg mb-6">
+                    <h3 className="font-bold mb-2">Terms & Conditions</h3>
+                    <p className="text-sm mb-4">
+                      Please note: Our consultation slots are limited; therefore, this means payment is required to secure another consultation. We appreciate your understanding. The Consultation payment is non-refundable.
+                    </p>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.termsAccepted}
+                        onChange={(e) => handleInputChange("termsAccepted", e.target.checked)}
+                        className="mt-1 accent-[#6f1d56]"
+                      />
+                      <span className="font-medium text-sm">
+                        I accept the terms and conditions.
+                      </span>
+                    </label>
+                    {errors.termsAccepted && <p className="text-red-500 text-sm mt-1">{errors.termsAccepted}</p>}
                 </div>
-              </div>
-            )}
 
-            {/* Step 7: Referral - moved up from step 8 */}
-            {currentStep === 7 && (
-              <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
-                  Referral
-                </h2>
-                <select
-                  value={formData.hearAboutUs}
-                  onChange={(e) =>
-                    handleInputChange("hearAboutUs", e.target.value)
-                  }
-                  className="w-full px-4 py-3 border rounded-lg"
-                >
-                  <option value="">How did you find us?</option>
-                  <option value="Online">Online</option>
-                  <option value="Social Media">Social Media</option>
-                  <option value="Word of Mouth">Word of Mouth</option>
-                </select>
-                <textarea
-                  value={formData.referralReason}
-                  onChange={(e) =>
-                    handleInputChange("referralReason", e.target.value)
-                  }
-                  className="w-full px-4 py-3 border rounded-lg"
-                  placeholder="Reason for referral..."
-                />
-              </div>
-            )}
-
-            {/* Step 8: Assessment (CORE 34) - moved to be last before payment */}
-            {currentStep === 8 && (
-              <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
-                  Assessment (CORE 34)
-                </h2>
-                <div className="overflow-x-auto border rounded-lg">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="p-3 text-left">Statement</th>
-                        {core34Options.map((opt) => (
-                          <th key={opt} className="p-3 text-center">
-                            {opt}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {core34Questions.map((q, i) => (
-                        <tr key={i} className="border-t">
-                          <td className="p-3">
-                            {i + 1}. {q}
-                          </td>
-                          {core34Options.map((opt) => (
-                            <td key={opt} className="p-3 text-center">
-                              <input
-                                type="radio"
-                                checked={formData.core34[i] === opt}
-                                onChange={() => handleCore34Change(i, opt)}
-                                className="accent-[#6f1d56]"
-                              />
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {currentStep === 9 && (
-              <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
-                  Payment
-                </h2>
                 <div className="p-6 border-2 border-purple-200 rounded-xl bg-purple-50 flex justify-between items-center">
                   <div>
                     <h3 className="font-bold text-purple-900">
-                      Ish's Consultation Fee
+                      Ish's Initial Consultation
                     </h3>
                     <p className="text-sm text-purple-700">
-                      Non-refundable admin fee
+                      Non-refundable
                     </p>
                   </div>
                   <p className="text-3xl font-bold text-purple-900">
@@ -1291,9 +931,7 @@ export default function IshClientIntake() {
                   <input
                     type="text"
                     value={formData.discountCode}
-                    onChange={(e) =>
-                      handleInputChange("discountCode", e.target.value)
-                    }
+                    onChange={(e) => handleInputChange("discountCode", e.target.value)}
                     className="flex-1 px-4 py-2 border rounded-lg"
                     placeholder="Discount code"
                   />
@@ -1305,32 +943,12 @@ export default function IshClientIntake() {
                   </button>
                 </div>
 
-                {clientId && (
-                  <StripePaymentWrapper
-                    clientId={clientId}
-                    amount={getConsultationFee()}
-                    onSuccess={() => setSubmitted(true)}
-                  />
-                )}
-
-                <label className="flex items-start gap-3 mt-4 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.termsAccepted}
-                    onChange={(e) =>
-                      handleInputChange("termsAccepted", e.target.checked)
-                    }
-                    className="mt-1 accent-[#6f1d56]"
-                  />
-                  <span className="text-sm">
-                    I accept the terms and conditions. Note that the admin fee
-                    is non-refundable.
-                  </span>
-                </label>
+                <div className="text-sm mt-6 text-gray-600 bg-blue-50 p-4 rounded-lg">
+                  Thank you for completing this form and for taking the first step towards healing. I understand that starting Counselling or Coaching can feel daunting but please know, Vanquish Therapies is here to support you on your journey, and I am committed to providing a supportive environment for you. Please note – this is not a crisis or emergency service. If you need to speak to someone immediately, please contact your GP, NHS (111),or the Samaritans (116 123).
+                </div>
               </div>
             )}
 
-            {/* Nav Buttons */}
             {!(formData.serviceType === "Ish" && ishCapacityFull) && (
               <div className="flex justify-between mt-10 pt-6 border-t">
                 <button
@@ -1363,7 +981,6 @@ export default function IshClientIntake() {
           </div>
         </div>
 
-        {/* Payment Modal */}
         {showPaymentModal && paymentProps && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl w-full max-w-md p-6">
