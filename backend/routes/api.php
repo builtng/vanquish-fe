@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\ClientBookingController;
 use App\Http\Controllers\Api\JotFormWebhookController;
 use App\Http\Controllers\Api\ClientAgreementController;
+use App\Http\Controllers\Api\EmailTemplateController;
+use App\Http\Controllers\Api\IntakeController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes with stricter rate limiting
@@ -49,6 +51,8 @@ Route::post('/jotform/intake-webhook', [JotFormWebhookController::class, 'handle
 // Rate limited to prevent abuse
 Route::middleware('throttle:10,1')->group(function () {
     Route::post('/client-intake', [IntakeFormController::class, 'clientIntake']);
+    Route::post('/intake/confirm-payment', [IntakeController::class, 'handlePaymentSuccess']);
+    Route::get('/intake/success', [IntakeController::class, 'success'])->name('intake.success');
     Route::post('/tc-intake', [IntakeFormController::class, 'tcIntake']);
     Route::post('/client-agreement/submit', [ClientAgreementController::class, 'submitAgreement']);
 });
@@ -154,6 +158,12 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
 
     // User Management (admin only)
     Route::middleware('admin')->group(function () {
+        // Email Templates
+        Route::get('/email-templates', [EmailTemplateController::class, 'index']);
+        Route::get('/email-templates/{type}', [EmailTemplateController::class, 'show']);
+        Route::put('/email-templates/{type}', [EmailTemplateController::class, 'update']);
+        Route::post('/email-templates/{type}/reset', [EmailTemplateController::class, 'reset']);
+
         Route::apiResource('users', UserController::class);
         Route::get('/users-count', [UserController::class, 'count']);
     });

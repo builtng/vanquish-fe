@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Induction;
 use App\Models\InductionAttendee;
 use App\Models\TrainingCounsellor;
-use App\Mail\InductionInvitationEmail;
+use App\Mail\DynamicEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -29,7 +29,7 @@ class InductionController extends Controller
             $query->where('scheduled_at', '>=', Carbon::now());
         }
 
-        $inductions = $query->orderBy('scheduled_at', 'asc')->get();
+        $inductions = $query->orderBy('id', 'desc')->get();
 
         return response()->json($inductions);
     }
@@ -84,7 +84,21 @@ class InductionController extends Controller
             // Send invitation email
             $tc = TrainingCounsellor::find($tcId);
             if ($tc && $tc->email) {
-                Mail::to($tc->email)->send(new InductionInvitationEmail($induction, $attendee));
+                $baseUrl = rtrim(config('app.frontend_url'), '/');
+                Mail::to($tc->email)->send(new DynamicEmail(
+                    'induction_invitation',
+                    [
+                        'tc_name' => $tc->name,
+                        'induction_date' => Carbon::parse($induction->scheduled_at)->format('l, jS F Y (H:i)'),
+                        'location' => $induction->location ?? 'Online',
+                        'notes' => $induction->notes ?? 'N/A',
+                        'acceptance_url' => $baseUrl . '/induction/accept/' . $attendee->acceptance_token,
+                        'decline_url' => $baseUrl . '/induction/decline/' . $attendee->acceptance_token
+                    ]
+                ));
+
+                // Add short delay to prevent Mailtrap rate limits
+                sleep(1);
             }
         }
 
@@ -211,7 +225,21 @@ class InductionController extends Controller
                 // Send invitation email
                 $tc = TrainingCounsellor::find($tcId);
                 if ($tc && $tc->email) {
-                    Mail::to($tc->email)->send(new InductionInvitationEmail($induction, $attendee));
+                    $baseUrl = rtrim(config('app.frontend_url'), '/');
+                    Mail::to($tc->email)->send(new DynamicEmail(
+                        'induction_invitation',
+                        [
+                            'tc_name' => $tc->name,
+                            'induction_date' => Carbon::parse($induction->scheduled_at)->format('l, jS F Y (H:i)'),
+                            'location' => $induction->location ?? 'Online',
+                            'notes' => $induction->notes ?? 'N/A',
+                            'acceptance_url' => $baseUrl . '/induction/accept/' . $attendee->acceptance_token,
+                            'decline_url' => $baseUrl . '/induction/decline/' . $attendee->acceptance_token
+                        ]
+                    ));
+
+                    // Add short delay to prevent Mailtrap rate limits
+                    sleep(1);
                 }
             }
         }
@@ -221,4 +249,3 @@ class InductionController extends Controller
         return response()->json($induction);
     }
 }
-

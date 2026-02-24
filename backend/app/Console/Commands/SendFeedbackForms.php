@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Client;
-use App\Mail\ClientFeedbackFormEmail;
+use App\Mail\DynamicEmail;
 use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 
@@ -37,9 +37,9 @@ class SendFeedbackForms extends Command
         // - Must not have received feedback form in last 3 months (or never received one)
         $eligibleClients = Client::whereIn('stage', ['Active Therapy', 'Completed'])
             ->whereNotNull('email')
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->whereNull('last_feedback_sent_at')
-                      ->orWhereRaw('DATEDIFF(NOW(), last_feedback_sent_at) >= 90');
+                    ->orWhereRaw('DATEDIFF(NOW(), last_feedback_sent_at) >= 90');
             })
             ->get();
 
@@ -49,19 +49,27 @@ class SendFeedbackForms extends Command
         $failed = 0;
 
         foreach ($eligibleClients as $client) {
-            try {
-                // Double-check eligibility (in case of race conditions)
-                if ($client->last_feedback_sent_at) {
-                    $monthsSince = Carbon::parse($client->last_feedback_sent_at)->diffInMonths(now());
-                    if ($monthsSince < 3) {
-                        $this->warn("Skipping {$client->name} - feedback sent {$monthsSince} month(s) ago");
-                        continue;
-                    }
+            // Double-check eligibility (in case of race conditions)
+            if ($client->last_feedback_sent_at) {
+                $monthsSince = Carbon::parse($client->last_feedback_sent_at)->diffInMonths(now());
+                if ($monthsSince < 3) {
+                    $this->warn("Skipping {$client->name} - feedback sent {$monthsSince} month(s) ago");
+                    continue;
                 }
+            }
 
-                // Send email
-                Mail::to($client->email)->send(new ClientFeedbackFormEmail($client->name));
+            // Send email
+            $baseUrl = rtrim(config('app.frontend_url'), '/');
+            $success = app(\App\Services\EmailService::class)->sendAndLog(
+                $client,
+                'feedback_form',
+                [
+                    'client_name' => $client->name,
+                    'feedback_url' => $baseUrl . '/feedback-form?' . http_build_query(['uuid' => $client->uuid])
+                ]
+            );
 
+            if ($success) {
                 // Update client record
                 $client->update([
                     'last_feedback_sent_at' => now(),
@@ -69,15 +77,14 @@ class SendFeedbackForms extends Command
 
                 $this->info("✓ Feedback form sent to {$client->name} ({$client->email})");
                 $sent++;
-
-            } catch (\Exception $e) {
-                $this->error("✗ Failed to send to {$client->name} ({$client->email}): {$e->getMessage()}");
+            } else {
+                $this->error("✗ Failed to send to {$client->name} ({$client->email})");
                 $failed++;
             }
         }
 
         $this->info("\nCompleted: {$sent} sent, {$failed} failed");
-        
+
         return Command::SUCCESS;
     }
 }

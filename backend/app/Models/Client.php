@@ -69,6 +69,7 @@ class Client extends Model
         'working_with_another_reason',
         'location_of_residence',
         'referral_type',
+        'core34_answers',
     ];
 
     protected $casts = [
@@ -85,6 +86,7 @@ class Client extends Model
         'next_booking_deadline' => 'date',
         'jotform_intake_data' => 'array',
         'jotform_intake_completed_at' => 'datetime',
+        'core34_answers' => 'array',
     ];
 
     public function matchedTc(): BelongsTo

@@ -112,13 +112,10 @@ export default function ConsultationsManagementPageFixed() {
 
   const [bookForm, setBookForm] = useState({
     clientId: "",
-
+    tcId: "",
     date: "",
-
     time: "",
-
     notes: "",
-
     sendConfirmation: true,
   });
 
@@ -320,8 +317,8 @@ export default function ConsultationsManagementPageFixed() {
         break;
     }
 
-    // Sort card details by DESC order
-    return filtered.sort((a, b) => b.id - a.id);
+    // Respect backend order (created_at desc)
+    return filtered;
   };
 
   const filteredConsultations = getFilteredConsultations();
@@ -522,16 +519,18 @@ export default function ConsultationsManagementPageFixed() {
 
       await apiService.createConsultation({
         client_id: bookForm.clientId,
-        tc_id: user?.id || null,
+        tc_id: bookForm.tcId || null,
         scheduled_at: scheduledDateTime,
         notes: bookForm.notes,
         send_confirmation: bookForm.sendConfirmation,
+        is_fallback: true,
       });
 
       success("Consultation booked successfully!");
       setShowBookModal(false);
       setBookForm({
         clientId: "",
+        tcId: "",
         date: "",
         time: "",
         notes: "",
@@ -1123,6 +1122,28 @@ export default function ConsultationsManagementPageFixed() {
                     }
                     placeholder="Select a client..."
                     required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assign Counsellor (Optional)
+                  </label>
+
+                  <SearchableSelect
+                    value={bookForm.tcId}
+                    onChange={(e) =>
+                      setBookForm({ ...bookForm, tcId: e.target.value })
+                    }
+                    options={
+                      Array.isArray(trainingCounsellors)
+                        ? trainingCounsellors.map((tc) => ({
+                            value: tc.id,
+                            label: `${tc.name} - ${tc.tc_id || tc.uuid}`,
+                          }))
+                        : []
+                    }
+                    placeholder="Select a counsellor..."
                   />
                 </div>
 

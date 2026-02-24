@@ -13,7 +13,8 @@ APP_NAME=Vanquish
 APP_ENV=production
 APP_KEY=base64:YOUR_GENERATED_KEY
 APP_DEBUG=false
-APP_URL=https://your-domain.com
+APP_URL=https://api.your-domain.com
+APP_BASE_URL=https://your-domain.com
 
 DB_CONNECTION=mysql
 DB_HOST=your_db_host
@@ -254,4 +255,3 @@ mysqldump -u vanquish_user -p vanquish_prod > backup_$(date +%Y%m%d).sql
 ## Support
 
 For issues or questions, contact the development team.
-

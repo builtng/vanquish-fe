@@ -50,6 +50,12 @@ class ClientIntakeForm extends Model
         'working_with_another_reason',
         'location_of_residence',
         'referral_type',
+        'core34_answers',
+        'payment_status',
+        'payment_reference',
+        'payment_amount',
+        'payment_method',
+        'paid_at',
     ];
 
     protected $casts = [
@@ -59,6 +65,9 @@ class ClientIntakeForm extends Model
         'terms_accepted' => 'boolean',
         'support_areas' => 'array',
         'availability' => 'array',
+        'core34_answers' => 'array',
+        'paid_at' => 'datetime',
+        'payment_amount' => 'decimal:2',
     ];
 
     public function client(): BelongsTo

@@ -16,7 +16,7 @@ class PendingMatchesSeeder extends Seeder
     {
         // Ensure we have at least one training counsellor
         $tc = TrainingCounsellor::first();
-        
+
         if (!$tc) {
             // Create a training counsellor if none exists
             $latestTc = TrainingCounsellor::withTrashed()
@@ -67,8 +67,8 @@ class PendingMatchesSeeder extends Seeder
                 'service_type' => 'Low Cost',
                 'primary_issues' => ['Anxiety', 'Low self-esteem'],
                 'submitted_date' => now()->subDays(15), // High urgency - waiting 15 days
-                'stage' => 'Matched with TC',
-                'matched_tc_id' => $tc->id,
+                'stage' => 'Consultation Completed',
+                'matched_tc_id' => null,
             ],
             [
                 'name' => 'James Wilson',
@@ -79,8 +79,8 @@ class PendingMatchesSeeder extends Seeder
                 'service_type' => 'Mid Range',
                 'primary_issues' => ['Depression', 'Relationship problems'],
                 'submitted_date' => now()->subDays(8), // Medium urgency - waiting 8 days
-                'stage' => 'Matched with TC',
-                'matched_tc_id' => $tc->id,
+                'stage' => 'Consultation Completed',
+                'matched_tc_id' => null,
             ],
             [
                 'name' => 'Olivia Martinez',
@@ -91,8 +91,8 @@ class PendingMatchesSeeder extends Seeder
                 'service_type' => 'Low Cost',
                 'primary_issues' => ['Stress', 'Work-life balance'],
                 'submitted_date' => now()->subDays(3), // Low urgency - waiting 3 days
-                'stage' => 'Matched with TC',
-                'matched_tc_id' => $tc->id,
+                'stage' => 'Consultation Completed',
+                'matched_tc_id' => null,
             ],
             [
                 'name' => 'Michael Brown',
@@ -103,8 +103,8 @@ class PendingMatchesSeeder extends Seeder
                 'service_type' => 'High Range',
                 'primary_issues' => ['Anxiety', 'Communication problems'],
                 'submitted_date' => now()->subDays(20), // High urgency - waiting 20 days
-                'stage' => 'Matched with TC',
-                'matched_tc_id' => $tc->id,
+                'stage' => 'Consultation Completed',
+                'matched_tc_id' => null,
             ],
             [
                 'name' => 'Sophie Anderson',
@@ -115,15 +115,15 @@ class PendingMatchesSeeder extends Seeder
                 'service_type' => 'Mid Range',
                 'primary_issues' => ['Low mood', 'Family issues'],
                 'submitted_date' => now()->subDays(5), // Medium urgency - waiting 5 days
-                'stage' => 'Matched with TC',
-                'matched_tc_id' => $tc->id,
+                'stage' => 'Consultation Completed',
+                'matched_tc_id' => null,
             ],
         ];
 
         foreach ($pendingClients as $clientData) {
             // Check if client already exists
             $existingClient = Client::where('email', $clientData['email'])->first();
-            
+
             if (!$existingClient) {
                 // Generate unique client_id
                 $latestClient = Client::withTrashed()
@@ -148,9 +148,9 @@ class PendingMatchesSeeder extends Seeder
 
                 $clientData['client_id'] = $newClientId;
                 $clientData['uuid'] = Str::uuid()->toString();
-                
+
                 Client::create($clientData);
-                
+
                 $this->command->info("Created pending match client: {$clientData['name']}");
             } else {
                 $this->command->info("Client already exists: {$clientData['name']}");

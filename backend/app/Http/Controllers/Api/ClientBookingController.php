@@ -11,24 +11,35 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\BookingNotificationEmail;
-use App\Mail\ClientBookingConfirmationEmail;
+use App\Mail\DynamicEmail;
+
+use App\Services\EmailService;
 
 class ClientBookingController extends Controller
 {
+    protected $emailService;
+
+    public function __construct(EmailService $emailService)
+    {
+        $this->emailService = $emailService;
+    }
     /**
      * Authenticate client and get booking info
      */
     public function authenticate(Request $request)
     {
         $validated = $request->validate([
-            'email' => 'required|email',
-            'client_uuid' => 'nullable|string',
+            'email' => 'required_without:client_uuid|nullable|email',
+            'client_uuid' => 'required_without:email|nullable|string',
         ]);
 
-        $query = Client::where('email', $validated['email']);
+        $query = Client::query();
 
-        if (isset($validated['client_uuid'])) {
+        if (!empty($validated['email'])) {
+            $query->where('email', $validated['email']);
+        }
+
+        if (!empty($validated['client_uuid'])) {
             $query->where('uuid', $validated['client_uuid']);
         }
 
@@ -99,7 +110,16 @@ class ClientBookingController extends Controller
             return response()->json(['message' => 'Counsellor availability not set'], 400);
         }
 
-        // For Low Cost: only show allocated day/time
+        // Get all existing sessions for this TC to prevent double booking
+        $existingSessions = Session::where('tc_id', $tc->id)
+            ->whereIn('status', ['scheduled', 'completed'])
+            ->get(['scheduled_at']);
+
+        $bookedTimes = $existingSessions->map(function ($session) {
+            return $session->scheduled_at->format('Y-m-d H:i');
+        })->toArray();
+
+        // For Low Cost: if already allocated, show only that
         if ($client->service_type === 'Low Cost' && $client->allocated_day && $client->allocated_time) {
             $dayOfWeek = $this->getDayOfWeekNumber($client->allocated_day);
             $nextSessionDate = Carbon::now()->next($dayOfWeek);
@@ -109,53 +129,76 @@ class ClientBookingController extends Controller
                 $nextSessionDate->addWeek();
             }
 
+            $slotDateTime = $nextSessionDate->format('Y-m-d') . ' ' . $this->formatTimeToHHi($client->allocated_time);
+
             return response()->json([
                 'slots' => [
                     [
                         'day' => $client->allocated_day,
                         'time' => $client->allocated_time,
+                        'formatted_time' => $this->formatTimeToHHi($client->allocated_time),
                         'date' => $nextSessionDate->format('Y-m-d'),
-                        'available' => true,
+                        'available' => !in_array($slotDateTime, $bookedTimes),
                     ]
                 ],
                 'booking_type' => 'block',
             ]);
         }
 
-        // For Mid-Range: show same day/time each week
+        // For Mid-Range: if already allocated, show same day/time each week
         if ($client->service_type === 'Mid Range' && $client->allocated_day && $client->allocated_time) {
-            // Generate next 4 weeks of slots
             $slots = [];
             $dayOfWeek = $this->getDayOfWeekNumber($client->allocated_day);
             $startDate = Carbon::now()->next($dayOfWeek);
 
             for ($i = 0; $i < 4; $i++) {
                 $date = $startDate->copy()->addWeeks($i);
+                $slotDateTime = $date->format('Y-m-d') . ' ' . $this->formatTimeToHHi($client->allocated_time);
+
                 $slots[] = [
                     'date' => $date->format('Y-m-d'),
                     'day' => $client->allocated_day,
                     'time' => $client->allocated_time,
-                    'available' => true,
+                    'formatted_time' => $this->formatTimeToHHi($client->allocated_time),
+                    'available' => !in_array($slotDateTime, $bookedTimes),
                 ];
             }
 
             return response()->json([
                 'slots' => $slots,
-                'booking_type' => 'flexible', // Can book weekly or block
+                'booking_type' => 'flexible',
             ]);
         }
 
-        // For Counselling & Coaching: show all TC availability
+        // If no slot allocated OR it's Counselling & Coaching, show all TC availability for next 2 weeks
         $slots = [];
-        $availability = $tc->availability ?? [];
+        // Normalize availability keys to lowercase for robust lookup
+        $availabilityData = array_change_key_case($tc->availability ?? [], CASE_LOWER);
+        $startDate = Carbon::now();
 
-        foreach (['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as $day) {
-            if (isset($availability[strtolower($day)]) && is_array($availability[strtolower($day)])) {
-                foreach ($availability[strtolower($day)] as $time) {
+        for ($i = 0; $i < 14; $i++) {
+            $currentDate = $startDate->copy()->addDays($i);
+            $dayName = $currentDate->format('l');
+            $dayKey = strtolower($dayName);
+
+            if (isset($availabilityData[$dayKey]) && is_array($availabilityData[$dayKey])) {
+                foreach ($availabilityData[$dayKey] as $time) {
+                    $slotDateTime = $currentDate->format('Y-m-d') . ' ' . $this->formatTimeToHHi($time);
+
+                    // 48-hour rule for Low Cost/Mid-Range
+                    $isAvailable = !in_array($slotDateTime, $bookedTimes);
+                    if (($client->service_type === 'Low Cost' || $client->service_type === 'Mid Range') &&
+                        $currentDate->diffInHours(now(), false) > -48
+                    ) {
+                        $isAvailable = false;
+                    }
+
                     $slots[] = [
-                        'day' => $day,
+                        'date' => $currentDate->format('Y-m-d'),
+                        'day' => $dayName,
                         'time' => $time,
-                        'available' => true,
+                        'formatted_time' => $this->formatTimeToHHi($time),
+                        'available' => $isAvailable,
                     ];
                 }
             }
@@ -163,7 +206,7 @@ class ClientBookingController extends Controller
 
         return response()->json([
             'slots' => $slots,
-            'booking_type' => 'flexible',
+            'booking_type' => $client->service_type === 'Low Cost' ? 'block' : 'flexible',
         ]);
     }
 
@@ -185,6 +228,25 @@ class ClientBookingController extends Controller
             return response()->json(['message' => 'Client not ready to book'], 400);
         }
 
+        // Check for double booking
+        $isBooked = Session::where('tc_id', $client->matched_tc_id)
+            ->where('scheduled_at', $validated['scheduled_at'])
+            ->whereIn('status', ['scheduled', 'completed'])
+            ->exists();
+
+        if ($isBooked) {
+            return response()->json(['message' => 'This slot is already booked. Please choose another one.'], 400);
+        }
+
+        // If Mid Range and no allocated day/time, set it now
+        if ($client->service_type === 'Mid Range' && (!$client->allocated_day || !$client->allocated_time)) {
+            $scheduledAt = Carbon::parse($validated['scheduled_at']);
+            $client->update([
+                'allocated_day' => $scheduledAt->format('l'),
+                'allocated_time' => $scheduledAt->format('g:ia'),
+            ]);
+        }
+
         // Create session
         $session = Session::create([
             'client_id' => $client->id,
@@ -200,23 +262,27 @@ class ClientBookingController extends Controller
 
         // Send confirmation to Client
         if ($client->email) {
-            try {
-                Mail::to($client->email)->send(new ClientBookingConfirmationEmail(
-                    $client->name,
-                    'session',
-                    $session->tc ? $session->tc->name : 'Your Counsellor',
-                    $session->scheduled_at,
-                    'Online', // Default location
-                    50 // Default duration
-                ));
-            } catch (\Exception $e) {
-                Log::error('Failed to send session confirmation to client: ' . $e->getMessage());
-            }
+            $this->emailService->sendAndLog(
+                $client,
+                'booking_confirmation',
+                [
+                    'client_name' => $client->name,
+                    'booking_type' => 'session',
+                    'counsellor_name' => $session->tc ? $session->tc->name : 'Your Counsellor',
+                    'booking_details' => Carbon::parse($session->scheduled_at)->format('l, jS F Y (H:i)'),
+                    'location' => 'Online',
+                    'duration' => 50,
+                    'date' => Carbon::parse($session->scheduled_at)->format('F j, Y'),
+                    'time' => Carbon::parse($session->scheduled_at)->format('H:i'),
+                    'consultation_link' => config('app.frontend_url') . '/client-booking?uuid=' . $client->uuid
+                ]
+            );
         }
 
         return response()->json([
-            'message' => 'Session booked successfully',
+            'message' => 'Session booked successfully. Please proceed to payment.',
             'session' => $session->load(['client', 'tc']),
+            'session_ids' => [$session->id],
         ], 201);
     }
 
@@ -229,6 +295,7 @@ class ClientBookingController extends Controller
             'client_uuid' => 'required|string',
             'start_date' => 'required|date|after:now',
             'sessions_count' => 'nullable|integer|in:3,4',
+            'time_slot' => 'nullable|string', // Optional if already set, required if not
         ]);
 
         $client = Client::where('uuid', $validated['client_uuid'])->firstOrFail();
@@ -242,17 +309,42 @@ class ClientBookingController extends Controller
             return response()->json(['message' => 'Block booking only available for Low Cost Counselling'], 400);
         }
 
-        if (!$client->allocated_day || !$client->allocated_time) {
-            return response()->json(['message' => 'Day and time not allocated for this client'], 400);
+        $startDate = Carbon::parse($validated['start_date']);
+
+        // If a time slot is provided (either from validation or existing allocation), incorporate it into startDate
+        $timeToUse = $validated['time_slot'] ?? $client->allocated_time;
+        if ($timeToUse) {
+            $formattedTime = $this->formatTimeToHHi($timeToUse);
+            $startDate = Carbon::parse($startDate->format('Y-m-d') . ' ' . $formattedTime);
         }
 
-        $startDate = Carbon::parse($validated['start_date']);
+        // If no allocated day/time, set it now
+        if (!$client->allocated_day || !$client->allocated_time) {
+            if (!isset($validated['time_slot'])) {
+                return response()->json(['message' => 'Please select a time slot for your recurring sessions.'], 400);
+            }
+            $client->update([
+                'allocated_day' => $startDate->format('l'),
+                'allocated_time' => $validated['time_slot'],
+            ]);
+        }
+
         $sessionsCount = $validated['sessions_count'] ?? 4;
 
         // --- 48-hour rule check ---
         $now = Carbon::now();
         if ($now->diffInHours($startDate, false) < 48) {
             return response()->json(['message' => 'Sessions must be booked at least 48 hours in advance. This slot is now closed.'], 400);
+        }
+
+        // Check for double booking for the ENTIRE block (at least the first session)
+        $isBooked = Session::where('tc_id', $client->matched_tc_id)
+            ->where('scheduled_at', $startDate->format('Y-m-d H:i:s'))
+            ->whereIn('status', ['scheduled', 'completed'])
+            ->exists();
+
+        if ($isBooked) {
+            return response()->json(['message' => 'The selected slot is already booked. Please choose another one.'], 400);
         }
 
         // --- Penalty/Deadline Check ---
@@ -310,9 +402,11 @@ class ClientBookingController extends Controller
             $sessions[] = $session;
 
             if ($i === 0) {
-                $this->notifyCounsellor($session);
+                // For the first session in the block
             }
         }
+        $sessionIds = collect($sessions)->pluck('id')->toArray();
+
 
         // Update client's next booking deadline
         $client->update([
@@ -321,25 +415,26 @@ class ClientBookingController extends Controller
 
         // Send confirmation to Client
         if ($client->email) {
-            try {
-                $sessionDates = collect($sessions)->map(fn($s) => $s->scheduled_at->format('Y-m-d H:i:s'))->toArray();
+            $sessionDatesFormatted = collect($sessions)->map(fn($s) => Carbon::parse($s->scheduled_at)->format('l, jS F Y (H:i)'))->join(', ');
 
-                Mail::to($client->email)->send(new ClientBookingConfirmationEmail(
-                    $client->name,
-                    'Block of ' . count($sessions) . ' Sessions' . ($sessionsCount === 3 ? ' (Penalty Applied)' : ''),
-                    $client->matchedTc ? $client->matchedTc->name : 'Your Counsellor',
-                    $sessionDates,
-                    'Online',
-                    50
-                ));
-            } catch (\Exception $e) {
-                Log::error('Failed to send block booking confirmation to client: ' . $e->getMessage());
-            }
+            $this->emailService->sendAndLog(
+                $client,
+                'booking_confirmation',
+                [
+                    'client_name' => $client->name,
+                    'booking_type' => 'Block of ' . count($sessions) . ' Sessions' . ($sessionsCount === 3 ? ' (Penalty Applied)' : ''),
+                    'counsellor_name' => $client->matchedTc ? $client->matchedTc->name : 'Your Counsellor',
+                    'booking_details' => $sessionDatesFormatted,
+                    'location' => 'Online',
+                    'duration' => 50
+                ]
+            );
         }
 
         return response()->json([
-            'message' => "Block of {$sessionsCount} sessions booked successfully" . ($sessionsCount === 3 ? " (Penalty applied for missing deadline)" : ""),
-            'sessions' => Session::whereIn('id', collect($sessions)->pluck('id'))->with(['client', 'tc'])->get(),
+            'message' => "Block of {$sessionsCount} sessions booked successfully" . ($sessionsCount === 3 ? " (Penalty applied for missing deadline)" : "") . ". Please proceed to payment.",
+            'sessions' => Session::whereIn('id', $sessionIds)->with(['client', 'tc'])->get(),
+            'session_ids' => $sessionIds,
             'next_booking_deadline' => $bookingDeadline,
             'penalty_applied' => $sessionsCount === 3,
         ], 201);
@@ -385,12 +480,15 @@ class ClientBookingController extends Controller
     {
         if ($session->tc && $session->tc->email) {
             try {
-                Mail::to($session->tc->email)->send(new BookingNotificationEmail(
-                    $session->tc->name,
-                    $session->client->name,
-                    'session',
-                    $session->scheduled_at,
-                    ['notes' => $session->notes]
+                Mail::to($session->tc->email)->send(new DynamicEmail(
+                    'booking_notification',
+                    [
+                        'tc_name' => $session->tc->name,
+                        'client_name' => $session->client->name,
+                        'booking_type' => 'session',
+                        'scheduled_at' => Carbon::parse($session->scheduled_at)->format('l, jS F Y (H:i)'),
+                        'notes' => $session->notes ?? 'N/A'
+                    ]
                 ));
             } catch (\Exception $e) {
                 Log::error('Failed to send booking notification: ' . $e->getMessage());
@@ -412,5 +510,39 @@ class ClientBookingController extends Controller
         ];
 
         return $days[$dayName] ?? Carbon::MONDAY;
+    }
+
+    /**
+     * Helper: Format time string (e.g., "10:00am") to "HH:mm"
+     */
+    private function formatTimeToHHi($timeString)
+    {
+        if (!$timeString) return '00:00';
+
+        // Mapping for abstract time slots
+        $mapping = [
+            'morning-early' => '10:00',
+            'morning-late' => '11:00',
+            'afternoon-early' => '13:00',
+            'afternoon-late' => '16:00',
+            'evening' => '17:00'
+        ];
+
+        if (isset($mapping[$timeString])) {
+            return $mapping[$timeString];
+        }
+
+        // Handle range like "10:00am-10:50am" - take only the start
+        if (str_contains($timeString, '-')) {
+            $timeString = explode('-', $timeString)[0];
+        }
+
+        try {
+            return Carbon::parse($timeString)->format('H:i');
+        } catch (\Exception $e) {
+            // Fallback for simple formats like "10am"
+            $timestamp = strtotime($timeString);
+            return $timestamp ? date('H:i', $timestamp) : '00:00';
+        }
     }
 }

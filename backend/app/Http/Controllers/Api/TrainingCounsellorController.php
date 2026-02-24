@@ -5,9 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\TrainingCounsellor;
 use App\Models\ActivityLog;
-use App\Mail\QualifiedCounsellorFormEmail;
-use App\Mail\GenericTrainingCounsellorEmail;
-use App\Mail\TrainingCounsellorWelcomeEmail;
+use App\Mail\DynamicEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -17,13 +15,13 @@ class TrainingCounsellorController extends Controller
 {
     public function index(Request $request)
     {
-        $query = TrainingCounsellor::with(['clients', 'intakeForm']);
+        $query = TrainingCounsellor::with(['clients', 'intakeForm'])->orderBy('id', 'desc');
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -36,7 +34,7 @@ class TrainingCounsellorController extends Controller
         }
 
         $tcs = $query->get();
-        
+
         // Transform to include intake form data in a more accessible format
         $tcs->transform(function ($tc) {
             $intakeForm = $tc->intakeForm->first();
@@ -53,7 +51,7 @@ class TrainingCounsellorController extends Controller
                         // If not JSON, ignore
                     }
                 }
-                
+
                 // Add intake form fields to TC object for easier access
                 // Add intake form fields to TC object for easier access (prioritize DB columns if set)
                 $tc->training_org_name = $tc->institution ?? $trainingProviderDetails['training_org_name'] ?? $intakeForm->institution ?? null;
@@ -84,7 +82,7 @@ class TrainingCounsellorController extends Controller
             }
             return $tc;
         });
-        
+
         return response()->json($tcs);
     }
 
@@ -111,11 +109,14 @@ class TrainingCounsellorController extends Controller
 
         // Send welcome email to new trainee counsellor
         try {
-            Mail::to($tc->email)->send(new TrainingCounsellorWelcomeEmail(
-                $tc->name,
-                $tc->tc_id,
-                $tc->email,
-                $tc->modality
+            Mail::to($tc->email)->send(new DynamicEmail(
+                'tc_welcome',
+                [
+                    'tc_name' => $tc->name,
+                    'tc_id' => $tc->tc_id,
+                    'email' => $tc->email,
+                    'modality' => $tc->modality ?? 'Not specified'
+                ]
             ));
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to send TC welcome email: ' . $e->getMessage());
@@ -156,7 +157,6 @@ class TrainingCounsellorController extends Controller
             'status' => 'sometimes|in:Active,At Capacity,On Leave,Away,Inactive',
             'counsellor_type' => 'sometimes|in:Trainee,Qualified',
             'availability' => 'nullable|array',
-            'topics_with_experience' => 'nullable|array',
             'topics_with_experience' => 'nullable|array',
             'topics_not_ready_for' => 'nullable|array',
             'course' => 'nullable|string',
@@ -209,7 +209,7 @@ class TrainingCounsellorController extends Controller
     public function getOwnData(Request $request)
     {
         $user = $request->user();
-        
+
         if (!$user || $user->role !== 'counsellor' || !$user->training_counsellor_id) {
             return response()->json(['message' => 'Unauthorized. Counsellor access required.'], 403);
         }
@@ -249,7 +249,7 @@ class TrainingCounsellorController extends Controller
         // Extract training provider details from intake form (same logic as index method)
         if ($tc->intakeForm && $tc->intakeForm->count() > 0) {
             $intakeForm = $tc->intakeForm->first();
-            
+
             // Try to extract training provider details from additional_info JSON
             $trainingProviderDetails = [];
             if ($intakeForm->additional_info) {
@@ -262,7 +262,7 @@ class TrainingCounsellorController extends Controller
                     // If not JSON, ignore
                 }
             }
-            
+
             // Add intake form fields to TC object
             // Add intake form fields to TC object (prioritize DB columns if set)
             $tc->training_org_name = $tc->institution ?? $trainingProviderDetails['training_org_name'] ?? $intakeForm->institution ?? $tc->institution ?? null;
@@ -367,7 +367,7 @@ class TrainingCounsellorController extends Controller
         $adminNotes = ActivityLog::where('model_type', TrainingCounsellor::class)
             ->where('model_id', $tc->id)
             ->with('user')
-            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get()
             ->map(function ($log) {
                 return [
@@ -384,11 +384,21 @@ class TrainingCounsellorController extends Controller
         $response['documents'] = $documents;
         $response['current_clients'] = $tc->clients->count();
         $response['admin_notes'] = $adminNotes;
-        
-        // Add photo_url if photo exists
-        if ($tc->photo) {
-            $response['photo_url'] = $this->getStorageUrl($request, $tc->photo);
-        }
+
+        // Add performance metrics
+        $totalSessions = $tc->consultations()->where('status', 'completed')->count();
+        $totalConsultations = $tc->consultations()->count();
+        $attendanceRate = $totalConsultations > 0 ? round(($totalSessions / $totalConsultations) * 100, 1) : 0;
+
+        $response['performance_metrics'] = [
+            'client_satisfaction' => 0, // Placeholder
+            'session_attendance_rate' => $attendanceRate,
+            'dna_rate' => $totalConsultations > 0 ? round(($tc->consultations()->where('status', 'no_show')->count() / $totalConsultations) * 100, 1) : 0,
+            'response_time' => 'N/A',
+            'total_clients' => $tc->clients()->count(),
+            'active_clients' => $tc->clients()->whereNull('deleted_at')->count(),
+            'total_sessions' => $totalSessions,
+        ];
 
         return response()->json($response);
     }
@@ -450,7 +460,7 @@ class TrainingCounsellorController extends Controller
         ]);
 
         // Find TC by ID or tc_id string
-        $tc = is_numeric($validated['tc_id']) 
+        $tc = is_numeric($validated['tc_id'])
             ? TrainingCounsellor::findOrFail($validated['tc_id'])
             : TrainingCounsellor::where('tc_id', $validated['tc_id'])->firstOrFail();
 
@@ -506,12 +516,12 @@ class TrainingCounsellorController extends Controller
         $file = $request->file('file');
         $field = $request->input('field');
         $tcIdParam = $request->input('tc_id');
-        
+
         // Additional security checks
         $originalName = $file->getClientOriginalName();
         $extension = strtolower($file->getClientOriginalExtension());
         $mimeType = $file->getMimeType();
-        
+
         // Validate file extension
         $allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
         if (!in_array($extension, $allowedExtensions)) {
@@ -519,7 +529,7 @@ class TrainingCounsellorController extends Controller
                 'message' => 'Invalid file type. Allowed types: PDF, DOC, DOCX, JPG, JPEG, PNG',
             ], 422);
         }
-        
+
         // Validate MIME type
         $allowedMimeTypes = [
             'application/pdf',
@@ -533,22 +543,22 @@ class TrainingCounsellorController extends Controller
                 'message' => 'Invalid file MIME type.',
             ], 422);
         }
-        
+
         // Sanitize field name to prevent directory traversal
         $field = preg_replace('/[^a-zA-Z0-9_-]/', '_', $field);
         $field = substr($field, 0, 100);
-        
+
         // Find TC by ID or tc_id string
-        $tc = is_numeric($tcIdParam) 
+        $tc = is_numeric($tcIdParam)
             ? TrainingCounsellor::findOrFail($tcIdParam)
             : TrainingCounsellor::where('tc_id', $tcIdParam)->firstOrFail();
-        
+
         $tcId = $tc->id;
 
         // Sanitize filename
         $sanitizedName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
         $sanitizedName = substr($sanitizedName, 0, 255);
-        
+
         // Generate unique filename to prevent overwrites
         $filename = time() . '_' . uniqid() . '_' . $sanitizedName;
 
@@ -564,7 +574,7 @@ class TrainingCounsellorController extends Controller
     {
         // Find by UUID or fall back to tc_id for backward compatibility
         $tc = TrainingCounsellor::where('uuid', $id)->orWhere('tc_id', $id)->firstOrFail();
-        
+
         $validated = $request->validate([
             'subject' => 'required|string|max:255',
             'message' => 'required|string',
@@ -579,24 +589,31 @@ class TrainingCounsellorController extends Controller
 
         // Send email
         try {
-            Mail::to($tc->email)->send(new GenericTrainingCounsellorEmail($tc->name, $validated['subject'], $validated['message']));
+            Mail::to($tc->email)->send(new DynamicEmail(
+                'generic_tc_email',
+                [
+                    'tc_name' => $tc->name,
+                    'message' => $validated['message'],
+                    'subject' => $validated['subject']
+                ]
+            ));
 
-        ActivityLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'email_sent',
-            'model_type' => TrainingCounsellor::class,
-            'model_id' => $tc->id,
-            'description' => "Email sent to {$tc->name} ({$tc->email}): {$validated['subject']}",
-            'changes' => ['subject' => $validated['subject']],
-            'ip_address' => $request->ip(),
-        ]);
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'email_sent',
+                'model_type' => TrainingCounsellor::class,
+                'model_id' => $tc->id,
+                'description' => "Email sent to {$tc->name} ({$tc->email}): {$validated['subject']}",
+                'changes' => ['subject' => $validated['subject']],
+                'ip_address' => $request->ip(),
+            ]);
 
-        return response()->json([
+            return response()->json([
                 'message' => 'Email sent successfully to ' . $tc->email,
-            'to' => $tc->email,
-            'subject' => $validated['subject'],
+                'to' => $tc->email,
+                'subject' => $validated['subject'],
                 'tc_uuid' => $tc->uuid,
-        ]);
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to send email: ' . $e->getMessage(),
@@ -620,7 +637,14 @@ class TrainingCounsellorController extends Controller
 
         // Send email
         try {
-            Mail::to($tc->email)->send(new QualifiedCounsellorFormEmail($tc->name, $tc->uuid));
+            $baseUrl = rtrim(config('app.frontend_url'), '/');
+            Mail::to($tc->email)->send(new DynamicEmail(
+                'qualified_form',
+                [
+                    'tc_name' => $tc->name,
+                    'form_url' => $baseUrl . '/qualified-counsellor-form?' . http_build_query(['uuid' => $tc->uuid])
+                ]
+            ));
 
             ActivityLog::create([
                 'user_id' => $request->user()->id,
@@ -660,12 +684,12 @@ class TrainingCounsellorController extends Controller
         ]);
 
         $file = $request->file('photo');
-        
+
         // Additional security checks
         $originalName = $file->getClientOriginalName();
         $extension = strtolower($file->getClientOriginalExtension());
         $mimeType = $file->getMimeType();
-        
+
         // Validate file extension
         $allowedExtensions = ['jpg', 'jpeg', 'png'];
         if (!in_array($extension, $allowedExtensions)) {
@@ -673,7 +697,7 @@ class TrainingCounsellorController extends Controller
                 'message' => 'Invalid file type. Allowed types: JPG, JPEG, PNG',
             ], 422);
         }
-        
+
         // Validate MIME type
         $allowedMimeTypes = ['image/jpeg', 'image/png'];
         if (!in_array($mimeType, $allowedMimeTypes)) {
@@ -681,11 +705,11 @@ class TrainingCounsellorController extends Controller
                 'message' => 'Invalid file MIME type.',
             ], 422);
         }
-        
+
         // Sanitize filename
         $sanitizedName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
         $sanitizedName = substr($sanitizedName, 0, 255);
-        
+
         // Generate unique filename to prevent overwrites
         $filename = time() . '_' . uniqid() . '_' . $sanitizedName;
 
@@ -787,7 +811,7 @@ class TrainingCounsellorController extends Controller
         // Extract training provider details from intake form (same logic as details method)
         if ($tc->intakeForm && $tc->intakeForm->count() > 0) {
             $intakeForm = $tc->intakeForm->first();
-            
+
             $trainingProviderDetails = [];
             if ($intakeForm->additional_info) {
                 try {
@@ -799,7 +823,7 @@ class TrainingCounsellorController extends Controller
                     // If not JSON, ignore
                 }
             }
-            
+
             $tc->training_org_name = $tc->institution ?? $trainingProviderDetails['training_org_name'] ?? $intakeForm->institution ?? null;
             $tc->training_org_address = $tc->training_org_address ?? $trainingProviderDetails['training_org_address'] ?? null;
             $tc->course_title = $tc->course ?? $trainingProviderDetails['course_title'] ?? $intakeForm->course ?? null;

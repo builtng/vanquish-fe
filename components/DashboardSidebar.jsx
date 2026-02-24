@@ -26,6 +26,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
+  Mail,
 } from "lucide-react";
 
 export default function DashboardSidebar() {
@@ -219,6 +220,12 @@ export default function DashboardSidebar() {
     },
     ...(isAdmin
       ? [
+          {
+            id: "email-management",
+            icon: Mail,
+            label: "Email Management",
+            href: "/dashboard/email-management",
+          },
           {
             id: "users",
             icon: UserCog,

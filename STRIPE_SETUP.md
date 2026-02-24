@@ -10,19 +10,25 @@ This document explains how to set up Stripe payments for the Vanquish applicatio
 ## Backend Setup
 
 1. **Install Stripe PHP SDK** (already added to composer.json):
+
 ```bash
 cd backend
 composer install
 ```
 
 2. **Add Stripe credentials to `.env`**:
+
 ```env
-STRIPE_KEY=pk_test_...
-STRIPE_SECRET=sk_test_...
+STRIPE_MODE=test # Set to 'live' for production
+STRIPE_TEST_PUBLIC_KEY=pk_test_...
+STRIPE_TEST_SECRET_KEY=sk_test_...
+STRIPE_LIVE_PUBLIC_KEY=pk_live_...
+STRIPE_LIVE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
 3. **Run migrations**:
+
 ```bash
 php artisan migrate
 ```
@@ -36,13 +42,17 @@ php artisan migrate
 ## Frontend Setup
 
 1. **Install Stripe dependencies** (already installed):
+
 ```bash
 npm install @stripe/stripe-js @stripe/react-stripe-js
 ```
 
-2. **Add Stripe publishable key to `.env.local`**:
+2. **Add Stripe credentials to `.env`**:
+
 ```env
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+NEXT_PUBLIC_STRIPE_MODE=test
+NEXT_PUBLIC_STRIPE_TEST_PUBLIC_KEY=pk_test_...
+NEXT_PUBLIC_STRIPE_LIVE_PUBLIC_KEY=pk_live_...
 ```
 
 ## Testing
@@ -77,15 +87,22 @@ Use any future expiry date, any 3-digit CVC, and any postal code.
 ## Environment Variables
 
 ### Backend (.env)
+
 ```env
-STRIPE_KEY=pk_test_...          # Publishable key (test)
-STRIPE_SECRET=sk_test_...        # Secret key (test)
-STRIPE_WEBHOOK_SECRET=whsec_...  # Webhook signing secret
+STRIPE_MODE=test                  # test or live
+STRIPE_TEST_PUBLIC_KEY=pk_test_... # Test Publishable Key
+STRIPE_TEST_SECRET_KEY=sk_test_... # Test Secret Key
+STRIPE_LIVE_PUBLIC_KEY=pk_live_... # Live Publishable Key
+STRIPE_LIVE_SECRET_KEY=sk_live_... # Live Secret Key
+STRIPE_WEBHOOK_SECRET=whsec_...    # Webhook signing secret
 ```
 
-### Frontend (.env.local)
+### Frontend (.env)
+
 ```env
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+NEXT_PUBLIC_STRIPE_MODE=test
+NEXT_PUBLIC_STRIPE_TEST_PUBLIC_KEY=pk_test_...
+NEXT_PUBLIC_STRIPE_LIVE_PUBLIC_KEY=pk_live_...
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ```
 
@@ -107,17 +124,19 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ## Troubleshooting
 
 ### Payment Intent Creation Fails
+
 - Check Stripe API keys are correct
 - Verify client_id exists in database
 - Check API logs for detailed errors
 
 ### Webhook Not Working
+
 - Verify webhook URL is accessible
 - Check webhook signing secret matches
 - Review Stripe Dashboard → Webhooks for event logs
 
 ### Payment Not Confirming
+
 - Check browser console for errors
 - Verify Stripe Elements is loading
 - Check network tab for API calls
-

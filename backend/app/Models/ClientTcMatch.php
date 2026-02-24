@@ -10,6 +10,7 @@ class ClientTcMatch extends Model
     protected $fillable = [
         'client_id',
         'tc_id',
+        'service_type',
         'match_score',
         'assignment_notes',
         'status',

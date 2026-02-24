@@ -6,18 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\ClientTcMatch;
 use App\Models\ActivityLog;
-use App\Mail\ClientFeedbackFormEmail;
-use App\Mail\GenericClientEmail;
-use App\Mail\ClientAgreementEmail;
+use App\Mail\DynamicEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\EmailService;
 
 class ClientController extends Controller
 {
+    protected $emailService;
+
+    public function __construct(EmailService $emailService)
+    {
+        $this->emailService = $emailService;
+    }
+
     public function index(Request $request)
     {
         // Authorization check
@@ -25,7 +31,7 @@ class ClientController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $query = Client::with(['matchedTc']);
+        $query = Client::with(['matchedTc'])->orderBy('id', 'desc');
 
         // Search - sanitize input
         if ($request->has('search')) {
@@ -253,7 +259,9 @@ class ClientController extends Controller
         }
 
         $query = Client::where('stage', 'Consultation Completed')
-            ->with(['matchedTc']);
+            ->with(['matchedTc', 'consultations' => function ($q) {
+                $q->where('status', 'completed')->orderBy('completed_at', 'desc')->with('tc');
+            }]);
 
         if ($request->has('search')) {
             $search = Str::limit($request->search, 100);
@@ -270,10 +278,46 @@ class ClientController extends Controller
             }
         }
 
+        // Sorting
+        $sortBy = $request->get('sort_by', 'newest');
+        if ($sortBy === 'daysWaiting') {
+            $query->orderBy('id', 'asc'); // Longest waiting first
+        } elseif ($sortBy === 'name') {
+            $query->orderBy('name', 'asc');
+        } elseif ($sortBy === 'newest') {
+            $query->orderBy('id', 'desc');
+        } else {
+            $query->orderBy('id', 'desc');
+        }
+
         $clients = $query->get()->map(function ($client) {
-            $client->days_waiting = $client->submitted_date
-                ? now()->diffInDays($client->submitted_date)
-                : 0;
+            // Priority for baseline: 
+            // 1. Latest completed consultation date
+            // 2. Client's submitted_date
+            // 3. Client's created_at
+            $latestConsultation = $client->consultations->where('status', 'completed')->first();
+            $baseline = $latestConsultation ? $latestConsultation->completed_at : ($client->submitted_date ?: $client->created_at);
+
+            // Ensure baseline is a valid Carbon instance
+            if (!$baseline instanceof \Carbon\Carbon) {
+                $baseline = \Illuminate\Support\Carbon::parse($baseline);
+            }
+
+            $now = now();
+
+            $diffInHours = $now->diffInHours($baseline);
+            $diffInDays = $now->diffInDays($baseline);
+
+            // Logic: If less than 24 hours → show "Less than 1 day"
+            if ($diffInHours < 24) {
+                $client->waiting_days_text = "Less than 1 day";
+            } else {
+                $client->waiting_days_text = $diffInDays . " " . Str::plural('day', $diffInDays) . " waiting";
+            }
+
+            // Numeric values for backwards compatibility and sorting
+            $client->days_waiting = $diffInDays;
+            $client->waiting_hours = $diffInHours;
 
             // Calculate urgency based on multiple factors
             $urgency = $this->calculateUrgency($client);
@@ -362,8 +406,6 @@ class ClientController extends Controller
             'match_score' => 'nullable|integer|min:0|max:100',
             'assignment_notes' => 'nullable|string|max:1000',
             'send_notification' => 'boolean',
-            'allocated_day' => 'nullable|string|in:Monday,Tuesday,Wednesday,Thursday,Friday',
-            'allocated_time' => 'nullable|string|max:50',
         ]);
 
         // Find by UUID or client_id/tc_id - sanitize input
@@ -381,6 +423,15 @@ class ClientController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        // Validation for Counsellor Type vs Service Type
+        if ($client->service_type === 'Low Cost' && $tc->counsellor_type !== 'Trainee') {
+            return response()->json(['message' => 'Low Cost clients must be matched with a Trainee Counsellor.'], 422);
+        }
+        if ($client->service_type === 'Mid Range' && $tc->counsellor_type !== 'Qualified') {
+            return response()->json(['message' => 'Mid-Range clients must be matched with a Qualified Counsellor.'], 422);
+        }
+
+
         // Check if match already exists
         $existingMatch = ClientTcMatch::where('client_id', $client->id)
             ->where('tc_id', $tc->id)
@@ -393,10 +444,12 @@ class ClientController extends Controller
             $existingMatch->update([
                 'match_score' => $validated['match_score'] ?? $existingMatch->match_score,
                 'assignment_notes' => $validated['assignment_notes'] ?? $existingMatch->assignment_notes,
+                'service_type' => $client->service_type,
                 'status' => 'assigned',
                 'assigned_date' => $existingMatch->assigned_date ?? now(),
                 'send_notification' => $validated['send_notification'] ?? true,
             ]);
+
 
             $match = $existingMatch;
 
@@ -414,12 +467,14 @@ class ClientController extends Controller
             $match = ClientTcMatch::create([
                 'client_id' => $client->id,
                 'tc_id' => $tc->id,
+                'service_type' => $client->service_type,
                 'match_score' => $validated['match_score'] ?? null,
                 'assignment_notes' => $validated['assignment_notes'] ?? null,
                 'status' => 'assigned',
                 'assigned_date' => now(),
                 'send_notification' => $validated['send_notification'] ?? true,
             ]);
+
 
             // Update TC client count only for new matches
             $tc->increment('current_clients');
@@ -442,12 +497,6 @@ class ClientController extends Controller
             'stage' => 'Matched with TC',
         ];
 
-        // Add allocated day/time for Low Cost and Mid-Range clients
-        if (isset($validated['allocated_day']) && isset($validated['allocated_time'])) {
-            $updateData['allocated_day'] = $validated['allocated_day'];
-            $updateData['allocated_time'] = $validated['allocated_time'];
-        }
-
         $client->update($updateData);
 
         // Send notification emails if requested
@@ -455,29 +504,64 @@ class ClientController extends Controller
 
         if ($shouldSendNotification) {
             try {
-                // Send email to client
+                // Generate agreement URL
+                $baseUrl = rtrim(config('app.frontend_url'), '/');
+                $slug = ($client->service_type === 'Low Cost') ? 'low-cost' : 'mid-range';
+                $agreementUrl = $baseUrl . '/agreement/' . $slug . '?uuid=' . $client->uuid . '&email=' . urlencode($client->email);
+
+                // Send email to client using EmailService
                 if ($client->email) {
-                    Mail::to($client->email)->send(new \App\Mail\ClientMatchNotificationEmail(
-                        $client->name,
-                        $tc->name,
-                        $tc->modality ?? null,
-                        $validated['match_score'] ?? null,
-                        $validated['allocated_day'] ?? null,
-                        $validated['allocated_time'] ?? null
-                    ));
+                    $this->emailService->sendAndLog(
+                        $client,
+                        'match_assigned',
+                        [
+                            'client_name' => $client->name,
+                            'tc_name' => $tc->name,
+                            'email' => $client->email,
+                            'agreement_url' => $agreementUrl
+                        ]
+                    );
+
+
+                    sleep(2); // Delay
+
+                    // Send agreement link using EmailService
+                    $this->emailService->sendAndLog(
+                        $client,
+                        'agreement_sent',
+                        [
+                            'client_name' => $client->name,
+                            'email' => $client->email,
+                            'agreement_url' => $agreementUrl
+                        ]
+                    );
+
+                    // Update client record
+                    $client->update([
+                        'agreement_status' => 'sent',
+                        'agreement_sent_at' => now(),
+                        'stage' => 'Agreement Sent',
+                    ]);
                 }
+
 
                 // Send email to TC
                 if ($tc->email) {
-                    Mail::to($tc->email)->send(new \App\Mail\TcMatchNotificationEmail(
-                        $tc->name,
-                        $client->name,
-                        $client->age ?? null,
-                        $client->service_type ?? null,
-                        $validated['match_score'] ?? null,
-                        $validated['assignment_notes'] ?? null,
-                        $validated['allocated_day'] ?? null,
-                        $validated['allocated_time'] ?? null
+                    sleep(2); // Delay to prevent Mailtrap rate limits
+
+                    $dashboardUrl = $baseUrl . '/dashboard/clients/' . $client->uuid;
+
+                    Mail::to($tc->email)->send(new DynamicEmail(
+                        'tc_match_notification',
+                        [
+                            'tc_name' => $tc->name,
+                            'client_name' => $client->name,
+                            'client_age' => $client->age ?? 'Not provided',
+                            'service_type' => $client->service_type ?? 'Not provided',
+                            'match_score' => $validated['match_score'] ?? 0,
+                            'notes' => $validated['assignment_notes'] ?? 'N/A',
+                            'dashboard_url' => $dashboardUrl
+                        ]
                     ));
                 }
 
@@ -535,8 +619,7 @@ class ClientController extends Controller
 
         if ($match) {
             $match->update([
-                'status' => 'unassigned',
-                'unassigned_at' => now(),
+                'status' => 'cancelled',
             ]);
         }
 
@@ -589,34 +672,38 @@ class ClientController extends Controller
         }
 
         // Send email
-        try {
-            Mail::to($client->email)->send(new GenericClientEmail($client->name, $validated['subject'], $validated['message']));
+        $success = $this->emailService->sendAndLog(
+            $client,
+            'generic_client_email',
+            [
+                'client_name' => $client->name,
+                'message' => $validated['message'],
+                'subject' => $validated['subject']
+            ]
+        );
 
-            ActivityLog::create([
-                'user_id' => $request->user()->id,
-                'action' => 'email_sent',
-                'model_type' => Client::class,
-                'model_id' => $client->id,
-                'description' => "Email sent to {$client->name} ({$client->email}): {$validated['subject']}",
-                'changes' => ['subject' => $validated['subject']],
-                'ip_address' => $request->ip(),
-            ]);
-
-            return response()->json([
-                'message' => 'Email sent successfully to ' . $client->email,
-                'to' => $client->email,
-                'subject' => $validated['subject'],
-                'client_uuid' => $client->uuid,
-            ]);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to send email to client', [
-                'client_id' => $client->id,
-                'error' => $e->getMessage(),
-            ]);
+        if (!$success) {
             return response()->json([
                 'message' => 'Failed to send email. Please try again later.',
             ], 500);
         }
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'email_sent',
+            'model_type' => Client::class,
+            'model_id' => $client->id,
+            'description' => "Email sent to {$client->name} ({$client->email}): {$validated['subject']}",
+            'changes' => ['subject' => $validated['subject']],
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'message' => 'Email sent successfully to ' . $client->email,
+            'to' => $client->email,
+            'subject' => $validated['subject'],
+            'client_uuid' => $client->uuid,
+        ]);
     }
 
     public function sendFeedbackForm(Request $request, $id)
@@ -645,37 +732,41 @@ class ClientController extends Controller
         }
 
         // Send email
-        try {
-            Mail::to($client->email)->send(new ClientFeedbackFormEmail($client->name));
+        $baseUrl = rtrim(config('app.frontend_url'), '/');
+        $success = $this->emailService->sendAndLog(
+            $client,
+            'feedback_form',
+            [
+                'client_name' => $client->name,
+                'feedback_url' => $baseUrl . '/feedback-form?' . http_build_query(['uuid' => $client->uuid])
+            ]
+        );
 
-            // Update client record
-            $client->update([
-                'last_feedback_sent_at' => now(),
-            ]);
-
-            ActivityLog::create([
-                'user_id' => $request->user()->id,
-                'action' => 'feedback_form_sent',
-                'model_type' => Client::class,
-                'model_id' => $client->id,
-                'description' => "Feedback form email sent to {$client->name} ({$client->email})",
-                'ip_address' => $request->ip(),
-            ]);
-
-            return response()->json([
-                'message' => 'Feedback form email sent successfully to ' . $client->email,
-                'client_uuid' => $client->uuid,
-                'last_feedback_sent_at' => $client->last_feedback_sent_at,
-            ]);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to send feedback form email', [
-                'client_id' => $client->id,
-                'error' => $e->getMessage(),
-            ]);
+        if (!$success) {
             return response()->json([
                 'message' => 'Failed to send email. Please try again later.',
             ], 500);
         }
+
+        // Update client record
+        $client->update([
+            'last_feedback_sent_at' => now(),
+        ]);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'feedback_form_sent',
+            'model_type' => Client::class,
+            'model_id' => $client->id,
+            'description' => "Feedback form email sent to {$client->name} ({$client->email})",
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'message' => 'Feedback form email sent successfully to ' . $client->email,
+            'client_uuid' => $client->uuid,
+            'last_feedback_sent_at' => $client->last_feedback_sent_at,
+        ]);
     }
 
     public function resendAgreement(Request $request, $id)
@@ -696,38 +787,46 @@ class ClientController extends Controller
         }
 
         // Send email
-        try {
-            Mail::to($client->email)->send(new ClientAgreementEmail($client->name, $client->email, $client->uuid, $client->service_type));
+        $baseUrl = rtrim(config('app.frontend_url'), '/');
+        $slug = ($client->service_type === 'Low Cost') ? 'low-cost' : 'mid-range';
+        $agreementUrl = $baseUrl . '/agreement/' . $slug . '?uuid=' . $client->uuid . '&email=' . urlencode($client->email);
 
-            // Update client record
-            $client->update([
-                'agreement_status' => 'sent',
-                'agreement_sent_at' => now(),
-            ]);
+        $success = $this->emailService->sendAndLog(
+            $client,
+            'agreement_sent',
+            [
+                'client_name' => $client->name,
+                'email' => $client->email,
+                'agreement_url' => $agreementUrl
+            ]
+        );
 
-            ActivityLog::create([
-                'user_id' => $request->user()->id,
-                'action' => 'agreement_resent',
-                'model_type' => Client::class,
-                'model_id' => $client->id,
-                'description' => "Agreement email resent to {$client->name} ({$client->email})",
-                'ip_address' => $request->ip(),
-            ]);
-
-            return response()->json([
-                'message' => 'Agreement email sent successfully to ' . $client->email,
-                'client_uuid' => $client->uuid,
-                'agreement_sent_at' => $client->agreement_sent_at,
-            ]);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to resend agreement email', [
-                'client_id' => $client->id,
-                'error' => $e->getMessage(),
-            ]);
+        if (!$success) {
             return response()->json([
                 'message' => 'Failed to send email. Please try again later.',
             ], 500);
         }
+
+        // Update client record
+        $client->update([
+            'agreement_status' => 'sent',
+            'agreement_sent_at' => now(),
+        ]);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'agreement_resent',
+            'model_type' => Client::class,
+            'model_id' => $client->id,
+            'description' => "Agreement email resent to {$client->name} ({$client->email})",
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'message' => 'Agreement email sent successfully to ' . $client->email,
+            'client_uuid' => $client->uuid,
+            'agreement_sent_at' => $client->agreement_sent_at,
+        ]);
     }
 
     public function updateSatisfactionScore(Request $request, $id)

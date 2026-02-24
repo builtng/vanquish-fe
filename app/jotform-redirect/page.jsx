@@ -11,8 +11,8 @@ export default function JotFormRedirect() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          // Redirect to booking system
-          window.location.href = "https://vanquishtherapiesvqt.trafft.com/";
+          // Redirect to home
+          window.location.href = "/";
           return 0;
         }
         return prev - 1;
@@ -28,41 +28,44 @@ export default function JotFormRedirect() {
         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
           <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
         </div>
-        
+
         <h2 className="text-2xl font-bold text-gray-900 mb-4">
           Form Submitted Successfully!
         </h2>
-        
+
         <p className="text-gray-600 mb-6">
-          Thank you for completing the form. You will be redirected to the booking system in {countdown} seconds...
+          Thank you for completing the form. You will be redirected to the
+          booking system in {countdown} seconds...
         </p>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <p className="text-sm text-blue-800">
-            <strong>Next Step:</strong> Please book your consultation slot using our booking system.
+            <strong>Next Step:</strong> Please book your consultation slot using
+            our booking system.
           </p>
         </div>
 
         <button
           onClick={() => {
-            window.location.href = "https://vanquishtherapiesvqt.trafft.com/";
+            window.location.href = "/";
           }}
           className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors mb-6"
         >
-          Go to Booking System Now
+          Return Home
         </button>
 
         {/* Copyright Information */}
         <div className="border-t border-gray-200 pt-6 mt-6">
           <p className="text-xs text-gray-500">
-            This form was created using JotForm. JotForm is a third-party service not owned or operated by Vanquish Therapies.
+            This form was created using JotForm. JotForm is a third-party
+            service not owned or operated by Vanquish Therapies.
           </p>
           <p className="text-xs text-gray-500 mt-2">
-            © {new Date().getFullYear()} Vanquish Therapies. All rights reserved.
+            © {new Date().getFullYear()} Vanquish Therapies. All rights
+            reserved.
           </p>
         </div>
       </div>
     </div>
   );
 }
-

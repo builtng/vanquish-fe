@@ -96,7 +96,7 @@
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                 <tr>
                                     <td align="center">
-                                        <a href="{{ config('app.frontend_url', 'http://localhost:3000') }}/counsellor" target="_blank" style="display: inline-block; padding: 16px 36px; background-color: #6f1d56; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(111, 29, 86, 0.2); transition: background-color 0.2s;">
+                                        <a href="{{ rtrim(config('app.frontend_url'), '/') }}/counsellor" target="_blank" style="display: inline-block; padding: 16px 36px; background-color: #6f1d56; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(111, 29, 86, 0.2); transition: background-color 0.2s;">
                                             Access Counsellor Portal &rarr;
                                         </a>
                                     </td>

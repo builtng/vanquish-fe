@@ -204,23 +204,41 @@ export default function IshClientIntake() {
 
     switch (step) {
       case 1: // Personal Information
-        if (!formData.firstName.trim()) stepErrors.firstName = "First name is required";
-        if (!formData.lastName.trim()) stepErrors.lastName = "Last name is required";
-        if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        if (!formData.firstName.trim())
+          stepErrors.firstName = "First name is required";
+        if (!formData.lastName.trim())
+          stepErrors.lastName = "Last name is required";
+        if (
+          !formData.email.trim() ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
+        ) {
           stepErrors.email = "Valid email is required";
         }
-        if (!formData.phone.trim()) stepErrors.phone = "Phone number is required";
-        if (!formData.whatsappAgreement) stepErrors.whatsappAgreement = "This field is required";
-        if (!formData.voicemailOk) stepErrors.voicemailOk = "This field is required";
-        if (!formData.partnerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.partnerEmail)) {
+        if (!formData.phone.trim())
+          stepErrors.phone = "Phone number is required";
+        if (!formData.whatsappAgreement)
+          stepErrors.whatsappAgreement = "This field is required";
+        if (!formData.voicemailOk)
+          stepErrors.voicemailOk = "This field is required";
+        if (
+          !formData.partnerEmail.trim() ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.partnerEmail)
+        ) {
           stepErrors.partnerEmail = "Partner's valid email is required";
         }
-        if (!formData.partnerPhone.trim()) stepErrors.partnerPhone = "Partner's contact number is required";
-        if (!formData.currentlyInTherapy) stepErrors.currentlyInTherapy = "This field is required";
-        if (formData.currentlyInTherapy === "Yes" && !formData.workingWithAnotherReason.trim()) {
-          stepErrors.workingWithAnotherReason = "Please explain reasons for working with another Therapist/Coach";
+        if (!formData.partnerPhone.trim())
+          stepErrors.partnerPhone = "Partner's contact number is required";
+        if (!formData.currentlyInTherapy)
+          stepErrors.currentlyInTherapy = "This field is required";
+        if (
+          formData.currentlyInTherapy === "Yes" &&
+          !formData.workingWithAnotherReason.trim()
+        ) {
+          stepErrors.workingWithAnotherReason =
+            "Please explain reasons for working with another Therapist/Coach";
         }
-        if (!formData.locationOfResidence.trim()) stepErrors.locationOfResidence = "Location is required";
+        if (!formData.locationOfResidence.trim())
+          stepErrors.locationOfResidence = "Location is required";
         break;
 
       case 2: // Availability
@@ -233,8 +251,10 @@ export default function IshClientIntake() {
         break;
 
       case 3: // Referral
-        if (!formData.hearAboutUs) stepErrors.hearAboutUs = "This field is required";
-        if (!formData.referralType) stepErrors.referralType = "Please select a referral type";
+        if (!formData.hearAboutUs)
+          stepErrors.hearAboutUs = "This field is required";
+        if (!formData.referralType)
+          stepErrors.referralType = "Please select a referral type";
         break;
 
       case 4: // Concerns
@@ -280,7 +300,9 @@ export default function IshClientIntake() {
           document.querySelector(`#${firstErrorField}`);
 
         if (!errorElement) {
-          errorElement = document.querySelector(`[data-field="${firstErrorField}"]`);
+          errorElement = document.querySelector(
+            `[data-field="${firstErrorField}"]`,
+          );
         }
 
         if (errorElement) {
@@ -392,7 +414,8 @@ export default function IshClientIntake() {
             partner_email: formData.partnerEmail,
             partner_phone: formData.partnerPhone,
             currently_in_therapy: formData.currentlyInTherapy === "Yes",
-            working_with_another_reason: formData.workingWithAnotherReason || null,
+            working_with_another_reason:
+              formData.workingWithAnotherReason || null,
             location_of_residence: formData.locationOfResidence,
 
             service_type: "Ish",
@@ -408,7 +431,7 @@ export default function IshClientIntake() {
             consultation_fee: getConsultationFee(),
             create_client: true,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -419,11 +442,15 @@ export default function IshClientIntake() {
             const errorData = await response.json();
             if (errorData.errors) {
               const validationErrors = Object.entries(errorData.errors)
-                .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(", ") : messages}`)
+                .map(
+                  ([field, messages]) =>
+                    `${field}: ${Array.isArray(messages) ? messages.join(", ") : messages}`,
+                )
                 .join("\n");
               errorMessage = `Validation errors:\n${validationErrors}`;
             } else {
-              errorMessage = errorData.message || errorData.error || errorMessage;
+              errorMessage =
+                errorData.message || errorData.error || errorMessage;
             }
           }
         } catch (e) {}
@@ -431,8 +458,19 @@ export default function IshClientIntake() {
       }
 
       const data = await response.json();
-      let clientIdFromRes = data.client_id || (data.form && data.form.client_id);
+      let clientIdFromRes =
+        data.client_id || (data.form && data.form.client_id);
       setClientId(clientIdFromRes);
+
+      const proceedToSuccess = () => {
+        const params = new URLSearchParams();
+        params.append("email", formData.email);
+        params.append(
+          "uuid",
+          data.client_uuid || (data.form && data.form.uuid),
+        );
+        window.location.href = `/intake/success?${params.toString()}`;
+      };
 
       const fee = getConsultationFee();
       if (fee > 0 && clientIdFromRes) {
@@ -440,12 +478,13 @@ export default function IshClientIntake() {
           clientId: clientIdFromRes,
           amount: fee,
           couponCode: isDiscountApplied ? formData.discountCode : null,
-          onSuccess: () => setSubmitted(true),
-          onError: (err) => toast.error(`Payment failed: ${err.message || "Please try again"}`),
+          onSuccess: proceedToSuccess,
+          onError: (err) =>
+            toast.error(`Payment failed: ${err.message || "Please try again"}`),
         });
         setShowPaymentModal(true);
       } else {
-        setSubmitted(true);
+        proceedToSuccess();
       }
     } catch (error) {
       toast.error(error.message || "Failed to submit form.");
@@ -481,7 +520,8 @@ export default function IshClientIntake() {
                 </p>
                 <p className="mb-4 font-medium">
                   <strong>
-                    IF YOU HAVE NOT RECEIVED A CONFIRMATION EMAIL, CONTACT US AT LEAST 48 HOURS BEFORE YOUR CONSULTATION.
+                    IF YOU HAVE NOT RECEIVED A CONFIRMATION EMAIL, CONTACT US AT
+                    LEAST 48 HOURS BEFORE YOUR CONSULTATION.
                   </strong>
                 </p>
               </div>
@@ -521,7 +561,9 @@ export default function IshClientIntake() {
                     Consultation Sheet
                   </h1>
                   <p className="text-sm mt-0.5 md:mt-1 text-secondary">
-                    By completing this form, you (client) are giving permission for your information to be shared within Vanquish Therapies for the purpose of appointment scheduling.
+                    By completing this form, you (client) are giving permission
+                    for your information to be shared within Vanquish Therapies
+                    for the purpose of appointment scheduling.
                   </p>
                 </div>
               </div>
@@ -533,13 +575,12 @@ export default function IshClientIntake() {
                   {steps.map((step, index) => {
                     const isCompleted = completedSteps.has(step.number);
                     const isCurrent = currentStep === step.number;
-                    const isAccessible = isCompleted || step.number <= currentStep;
+                    const isAccessible =
+                      isCompleted || step.number <= currentStep;
 
                     return (
                       <React.Fragment key={step.number}>
-                        <div
-                          className="flex flex-col items-center flex-1"
-                        >
+                        <div className="flex flex-col items-center flex-1">
                           <button
                             type="button"
                             onClick={() => handleStepClick(step.number)}
@@ -604,175 +645,268 @@ export default function IshClientIntake() {
                   Personal Information
                 </h2>
                 <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
-                  (Please be advised that all required fields must be completed in the form. Failure to do so may result in an error. Therefore, it is crucial that you carefully review the form and provide accurate and complete information to avoid any issues. For any fields that do not apply to you, please enter "N/A.")
+                  (Please be advised that all required fields must be completed
+                  in the form. Failure to do so may result in an error.
+                  Therefore, it is crucial that you carefully review the form
+                  and provide accurate and complete information to avoid any
+                  issues. For any fields that do not apply to you, please enter
+                  "N/A.")
                 </div>
-                
+
                 {ishCapacityFull && (
-                   <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-5 mb-6">
-                     <p className="text-orange-900 font-bold mb-3">
-                       Service at Capacity
-                     </p>
-                     <p className="text-orange-800 mb-4">
-                       {ishCapacityData.message}
-                     </p>
-                     <a
-                       href={ishCapacityData.alternative_url}
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       className="inline-block px-6 py-3 bg-orange-600 text-white rounded-lg font-medium"
-                     >
-                       Continue with VQT COACHING & THERAPY
-                     </a>
-                   </div>
+                  <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-5 mb-6">
+                    <p className="text-orange-900 font-bold mb-3">
+                      Service at Capacity
+                    </p>
+                    <p className="text-orange-800 mb-4">
+                      {ishCapacityData.message}
+                    </p>
+                    <a
+                      href={ishCapacityData.alternative_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block px-6 py-3 bg-orange-600 text-white rounded-lg font-medium"
+                    >
+                      Continue with VQT COACHING & THERAPY
+                    </a>
+                  </div>
                 )}
-                
+
                 {!ishCapacityFull && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                  <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      First Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.firstName}
-                      onChange={(e) => handleInputChange("firstName", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.firstName ? "border-red-500" : "border-gray-300"}`}
-                    />
-                    {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Last Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.lastName}
-                      onChange={(e) => handleInputChange("lastName", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.lastName ? "border-red-500" : "border-gray-300"}`}
-                    />
-                    {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.email ? "border-red-500" : "border-gray-300"}`}
-                    />
-                    {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Tel: <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange("phone", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.phone ? "border-red-500" : "border-gray-300"}`}
-                    />
-                    {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      We primarily communicate through Emails and WhatsApp. Do you agree to this method of communication? <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.whatsappAgreement}
-                      onChange={(e) => handleInputChange("whatsappAgreement", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.whatsappAgreement ? "border-red-500" : "border-gray-300"}`}
-                    >
-                      <option value="">Please Select</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No WhatsApp">I prefer emails but not WhatsApp (This is the only messaging/texting platform we use currently).</option>
-                    </select>
-                    {errors.whatsappAgreement && <p className="text-red-500 text-sm mt-1">{errors.whatsappAgreement}</p>}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Is it okay for us to leave you a voicemail? <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.voicemailOk}
-                      onChange={(e) => handleInputChange("voicemailOk", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.voicemailOk ? "border-red-500" : "border-gray-300"}`}
-                    >
-                      <option value="">Please Select</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
-                    {errors.voicemailOk && <p className="text-red-500 text-sm mt-1">{errors.voicemailOk}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Partner's Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.partnerEmail}
-                      onChange={(e) => handleInputChange("partnerEmail", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.partnerEmail ? "border-red-500" : "border-gray-300"}`}
-                    />
-                    {errors.partnerEmail && <p className="text-red-500 text-sm mt-1">{errors.partnerEmail}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Partner's Contact No. <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={formData.partnerPhone}
-                      onChange={(e) => handleInputChange("partnerPhone", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.partnerPhone ? "border-red-500" : "border-gray-300"}`}
-                    />
-                    {errors.partnerPhone && <p className="text-red-500 text-sm mt-1">{errors.partnerPhone}</p>}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Are you currently in Therapy/Counselling or Coaching anywhere else? <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.currentlyInTherapy}
-                      onChange={(e) => handleInputChange("currentlyInTherapy", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.currentlyInTherapy ? "border-red-500" : "border-gray-300"}`}
-                    >
-                      <option value="">Please Select</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
-                    {errors.currentlyInTherapy && <p className="text-red-500 text-sm mt-1">{errors.currentlyInTherapy}</p>}
-                  </div>
-                  {formData.currentlyInTherapy === "Yes" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <div>
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        First Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.firstName}
+                        onChange={(e) =>
+                          handleInputChange("firstName", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.firstName ? "border-red-500" : "border-gray-300"}`}
+                      />
+                      {errors.firstName && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.firstName}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Last Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.lastName}
+                        onChange={(e) =>
+                          handleInputChange("lastName", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.lastName ? "border-red-500" : "border-gray-300"}`}
+                      />
+                      {errors.lastName && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.lastName}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) =>
+                          handleInputChange("email", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.email ? "border-red-500" : "border-gray-300"}`}
+                      />
+                      {errors.email && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.email}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Tel: <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) =>
+                          handleInputChange("phone", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.phone ? "border-red-500" : "border-gray-300"}`}
+                      />
+                      {errors.phone && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.phone}
+                        </p>
+                      )}
+                    </div>
                     <div className="md:col-span-2">
                       <label className="block text-base font-medium mb-2 text-primary">
-                        Please explain reasons for working with another Therapist/Counsellor or Coach <span className="text-red-500">*</span>
+                        We primarily communicate through Emails and WhatsApp. Do
+                        you agree to this method of communication?{" "}
+                        <span className="text-red-500">*</span>
                       </label>
-                      <textarea
-                        value={formData.workingWithAnotherReason}
-                        onChange={(e) => handleInputChange("workingWithAnotherReason", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.workingWithAnotherReason ? "border-red-500" : "border-gray-300"}`}
-                        placeholder="Reasons..."
-                      />
-                      {errors.workingWithAnotherReason && <p className="text-red-500 text-sm mt-1">{errors.workingWithAnotherReason}</p>}
+                      <select
+                        value={formData.whatsappAgreement}
+                        onChange={(e) =>
+                          handleInputChange("whatsappAgreement", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.whatsappAgreement ? "border-red-500" : "border-gray-300"}`}
+                      >
+                        <option value="">Please Select</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No WhatsApp">
+                          I prefer emails but not WhatsApp (This is the only
+                          messaging/texting platform we use currently).
+                        </option>
+                      </select>
+                      {errors.whatsappAgreement && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.whatsappAgreement}
+                        </p>
+                      )}
                     </div>
-                  )}
-                  <div className="md:col-span-2">
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Please state where you reside in the world. Please note, our Practice is based in the UK. Therefore, the Consultations and Session times are scheduled in UK time. <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.locationOfResidence}
-                      onChange={(e) => handleInputChange("locationOfResidence", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.locationOfResidence ? "border-red-500" : "border-gray-300"}`}
-                      placeholder="Your location..."
-                    />
-                    {errors.locationOfResidence && <p className="text-red-500 text-sm mt-1">{errors.locationOfResidence}</p>}
+                    <div className="md:col-span-2">
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Is it okay for us to leave you a voicemail?{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={formData.voicemailOk}
+                        onChange={(e) =>
+                          handleInputChange("voicemailOk", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.voicemailOk ? "border-red-500" : "border-gray-300"}`}
+                      >
+                        <option value="">Please Select</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      {errors.voicemailOk && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.voicemailOk}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Partner's Email <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.partnerEmail}
+                        onChange={(e) =>
+                          handleInputChange("partnerEmail", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.partnerEmail ? "border-red-500" : "border-gray-300"}`}
+                      />
+                      {errors.partnerEmail && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.partnerEmail}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Partner's Contact No.{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.partnerPhone}
+                        onChange={(e) =>
+                          handleInputChange("partnerPhone", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.partnerPhone ? "border-red-500" : "border-gray-300"}`}
+                      />
+                      {errors.partnerPhone && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.partnerPhone}
+                        </p>
+                      )}
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Are you currently in Therapy/Counselling or Coaching
+                        anywhere else? <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={formData.currentlyInTherapy}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "currentlyInTherapy",
+                            e.target.value,
+                          )
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.currentlyInTherapy ? "border-red-500" : "border-gray-300"}`}
+                      >
+                        <option value="">Please Select</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      {errors.currentlyInTherapy && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.currentlyInTherapy}
+                        </p>
+                      )}
+                    </div>
+                    {formData.currentlyInTherapy === "Yes" && (
+                      <div className="md:col-span-2">
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Please explain reasons for working with another
+                          Therapist/Counsellor or Coach{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          value={formData.workingWithAnotherReason}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "workingWithAnotherReason",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.workingWithAnotherReason ? "border-red-500" : "border-gray-300"}`}
+                          placeholder="Reasons..."
+                        />
+                        {errors.workingWithAnotherReason && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.workingWithAnotherReason}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <div className="md:col-span-2">
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Please state where you reside in the world. Please note,
+                        our Practice is based in the UK. Therefore, the
+                        Consultations and Session times are scheduled in UK
+                        time. <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.locationOfResidence}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "locationOfResidence",
+                            e.target.value,
+                          )
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.locationOfResidence ? "border-red-500" : "border-gray-300"}`}
+                        placeholder="Your location..."
+                      />
+                      {errors.locationOfResidence && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.locationOfResidence}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
                 )}
               </div>
             )}
@@ -782,28 +916,40 @@ export default function IshClientIntake() {
                 <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
                   Availability
                 </h2>
-                {["monday", "tuesday", "wednesday", "thursday", "friday"].map((day) => (
-                  <div key={day} className="border rounded-lg p-4 mb-4">
-                    <h3 className="font-bold capitalize mb-3 text-purple-900">{day}</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {(day === "friday" ? fridayTimeSlots : timeSlots).map((slot) => (
-                        <label
-                          key={slot.value}
-                          className="flex items-center gap-3 p-2 bg-gray-50 rounded cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={formData.availability[day].includes(slot.value)}
-                            onChange={() => handleAvailabilityToggle(day, slot.value)}
-                            className="accent-[#6f1d56]"
-                          />
-                          <span>{slot.label}</span>
-                        </label>
-                      ))}
+                {["monday", "tuesday", "wednesday", "thursday", "friday"].map(
+                  (day) => (
+                    <div key={day} className="border rounded-lg p-4 mb-4">
+                      <h3 className="font-bold capitalize mb-3 text-purple-900">
+                        {day}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {(day === "friday" ? fridayTimeSlots : timeSlots).map(
+                          (slot) => (
+                            <label
+                              key={slot.value}
+                              className="flex items-center gap-3 p-2 bg-gray-50 rounded cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.availability[day].includes(
+                                  slot.value,
+                                )}
+                                onChange={() =>
+                                  handleAvailabilityToggle(day, slot.value)
+                                }
+                                className="accent-[#6f1d56]"
+                              />
+                              <span>{slot.label}</span>
+                            </label>
+                          ),
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {errors.availability && <p className="text-red-500 text-sm">{errors.availability}</p>}
+                  ),
+                )}
+                {errors.availability && (
+                  <p className="text-red-500 text-sm">{errors.availability}</p>
+                )}
               </div>
             )}
 
@@ -813,38 +959,60 @@ export default function IshClientIntake() {
                   Referral Information
                 </h2>
                 <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      How did you become aware of my services? <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.hearAboutUs}
-                      onChange={(e) => handleInputChange("hearAboutUs", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.hearAboutUs ? "border-red-500" : "border-gray-300"}`}
-                    >
-                      <option value="">Please Select</option>
-                      <option value="Online (Google, Bing etc)">Online (Google, Bing etc)</option>
-                      <option value="Social Media (Facebook, Instagram)">Social Media (Facebook, Instagram)</option>
-                      <option value="Referral">Referral</option>
-                      <option value="Word of mouth">Word of mouth</option>
-                      <option value="Billboard">Billboard</option>
-                    </select>
-                    {errors.hearAboutUs && <p className="text-red-500 text-sm mt-1">{errors.hearAboutUs}</p>}
+                  <label className="block text-base font-medium mb-2 text-primary">
+                    How did you become aware of my services?{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.hearAboutUs}
+                    onChange={(e) =>
+                      handleInputChange("hearAboutUs", e.target.value)
+                    }
+                    className={`w-full px-4 py-3 border rounded-lg ${errors.hearAboutUs ? "border-red-500" : "border-gray-300"}`}
+                  >
+                    <option value="">Please Select</option>
+                    <option value="Online (Google, Bing etc)">
+                      Online (Google, Bing etc)
+                    </option>
+                    <option value="Social Media (Facebook, Instagram)">
+                      Social Media (Facebook, Instagram)
+                    </option>
+                    <option value="Referral">Referral</option>
+                    <option value="Word of mouth">Word of mouth</option>
+                    <option value="Billboard">Billboard</option>
+                  </select>
+                  {errors.hearAboutUs && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.hearAboutUs}
+                    </p>
+                  )}
                 </div>
                 <div>
-                    <label className="block text-base font-medium mb-2 text-primary">
-                      Please click below to select the referral type: <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.referralType}
-                      onChange={(e) => handleInputChange("referralType", e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg ${errors.referralType ? "border-red-500" : "border-gray-300"}`}
-                    >
-                      <option value="">Please Select</option>
-                      <option value="Self-Referral">Self-Referral</option>
-                      <option value="Referred Through an Organisation">Referred Through an Organisation</option>
-                      <option value="Referred Through an Individual">Referred Through an Individual</option>
-                    </select>
-                    {errors.referralType && <p className="text-red-500 text-sm mt-1">{errors.referralType}</p>}
+                  <label className="block text-base font-medium mb-2 text-primary">
+                    Please click below to select the referral type:{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.referralType}
+                    onChange={(e) =>
+                      handleInputChange("referralType", e.target.value)
+                    }
+                    className={`w-full px-4 py-3 border rounded-lg ${errors.referralType ? "border-red-500" : "border-gray-300"}`}
+                  >
+                    <option value="">Please Select</option>
+                    <option value="Self-Referral">Self-Referral</option>
+                    <option value="Referred Through an Organisation">
+                      Referred Through an Organisation
+                    </option>
+                    <option value="Referred Through an Individual">
+                      Referred Through an Individual
+                    </option>
+                  </select>
+                  {errors.referralType && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.referralType}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -854,7 +1022,10 @@ export default function IshClientIntake() {
                 <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
                   Areas You Require Support With
                 </h2>
-                <p className="text-sm text-gray-700">We have listed a few areas below you may require support with.*</p>
+                <p className="text-sm text-gray-700">
+                  We have listed a few areas below you may require support
+                  with.*
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                   {supportAreasList.map((area) => (
                     <label
@@ -871,15 +1042,24 @@ export default function IshClientIntake() {
                     </label>
                   ))}
                 </div>
-                {errors.supportAreas && <p className="text-red-500 text-sm -mt-4 mb-4">{errors.supportAreas}</p>}
+                {errors.supportAreas && (
+                  <p className="text-red-500 text-sm -mt-4 mb-4">
+                    {errors.supportAreas}
+                  </p>
+                )}
 
                 <div className="mt-4">
                   <label className="block text-base font-medium mb-2 text-primary">
-                    Please use this box to specify and describe details related to the above selected areas or mention anything else not listed above that you would like support with. <span className="text-red-500">*</span>
+                    Please use this box to specify and describe details related
+                    to the above selected areas or mention anything else not
+                    listed above that you would like support with.{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     value={formData.concernsDetails}
-                    onChange={(e) => handleInputChange("concernsDetails", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("concernsDetails", e.target.value)
+                    }
                     className="w-full px-4 py-3 border rounded-lg"
                     placeholder="Details about concerns..."
                     rows="4"
@@ -895,22 +1075,31 @@ export default function IshClientIntake() {
                 </h2>
 
                 <div className="bg-gray-50 p-6 rounded-lg mb-6">
-                    <h3 className="font-bold mb-2">Terms & Conditions</h3>
-                    <p className="text-sm mb-4">
-                      Please note: Our consultation slots are limited; therefore, this means payment is required to secure another consultation. We appreciate your understanding. The Consultation payment is non-refundable.
+                  <h3 className="font-bold mb-2">Terms & Conditions</h3>
+                  <p className="text-sm mb-4">
+                    Please note: Our consultation slots are limited; therefore,
+                    this means payment is required to secure another
+                    consultation. We appreciate your understanding. The
+                    Consultation payment is non-refundable.
+                  </p>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.termsAccepted}
+                      onChange={(e) =>
+                        handleInputChange("termsAccepted", e.target.checked)
+                      }
+                      className="mt-1 accent-[#6f1d56]"
+                    />
+                    <span className="font-medium text-sm">
+                      I accept the terms and conditions.
+                    </span>
+                  </label>
+                  {errors.termsAccepted && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.termsAccepted}
                     </p>
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.termsAccepted}
-                        onChange={(e) => handleInputChange("termsAccepted", e.target.checked)}
-                        className="mt-1 accent-[#6f1d56]"
-                      />
-                      <span className="font-medium text-sm">
-                        I accept the terms and conditions.
-                      </span>
-                    </label>
-                    {errors.termsAccepted && <p className="text-red-500 text-sm mt-1">{errors.termsAccepted}</p>}
+                  )}
                 </div>
 
                 <div className="p-6 border-2 border-purple-200 rounded-xl bg-purple-50 flex justify-between items-center">
@@ -918,9 +1107,7 @@ export default function IshClientIntake() {
                     <h3 className="font-bold text-purple-900">
                       Ish's Initial Consultation
                     </h3>
-                    <p className="text-sm text-purple-700">
-                      Non-refundable
-                    </p>
+                    <p className="text-sm text-purple-700">Non-refundable</p>
                   </div>
                   <p className="text-3xl font-bold text-purple-900">
                     £{getConsultationFee().toFixed(2)}
@@ -931,7 +1118,9 @@ export default function IshClientIntake() {
                   <input
                     type="text"
                     value={formData.discountCode}
-                    onChange={(e) => handleInputChange("discountCode", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("discountCode", e.target.value)
+                    }
                     className="flex-1 px-4 py-2 border rounded-lg"
                     placeholder="Discount code"
                   />
@@ -944,7 +1133,14 @@ export default function IshClientIntake() {
                 </div>
 
                 <div className="text-sm mt-6 text-gray-600 bg-blue-50 p-4 rounded-lg">
-                  Thank you for completing this form and for taking the first step towards healing. I understand that starting Counselling or Coaching can feel daunting but please know, Vanquish Therapies is here to support you on your journey, and I am committed to providing a supportive environment for you. Please note – this is not a crisis or emergency service. If you need to speak to someone immediately, please contact your GP, NHS (111),or the Samaritans (116 123).
+                  Thank you for completing this form and for taking the first
+                  step towards healing. I understand that starting Counselling
+                  or Coaching can feel daunting but please know, Vanquish
+                  Therapies is here to support you on your journey, and I am
+                  committed to providing a supportive environment for you.
+                  Please note – this is not a crisis or emergency service. If
+                  you need to speak to someone immediately, please contact your
+                  GP, NHS (111),or the Samaritans (116 123).
                 </div>
               </div>
             )}
@@ -1002,6 +1198,7 @@ export default function IshClientIntake() {
               <StripePaymentWrapper
                 clientId={paymentProps.clientId}
                 amount={paymentProps.amount}
+                paymentType="consultation"
                 onSuccess={paymentProps.onSuccess}
               />
             </div>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ServiceSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ServiceController extends Controller
 {
@@ -15,21 +16,21 @@ class ServiceController extends Controller
     {
         try {
             $setting = ServiceSetting::where('service_name', 'Ish')->first();
-            
+
             $defaultMessage = "This service is at capacity at this time. If you would like to work with Ish, you can click here to proceed with our Partner service VQT COACHING & THERAPY";
             $defaultUrl = "https://pci.jotform.com/form/243161740962456";
-            
+
             return response()->json([
                 'capacity_full' => $setting ? (bool) $setting->capacity_full : false,
-                'message' => $setting && $setting->capacity_message 
-                    ? $setting->capacity_message 
+                'message' => $setting && $setting->capacity_message
+                    ? $setting->capacity_message
                     : $defaultMessage,
-                'alternative_url' => $setting && $setting->alternative_url 
-                    ? $setting->alternative_url 
+                'alternative_url' => $setting && $setting->alternative_url
+                    ? $setting->alternative_url
                     : $defaultUrl,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error checking Ish capacity: ' . $e->getMessage());
+            Log::error('Error checking Ish capacity: ' . $e->getMessage());
             return response()->json([
                 'capacity_full' => false,
                 'message' => "This service is at capacity at this time. If you would like to work with Ish, you can click here to proceed with our Partner service VQT COACHING & THERAPY",
@@ -68,7 +69,7 @@ class ServiceController extends Controller
                 'alternative_url' => $setting->alternative_url,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error updating service capacity: ' . $e->getMessage());
+            Log::error('Error updating service capacity: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Failed to update service capacity',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
@@ -94,7 +95,7 @@ class ServiceController extends Controller
                 'price' => $validated['price'],
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error updating service price: ' . $e->getMessage());
+            Log::error('Error updating service price: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Failed to update service price',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
@@ -108,10 +109,10 @@ class ServiceController extends Controller
     public function getAllServices()
     {
         try {
-            $services = ServiceSetting::all();
+            $services = ServiceSetting::orderBy('id', 'desc')->get();
             return response()->json($services);
         } catch (\Exception $e) {
-            \Log::error('Error getting all services: ' . $e->getMessage());
+            Log::error('Error getting all services: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Failed to get services',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
@@ -119,4 +120,3 @@ class ServiceController extends Controller
         }
     }
 }
-

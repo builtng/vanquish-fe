@@ -7,8 +7,9 @@ use App\Models\Message;
 use App\Models\TrainingCounsellor;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\GenericTrainingCounsellorEmail;
+use App\Mail\DynamicEmail;
 
 class MessageController extends Controller
 {
@@ -23,12 +24,12 @@ class MessageController extends Controller
         if ($user->isCounsellor() && $user->training_counsellor_id) {
             // Counsellors see messages sent to their TC profile
             $query->where('to_tc_id', $user->training_counsellor_id)
-                  ->orWhere('from_user_id', $user->id);
+                ->orWhere('from_user_id', $user->id);
         } else {
             // Staff/admin see messages sent to them or from them
-            $query->where(function($q) use ($user) {
+            $query->where(function ($q) use ($user) {
                 $q->where('to_user_id', $user->id)
-                  ->orWhere('from_user_id', $user->id);
+                    ->orWhere('from_user_id', $user->id);
             });
         }
 
@@ -36,7 +37,7 @@ class MessageController extends Controller
             $query->where('is_read', false);
         }
 
-        $messages = $query->orderBy('created_at', 'desc')->paginate(20);
+        $messages = $query->orderBy('id', 'desc')->paginate(20);
 
         return response()->json($messages);
     }
@@ -84,15 +85,18 @@ class MessageController extends Controller
                         $emailMessage .= "\n\nRelated to client: {$client->name}";
                     }
                 }
-                
-                Mail::to($tc->email)->send(new GenericTrainingCounsellorEmail(
-                    $tc->name,
-                    "New Message: {$validated['subject']}",
-                    $emailMessage
+
+                Mail::to($tc->email)->send(new DynamicEmail(
+                    'generic_tc_email',
+                    [
+                        'tc_name' => $tc->name,
+                        'message' => $emailMessage,
+                        'subject' => "New Message: {$validated['subject']}"
+                    ]
                 ));
             } catch (\Exception $e) {
                 // Log error but don't fail the request
-                \Log::error('Failed to send message email notification: ' . $e->getMessage());
+                Log::error('Failed to send message email notification: ' . $e->getMessage());
             }
         }
 
@@ -236,5 +240,3 @@ class MessageController extends Controller
         return response()->json($message);
     }
 }
-
-

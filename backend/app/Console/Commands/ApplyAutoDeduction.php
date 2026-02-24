@@ -7,7 +7,7 @@ use App\Models\Client;
 use App\Models\Session;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\GenericClientEmail;
+use App\Mail\DynamicEmail;
 
 class ApplyAutoDeduction extends Command
 {
@@ -34,7 +34,7 @@ class ApplyAutoDeduction extends Command
 
         // Find Low Cost clients with booking deadlines that have passed
         $today = Carbon::today();
-        
+
         $clients = Client::where('service_type', 'Low Cost')
             ->whereNotNull('next_booking_deadline')
             ->where('next_booking_deadline', '<', $today)
@@ -47,7 +47,7 @@ class ApplyAutoDeduction extends Command
         foreach ($clients as $client) {
             // Check if auto-deduction already applied
             $nextSession = $client->getNextSessionNeedingBooking();
-            
+
             if ($nextSession && !$nextSession->auto_deduction_applied) {
                 // Check if client has booked (if they have, skip)
                 $hasBooked = Session::where('client_id', $client->id)
@@ -58,10 +58,10 @@ class ApplyAutoDeduction extends Command
                 if (!$hasBooked) {
                     // Apply auto-deduction: create 3 sessions instead of 4
                     $this->createAutoDeductionSessions($client, $nextSession);
-                    
+
                     // Mark auto-deduction as applied
                     $nextSession->update(['auto_deduction_applied' => true]);
-                    
+
                     // Update client's next booking deadline
                     $lastSessionDate = Carbon::parse($nextSession->scheduled_at)->addWeeks(2); // 3 sessions = 3 weeks
                     $client->update([
@@ -70,21 +70,17 @@ class ApplyAutoDeduction extends Command
 
                     // Notify client
                     if ($client->email) {
-                        try {
-                            $message = "Dear {$client->name},\n\n";
-                            $message .= "Your booking deadline has passed. As per our policy, you have been automatically allocated 3 sessions instead of 4 (same price).\n\n";
-                            $message .= "Your sessions have been scheduled. Please check your booking portal for details.\n\n";
-                            $message .= "View bookings: " . config('app.frontend_url', 'http://localhost:3000') . "/client-booking?uuid={$client->uuid}\n\n";
-                            $message .= "Best regards,\nVanquish Therapies";
+                        $baseUrl = rtrim(config('app.frontend_url'), '/');
+                        $bookingUrl = $baseUrl . '/client-booking?' . http_build_query(['uuid' => $client->uuid]);
 
-                            Mail::to($client->email)->send(new GenericClientEmail(
-                                $client->name,
-                                'Booking Update - Auto-Deduction Applied',
-                                $message
-                            ));
-                        } catch (\Exception $e) {
-                            $this->error("Failed to send notification to {$client->email}: " . $e->getMessage());
-                        }
+                        app(\App\Services\EmailService::class)->sendAndLog(
+                            $client,
+                            'auto_deduction_applied',
+                            [
+                                'client_name' => $client->name,
+                                'booking_url' => $bookingUrl
+                            ]
+                        );
                     }
 
                     $deductionCount++;
@@ -104,11 +100,11 @@ class ApplyAutoDeduction extends Command
     {
         $startDate = Carbon::parse($nextSession->scheduled_at);
         $dayOfWeek = $startDate->dayOfWeek;
-        
+
         // Create 3 sessions (weekly)
         for ($i = 0; $i < 3; $i++) {
             $sessionDate = $startDate->copy()->addWeeks($i);
-            
+
             Session::create([
                 'client_id' => $client->id,
                 'tc_id' => $client->matched_tc_id,
@@ -124,5 +120,3 @@ class ApplyAutoDeduction extends Command
         }
     }
 }
-
-

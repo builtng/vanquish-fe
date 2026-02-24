@@ -158,12 +158,15 @@ class ClientAgreementController extends Controller
                 'signature_saved' => !empty($signatureUrl),
             ]);
 
+            $baseUrl = rtrim(config('app.frontend_url'), '/');
+            $redirectUrl = $baseUrl . '/client-booking?uuid=' . $client->uuid . '&email=' . urlencode($client->email);
+
             return response()->json([
                 'message' => 'Agreement submitted successfully',
                 'client_uuid' => $client->uuid,
                 'client_id' => $client->client_id,
                 'signed' => true,
-                'redirect_url' => 'https://vanquishtherapiesvqt.trafft.com/',
+                'redirect_url' => $redirectUrl,
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Client Agreement Validation Error', [

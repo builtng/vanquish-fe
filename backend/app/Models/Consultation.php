@@ -28,6 +28,7 @@ class Consultation extends Model
         'stripe_customer_id',
         'paid_at',
         'payment_method',
+        'is_fallback',
     ];
 
     protected $casts = [
@@ -36,6 +37,7 @@ class Consultation extends Model
         'send_confirmation' => 'boolean',
         'paid_at' => 'datetime',
         'payment_amount' => 'decimal:2',
+        'is_fallback' => 'boolean',
     ];
 
     public function client(): BelongsTo

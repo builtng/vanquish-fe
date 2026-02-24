@@ -648,57 +648,12 @@ export default function VanquishClientIntake() {
       }
 
       const proceedToRedirect = () => {
-        // Build URL parameters for prefilling JotForm fields
         const params = new URLSearchParams();
-
-        // Required parameters
         params.append("email", formData.email);
-        params.append("client_uuid", clientUuid);
-
-        // Prefill common fields (JotForm uses q1, q2, q3, etc. or field names)
-        if (formData.firstName) {
-          params.append("q1", formData.firstName); // First Name
-          params.append("first_name", formData.firstName);
-        }
-        if (formData.lastName) {
-          params.append("q2", formData.lastName); // Last Name
-          params.append("last_name", formData.lastName);
-        }
-        if (formData.email) {
-          params.append("q3", formData.email); // Email (also as email param)
-          params.append("q4", formData.email); // Alternative email field
-        }
-        if (formData.phone) {
-          params.append("q5", formData.phone); // Phone
-          params.append("phone", formData.phone);
-        }
-        if (formData.age) {
-          params.append("q6", formData.age); // Age
-          params.append("age", formData.age);
-        }
-        if (formData.gender) {
-          params.append("q7", formData.gender); // Gender
-          params.append("gender", formData.gender);
-        }
-        if (formData.ethnicity) {
-          params.append("q8", formData.ethnicity); // Ethnicity
-          params.append("ethnicity", formData.ethnicity);
-        }
-        if (formData.sexualOrientation) {
-          params.append("q9", formData.sexualOrientation); // Sexual Orientation
-          params.append("sexual_orientation", formData.sexualOrientation);
-        }
-        if (formData.serviceType) {
-          params.append("q10", formData.serviceType); // Service Type
-          params.append("service_type", formData.serviceType);
-        }
-
-        // Add client UUID as both parameter formats
         params.append("uuid", clientUuid);
-        params.append("client_id", clientUuid);
 
-        const jotformUrl = `https://pci.jotform.com/form/253505449240454?${params.toString()}`;
-        window.location.href = jotformUrl;
+        // Redirect to internal success page instead of JotForm
+        window.location.href = `/intake/success?${params.toString()}`;
       };
 
       if (fee > 0 && clientUuid && currentClientId) {
@@ -2442,6 +2397,7 @@ export default function VanquishClientIntake() {
                   <StripePaymentWrapper
                     clientId={clientId}
                     amount={getConsultationFee()}
+                    paymentType="consultation"
                     onSuccess={() => {
                       setPaymentCompleted(true);
                       setSubmitted(true);
@@ -2646,6 +2602,7 @@ export default function VanquishClientIntake() {
                 <StripePaymentWrapper
                   clientId={paymentProps.clientId}
                   amount={paymentProps.amount}
+                  paymentType="consultation"
                   couponCode={paymentProps.couponCode}
                   onSuccess={() => {
                     paymentProps.onSuccess();

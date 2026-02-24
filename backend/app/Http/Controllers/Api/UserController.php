@@ -22,7 +22,7 @@ class UserController extends Controller
         }
 
         $users = User::select('id', 'name', 'email', 'role', 'two_factor_enabled', 'created_at', 'updated_at')
-            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         return response()->json($users);
@@ -233,4 +233,3 @@ class UserController extends Controller
         ]);
     }
 }
-

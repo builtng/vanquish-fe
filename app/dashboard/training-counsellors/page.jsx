@@ -67,7 +67,7 @@ export default function ViewAllTrainingCounsellorsPage() {
 
   const [filterAvailability, setFilterAvailability] = useState("all");
 
-  const [sortBy, setSortBy] = useState("availability");
+  const [sortBy, setSortBy] = useState("tc_id");
 
   // Data states
   const [trainingCounsellors, setTrainingCounsellors] = useState([]);
@@ -129,6 +129,7 @@ export default function ViewAllTrainingCounsellorsPage() {
         joinedDate: tc.joined_date,
         lastActivity: tc.last_activity ? new Date(tc.last_activity) : null,
         qualified_form_completed: tc.qualified_form_completed || false,
+        createdAt: tc.created_at || null,
       }));
 
       setTrainingCounsellors(transformedData);
@@ -232,6 +233,14 @@ export default function ViewAllTrainingCounsellorsPage() {
 
     filtered.sort((a, b) => {
       switch (sortBy) {
+        case "newest":
+          if (!a.createdAt) return 1;
+          if (!b.createdAt) return -1;
+          return new Date(b.createdAt) - new Date(a.createdAt);
+
+        case "tc_id":
+          return b.tc_id?.localeCompare(a.tc_id, undefined, { numeric: true });
+
         case "availability":
           // Active with capacity first
 
@@ -278,6 +287,7 @@ export default function ViewAllTrainingCounsellorsPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
+    if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins} minutes ago`;
     if (diffHours < 24) return `${diffHours} hours ago`;
     return `${diffDays} days ago`;
@@ -590,6 +600,10 @@ export default function ViewAllTrainingCounsellorsPage() {
               onChange={(e) => setSortBy(e.target.value)}
               className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[150px]"
             >
+              <option value="newest">Sort: Newest</option>
+
+              <option value="tc_id">Sort: Practitioner ID</option>
+
               <option value="availability">Sort: Availability</option>
 
               <option value="name">Sort: Name</option>
@@ -688,6 +702,13 @@ export default function ViewAllTrainingCounsellorsPage() {
                     </p>
 
                     {getStatusBadge(tc.status, tc.currentClients)}
+
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>
+                        Last active: {formatLastActivity(tc.lastActivity)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

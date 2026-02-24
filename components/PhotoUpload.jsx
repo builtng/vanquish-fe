@@ -1,18 +1,19 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/lib/toast';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
-import { Upload, X, Camera, Loader2 } from 'lucide-react';
+import React, { useState, useRef } from "react";
+import apiService from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/lib/toast";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import { Upload, X, Camera, Loader2 } from "lucide-react";
 
-export default function PhotoUpload({ 
-  photoUrl, 
-  onUpload, 
-  onDelete, 
-  entityId, 
-  entityType = 'client', // 'client' or 'tc'
-  size = 'large' // 'small', 'medium', 'large'
+export default function PhotoUpload({
+  photoUrl,
+  onUpload,
+  onDelete,
+  entityId,
+  entityType = "client", // 'client' or 'tc'
+  size = "large", // 'small', 'medium', 'large'
 }) {
   const { user } = useAuth();
   const { success, error: showError } = useToast();
@@ -22,16 +23,16 @@ export default function PhotoUpload({
   const [preview, setPreview] = useState(null);
   const fileInputRef = useRef(null);
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === "admin";
 
   if (!isAdmin) {
     return null;
   }
 
   const sizeClasses = {
-    small: 'w-16 h-16',
-    medium: 'w-24 h-24',
-    large: 'w-32 h-32',
+    small: "w-16 h-16",
+    medium: "w-24 h-24",
+    large: "w-32 h-32",
   };
 
   const handleFileSelect = (e) => {
@@ -39,14 +40,14 @@ export default function PhotoUpload({
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      showError('Please select an image file');
+    if (!file.type.startsWith("image/")) {
+      showError("Please select an image file");
       return;
     }
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      showError('Image size must be less than 5MB');
+      showError("Image size must be less than 5MB");
       return;
     }
 
@@ -63,40 +64,40 @@ export default function PhotoUpload({
 
   const handleUpload = async (file) => {
     if (!entityId) {
-      showError('Entity ID is required');
+      showError("Entity ID is required");
       return;
     }
 
     try {
       setUploading(true);
-      
-      if (entityType === 'client') {
+
+      if (entityType === "client") {
         const response = await onUpload(entityId, file);
         if (response?.photo_url) {
-          success('Photo uploaded successfully!');
+          success("Photo uploaded successfully!");
           setPreview(null);
         }
       } else {
         const response = await onUpload(entityId, file);
         if (response?.photo_url) {
-          success('Photo uploaded successfully!');
+          success("Photo uploaded successfully!");
           setPreview(null);
         }
       }
     } catch (err) {
-      showError(err.message || 'Failed to upload photo');
+      showError(err.message || "Failed to upload photo");
       setPreview(null);
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
 
   const handleDelete = () => {
     if (!entityId) {
-      showError('Entity ID is required');
+      showError("Entity ID is required");
       return;
     }
     setShowDeleteConfirmModal(true);
@@ -109,29 +110,23 @@ export default function PhotoUpload({
       setDeleting(true);
       setShowDeleteConfirmModal(false);
       await onDelete(entityId);
-      success('Photo deleted successfully!');
+      success("Photo deleted successfully!");
       setPreview(null);
     } catch (err) {
-      showError(err.message || 'Failed to delete photo');
+      showError(err.message || "Failed to delete photo");
     } finally {
       setDeleting(false);
     }
   };
 
   const displayPhoto = preview || photoUrl;
-  const photoDisplayUrl = displayPhoto 
-    ? (displayPhoto.startsWith('http') 
-        ? displayPhoto 
-        : displayPhoto.startsWith('/storage') 
-        ? `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${displayPhoto}`
-        : displayPhoto.startsWith('storage/')
-        ? `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/${displayPhoto}`
-        : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/storage/${displayPhoto}`)
-    : null;
+  const photoDisplayUrl = apiService.getStorageUrl(displayPhoto);
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className={`relative ${sizeClasses[size]} rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100 flex items-center justify-center group`}>
+      <div
+        className={`relative ${sizeClasses[size]} rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100 flex items-center justify-center group`}
+      >
         {displayPhoto ? (
           <>
             <img
@@ -192,7 +187,7 @@ export default function PhotoUpload({
 
       {(uploading || deleting) && (
         <div className="text-xs text-gray-500">
-          {uploading ? 'Uploading...' : 'Deleting...'}
+          {uploading ? "Uploading..." : "Deleting..."}
         </div>
       )}
 
@@ -211,4 +206,3 @@ export default function PhotoUpload({
     </div>
   );
 }
-

@@ -50,8 +50,8 @@ export default function CompletedMatchesPage() {
   const [filterTC, setFilterTC] = useState("all");
   const [filterService, setFilterService] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [sortColumn, setSortColumn] = useState("name");
-  const [sortDirection, setSortDirection] = useState("asc");
+  const [sortColumn, setSortColumn] = useState("submittedDate");
+  const [sortDirection, setSortDirection] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
@@ -223,28 +223,54 @@ export default function CompletedMatchesPage() {
     "Completed",
   ];
 
-  const filteredClients = allClients.filter((client) => {
-    const isCompletedMatch = completedStages.includes(client.stage);
-    if (!isCompletedMatch) return false;
+  const filteredClients = allClients
+    .filter((client) => {
+      const isCompletedMatch = completedStages.includes(client.stage);
+      if (!isCompletedMatch) return false;
 
-    const matchesSearch =
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStage = filterStage === "all" || client.stage === filterStage;
-    const matchesTC = filterTC === "all" || client.matchedTC === filterTC;
-    const matchesService =
-      filterService === "all" || client.serviceType === filterService;
-    const matchesStatus =
-      filterStatus === "all" || client.status === filterStatus;
+      const matchesSearch =
+        client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        client.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStage =
+        filterStage === "all" || client.stage === filterStage;
+      const matchesTC = filterTC === "all" || client.matchedTC === filterTC;
+      const matchesService =
+        filterService === "all" || client.serviceType === filterService;
+      const matchesStatus =
+        filterStatus === "all" || client.status === filterStatus;
 
-    return (
-      matchesSearch &&
-      matchesStage &&
-      matchesTC &&
-      matchesService &&
-      matchesStatus
-    );
-  });
+      return (
+        matchesSearch &&
+        matchesStage &&
+        matchesTC &&
+        matchesService &&
+        matchesStatus
+      );
+    })
+    .sort((a, b) => {
+      let aValue = a[sortColumn];
+      let bValue = b[sortColumn];
+
+      // Handle nulls
+      if (aValue === null) return 1;
+      if (bValue === null) return -1;
+
+      // Handle string comparison (names)
+      if (typeof aValue === "string") {
+        return sortDirection === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      // Handle Date/Number comparison
+      return sortDirection === "asc"
+        ? aValue > bValue
+          ? 1
+          : -1
+        : aValue < bValue
+          ? 1
+          : -1;
+    });
 
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -586,6 +612,30 @@ export default function CompletedMatchesPage() {
                   { value: "active", label: "Active" },
                 ]}
                 placeholder="All Status"
+                className="text-sm"
+              />
+            </div>
+            <div className="min-w-[120px] flex-shrink-0">
+              <SearchableSelect
+                value={sortColumn}
+                onChange={(e) => {
+                  setSortColumn(e.target.value);
+                  if (
+                    e.target.value === "submittedDate" ||
+                    e.target.value === "satisfactionScore"
+                  ) {
+                    setSortDirection("desc");
+                  } else {
+                    setSortDirection("asc");
+                  }
+                }}
+                options={[
+                  { value: "name", label: "Sort: Name" },
+                  { value: "client_id", label: "Sort: Client ID" },
+                  { value: "submittedDate", label: "Sort: Newest" },
+                  { value: "satisfactionScore", label: "Sort: Satisfaction" },
+                ]}
+                placeholder="Sort By"
                 className="text-sm"
               />
             </div>

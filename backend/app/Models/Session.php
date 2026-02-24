@@ -20,6 +20,9 @@ class Session extends Model
         'notes',
         'payment_status',
         'payment_amount',
+        'stripe_payment_intent_id',
+        'paid_at',
+        'payment_method',
         'is_block_booking',
         'block_number',
         'total_sessions_in_block',
@@ -48,4 +51,3 @@ class Session extends Model
         return $this->belongsTo(TrainingCounsellor::class, 'tc_id');
     }
 }
-

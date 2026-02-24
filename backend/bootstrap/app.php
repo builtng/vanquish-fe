@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \App\Http\Middleware\SecurityHeaders::class,
             \Illuminate\Http\Middleware\HandleCors::class,
+            \App\Http\Middleware\UpdateLastActive::class,
         ]);
 
         // Global middleware

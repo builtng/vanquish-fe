@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\Client;
+use App\Models\ClientIntakeForm;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -12,12 +13,44 @@ use Illuminate\Support\Facades\Schema;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
 use Stripe\Exception\ApiErrorException;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\DynamicEmail;
 
 class PaymentController extends Controller
 {
     public function __construct()
     {
-        Stripe::setApiKey(config('services.stripe.secret_key'));
+        $mode = config('services.stripe.mode', 'test');
+        $secretKey = config('services.stripe.secret_key');
+        $publishableKey = config('services.stripe.key');
+
+        // Log active mode
+        Log::info("Stripe Integration Initialized. Mode: " . strtoupper($mode));
+
+        if (empty($secretKey)) {
+            Log::error("Stripe Exception: Secret key is missing for $mode mode. Please check your .env file.");
+        } elseif (strpos($secretKey, 'sk_test_') === false && strpos($secretKey, 'sk_live_') === false) {
+            Log::error('Stripe Exception: Invalid API key format. Should start with sk_test_ or sk_live_.');
+        }
+
+        // Check for mode mismatch
+        if (!empty($secretKey) && !empty($publishableKey)) {
+            $secretIsTest = strpos($secretKey, 'sk_test_') === 0;
+            $publishableIsTest = strpos($publishableKey, 'pk_test_') === 0;
+
+            if ($secretIsTest !== $publishableIsTest) {
+                $secretMode = $secretIsTest ? 'test' : 'live';
+                $publishableMode = $publishableIsTest ? 'test' : 'live';
+                Log::critical("CRITICAL: Stripe Mode Mismatch! Secret key is in $secretMode mode, but Publishable key is in $publishableMode mode. This will cause payment failures.");
+            }
+
+            // Check if current mode settings match the keys being used
+            if (($mode === 'test' && !$secretIsTest) || ($mode === 'live' && $secretIsTest)) {
+                Log::warning("Stripe Warning: STRIPE_MODE is set to $mode, but the keys provided appear to be for " . ($secretIsTest ? 'test' : 'live') . " mode.");
+            }
+        }
+
+        Stripe::setApiKey($secretKey);
     }
 
     /**
@@ -30,7 +63,11 @@ class PaymentController extends Controller
             'amount' => 'required|numeric|min:0.50',
             'currency' => 'nullable|string|size:3',
             'coupon_code' => 'nullable|string|exists:coupons,code',
+            'payment_type' => 'required|in:consultation,session,session_block',
+            'session_ids' => 'nullable|array',
+            'session_ids.*' => 'exists:consultation_sessions,id'
         ]);
+
 
         $currency = $validated['currency'] ?? 'gbp';
         $originalAmount = $validated['amount'];
@@ -47,11 +84,11 @@ class PaymentController extends Controller
                     $finalAmount = max(0.50, $originalAmount - $coupon->value); // Stripe minimum is mostly 0.50
                     $discountAmount = $originalAmount - $finalAmount;
                 } elseif ($coupon->type === 'percent') {
-                     $discount = ($originalAmount * $coupon->value) / 100;
-                     $finalAmount = max(0.50, $originalAmount - $discount);
-                     $discountAmount = $originalAmount - $finalAmount;
+                    $discount = ($originalAmount * $coupon->value) / 100;
+                    $finalAmount = max(0.50, $originalAmount - $discount);
+                    $discountAmount = $originalAmount - $finalAmount;
                 }
-                
+
                 // Track usage (increment on confirm, but for intent we just validate)
             }
         }
@@ -71,7 +108,9 @@ class PaymentController extends Controller
                 'customer' => $customerId,
                 'metadata' => [
                     'client_id' => $client->id,
-                    'client_name' => $client->firstName . ' ' . $client->lastName,
+                    'client_name' => $client->name,
+                    'payment_type' => $validated['payment_type'],
+                    'session_ids' => isset($validated['session_ids']) ? implode(',', $validated['session_ids']) : null,
                     'coupon_code' => $validated['coupon_code'] ?? null,
                     'original_amount' => $originalAmount,
                     'discount_amount' => $discountAmount
@@ -81,6 +120,7 @@ class PaymentController extends Controller
                 ],
             ]);
 
+
             return response()->json([
                 'client_secret' => $paymentIntent->client_secret,
                 'payment_intent_id' => $paymentIntent->id,
@@ -88,9 +128,28 @@ class PaymentController extends Controller
                 'discount' => $discountAmount
             ]);
         } catch (ApiErrorException $e) {
-            Log::error('Stripe Payment Intent Error: ' . $e->getMessage());
+            $message = $e->getMessage();
+            $type = get_class($e);
+            Log::error("Stripe API Error ($type): $message", [
+                'client_id' => $validated['client_id'] ?? 'unknown',
+                'amount' => $amountInPence ?? 'unknown',
+                'error_detail' => $e->getError()
+            ]);
+
+            // Specific handling for key issues
+            if (strpos($message, 'api_key') !== false || strpos($message, 'No such') !== false) {
+                Log::critical("CRITICAL: Stripe API Key mismatch or invalid. Check your .env variables and Stripe Dashboard.");
+            }
+
             return response()->json([
                 'message' => 'Failed to create payment intent',
+                'error' => $message,
+                'type' => $type
+            ], 500);
+        } catch (\Exception $e) {
+            Log::error('General Payment Intent Error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An unexpected error occurred during payment initialization',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -105,6 +164,7 @@ class PaymentController extends Controller
             'payment_intent_id' => 'required|string',
             'consultation_id' => 'nullable|exists:consultations,id',
             'client_id' => 'required|exists:clients,id',
+            'intake_id' => 'nullable|exists:client_intake_forms,id',
         ]);
 
         try {
@@ -117,34 +177,121 @@ class PaymentController extends Controller
                 ], 400);
             }
 
-            // Update or create consultation with payment info
-            $consultation = Consultation::where('client_id', $validated['client_id'])
-                ->whereNull('paid_at')
-                ->latest()
-                ->first();
+            $paymentType = $paymentIntent->metadata->payment_type ?? 'consultation';
+            $sessionIdsStr = $paymentIntent->metadata->session_ids ?? null;
+            $sessionIds = $sessionIdsStr ? explode(',', $sessionIdsStr) : [];
 
-            if ($consultation) {
-                $consultation->update([
-                    'payment_status' => 'paid',
-                    'payment_amount' => $paymentIntent->amount / 100,
-                    'stripe_payment_intent_id' => $paymentIntent->id,
-                    'stripe_customer_id' => $paymentIntent->customer,
-                    'paid_at' => now(),
-                    'payment_method' => $paymentIntent->payment_method_types[0] ?? 'card',
-                ]);
+            if ($paymentType === 'consultation') {
+                // Update or create consultation with payment info
+                $consultation = Consultation::where('client_id', $validated['client_id'])
+                    ->whereNull('paid_at')
+                    ->latest()
+                    ->first();
+
+                if ($consultation) {
+                    $consultation->update([
+                        'payment_status' => 'paid',
+                        'payment_amount' => $paymentIntent->amount / 100,
+                        'stripe_payment_intent_id' => $paymentIntent->id,
+                        'stripe_customer_id' => $paymentIntent->customer,
+                        'paid_at' => now(),
+                        'payment_method' => $paymentIntent->payment_method_types[0] ?? 'card',
+                    ]);
+
+                    // Update related Client Intake Form
+                    $intake = ClientIntakeForm::where('client_id', $validated['client_id'])->latest()->first();
+                    if ($intake) {
+                        $intake->update([
+                            'payment_status' => 'paid',
+                            'payment_reference' => $paymentIntent->id,
+                            'payment_amount' => $paymentIntent->amount / 100,
+                            'payment_method' => $paymentIntent->payment_method_types[0] ?? 'card',
+                            'paid_at' => now(),
+                            'status' => 'processed'
+                        ]);
+                    }
+                } else {
+                    // Create consultation if it doesn't exist
+                    $consultation = Consultation::create([
+                        'consultation_id' => 'CONS' . str_pad(Consultation::count() + 1, 3, '0', STR_PAD_LEFT),
+                        'client_id' => $validated['client_id'],
+                        'payment_status' => 'paid',
+                        'payment_amount' => $paymentIntent->amount / 100,
+                        'stripe_payment_intent_id' => $paymentIntent->id,
+                        'stripe_customer_id' => $paymentIntent->customer,
+                        'paid_at' => now(),
+                        'payment_method' => $paymentIntent->payment_method_types[0] ?? 'card',
+                        'status' => 'scheduled',
+                    ]);
+                }
+            } elseif ($paymentType === 'session' || $paymentType === 'session_block') {
+                if (!empty($sessionIds)) {
+                    $sessions = \App\Models\Session::whereIn('id', $sessionIds)->get();
+                    foreach ($sessions as $session) {
+                        /** @var \App\Models\Session $session */
+                        $session->update([
+
+                            'payment_status' => 'paid',
+                            'payment_amount' => ($paymentIntent->amount / 100) / count($sessionIds),
+                            'stripe_payment_intent_id' => $paymentIntent->id,
+                            'paid_at' => now(),
+                            'payment_method' => $paymentIntent->payment_method_types[0] ?? 'card',
+                        ]);
+                        $this->notifyCounsellor($session);
+                    }
+                }
+            }
+
+
+
+            // Update Client Intake Form status if available
+            $intakeId = $validated['intake_id'] ?? null;
+            if ($intakeId) {
+                $intake = ClientIntakeForm::find($intakeId);
             } else {
-                // Create consultation if it doesn't exist
-                $consultation = Consultation::create([
-                    'consultation_id' => 'CONS' . str_pad(Consultation::count() + 1, 3, '0', STR_PAD_LEFT),
-                    'client_id' => $validated['client_id'],
+                // Try to find the latest intake for this client
+                $intake = ClientIntakeForm::where('client_id', $validated['client_id'])->latest()->first();
+            }
+
+            if ($intake) {
+                $intake->update([
                     'payment_status' => 'paid',
+                    'payment_reference' => $paymentIntent->id,
                     'payment_amount' => $paymentIntent->amount / 100,
-                    'stripe_payment_intent_id' => $paymentIntent->id,
-                    'stripe_customer_id' => $paymentIntent->customer,
-                    'paid_at' => now(),
                     'payment_method' => $paymentIntent->payment_method_types[0] ?? 'card',
-                    'status' => 'scheduled',
+                    'paid_at' => now(),
+                    'status' => 'processed'
                 ]);
+            }
+
+            // Send confirmation email and booking link
+            try {
+                $client = Client::find($validated['client_id']);
+                if ($client) {
+                    $emailService = new \App\Services\EmailService();
+
+                    // Send the payment confirmation
+                    $emailService->sendAndLog($client, 'payment_confirmation', [
+                        'client_name' => $client->name,
+                        'email' => $client->email
+                    ]);
+
+                    // Add delay to prevent Mailtrap rate limits
+                    sleep(2);
+
+                    // Send consultation booking link only if it was a consultation payment or they need to book
+                    if ($paymentType === 'consultation') {
+                        $bookingLink = env('FRONTEND_URL', 'http://localhost:3000') . "/client-booking?uuid=" . $client->uuid;
+                        $emailService->sendAndLog($client, 'consultation_booking_link', [
+                            'client_name' => $client->name,
+                            'booking_link' => $bookingLink,
+                            'tc_name' => 'To Be Assigned',
+                            'session_date' => 'Pending'
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to send dynamic payment confirmation/booking email: ' . $e->getMessage());
             }
 
             // Log activity (if user is authenticated)
@@ -164,9 +311,19 @@ class PaymentController extends Controller
                 'consultation' => $consultation->load(['client']),
             ]);
         } catch (ApiErrorException $e) {
-            Log::error('Stripe Payment Confirmation Error: ' . $e->getMessage());
+            Log::error('Stripe Payment Confirmation Error: ' . $e->getMessage(), [
+                'payment_intent_id' => $validated['payment_intent_id'],
+                'client_id' => $validated['client_id'],
+                'error' => $e->getError()
+            ]);
             return response()->json([
                 'message' => 'Failed to confirm payment',
+                'error' => $e->getMessage(),
+            ], 500);
+        } catch (\Exception $e) {
+            Log::error('General Payment Confirmation Error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An unexpected error occurred during payment confirmation',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -198,6 +355,7 @@ class PaymentController extends Controller
             Log::warning('Stripe Webhook Invalid Payload', [
                 'ip' => $request->ip(),
                 'error' => $e->getMessage(),
+                'payload_preview' => substr($payload, 0, 100)
             ]);
             return response()->json(['error' => 'Invalid payload'], 400);
         } catch (\Stripe\Exception\SignatureVerificationException $e) {
@@ -205,12 +363,13 @@ class PaymentController extends Controller
             Log::warning('Stripe Webhook Invalid Signature', [
                 'ip' => $request->ip(),
                 'error' => $e->getMessage(),
+                'signature' => $sigHeader
             ]);
             return response()->json(['error' => 'Invalid signature'], 400);
         } catch (\Exception $e) {
-            Log::error('Stripe Webhook Error', [
-                'ip' => $request->ip(),
-                'error' => $e->getMessage(),
+            Log::error("Stripe Webhook Processing Error: " . $e->getMessage(), [
+                'type' => get_class($e),
+                'trace' => $e->getTraceAsString()
             ]);
             return response()->json(['error' => 'Webhook processing failed'], 500);
         }
@@ -274,22 +433,66 @@ class PaymentController extends Controller
             return;
         }
 
-        $consultation = Consultation::where('client_id', $clientId)
-            ->whereNull('paid_at')
-            ->latest()
-            ->first();
+        $paymentType = $paymentIntent->metadata->payment_type ?? 'consultation';
+        $sessionIdsStr = $paymentIntent->metadata->session_ids ?? null;
+        $sessionIds = $sessionIdsStr ? explode(',', $sessionIdsStr) : [];
 
-        if ($consultation) {
-            $consultation->update([
-                'payment_status' => 'paid',
-                'payment_amount' => $paymentIntent->amount / 100,
-                'stripe_payment_intent_id' => $paymentIntent->id,
-                'stripe_customer_id' => $paymentIntent->customer,
-                'paid_at' => now(),
-                'payment_method' => $paymentIntent->payment_method_types[0] ?? 'card',
+        if ($paymentType === 'consultation') {
+            $consultation = Consultation::where('client_id', $clientId)
+                ->whereNull('paid_at')
+                ->latest()
+                ->first();
+
+            if ($consultation) {
+                $consultation->update([
+                    'payment_status' => 'paid',
+                    'payment_amount' => $paymentIntent->amount / 100,
+                    'stripe_payment_intent_id' => $paymentIntent->id,
+                    'stripe_customer_id' => $paymentIntent->customer,
+                    'paid_at' => now(),
+                    'payment_method' => $paymentIntent->payment_method_types[0] ?? 'card',
+                ]);
+
+                // Update related Client Intake Form
+                $intake = ClientIntakeForm::where('client_id', $clientId)->latest()->first();
+                if ($intake) {
+                    $intake->update([
+                        'payment_status' => 'paid',
+                        'payment_reference' => $paymentIntent->id,
+                        'payment_amount' => $paymentIntent->amount / 100,
+                        'payment_method' => $paymentIntent->payment_method_types[0] ?? 'card',
+                        'paid_at' => now(),
+                        'status' => 'processed'
+                    ]);
+                }
+            }
+        } elseif (($paymentType === 'session' || $paymentType === 'session_block') && !empty($sessionIds)) {
+            $sessions = \App\Models\Session::whereIn('id', $sessionIds)->get();
+            foreach ($sessions as $session) {
+                /** @var \App\Models\Session $session */
+                $session->update([
+
+                    'payment_status' => 'paid',
+                    'payment_amount' => ($paymentIntent->amount / 100) / count($sessionIds),
+                    'stripe_payment_intent_id' => $paymentIntent->id,
+                    'paid_at' => now(),
+                    'payment_method' => $paymentIntent->payment_method_types[0] ?? 'card',
+                ]);
+                $this->notifyCounsellor($session);
+            }
+        }
+
+
+        // Send confirmation emails
+        $client = Client::find($clientId);
+        if ($client) {
+            app(\App\Services\EmailService::class)->sendAndLog($client, 'payment_confirmation', [
+                'client_name' => $client->name,
+                'email' => $client->email
             ]);
         }
     }
+
 
     /**
      * Handle failed payment
@@ -312,5 +515,24 @@ class PaymentController extends Controller
             ]);
         }
     }
-}
 
+    private function notifyCounsellor($session)
+    {
+        if ($session->tc && $session->tc->email) {
+            try {
+                Mail::to($session->tc->email)->send(new DynamicEmail(
+                    'booking_notification',
+                    [
+                        'tc_name' => $session->tc->name,
+                        'client_name' => $session->client->name,
+                        'booking_type' => 'session',
+                        'scheduled_at' => \Carbon\Carbon::parse($session->scheduled_at)->format('l, jS F Y (H:i)'),
+                        'notes' => $session->notes ?? 'N/A'
+                    ]
+                ));
+            } catch (\Exception $e) {
+                Log::error('Failed to send booking notification from payment: ' . $e->getMessage());
+            }
+        }
+    }
+}

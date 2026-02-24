@@ -39,11 +39,13 @@ function ClientBookingContent() {
   const [pendingBookingData, setPendingBookingData] = useState(null);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   useEffect(() => {
     if (showBookingModal && clientData?.client?.uuid) {
       const fetchSlots = async () => {
         try {
+          setLoadingSlots(true);
           const data = await apiService.getAvailableSlots(
             clientData.client.uuid,
           );
@@ -56,6 +58,8 @@ function ClientBookingContent() {
         } catch (err) {
           console.error("Failed to fetch slots:", err);
           toast.error("Failed to load available slots");
+        } finally {
+          setLoadingSlots(false);
         }
       };
       fetchSlots();
@@ -113,17 +117,12 @@ function ClientBookingContent() {
       return;
     }
 
-    // Parse time
-    const timeString = selectedSlot.time;
-    const startTimePart = timeString.split("-")[0].toLowerCase();
-    let hours = parseInt(startTimePart);
-    if (startTimePart.includes("pm") && hours !== 12) {
-      hours += 12;
-    } else if (startTimePart.includes("am") && hours === 12) {
-      hours = 0;
+    if (!selectedSlot.available) {
+      toast.error("This slot is already booked. Please choose another one.");
+      return;
     }
-    const time = `${hours.toString().padStart(2, "0")}:00:00`;
-    const dateTime = `${selectedSlot.date} ${time}`;
+
+    const dateTime = `${selectedSlot.date} ${selectedSlot.formatted_time}:00`;
 
     // Determine session type based on service type
     const serviceType = clientData?.client?.service_type;
@@ -141,35 +140,45 @@ function ClientBookingContent() {
 
     setPendingBookingData(bookingData);
     setPaymentAmount(40.0); // Fixed price for mid-range/coaching session
+    setBookingType("single"); // Explicitly set for payment context
     setShowBookingModal(false);
     setShowPaymentModal(true);
   };
 
   const handleBookBlock = async () => {
-    if (!selectedDate) {
-      setError("Please select a start date");
+    if (!selectedDate && !selectedSlot) {
+      setError("Please select a start date and time slot");
+      return;
+    }
+
+    if (selectedSlot && !selectedSlot.available) {
+      toast.error(
+        "The selected slot is already booked. Please choose another one.",
+      );
       return;
     }
 
     // Calculate payment amount based on service type
     let amount = 0;
     if (clientData?.client?.service_type === "Low Cost") {
-      // £25 for block of 4 sessions (or 3 if auto-deducted)
+      // £25 for block of 4 sessions
       amount = 25.0;
-    } else if (clientData?.client?.service_type === "Mid Range") {
-      // £40 per session
+    } else {
+      // £40 per session for Mid Range, Ish, etc.
       amount = 40.0 * sessionsCount;
     }
 
     // Store booking data for after payment
     setPendingBookingData({
       client_uuid: clientData.client.uuid,
-      start_date: selectedDate,
+      start_date: selectedDate || selectedSlot.date,
+      time_slot: selectedSlot ? selectedSlot.time : null,
       sessions_count: sessionsCount,
     });
 
     // Show payment modal
     setPaymentAmount(amount);
+    setBookingType("block"); // Explicitly set for payment context
     setShowBookingModal(false);
     setShowPaymentModal(true);
   };
@@ -238,11 +247,11 @@ function ClientBookingContent() {
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Invalid Access Link
+            {error ? "Access Denied" : "Invalid Access Link"}
           </h1>
           <p className="text-gray-600 mb-6">
-            Please use the unique link sent to your email to access your booking
-            portal.
+            {error ||
+              "Please use the unique link sent to your email to access your booking portal."}
           </p>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
             <p className="text-sm text-blue-800">
@@ -475,31 +484,93 @@ function ClientBookingContent() {
               <div className="p-6">
                 {bookingType === "block" && (
                   <>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Booking Start Date *
-                      </label>
-                      <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        min={new Date().toISOString().split("T")[0]}
-                        disabled={client?.service_type === "Low Cost"}
-                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                          client?.service_type === "Low Cost"
-                            ? "bg-gray-100 cursor-not-allowed border-gray-200"
-                            : "border-gray-300"
-                        }`}
-                        required
-                      />
-                      {client?.service_type === "Low Cost" && (
+                    {!client?.allocated_day || !client?.allocated_time ? (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Select Your Weekly Time Slot
+                        </label>
+                        <p className="text-xs text-gray-500 mb-3">
+                          For {client?.service_type} services, you'll have this
+                          same slot each week.
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                          {availableSlots.length > 0 ? (
+                            availableSlots.map((slot, index) => (
+                              <button
+                                key={index}
+                                onClick={() => {
+                                  setSelectedSlot(slot);
+                                  setSelectedDate(slot.date);
+                                }}
+                                disabled={!slot.available}
+                                className={`p-2 border rounded-lg text-sm transition-colors text-left ${
+                                  selectedSlot === slot
+                                    ? "bg-purple-100 border-purple-500 text-purple-700"
+                                    : !slot.available
+                                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"
+                                      : "hover:bg-gray-50 border-gray-300 text-gray-700"
+                                }`}
+                              >
+                                <div className="font-medium">
+                                  {new Date(slot.date).toLocaleDateString(
+                                    undefined,
+                                    {
+                                      weekday: "short",
+                                      month: "short",
+                                      day: "numeric",
+                                    },
+                                  )}
+                                </div>
+                                <div className="text-xs opacity-75">
+                                  {formatTimeSlotDisplay(slot.time)}
+                                </div>
+                                {!slot.available && (
+                                  <div className="text-[10px] text-red-500 font-medium font-inter mt-1">
+                                    Booked
+                                  </div>
+                                )}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="col-span-2 text-center py-4 text-gray-500">
+                              {loadingSlots ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                                  Loading available slots...
+                                </>
+                              ) : (
+                                "No available dates found"
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Booking Start Date *
+                        </label>
+                        <input
+                          type="date"
+                          value={selectedDate}
+                          onChange={(e) => setSelectedDate(e.target.value)}
+                          min={new Date().toISOString().split("T")[0]}
+                          disabled={client?.service_type === "Low Cost"}
+                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                            client?.service_type === "Low Cost"
+                              ? "bg-gray-100 cursor-not-allowed border-gray-200"
+                              : "border-gray-300"
+                          }`}
+                          required
+                        />
                         <p className="text-xs text-purple-600 mt-2 font-medium">
                           Consistent weekly slot maintained:{" "}
                           {client?.allocated_day}s at{" "}
                           {formatTimeSlotDisplay(client?.allocated_time)}.
                         </p>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
                     {client?.service_type === "Low Cost" && (
                       <div
                         className={`mb-4 p-3 rounded-lg border ${
@@ -547,15 +618,23 @@ function ClientBookingContent() {
                       Select Time Slot
                     </label>
                     <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-                      {availableSlots.length > 0 ? (
+                      {loadingSlots ? (
+                        <div className="col-span-2 text-center py-4 text-gray-500">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                          Loading available slots...
+                        </div>
+                      ) : availableSlots.length > 0 ? (
                         availableSlots.map((slot, index) => (
                           <button
                             key={index}
                             onClick={() => setSelectedSlot(slot)}
+                            disabled={!slot.available}
                             className={`p-2 border rounded-lg text-sm transition-colors text-left ${
                               selectedSlot === slot
                                 ? "bg-purple-100 border-purple-500 text-purple-700"
-                                : "hover:bg-gray-50 border-gray-300 text-gray-700"
+                                : !slot.available
+                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"
+                                  : "hover:bg-gray-50 border-gray-300 text-gray-700"
                             }`}
                           >
                             <div className="font-medium">
@@ -571,11 +650,16 @@ function ClientBookingContent() {
                             <div className="text-xs opacity-75">
                               {formatTimeSlotDisplay(slot.time)}
                             </div>
+                            {!slot.available && (
+                              <div className="text-[10px] text-red-500 font-medium font-inter mt-1">
+                                Booked
+                              </div>
+                            )}
                           </button>
                         ))
                       ) : (
                         <div className="col-span-2 text-center py-4 text-gray-500">
-                          Loading available slots...
+                          No available slots at the moment
                         </div>
                       )}
                     </div>
@@ -675,8 +759,11 @@ function ClientBookingContent() {
                 </div>
 
                 <StripePaymentWrapper
-                  clientId={clientData?.client?.id || clientData?.client?.uuid} // Pass ID if available, or whatever the backend expects. The backend PaymentController expects 'client_id' which is likely the integer ID.
+                  clientId={clientData?.client?.id}
                   amount={paymentAmount}
+                  paymentType={
+                    bookingType === "block" ? "session_block" : "session"
+                  }
                   onSuccess={confirmBookingAfterPayment}
                   onError={(err) =>
                     toast.error(err.message || "Payment failed")

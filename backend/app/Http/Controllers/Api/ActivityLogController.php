@@ -21,7 +21,7 @@ class ActivityLogController extends Controller
             ], 403);
         }
 
-        $query = ActivityLog::with(['user'])->orderBy('created_at', 'desc');
+        $query = ActivityLog::with(['user'])->orderBy('id', 'desc');
 
         if ($request->has('action')) {
             $query->where('action', $request->action);
@@ -56,7 +56,7 @@ class ActivityLogController extends Controller
         // Transform logs to include related model UUIDs and user information
         $logs->getCollection()->transform(function ($log) {
             $data = $log->toArray();
-            
+
             // Ensure user information is included
             if ($log->user) {
                 $data['user'] = [
@@ -68,7 +68,7 @@ class ActivityLogController extends Controller
             } else {
                 $data['user'] = null;
             }
-            
+
             // Add related model UUID if available
             if ($log->model_type && $log->model_id) {
                 if ($log->model_type === Client::class) {
@@ -101,7 +101,7 @@ class ActivityLogController extends Controller
                     }
                 }
             }
-            
+
             return $data;
         });
 

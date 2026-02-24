@@ -76,32 +76,22 @@
                                 </tr>
                             </table>
 
-                            @if(isset($allocatedDay) && isset($allocatedTime))
-                            <!-- Allocated Session Time -->
-                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 32px 0; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px; border-left: 4px solid #3b82f6;">
+                            <!-- Call to Action: Book Slot -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 32px 0; background-color: #fce7f3; border-radius: 12px; border-left: 4px solid #9d174d;">
                                 <tr>
-                                    <td style="padding: 24px;">
-                                        <p style="margin: 0 0 16px 0; color: #1e40af; font-size: 16px; font-weight: 700;">
-                                            📅 Your Allocated Session Time
+                                    <td style="padding: 24px; text-align: center;">
+                                        <p style="margin: 0 0 16px 0; color: #9d174d; font-size: 16px; font-weight: 700;">
+                                            📅 Choose Your Session Time
                                         </p>
-                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                                            <tr>
-                                                <td style="padding-bottom: 8px;">
-                                                    <span style="color: #1e3a8a; font-weight: 600; font-size: 15px;">Day:</span>
-                                                    <span style="color: #1f2937; font-size: 15px; margin-left: 8px;">{{ $allocatedDay }}</span>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td>
-                                                    <span style="color: #1e3a8a; font-weight: 600; font-size: 15px;">Time:</span>
-                                                    <span style="color: #1f2937; font-size: 15px; margin-left: 8px;">{{ $allocatedTime }}</span>
-                                                </td>
-                                            </tr>
-                                        </table>
+                                        <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
+                                            Please select your preferred session time from your counsellor's availability to get started.
+                                        </p>
+                                        <a href="{{ config('app.frontend_url') }}/client-booking?uuid={{ $clientUuid }}&email={{ urlencode($clientEmail) }}" style="display: inline-block; background: linear-gradient(135deg, #6f1d56 0%, #9b3d8a 100%); color: #ffffff; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; box-shadow: 0 4px 6px rgba(111, 29, 86, 0.2);">
+                                            Book Your First Session
+                                        </a>
                                     </td>
                                 </tr>
                             </table>
-                            @endif
 
                             <h2 style="color: #6f1d56; margin: 48px 0 24px 0; font-size: 24px; font-weight: 700; letter-spacing: -0.3px;">What Happens Next?</h2>
 

@@ -9,11 +9,18 @@ use App\Models\Client;
 use App\Models\TrainingCounsellor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\ClientWelcomeEmail;
-use App\Mail\TrainingCounsellorWelcomeEmail;
+use App\Mail\DynamicEmail;
+
+use App\Services\EmailService;
 
 class IntakeFormController extends Controller
 {
+    protected $emailService;
+
+    public function __construct(EmailService $emailService)
+    {
+        $this->emailService = $emailService;
+    }
     public function clientIntake(Request $request)
     {
         try {
@@ -52,6 +59,7 @@ class IntakeFormController extends Controller
                 'referrer_phone' => 'nullable|string|max:255',
                 'referrer_org' => 'nullable|string|max:255',
                 'referrer_email' => 'nullable|email|max:255',
+                'core34_answers' => 'nullable|array',
                 'terms_accepted' => 'required|boolean|accepted',
                 'create_client' => 'nullable|boolean',
             ]);
@@ -98,6 +106,7 @@ class IntakeFormController extends Controller
                 'referrer_phone' => $validated['referrer_phone'] ?? null,
                 'referrer_org' => $validated['referrer_org'] ?? null,
                 'referrer_email' => $validated['referrer_email'] ?? null,
+                'core34_answers' => $validated['core34_answers'] ?? [],
                 'terms_accepted' => $validated['terms_accepted'],
                 'status' => 'submitted',
             ]);
@@ -130,6 +139,7 @@ class IntakeFormController extends Controller
                         'working_with_another_reason' => $validated['working_with_another_reason'] ?? $client->working_with_another_reason,
                         'location_of_residence' => $validated['location_of_residence'] ?? $client->location_of_residence,
                         'referral_type' => $validated['referral_type'] ?? $client->referral_type,
+                        'core34_answers' => $validated['core34_answers'] ?? $client->core34_answers ?? [],
                         'submitted_date' => now(),
                         'stage' => 'Application & Assessment form Submitted',
                     ]);
@@ -171,20 +181,20 @@ class IntakeFormController extends Controller
                         'working_with_another_reason' => $validated['working_with_another_reason'] ?? null,
                         'location_of_residence' => $validated['location_of_residence'] ?? null,
                         'referral_type' => $validated['referral_type'] ?? null,
+                        'core34_answers' => $validated['core34_answers'] ?? [],
                         'submitted_date' => now(),
                         'stage' => 'Application & Assessment form Submitted',
                     ]);
 
                     // Send welcome email to new client
-                    try {
-                        Mail::to($client->email)->send(new ClientWelcomeEmail(
-                            $client->name,
-                            $client->client_id,
-                            $client->email
-                        ));
-                    } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::error('Failed to send client welcome email: ' . $e->getMessage());
-                    }
+                    $this->emailService->sendAndLog(
+                        $client,
+                        'intake_submission',
+                        [
+                            'client_name' => $client->name,
+                            'email' => $client->email
+                        ]
+                    );
                 }
 
                 $form->update(['client_id' => $client->id]);
@@ -432,11 +442,14 @@ class IntakeFormController extends Controller
 
                     // Send welcome email to new trainee counsellor
                     try {
-                        Mail::to($tc->email)->send(new TrainingCounsellorWelcomeEmail(
-                            $tc->name,
-                            $tc->tc_id,
-                            $tc->email,
-                            $tc->modality
+                        Mail::to($tc->email)->send(new DynamicEmail(
+                            'tc_welcome',
+                            [
+                                'tc_name' => $tc->name,
+                                'tc_id' => $tc->tc_id,
+                                'email' => $tc->email,
+                                'modality' => $tc->modality ?? 'Not specified'
+                            ]
                         ));
                     } catch (\Exception $e) {
                         \Illuminate\Support\Facades\Log::error('Failed to send TC welcome email: ' . $e->getMessage());

@@ -52,7 +52,45 @@ import {
   Star,
   CalendarDays,
   RefreshCw,
+  ClipboardList,
 } from "lucide-react";
+
+const core34Questions = [
+  "I have felt terribly alone and isolated",
+  "I have felt tense, anxious or nervous",
+  "I have felt I have someone to turn to for support when needed",
+  "I have felt O.K about myself",
+  "I have felt totally lacking in energy and enthusiasm",
+  "I have been physically violent to others",
+  "I have felt able to cope when things go wrong",
+  "I have been troubled by aches, pains or other physical problems",
+  "I have thought of hurting myself",
+  "Talking to people has felt too much for me",
+  "Tension and anxiety have prevented me from doing important things",
+  "I have been happy with the things I have done",
+  "I have been disturbed by unwanted thoughts and feelings",
+  "I have felt like crying",
+  "I have felt panic or terror",
+  "I made plans to end my life",
+  "I have felt overwhelmed by my problems",
+  "I have had difficulty getting to sleep or staying asleep",
+  "I have felt warmth or affection for someone",
+  "My problems have been impossible to put to one side",
+  "I have been able to do most things I needed to",
+  "I have threatened or intimidated another person",
+  "I have felt despairing or hopeless",
+  "I have thought it would be better if I were dead",
+  "I have felt criticised by other people",
+  "I have thought I have no friends",
+  "I have felt unhappy",
+  "Unwanted images or memories have been distressing me",
+  "I have been irritable when with other people",
+  "I have thought I am to blame for my problems and difficulties",
+  "I have felt optimistic about my future",
+  "I have achieved the things I wanted to",
+  "I have felt humiliated or shamed by other people",
+  "I have hurt myself physically or taken dangerous risks with my health",
+];
 
 export default function IndividualClientDetailPage() {
   const pathname = usePathname();
@@ -91,6 +129,7 @@ export default function IndividualClientDetailPage() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [sessionToDelete, setSessionToDelete] = useState(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
+  const [showAssessment, setShowAssessment] = useState(false);
 
   // Show notification and auto-hide
   const showNotification = (message, type = "success") => {
@@ -449,6 +488,43 @@ export default function IndividualClientDetailPage() {
               relationship: data.emergency_contact_relationship || null,
             }
           : null,
+      core34Answers: (() => {
+        // Try direct field first
+        if (data.core34_answers && typeof data.core34_answers === "object") {
+          return data.core34_answers;
+        }
+        // Fallback to JotForm data if available
+        if (data.jotform_intake_data && data.jotform_intake_data.all_data) {
+          const extracted = {};
+          const allData = data.jotform_intake_data.all_data;
+
+          // JotForm fields often follow q1, q2... q34 pattern
+          // or question1, question2... or they might be more complex
+          for (let i = 1; i <= 34; i++) {
+            // Try common JotForm field naming patterns
+            const val =
+              allData[`q${i}`] ||
+              allData[`q${i}_q${i}`] ||
+              allData[`question${i}`] ||
+              allData[`q${i}_input`] ||
+              // Check for any key starting with q{i}_
+              Object.keys(allData).find((key) => key.startsWith(`q${i}_`))
+                ? allData[
+                    Object.keys(allData).find((key) => key.startsWith(`q${i}_`))
+                  ]
+                : null;
+
+            if (val !== null && val !== undefined) {
+              extracted[i - 1] = val; // Use 0-based index to match core34Questions array
+            }
+          }
+
+          if (Object.keys(extracted).length > 0) {
+            return extracted;
+          }
+        }
+        return {};
+      })(),
     };
   };
 
@@ -1644,6 +1720,95 @@ export default function IndividualClientDetailPage() {
                     </div>
                   </div>
 
+                  {/* CORE-34 Assessment Section */}
+                  <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] overflow-hidden">
+                    <button
+                      onClick={() => setShowAssessment(!showAssessment)}
+                      className="w-full flex items-center justify-between p-6 hover:bg-[var(--hover-bg)] transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                          <ClipboardList className="w-5 h-5 text-[var(--purple-primary)]" />
+                        </div>
+                        <div className="text-left">
+                          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                            CORE-34 Assessment
+                          </h2>
+                          <p className="text-sm text-[var(--text-tertiary)]">
+                            {Object.keys(client.core34Answers || {}).length} of
+                            34 questions answered
+                          </p>
+                        </div>
+                      </div>
+                      {showAssessment ? (
+                        <ChevronDown className="w-5 h-5 text-[var(--text-tertiary)]" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-[var(--text-tertiary)]" />
+                      )}
+                    </button>
+
+                    {showAssessment && (
+                      <div className="p-6 pt-0 border-t border-[var(--border-color)]">
+                        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 mt-6 custom-scrollbar">
+                          {core34Questions.map((question, index) => {
+                            const answer = client.core34Answers?.[index];
+                            const isRiskItem = [5, 8, 15, 23, 33].includes(
+                              index,
+                            ); // 0-based indices for 6, 9, 16, 24, 34
+
+                            return (
+                              <div
+                                key={index}
+                                className={`p-4 rounded-xl border ${
+                                  isRiskItem &&
+                                  (answer === "Often" ||
+                                    answer === "Most or all the time")
+                                    ? "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30"
+                                    : "bg-[var(--bg-secondary)] border-[var(--border-color)]"
+                                }`}
+                              >
+                                <div className="flex justify-between items-start gap-4">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="text-xs font-medium text-[var(--text-tertiary)]">
+                                        Question {index + 1}
+                                      </span>
+                                      {isRiskItem && (
+                                        <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] font-bold rounded uppercase tracking-wider">
+                                          Risk Item
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-sm font-medium text-[var(--text-primary)] leading-relaxed">
+                                      {question}
+                                    </p>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <span
+                                      className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${
+                                        !answer
+                                          ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
+                                          : answer === "Not at all"
+                                            ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400"
+                                            : answer === "Only occasionally"
+                                              ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                                              : answer === "Sometimes"
+                                                ? "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400"
+                                                : "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                                      }`}
+                                    >
+                                      {answer || "Unanswered"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Availability */}
 
                   <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -1666,24 +1831,28 @@ export default function IndividualClientDetailPage() {
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                                {avail.timeBlocks.map((block) => {
-                                  const slotMap = {
-                                    'morning-early': '10-11am',
-                                    'morning-late': '11am-1pm',
-                                    'afternoon-early': '1-4pm',
-                                    'afternoon-late': '4-5pm',
-                                    'evening': '5-7pm'
-                                  };
-                                  const formattedBlock = slotMap[block] || (typeof block === 'string' ? block.replace("-", " ") : block);
-                                  return (
-                                    <span
-                                      key={block}
-                                      className="px-3 py-1 bg-[var(--purple-primary)] text-white text-sm rounded-full"
-                                    >
-                                      {formattedBlock}
-                                    </span>
-                                  );
-                                })}
+                              {avail.timeBlocks.map((block) => {
+                                const slotMap = {
+                                  "morning-early": "10-11am",
+                                  "morning-late": "11am-1pm",
+                                  "afternoon-early": "1-4pm",
+                                  "afternoon-late": "4-5pm",
+                                  evening: "5-7pm",
+                                };
+                                const formattedBlock =
+                                  slotMap[block] ||
+                                  (typeof block === "string"
+                                    ? block.replace("-", " ")
+                                    : block);
+                                return (
+                                  <span
+                                    key={block}
+                                    className="px-3 py-1 bg-[var(--purple-primary)] text-white text-sm rounded-full"
+                                  >
+                                    {formattedBlock}
+                                  </span>
+                                );
+                              })}
                             </div>
                           </div>
                         ))
@@ -2197,12 +2366,14 @@ export default function IndividualClientDetailPage() {
                             </p>
                             {client.agreement.signatureUrl && (
                               <a
-                                href={client.agreement.signatureUrl}
+                                href={apiService.getStorageUrl(
+                                  client.agreement.signatureUrl,
+                                )}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="mt-2 inline-flex items-center gap-2 text-sm text-green-700 hover:text-green-900 underline"
                               >
-                                <Download className="w-4 h-4" />
+                                <Eye className="w-4 h-4" />
                                 View Signature
                               </a>
                             )}
