@@ -45,8 +45,8 @@ return [
             'key' => env('STRIPE_LIVE_PUBLIC_KEY'),
             'secret' => env('STRIPE_LIVE_SECRET_KEY'),
         ],
-        'key' => env('STRIPE_MODE') === 'live' ? env('STRIPE_LIVE_PUBLIC_KEY') : env('STRIPE_TEST_PUBLIC_KEY'),
-        'secret_key' => env('STRIPE_MODE') === 'live' ? env('STRIPE_LIVE_SECRET_KEY') : env('STRIPE_TEST_SECRET_KEY'),
+        'key' => env('STRIPE_MODE', 'test') === 'live' ? env('STRIPE_LIVE_PUBLIC_KEY', env('STRIPE_PUBLIC_KEY', env('STRIPE_KEY'))) : env('STRIPE_TEST_PUBLIC_KEY', env('STRIPE_PUBLIC_KEY', env('STRIPE_KEY'))),
+        'secret_key' => env('STRIPE_MODE', 'test') === 'live' ? env('STRIPE_LIVE_SECRET_KEY', env('STRIPE_SECRET_KEY', env('STRIPE_SECRET'))) : env('STRIPE_TEST_SECRET_KEY', env('STRIPE_SECRET_KEY', env('STRIPE_SECRET'))),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 

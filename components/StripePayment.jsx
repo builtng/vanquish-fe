@@ -44,14 +44,6 @@ export function StripePaymentForm({ clientId, amount, onSuccess, onError }) {
     setPaymentStatus("processing");
 
     try {
-      const { error: submitError } = await elements.submit();
-      if (submitError) {
-        setError(submitError.message);
-        setPaymentStatus("error");
-        setIsLoading(false);
-        return;
-      }
-
       const { error: confirmError, paymentIntent } =
         await stripe.confirmPayment({
           elements,
@@ -242,6 +234,19 @@ export function StripePaymentWrapper({
     }
   }, [clientId, amount, onError]);
 
+  const options = React.useMemo(
+    () => ({
+      clientSecret,
+      appearance: {
+        theme: "stripe",
+        variables: {
+          colorPrimary: "#6f1d56",
+        },
+      },
+    }),
+    [clientSecret],
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -288,16 +293,6 @@ export function StripePaymentWrapper({
   if (!clientSecret) {
     return null;
   }
-
-  const options = {
-    clientSecret,
-    appearance: {
-      theme: "stripe",
-      variables: {
-        colorPrimary: "#6f1d56",
-      },
-    },
-  };
 
   if (!stripePromise) {
     return (
