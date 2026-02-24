@@ -36,7 +36,7 @@ return [
     ],
 
     'stripe' => [
-        'mode' => env('STRIPE_MODE', 'test'),
+        'mode' => env('STRIPE_MODE', 'live'),
         'test' => [
             'key' => env('STRIPE_TEST_PUBLIC_KEY'),
             'secret' => env('STRIPE_TEST_SECRET_KEY'),
