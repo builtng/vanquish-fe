@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { Loader2, Calendar, CheckCircle } from "lucide-react";
-import axios from "@/lib/api";
+import apiService from "@/lib/api";
 
 function InternalBookConsultation() {
   const router = useRouter();
@@ -25,8 +25,8 @@ function InternalBookConsultation() {
 
     const fetchSlots = async () => {
       try {
-        const response = await axios.get("/api/consultation-slots/available");
-        setSlots(response.data);
+        const data = await apiService.getAvailableConsultationSlots();
+        setSlots(data);
       } catch (error) {
         toast.error("Failed to load available dates.");
       } finally {
@@ -45,7 +45,7 @@ function InternalBookConsultation() {
 
     setBookingLoading(true);
     try {
-      await axios.post("/api/client/book-consultation", {
+      await apiService.bookConsultation({
         client_uuid: clientUuid,
         consultation_slot_id: selectedSlot.id,
       });
@@ -53,9 +53,7 @@ function InternalBookConsultation() {
       setSuccess(true);
       toast.success("Consultation booked successfully!");
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Failed to book consultation.",
-      );
+      toast.error(error.message || "Failed to book consultation.");
     } finally {
       setBookingLoading(false);
     }
@@ -100,21 +98,21 @@ function InternalBookConsultation() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-lg">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {loading ? (
-             <div className="flex justify-center items-center h-32">
-               <Loader2 className="h-8 w-8 animate-spin text-[#0f2c4a]" />
-             </div>
+            <div className="flex justify-center items-center h-32">
+              <Loader2 className="h-8 w-8 animate-spin text-[#0f2c4a]" />
+            </div>
           ) : slots.length === 0 ? (
-             <div className="text-center py-8">
-               <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-               <p className="text-gray-500">
-                 No consultation dates available at the moment. Please check back
-                 later.
-               </p>
-             </div>
+            <div className="text-center py-8">
+              <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <p className="text-gray-500">
+                No consultation dates available at the moment. Please check back
+                later.
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                 Available Dates
+                Available Dates
               </label>
               <div className="grid grid-cols-1 gap-4 max-h-64 overflow-y-auto pr-2">
                 {slots.map((slot) => {
@@ -134,32 +132,33 @@ function InternalBookConsultation() {
                         ${isSelected ? "border-[#0f2c4a] ring-1 ring-[#0f2c4a] bg-blue-50" : "border-gray-300"}
                       `}
                     >
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center text-gray-900">
                         <div>
-                           <p className="text-base font-medium text-gray-900">
-                             {date.toLocaleDateString("en-GB", {
-                               weekday: "long",
-                               year: "numeric",
-                               month: "long",
-                               day: "numeric",
-                             })}
-                           </p>
-                           <p className="text-sm text-gray-500">
-                             {date.toLocaleTimeString("en-GB", {
-                               hour: "2-digit",
-                               minute: "2-digit",
-                             })}
-                           </p>
+                          <p className="text-base font-medium">
+                            {date.toLocaleDateString("en-GB", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {date.toLocaleTimeString("en-GB", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              timeZone: "UTC",
+                            })}
+                          </p>
                         </div>
                         {isFull && (
-                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                             Full
-                           </span>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Full
+                          </span>
                         )}
                         {!isFull && slot.max_slots && (
-                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                             {slot.max_slots - slot.booked_slots} spots left
-                           </span>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {slot.max_slots - slot.booked_slots} spots left
+                          </span>
                         )}
                       </div>
                     </button>
@@ -168,17 +167,17 @@ function InternalBookConsultation() {
               </div>
 
               <div className="pt-6">
-                 <button
-                   onClick={handleBookConsultation}
-                   disabled={!selectedSlot || bookingLoading}
-                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#0f2c4a] hover:bg-[#0c233e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0f2c4a] disabled:opacity-50 disabled:cursor-not-allowed"
-                 >
-                   {bookingLoading ? (
-                     <Loader2 className="h-5 w-5 animate-spin" />
-                   ) : (
-                     "Book Consultation"
-                   )}
-                 </button>
+                <button
+                  onClick={handleBookConsultation}
+                  disabled={!selectedSlot || bookingLoading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#0f2c4a] hover:bg-[#0c233e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0f2c4a] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {bookingLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    "Book Consultation"
+                  )}
+                </button>
               </div>
             </div>
           )}
@@ -190,7 +189,13 @@ function InternalBookConsultation() {
 
 export default function BookConsultation() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex justify-center items-center py-12"><Loader2 className="h-8 w-8 animate-spin text-[#0f2c4a]" /></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-[#0f2c4a]" />
+        </div>
+      }
+    >
       <InternalBookConsultation />
     </Suspense>
   );
