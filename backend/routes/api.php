@@ -37,6 +37,12 @@ Route::prefix('client-booking')->group(function () {
     Route::post('/book-block', [ClientBookingController::class, 'bookBlock']);
 });
 
+// Client Consultation Slots Booking (public - uses uuid)
+Route::prefix('client')->group(function () {
+    Route::post('/book-consultation', [\App\Http\Controllers\Api\ClientConsultationSlotController::class, 'bookConsultation']);
+});
+Route::get('/consultation-slots/available', [\App\Http\Controllers\Api\ClientConsultationSlotController::class, 'getAvailableSlots']);
+
 // Payment routes (public for client intake)
 Route::post('/payments/create-intent', [PaymentController::class, 'createPaymentIntent']);
 Route::post('/payments/confirm', [PaymentController::class, 'confirmPayment']);
@@ -154,6 +160,9 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
 
         // Coupons
         Route::apiResource('coupons', \App\Http\Controllers\Api\CouponController::class);
+
+        // Admin Consultation Slots
+        Route::apiResource('consultation-slots', \App\Http\Controllers\Api\Admin\ConsultationSlotController::class);
     });
 
     // User Management (admin only)

@@ -281,6 +281,14 @@ class PaymentController extends Controller
 
                     // Send consultation booking link only if it was a consultation payment or they need to book
                     if ($paymentType === 'consultation') {
+                        // Send the intake confirmation now that payment is sorted
+                        $emailService->sendAndLog($client, 'intake_submission', [
+                            'client_name' => $client->name,
+                            'email' => $client->email
+                        ]);
+
+                        sleep(2);
+
                         $bookingLink = env('FRONTEND_URL', 'http://localhost:3000') . "/client-booking?uuid=" . $client->uuid;
                         $emailService->sendAndLog($client, 'consultation_booking_link', [
                             'client_name' => $client->name,
@@ -486,10 +494,28 @@ class PaymentController extends Controller
         // Send confirmation emails
         $client = Client::find($clientId);
         if ($client) {
-            app(\App\Services\EmailService::class)->sendAndLog($client, 'payment_confirmation', [
+            $emailService = app(\App\Services\EmailService::class);
+            $emailService->sendAndLog($client, 'payment_confirmation', [
                 'client_name' => $client->name,
                 'email' => $client->email
             ]);
+
+            if ($paymentType === 'consultation') {
+                sleep(2);
+                $emailService->sendAndLog($client, 'intake_submission', [
+                    'client_name' => $client->name,
+                    'email' => $client->email
+                ]);
+
+                sleep(2);
+                $bookingLink = env('FRONTEND_URL', 'http://localhost:3000') . "/client-booking?uuid=" . $client->uuid;
+                $emailService->sendAndLog($client, 'consultation_booking_link', [
+                    'client_name' => $client->name,
+                    'booking_link' => $bookingLink,
+                    'tc_name' => 'To Be Assigned',
+                    'session_date' => 'Pending'
+                ]);
+            }
         }
     }
 

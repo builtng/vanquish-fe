@@ -185,16 +185,6 @@ class IntakeFormController extends Controller
                         'submitted_date' => now(),
                         'stage' => 'Application & Assessment form Submitted',
                     ]);
-
-                    // Send welcome email to new client
-                    $this->emailService->sendAndLog(
-                        $client,
-                        'intake_submission',
-                        [
-                            'client_name' => $client->name,
-                            'email' => $client->email
-                        ]
-                    );
                 }
 
                 $form->update(['client_id' => $client->id]);
@@ -402,6 +392,21 @@ class IntakeFormController extends Controller
                         'availability' => $validated['availability'] ?? $tc->availability ?? [],
                         'last_activity' => now(),
                     ]);
+
+                    // Send welcome email to existing trainee counsellor retrying
+                    try {
+                        Mail::to($tc->email)->send(new \App\Mail\DynamicEmail(
+                            'tc_welcome',
+                            [
+                                'tc_name' => $tc->name,
+                                'tc_id' => $tc->tc_id,
+                                'email' => $tc->email,
+                                'modality' => $tc->modality ?? 'Not specified'
+                            ]
+                        ));
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Failed to send TC welcome email: ' . $e->getMessage());
+                    }
                 } else {
                     // Generate unique TC ID safely
                     $latestTc = TrainingCounsellor::withTrashed()

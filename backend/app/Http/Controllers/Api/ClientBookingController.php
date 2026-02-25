@@ -57,13 +57,7 @@ class ClientBookingController extends Controller
             ], 400);
         }
 
-        if ($client->agreement_status !== 'signed') {
-            return response()->json([
-                'message' => 'Please sign your agreement before booking sessions.',
-                'client' => null,
-            ], 400);
-        }
-
+        // We have removed the 'signed' requirement to allow consultation before signing
         // Get upcoming sessions
         $upcomingSessions = $client->getUpcomingSessions(20);
 
@@ -223,9 +217,8 @@ class ClientBookingController extends Controller
 
         $client = Client::where('uuid', $validated['client_uuid'])->firstOrFail();
 
-        // Verify client can book
-        if (!$client->matched_tc_id || $client->agreement_status !== 'signed') {
-            return response()->json(['message' => 'Client not ready to book'], 400);
+        if (!$client->matched_tc_id) {
+            return response()->json(['message' => 'Client not matched with a counsellor yet'], 400);
         }
 
         // Check for double booking
@@ -300,9 +293,8 @@ class ClientBookingController extends Controller
 
         $client = Client::where('uuid', $validated['client_uuid'])->firstOrFail();
 
-        // Verify client can book
-        if (!$client->matched_tc_id || $client->agreement_status !== 'signed') {
-            return response()->json(['message' => 'Client not ready to book'], 400);
+        if (!$client->matched_tc_id) {
+            return response()->json(['message' => 'Client not matched with a counsellor yet'], 400);
         }
 
         if ($client->service_type !== 'Low Cost') {

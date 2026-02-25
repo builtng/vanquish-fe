@@ -61,12 +61,31 @@ class IntakeController extends Controller
                 'status' => 'submitted' // Or 'completed' as per user example
             ]);
 
-            // 4. Send payment confirmation email
+            // 4. Send emails
             $client = $intake->client;
             if ($client && $client->email) {
-                app(\App\Services\EmailService::class)->sendAndLog($client, 'payment_confirmation', [
+                $emailService = app(\App\Services\EmailService::class);
+
+                $emailService->sendAndLog($client, 'payment_confirmation', [
                     'client_name' => $client->name,
                     'email' => $client->email
+                ]);
+
+                sleep(2);
+
+                $emailService->sendAndLog($client, 'intake_submission', [
+                    'client_name' => $client->name,
+                    'email' => $client->email
+                ]);
+
+                sleep(2);
+
+                $bookingLink = env('FRONTEND_URL', 'http://localhost:3000') . "/client-booking?uuid=" . $client->uuid;
+                $emailService->sendAndLog($client, 'consultation_booking_link', [
+                    'client_name' => $client->name,
+                    'booking_link' => $bookingLink,
+                    'tc_name' => 'To Be Assigned',
+                    'session_date' => 'Pending'
                 ]);
             }
 

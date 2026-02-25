@@ -29,6 +29,7 @@ class Consultation extends Model
         'paid_at',
         'payment_method',
         'is_fallback',
+        'consultation_slot_id',
     ];
 
     protected $casts = [
@@ -48,5 +49,10 @@ class Consultation extends Model
     public function tc(): BelongsTo
     {
         return $this->belongsTo(TrainingCounsellor::class, 'tc_id');
+    }
+
+    public function consultationSlot(): BelongsTo
+    {
+        return $this->belongsTo(ConsultationSlot::class);
     }
 }

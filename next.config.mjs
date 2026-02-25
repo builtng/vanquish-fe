@@ -14,7 +14,6 @@ const nextConfig = {
   reactStrictMode: true,
   
   // Optimize production builds
-  swcMinify: true,
   
   // Headers for SEO and security
   async headers() {

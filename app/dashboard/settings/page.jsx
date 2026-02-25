@@ -111,6 +111,115 @@ export default function SettingsPage() {
     }
   }, [show2FAModal]);
 
+  const handleProfileSave = async () => {
+    try {
+      setProfileSaving(true);
+      await apiService.updateProfile({ name: profile.name }); // Only update name for now
+      success('Profile updated successfully');
+    } catch (err) {
+      showError(err.message || 'Failed to update profile');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showError('New passwords do not match');
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+      await apiService.updatePassword({
+        current_password: passwordForm.currentPassword,
+        password: passwordForm.newPassword,
+        password_confirmation: passwordForm.confirmPassword,
+      });
+      success('Password updated successfully');
+      setShowPasswordModal(false);
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      showError(err.message || 'Failed to update password');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const toggle2FA = async () => {
+    try {
+      setTwoFactorLoading(true);
+      if (twoFactorEnabled) {
+        // Disable 2FA
+        await apiService.post('/api/two-factor-authentication');
+        success('Two-factor authentication has been disabled.');
+        setTwoFactorEnabled(false);
+      } else {
+        // Start 2FA setup process
+        setShow2FAModal(true);
+        setTwoFactorSetupStep('initial');
+      }
+    } catch (err) {
+      showError('Failed to update 2FA status.');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const start2FASetup = async () => {
+    try {
+      setTwoFactorLoading(true);
+      // Enable 2FA feature first
+      await apiService.post('/api/two-factor-authentication');
+      
+      // Get QR code and secret
+      const qrResponse = await apiService.get('/api/two-factor-qr-code');
+      const secretResponse = await apiService.get('/api/two-factor-secret-key');
+      
+      // We assume SVGs are returned or base64
+      setTwoFactorQRCode(qrResponse.svg || '');
+      setTwoFactorSecret(secretResponse.secretKey || '');
+      
+      setTwoFactorSetupStep('qr');
+    } catch (err) {
+      showError('Failed to initialize 2FA setup.');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const verify2FA = async () => {
+    if (!verificationCode || verificationCode.length !== 6) {
+      showError('Please enter a valid 6-digit code.');
+      return;
+    }
+
+    try {
+      setTwoFactorLoading(true);
+      // Verify the code
+      await apiService.post('/api/confirmed-two-factor-authentication', {
+        code: verificationCode
+      });
+      
+      // Fetch recovery codes
+      const codesResponse = await apiService.get('/api/two-factor-recovery-codes');
+      setBackupCodes(codesResponse.map(code => code)); // Adjust mapping based on actual response
+      
+      setTwoFactorEnabled(true);
+      setTwoFactorSetupStep('complete');
+      success('Two-factor authentication successfully enabled!');
+    } catch (err) {
+      showError('Invalid verification code. Please try again.');
+    } finally {
+      setTwoFactorLoading(false);
+    }
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
+  };
+
   return (
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -139,7 +248,6 @@ export default function SettingsPage() {
                     value={profile.name}
                     onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Enter your full name"
                   />
                 </div>
                 <div>
@@ -147,153 +255,152 @@ export default function SettingsPage() {
                   <input
                     type="email"
                     value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="Enter your email"
+                    disabled
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-[var(--text-secondary)] rounded-lg cursor-not-allowed"
                   />
+                  <p className="text-xs text-gray-500 dark:text-[var(--text-tertiary)] mt-1">Contact support to change your email address.</p>
                 </div>
-                <button
-                  onClick={async () => {
-                    if (!profile.name || !profile.email) {
-                      showError('Please fill in all required fields');
-                      return;
-                    }
-
-                    try {
-                      setProfileSaving(true);
-                      await apiService.updateProfile({
-                        name: profile.name,
-                        email: profile.email,
-                      });
-                      success('Profile updated successfully!');
-                    } catch (err) {
-                      showError(err.message || 'Failed to update profile. Please try again.');
-                    } finally {
-                      setProfileSaving(false);
-                    }
-                  }}
-                  disabled={profileLoading || profileSaving}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Save className="w-4 h-4" />
-                  {profileSaving ? 'Saving...' : 'Save Changes'}
-                </button>
+                {/* Save Profile Button */}
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={handleProfileSave}
+                    disabled={profileSaving || profileLoading}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 font-medium"
+                  >
+                    <Save className="w-4 h-4" />
+                    {profileSaving ? 'Saving...' : 'Save Profile'}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Notification Settings */}
-            {/* <div className="bg-white rounded-lg border border-gray-200 p-6">
+            {/* Notification Preferences */}
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
               <div className="flex items-center gap-3 mb-6">
                 <Bell className="w-5 h-5 text-purple-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Notification Preferences</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)]">Notification Preferences</h2>
               </div>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Email Notifications</p>
-                    <p className="text-xs text-gray-500">Receive notifications via email</p>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">Email Notifications</h3>
+                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">Receive alerts for new matches and messages</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
+                      className="sr-only peer"
                       checked={notifications.email}
                       onChange={(e) => setNotifications({ ...notifications, email: e.target.checked })}
-                      className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
                   </label>
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Push Notifications</p>
-                    <p className="text-xs text-gray-500">Receive push notifications in browser</p>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">Push Notifications</h3>
+                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">Receive in-browser alerts</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
+                      className="sr-only peer"
                       checked={notifications.push}
                       onChange={(e) => setNotifications({ ...notifications, push: e.target.checked })}
-                      className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                  </label>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">SMS Notifications</p>
-                    <p className="text-xs text-gray-500">Receive notifications via SMS</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={notifications.sms}
-                      onChange={(e) => setNotifications({ ...notifications, sms: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
                   </label>
                 </div>
               </div>
-            </div> */}
-
-            {/* Service & Booking Settings - Admin Only */}
-            {authUser && authUser.role === 'admin' && (
-              <div className="space-y-6">
-                <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <Building2 className="w-5 h-5 text-purple-600" />
-                    <h2 className="text-lg font-semibold text-gray-900">Service Capacity Settings</h2>
-                  </div>
-                  <ServiceSettingsSection />
-                </div>
-
-                <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <Calendar className="w-5 h-5 text-purple-600" />
-                    <h2 className="text-lg font-semibold text-gray-900">Booking System Settings</h2>
-                  </div>
-                  <BookingSettingsSection />
-                </div>
-              </div>
-            )}
+            </div>
 
             {/* Security Settings */}
             <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
               <div className="flex items-center gap-3 mb-6">
                 <Shield className="w-5 h-5 text-purple-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Security</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)]">Security Settings</h2>
               </div>
-              <div className="space-y-4">
-                <button 
-                  onClick={() => setShowPasswordModal(true)}
-                  className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <Lock className="w-5 h-5 text-gray-500" />
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-gray-900">Change Password</p>
-                      <p className="text-xs text-gray-500">Update your account password</p>
-                    </div>
+              <div className="space-y-6">
+                {/* Change Password */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">Password</h3>
+                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">Change your account password</p>
                   </div>
-                  <span className="text-gray-400">→</span>
-                </button>
-                <button 
-                  onClick={() => setShow2FAModal(true)}
-                  className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-5 h-5 text-gray-500" />
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-gray-900">Two-Factor Authentication</p>
-                      <p className="text-xs text-gray-500">
-                        {twoFactorEnabled ? 'Manage 2FA settings' : 'Add an extra layer of security'}
-                      </p>
-                    </div>
+                  <button
+                    onClick={() => setShowPasswordModal(true)}
+                    className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium text-sm transition-colors"
+                  >
+                    Change Password
+                  </button>
+                </div>
+
+                {/* Two-Factor Auth */}
+                <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-[var(--card-border)]">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">Two-Factor Authentication (2FA)</h3>
+                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">Add an extra layer of security to your account</p>
                   </div>
-                  <span className="text-gray-400">→</span>
-                </button>
+                  <button
+                    onClick={toggle2FA}
+                    disabled={twoFactorLoading}
+                    className={`px-4 py-2 border rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
+                      twoFactorEnabled 
+                        ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900 dark:bg-red-900/20 dark:text-red-400' 
+                        : 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:border-purple-900 dark:bg-purple-900/20 dark:text-purple-400'
+                    }`}
+                  >
+                    {twoFactorLoading ? (
+                      <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></span>
+                    ) : twoFactorEnabled ? (
+                      <>Disable 2FA</>
+                    ) : (
+                      <>Enable 2FA</>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
+
+            {/* Admin Settings - Only visible for admin roles */}
+            {authUser && authUser.role === 'admin' && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <Calendar className="w-5 h-5 text-purple-600" />
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)]">Consultation Available Dates</h2>
+                        <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">Manage dates when clients can book intake consultations</p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/dashboard/consultation-slots"
+                      className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium text-sm transition-colors flex items-center gap-2"
+                    >
+                      <span>Manage Dates</span>
+                      <Calendar className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Users className="w-5 h-5 text-purple-600" />
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)]">Service Settings</h2>
+                  </div>
+                  <ServiceSettingsSection />
+                </div>
+                
+                <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Calendar className="w-5 h-5 text-purple-600" />
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)]">Booking System Settings</h2>
+                  </div>
+                  <BookingSettingsSection />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -301,432 +408,225 @@ export default function SettingsPage() {
       {/* Change Password Modal */}
       {showPasswordModal && (
         <>
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowPasswordModal(false)}></div>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity" onClick={() => !passwordLoading && setShowPasswordModal(false)}></div>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-md w-full">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Change Password</h2>
-                <button onClick={() => setShowPasswordModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                  <X className="w-5 h-5 text-gray-600" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4">
-                {/* Current Password */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPasswords.current ? "text" : "password"}
-                      value={passwordForm.currentPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                      className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Enter current password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    >
-                      {showPasswords.current ? (
-                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* New Password */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPasswords.new ? "text" : "password"}
-                      value={passwordForm.newPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                      className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Enter new password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    >
-                      {showPasswords.new ? (
-                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPasswords.confirm ? "text" : "password"}
-                      value={passwordForm.confirmPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                      className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Confirm new password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    >
-                      {showPasswords.confirm ? (
-                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {passwordForm.newPassword && passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-sm text-red-600">Passwords do not match</p>
-                  </div>
-                )}
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setShowPasswordModal(false);
-                      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-                      setShowPasswords({ current: false, new: false, confirm: false });
-                    }}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-md w-full animate-in fade-in zoom-in duration-200">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">Change Password</h3>
+                  <button 
+                    onClick={() => !passwordLoading && setShowPasswordModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-                        showError('Please fill in all fields');
-                        return;
-                      }
-                      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-                        showError('Passwords do not match');
-                        return;
-                      }
-                      if (passwordForm.newPassword.length < 8) {
-                        showError('Password must be at least 8 characters long');
-                        return;
-                      }
-
-                      try {
-                        setPasswordLoading(true);
-                        await apiService.changePassword({
-                          current_password: passwordForm.currentPassword,
-                          new_password: passwordForm.newPassword,
-                          new_password_confirmation: passwordForm.confirmPassword,
-                        });
-                        
-                        success('Password changed successfully!');
-                        setShowPasswordModal(false);
-                        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-                        setShowPasswords({ current: false, new: false, confirm: false });
-                      } catch (err) {
-                        showError(err.message || 'Failed to change password. Please try again.');
-                      } finally {
-                        setPasswordLoading(false);
-                      }
-                    }}
-                    disabled={passwordLoading}
-                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {passwordLoading ? 'Changing...' : 'Change Password'}
+                    <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
+
+                <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                  {/* Current Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-2">Current Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.current ? "text" : "password"}
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                        required
+                        className="w-full pl-4 pr-10 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('current')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* New Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-2">New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.new ? "text" : "password"}
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                        required
+                        className="w-full pl-4 pr-10 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('new')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-2">Confirm New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPasswords.confirm ? "text" : "password"}
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                        required
+                        className="w-full pl-4 pr-10 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility('confirm')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordModal(false)}
+                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={passwordLoading}
+                      className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 font-medium"
+                    >
+                      {passwordLoading ? 'Updating...' : 'Update Password'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
         </>
       )}
 
-      {/* Two-Factor Authentication Modal */}
+      {/* 2FA Setup Modal */}
       {show2FAModal && (
         <>
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={async () => {
-            // Refresh user data before closing to ensure we have latest 2FA status
-            try {
-              const userResponse = await apiService.getUser();
-              if (userResponse.user) {
-                setTwoFactorEnabled(userResponse.user.two_factor_enabled || false);
-              }
-            } catch (err) {
-              console.error('Failed to reload user data:', err);
-            }
-            setShow2FAModal(false);
-            setTwoFactorSetupStep('initial');
-            setVerificationCode('');
-            setBackupCodes([]);
-          }}></div>
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity" onClick={() => !twoFactorLoading && setShow2FAModal(false)}></div>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between sticky top-0 bg-white dark:bg-[var(--card-bg)]">
-                <h2 className="text-xl font-bold text-gray-900">Two-Factor Authentication</h2>
-                <button onClick={async () => {
-                  // Refresh user data before closing to ensure we have latest 2FA status
-                  try {
-                    const userResponse = await apiService.getUser();
-                    if (userResponse.user) {
-                      setTwoFactorEnabled(userResponse.user.two_factor_enabled || false);
-                    }
-                  } catch (err) {
-                    console.error('Failed to reload user data:', err);
-                  }
-                  setShow2FAModal(false);
-                  setTwoFactorSetupStep('initial');
-                  setVerificationCode('');
-                  setBackupCodes([]);
-                }} className="p-2 hover:bg-gray-100 rounded-lg">
-                  <X className="w-5 h-5 text-gray-600" />
-                </button>
-              </div>
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-md w-full animate-in fade-in zoom-in duration-200">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                    {twoFactorSetupStep === 'initial' && 'Enable 2FA'}
+                    {twoFactorSetupStep === 'qr' && 'Scan QR Code'}
+                    {twoFactorSetupStep === 'complete' && '2FA Enabled'}
+                  </h3>
+                  <button 
+                    onClick={() => !twoFactorLoading && setShow2FAModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
 
-              <div className="p-6 space-y-4">
-                {/* Initial State - Show Status */}
                 {twoFactorSetupStep === 'initial' && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Two-Factor Authentication</p>
-                        <p className="text-xs text-gray-500">
-                          {twoFactorEnabled 
-                            ? '2FA is currently enabled for your account' 
-                            : 'Add an extra layer of security to your account'}
-                        </p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={twoFactorEnabled}
-                          onChange={async (e) => {
-                            if (e.target.checked) {
-                              // Start setup process
-                              try {
-                                setTwoFactorLoading(true);
-                                const response = await apiService.initiate2FASetup();
-                                setTwoFactorSecret(response.secret);
-                                // Convert TOTP URL to QR code image URL
-                                const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(response.qr_code_url)}`;
-                                setTwoFactorQRCode(qrCodeImageUrl);
-                                
-                                setTwoFactorSetupStep('qr');
-                              } catch (err) {
-                                showError(err.message || 'Failed to initiate 2FA setup. Please try again.');
-                                // Reset toggle if setup failed
-                                setTwoFactorEnabled(false);
-                              } finally {
-                                setTwoFactorLoading(false);
-                              }
-                            } else {
-                              // Disable 2FA
-                              try {
-                                setTwoFactorLoading(true);
-                                await apiService.disable2FA();
-                                
-                                // Reload user data to get updated 2FA status
-                                const userResponse = await apiService.getUser();
-                                if (userResponse.user) {
-                                  setTwoFactorEnabled(userResponse.user.two_factor_enabled || false);
-                                }
-                                
-                                success('Two-factor authentication disabled');
-                              } catch (err) {
-                                showError(err.message || 'Failed to disable 2FA. Please try again.');
-                                // Reset toggle if disable failed
-                                setTwoFactorEnabled(true);
-                              } finally {
-                                setTwoFactorLoading(false);
-                              }
-                            }
-                          }}
-                          disabled={twoFactorLoading}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 peer-disabled:opacity-50"></div>
-                      </label>
-                    </div>
-
-                    {twoFactorEnabled && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <p className="text-sm text-blue-800">
-                          <strong>2FA is active.</strong> You'll need to enter a verification code from your authenticator app when logging in.
-                        </p>
-                      </div>
-                    )}
-
-                    {!twoFactorEnabled && (
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <p className="text-sm text-gray-700 mb-3">
-                          To enable two-factor authentication, you'll need to:
-                        </p>
-                        <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
-                          <li>Download an authenticator app (Google Authenticator, Authy, etc.)</li>
-                          <li>Scan the QR code that will be displayed</li>
-                          <li>Enter the verification code to complete setup</li>
-                        </ol>
-                      </div>
-                    )}
-
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
+                      Two-factor authentication adds an additional layer of security to your account by requiring more than just a password to log in.
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
+                      You will need an authenticator app like Google Authenticator, Authy, or Microsoft Authenticator to complete this setup.
+                    </p>
+                    
                     <div className="flex gap-3 pt-4">
                       <button
-                        onClick={() => {
-                          setShow2FAModal(false);
-                          setTwoFactorSetupStep('initial');
-                        }}
-                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                        type="button"
+                        onClick={() => setShow2FAModal(false)}
+                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium transition-colors"
                       >
-                        Close
+                        Cancel
                       </button>
-                      {twoFactorEnabled && (
-                        <button
-                          onClick={async () => {
-                            try {
-                              setTwoFactorLoading(true);
-                              const response = await apiService.regenerate2FACode();
-                              setTwoFactorSecret(response.secret);
-                              // Convert TOTP URL to QR code image URL
-                              const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(response.qr_code_url)}`;
-                              setTwoFactorQRCode(qrCodeImageUrl);
-                              
-                              setTwoFactorSetupStep('qr');
-                              success('2FA setup code regenerated. Please scan the new QR code.');
-                            } catch (err) {
-                              showError(err.message || 'Failed to regenerate 2FA code. Please try again.');
-                            } finally {
-                              setTwoFactorLoading(false);
-                            }
-                          }}
-                          disabled={twoFactorLoading}
-                          className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {twoFactorLoading ? 'Regenerating...' : 'Regenerate QR Code'}
-                        </button>
+                      <button
+                        onClick={start2FASetup}
+                        disabled={twoFactorLoading}
+                        className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 font-medium"
+                      >
+                        {twoFactorLoading ? 'Loading...' : 'Continue'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {twoFactorSetupStep === 'qr' && (
+                  <div className="space-y-6">
+                    <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
+                      1. Scan this QR code with your authenticator app.
+                    </p>
+                    
+                    <div className="flex justify-center p-4 bg-white border rounded-lg">
+                      {twoFactorQRCode ? (
+                        <div dangerouslySetInnerHTML={{ __html: twoFactorQRCode }} className="w-48 h-48" />
+                      ) : (
+                        <div className="w-48 h-48 flex items-center justify-center bg-gray-100 text-gray-500 text-sm">Loading QR Code...</div>
                       )}
                     </div>
-                  </>
-                )}
-
-                {/* QR Code Display Step */}
-                {twoFactorSetupStep === 'qr' && (
-                  <>
-                    <div className="text-center">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Scan QR Code</h3>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Scan this QR code with your authenticator app to set up two-factor authentication.
+                    
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mb-2">
+                        Or enter this secret key manually:
                       </p>
-                      
-                      {/* QR Code */}
-                      <div className="flex justify-center mb-4">
-                        <div className="bg-white p-4 border-2 border-gray-200 rounded-lg">
-                          {twoFactorQRCode ? (
-                            <img 
-                              src={twoFactorQRCode} 
-                              alt="2FA QR Code" 
-                              className="w-48 h-48"
-                            />
-                          ) : (
-                            <div className="w-48 h-48 bg-gray-100 flex items-center justify-center">
-                              <p className="text-gray-400">Loading QR code...</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Secret Key */}
-                      <div className="mb-4">
-                        <p className="text-xs text-gray-600 mb-2">Or enter this code manually:</p>
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                          <code className="text-sm font-mono text-gray-900 break-all">{twoFactorSecret}</code>
-                        </div>
-                      </div>
-
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                        <p className="text-sm text-blue-800">
-                          <strong>Important:</strong> Save your backup codes in a safe place. You'll need them if you lose access to your authenticator app.
-                        </p>
-                      </div>
-
-                      {/* Verification Code Input */}
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Enter verification code from your app
-                        </label>
-                        <input
-                          type="text"
-                          value={verificationCode}
-                          onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                          placeholder="000000"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-lg font-mono tracking-widest"
-                          maxLength={6}
-                        />
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <code className="text-xs font-mono break-all">{twoFactorSecret}</code>
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(twoFactorSecret);
+                            success('Secret key copied to clipboard!');
+                          }}
+                          className="ml-2 text-purple-600 hover:text-purple-800 text-xs font-medium"
+                        >
+                          Copy
+                        </button>
                       </div>
                     </div>
 
-                    <div className="flex gap-3 pt-4">
+                    <div className="pt-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-2">
+                        2. Enter the 6-digit code from your app
+                      </label>
+                      <input
+                        type="text"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                        placeholder="000000"
+                        className="w-full px-4 py-2 text-center tracking-[0.5em] text-lg font-mono border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                    </div>
+                    
+                    <div className="flex gap-3 pt-2">
                       <button
-                        onClick={() => {
-                          setTwoFactorSetupStep('initial');
-                          setVerificationCode('');
-                        }}
-                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                      >
-                        Back
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (!verificationCode || verificationCode.length !== 6) {
-                            showError('Please enter a 6-digit verification code');
-                            return;
-                          }
-
-                          try {
-                            setTwoFactorLoading(true);
-                            const response = await apiService.verify2FASetup(verificationCode);
-                            setBackupCodes(response.recovery_codes || []);
-                            
-                            // Reload user data to get updated 2FA status
-                            const userResponse = await apiService.getUser();
-                            if (userResponse.user) {
-                              setTwoFactorEnabled(userResponse.user.two_factor_enabled || false);
-                            }
-                            
-                            setTwoFactorSetupStep('complete');
-                            success('Two-factor authentication enabled successfully!');
-                          } catch (err) {
-                            showError(err.message || 'Invalid verification code. Please try again.');
-                          } finally {
-                            setTwoFactorLoading(false);
-                          }
-                        }}
+                        onClick={verify2FA}
                         disabled={twoFactorLoading || verificationCode.length !== 6}
-                        className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 font-medium block w-full"
                       >
-                        {twoFactorLoading ? 'Verifying...' : 'Verify & Enable'}
+                        {twoFactorLoading ? 'Verifying...' : 'Verify and Enable'}
                       </button>
                     </div>
-                  </>
+                  </div>
                 )}
 
-                {/* Complete Step - Show Backup Codes */}
                 {twoFactorSetupStep === 'complete' && (
                   <>
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Shield className="w-8 h-8 text-green-600" />
+                    <div className="space-y-4">
+                      <div className="flex flex-col items-center justify-center text-center py-4">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                          <CheckCircle className="w-8 h-8 text-green-600" />
+                        </div>
+                        <h4 className="text-lg font-semibold text-gray-900">Successfully Enabled!</h4>
+                        <p className="text-sm text-gray-600 mt-2">
+                          Your account is now protected with two-factor authentication.
+                        </p>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">2FA Enabled Successfully!</h3>
-                      <p className="text-sm text-gray-600 mb-6">
-                        Two-factor authentication is now active on your account.
-                      </p>
 
                       <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 mb-4">
                         <p className="text-sm font-semibold text-yellow-900 mb-2">Save Your Backup Codes</p>
