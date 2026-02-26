@@ -464,7 +464,6 @@ export default function IshClientIntake() {
 
       const proceedToSuccess = () => {
         const params = new URLSearchParams();
-        params.append("email", formData.email);
         params.append(
           "uuid",
           data.client_uuid || (data.form && data.form.uuid),

@@ -299,13 +299,20 @@ export default function ConsultationsManagementPageFixed() {
     switch (activeTab) {
       case "today":
         filtered = filtered.filter(
-          (c) => c.date === today && c.status === "Booked",
+          (c) =>
+            (c.date === today ||
+              (c.date === null &&
+                c.bookedAt &&
+                c.bookedAt.startsWith(today))) &&
+            c.status === "Booked",
         );
 
         break;
 
       case "upcoming":
-        filtered = filtered.filter((c) => c.status === "Booked");
+        filtered = filtered.filter(
+          (c) => c.status === "Booked" && c.date !== today,
+        );
 
         break;
 
@@ -327,10 +334,13 @@ export default function ConsultationsManagementPageFixed() {
   // Calculate actual counts from consultations data
   const today = new Date().toISOString().split("T")[0];
   const todayCount = consultations.filter(
-    (c) => c.date === today && c.status === "Booked",
+    (c) =>
+      (c.date === today ||
+        (c.date === null && c.bookedAt && c.bookedAt.startsWith(today))) &&
+      c.status === "Booked",
   ).length;
   const upcomingCount = consultations.filter(
-    (c) => c.status === "Booked",
+    (c) => c.status === "Booked" && c.date !== today,
   ).length;
   const completedCount = consultations.filter(
     (c) => c.status === "Completed",
@@ -340,6 +350,15 @@ export default function ConsultationsManagementPageFixed() {
   const thisWeekCount = stats.this_week_count || 0;
   const completedThisMonth = stats.completed_this_month || 0;
   const pendingPayment = stats.pending_payment || 0;
+
+  // Filter clients for the pending bookings tab
+  const pendingClients = clients.filter(
+    (c) =>
+      c.stage === "Application & Assessment form Submitted" ||
+      c.stage === "Agreement Sent" ||
+      c.stage === "Agreement Signed" ||
+      !c.stage,
+  );
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -686,913 +705,959 @@ export default function ConsultationsManagementPageFixed() {
   };
 
   // List View Component
-
-  const ListViewComponent = () => (
-    <div className="space-y-4">
-      {filteredConsultations.length === 0 ? (
-        <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-12 text-center">
-          <Calendar className="w-16 h-16 text-gray-400 dark:text-[var(--text-tertiary)] mx-auto mb-4" />
-
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-2">
-            No Consultations Found
-          </h3>
-
-          <p className="text-gray-600 dark:text-[var(--text-secondary)] mb-4">
-            There are no consultations matching your current filters.
-          </p>
-
-          <button
-            onClick={() => setShowBookModal(true)}
-            className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium transition-opacity"
-            style={{ backgroundColor: "#6f1d56" }}
-          >
-            Book New Consultation
-          </button>
-        </div>
-      ) : (
-        filteredConsultations.map((consultation) => (
-          <div
-            key={consultation.id}
-            className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-4 flex-1">
-                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-lg">
-                  {getInitials(consultation.clientName)}
-                </div>
-
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Link
-                      href={`/dashboard/client-details/${consultation.clientUuid || consultation.clientId}`}
-                      className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] hover:text-purple-600 dark:hover:text-purple-400"
+  const ListViewComponent = () => {
+    if (activeTab === "pending") {
+      return (
+        <div className="space-y-4">
+          {pendingClients.length === 0 ? (
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-12 text-center">
+              <Users className="w-16 h-16 text-gray-400 dark:text-[var(--text-tertiary)] mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-2">
+                No Pending Bookings
+              </h3>
+              <p className="text-gray-600 dark:text-[var(--text-secondary)] mb-4">
+                All newly registered clients have been processed or booked.
+              </p>
+            </div>
+          ) : (
+            pendingClients.map((client) => (
+              <div
+                key={client.uuid || client.id}
+                className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6 hover:shadow-md transition-shadow border-l-4 border-l-orange-400"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-lg">
+                      {getInitials(client.name)}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Link
+                          href={`/dashboard/client-details/${client.uuid || client.id}`}
+                          className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] hover:text-purple-600 dark:hover:text-purple-400"
+                        >
+                          {formatName(
+                            client.name || "Unknown Client",
+                            "client",
+                          )}
+                        </Link>
+                        <span className="px-2 py-0.5 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">
+                          Awaiting Consultation
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-700 dark:text-[var(--text-primary)]">
+                            {client.email || "No email"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-700 dark:text-[var(--text-primary)]">
+                            Registered:{" "}
+                            {client.created_at
+                              ? new Date(client.created_at).toLocaleDateString(
+                                  "en-GB",
+                                )
+                              : "N/A"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Package className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-700 dark:text-[var(--text-primary)]">
+                            {client.service_type || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <button
+                      onClick={() => {
+                        setBookForm((prev) => ({
+                          ...prev,
+                          clientId: client.uuid || client.id,
+                        }));
+                        setShowBookModal(true);
+                      }}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium text-sm flex items-center gap-2"
                     >
-                      {formatName(
-                        consultation.clientName || "Unknown Client",
-                        "client",
-                      )}
+                      <Plus className="w-4 h-4" />
+                      Book Consultation
+                    </button>
+                    <Link
+                      href={`/dashboard/client-details/${client.uuid || client.id}`}
+                      className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                      title="View Profile"
+                    >
+                      <Eye className="w-4 h-4" />
                     </Link>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      );
+    }
 
-                    <span className="text-gray-600 dark:text-[var(--text-secondary)]">
-                      •
-                    </span>
+    return (
+      <div className="space-y-4">
+        {filteredConsultations.length === 0 ? (
+          <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-12 text-center">
+            <Calendar className="w-16 h-16 text-gray-400 dark:text-[var(--text-tertiary)] mx-auto mb-4" />
 
-                    <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
-                      {consultation.clientAge} years old
-                    </span>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-2">
+              No Consultations Found
+            </h3>
 
-                    <span className="text-gray-600 dark:text-[var(--text-secondary)]">
-                      •
-                    </span>
+            <p className="text-gray-600 dark:text-[var(--text-secondary)] mb-4">
+              There are no consultations matching your current filters.
+            </p>
 
-                    <span className="text-xs text-gray-500 dark:text-[var(--text-tertiary)]">
-                      {consultation.clientId}
-                    </span>
+            <button
+              onClick={() => setShowBookModal(true)}
+              className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium transition-opacity"
+              style={{ backgroundColor: "#6f1d56" }}
+            >
+              Book New Consultation
+            </button>
+          </div>
+        ) : (
+          filteredConsultations.map((consultation) => (
+            <div
+              key={consultation.id}
+              className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-4 flex-1">
+                  <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-lg">
+                    {getInitials(consultation.clientName)}
                   </div>
 
-                  <div className="flex items-center gap-4 mb-3">
-                    {getStatusBadge(consultation.status)}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Link
+                        href={`/dashboard/client-details/${consultation.clientUuid || consultation.clientId}`}
+                        className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] hover:text-purple-600 dark:hover:text-purple-400"
+                      >
+                        {formatName(
+                          consultation.clientName || "Unknown Client",
+                          "client",
+                        )}
+                      </Link>
 
-                    {getPaymentBadge(consultation.paymentStatus)}
-                  </div>
+                      <span className="text-gray-600 dark:text-[var(--text-secondary)]">
+                        •
+                      </span>
 
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
+                      <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
+                        {consultation.clientAge} years old
+                      </span>
 
-                      <span className="text-gray-700 dark:text-[var(--text-primary)]">
-                        {consultation.date} at {consultation.time}
+                      <span className="text-gray-600 dark:text-[var(--text-secondary)]">
+                        •
+                      </span>
+
+                      <span className="text-xs text-gray-500 dark:text-[var(--text-tertiary)]">
+                        {consultation.clientId}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
+                    <div className="flex items-center gap-4 mb-3">
+                      {getStatusBadge(consultation.status)}
 
-                      <span className="text-gray-700 dark:text-[var(--text-primary)]">
-                        {consultation.serviceRequested}
-                      </span>
+                      {getPaymentBadge(consultation.paymentStatus)}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
 
-                      <span className="text-gray-700 dark:text-[var(--text-primary)]">
-                        £{consultation.paymentAmount} -{" "}
-                        {consultation.paymentStatus}
-                      </span>
+                        <span className="text-gray-900 dark:text-[var(--text-primary)] font-bold">
+                          {consultation.date ? (
+                            `${new Date(consultation.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })} at ${consultation.time}`
+                          ) : (
+                            <span className="text-orange-600 dark:text-orange-400 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" /> Awaiting Slot
+                              Booking
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
+
+                        <span className="text-gray-700 dark:text-[var(--text-primary)]">
+                          {consultation.serviceRequested}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
+
+                        <span className="text-gray-700 dark:text-[var(--text-primary)]">
+                          £{consultation.paymentAmount} -{" "}
+                          {consultation.paymentStatus}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {consultation.status === "Completed" &&
-                    consultation.outcome && (
-                      <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                        <p className="text-sm font-medium text-green-900 dark:text-green-200 mb-1">
-                          Outcome: {consultation.outcome}
-                        </p>
+                    {consultation.status === "Completed" &&
+                      consultation.outcome && (
+                        <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                          <p className="text-sm font-medium text-green-900 dark:text-green-200 mb-1">
+                            Outcome: {consultation.outcome}
+                          </p>
 
-                        <p className="text-sm text-green-800 dark:text-green-300">
-                          Recommended: {consultation.recommendedService}
+                          <p className="text-sm text-green-800 dark:text-green-300">
+                            Recommended: {consultation.recommendedService}
+                          </p>
+                        </div>
+                      )}
+
+                    {consultation.notes && (
+                      <div className="mt-3 p-3 bg-gray-50 dark:bg-[var(--hover-bg)] rounded-lg">
+                        <p className="text-sm text-gray-700 dark:text-[var(--text-primary)]">
+                          {consultation.notes}
                         </p>
                       </div>
                     )}
+                  </div>
+                </div>
 
-                  {consultation.notes && (
-                    <div className="mt-3 p-3 bg-gray-50 dark:bg-[var(--hover-bg)] rounded-lg">
-                      <p className="text-sm text-gray-700 dark:text-[var(--text-primary)]">
-                        {consultation.notes}
-                      </p>
-                    </div>
+                <div className="flex items-center gap-2 ml-4">
+                  {consultation.status === "Booked" && (
+                    <>
+                      <button
+                        onClick={() => handleOpenComplete(consultation)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm flex items-center gap-2"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Mark Complete
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedConsultation(consultation);
+                          // Pre-fill reschedule form with current date/time
+                          const currentDate = consultation.date || "";
+                          const currentTime = consultation.time || "";
+                          setRescheduleForm({
+                            date: currentDate,
+                            time: currentTime,
+                            sendNotification: true,
+                          });
+                          setShowRescheduleModal(true);
+                        }}
+                        className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                        title="Reschedule"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedConsultation(consultation);
+
+                          setShowCancelModal(true);
+                        }}
+                        className="p-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50"
+                        title="Cancel"
+                      >
+                        <Ban className="w-4 h-4" />
+                      </button>
+                    </>
                   )}
+
+                  <Link
+                    href={`/dashboard/client-details/${consultation.clientUuid || consultation.clientId}`}
+                    className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    title="View Client Profile"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Link>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2 ml-4">
-                {consultation.status === "Booked" && (
-                  <>
-                    <button
-                      onClick={() => handleOpenComplete(consultation)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm flex items-center gap-2"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Mark Complete
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setSelectedConsultation(consultation);
-                        // Pre-fill reschedule form with current date/time
-                        const currentDate = consultation.date || "";
-                        const currentTime = consultation.time || "";
-                        setRescheduleForm({
-                          date: currentDate,
-                          time: currentTime,
-                          sendNotification: true,
-                        });
-                        setShowRescheduleModal(true);
-                      }}
-                      className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                      title="Reschedule"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setSelectedConsultation(consultation);
-
-                        setShowCancelModal(true);
-                      }}
-                      className="p-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50"
-                      title="Cancel"
-                    >
-                      <Ban className="w-4 h-4" />
-                    </button>
-                  </>
-                )}
-
-                <Link
-                  href={`/dashboard/client-details/${consultation.clientUuid || consultation.clientId}`}
-                  className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                  title="View Client Profile"
-                >
-                  <Eye className="w-4 h-4" />
-                </Link>
-              </div>
             </div>
-          </div>
-        ))
-      )}
-    </div>
-  );
+          ))
+        )}
+      </div>
+    );
+  };
 
   return (
     <PageGuard menuId="consultations">
-    <DashboardLayout>
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <DashboardHeader
-          actions={
-            <button
-              onClick={() => setShowBookModal(true)}
-              className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 transition-opacity"
-              style={{ backgroundColor: "#6f1d56" }}
-            >
-              <Plus className="w-4 h-4" />
-              Book Consultation
-            </button>
-          }
-        >
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-              Consultations
-            </h1>
-          </div>
-        </DashboardHeader>
-
-        {/* Stats Cards */}
-        <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                  <Video className="w-4 h-4" />
-                </div>
-                <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">
-                  Today's Consultations
-                </p>
-              </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                {todayCount}
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">
-                  This Week
-                </p>
-              </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                {thisWeekCount}
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4" />
-                </div>
-                <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">
-                  Completed This Month
-                </p>
-              </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                {completedThisMonth}
-              </p>
-            </div>
-
-            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 flex items-center justify-center">
-                  <CreditCard className="w-4 h-4" />
-                </div>
-                <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">
-                  Pending Payment
-                </p>
-              </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                {pendingPayment}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters & View Toggle */}
-        <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex-1 max-w-md relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by client name or ID..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 border border-gray-300 rounded-lg p-1">
+      <DashboardLayout>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <DashboardHeader
+            actions={
               <button
-                onClick={() => setViewMode("list")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
-                  viewMode === "list"
-                    ? "bg-purple-600 text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
+                onClick={() => setShowBookModal(true)}
+                className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 transition-opacity"
+                style={{ backgroundColor: "#6f1d56" }}
               >
-                <List className="w-4 h-4" />
-                List
+                <Plus className="w-4 h-4" />
+                Book Consultation
               </button>
+            }
+          >
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                Consultations
+              </h1>
+            </div>
+          </DashboardHeader>
 
-              <button
-                onClick={() => setViewMode("calendar")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
-                  viewMode === "calendar"
-                    ? "bg-purple-600 text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <CalendarDays className="w-4 h-4" />
-                Calendar
-              </button>
+          {/* Stats Cards */}
+          <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
+            <div className="grid grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                    <Video className="w-4 h-4" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">
+                    Today's Consultations
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                  {todayCount}
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">
+                    This Week
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                  {thisWeekCount}
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">
+                    Completed This Month
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                  {completedThisMonth}
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">
+                    Pending Payment
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                  {pendingPayment}
+                </p>
+              </div>
             </div>
           </div>
 
-          {viewMode === "list" && (
-            <div className="flex items-center gap-2">
-              {[
-                { id: "today", label: "Today", count: todayCount },
+          {/* Filters & View Toggle */}
+          <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex-1 max-w-md relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
 
-                { id: "upcoming", label: "Upcoming", count: upcomingCount },
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by client name or ID..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                />
+              </div>
 
-                { id: "completed", label: "Completed", count: completedCount },
-
-                { id: "all", label: "All", count: consultations.length },
-              ].map((tab) => (
+              <div className="flex items-center gap-2 border border-gray-300 rounded-lg p-1">
                 <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? "bg-purple-100 text-purple-900"
+                  onClick={() => setViewMode("list")}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                    viewMode === "list"
+                      ? "bg-purple-600 text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  {tab.label}
-
-                  <span
-                    className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                      activeTab === tab.id
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
+                  <List className="w-4 h-4" />
+                  List
                 </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Content */}
-
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-[var(--background)]">
-          {loading && consultations.length === 0 && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <RefreshCw className="w-8 h-8 text-gray-400 dark:text-[var(--text-tertiary)] animate-spin mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-[var(--text-secondary)]">
-                  Loading consultations...
-                </p>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                <div>
-                  <p className="text-sm font-medium text-red-900 dark:text-red-200">
-                    {error}
-                  </p>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="text-sm text-red-700 dark:text-red-300 underline mt-1"
-                  >
-                    Try again
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!loading &&
-            (viewMode === "list" ? (
-              <ListViewComponent />
-            ) : (
-              <CalendarViewComponent />
-            ))}
-        </div>
-      </div>
-
-      {/* Book Modal */}
-
-      {showBookModal && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setShowBookModal(false)}
-          ></div>
-
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white dark:bg-[var(--card-bg)] border-b border-gray-200 dark:border-[var(--card-border)] px-6 py-4 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                  Book New Consultation
-                </h2>
 
                 <button
-                  onClick={() => setShowBookModal(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+                  onClick={() => setViewMode("calendar")}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                    viewMode === "calendar"
+                      ? "bg-purple-600 text-white"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
                 >
-                  <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
+                  <CalendarDays className="w-4 h-4" />
+                  Calendar
                 </button>
               </div>
-
-              <form onSubmit={handleBookSubmit} className="p-6 space-y-4">
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-
-                  <div>
-                    <p className="text-sm font-medium text-yellow-900 mb-1">
-                      Payment Required
-                    </p>
-
-                    <p className="text-sm text-yellow-800">
-                      Client must have paid the consultation fee (£13 for
-                      Counselling, £25 for Coaching/Counselling) before booking.
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Client <span className="text-red-500">*</span>
-                  </label>
-
-                  <SearchableSelect
-                    value={bookForm.clientId}
-                    onChange={(e) =>
-                      setBookForm({ ...bookForm, clientId: e.target.value })
-                    }
-                    options={
-                      Array.isArray(clients)
-                        ? clients.map((client) => ({
-                            value: client.id,
-                            label: `${client.name} - ${client.client_id || client.uuid}`,
-                          }))
-                        : []
-                    }
-                    placeholder="Select a client..."
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Assign Counsellor (Optional)
-                  </label>
-
-                  <SearchableSelect
-                    value={bookForm.tcId}
-                    onChange={(e) =>
-                      setBookForm({ ...bookForm, tcId: e.target.value })
-                    }
-                    options={
-                      Array.isArray(trainingCounsellors)
-                        ? trainingCounsellors.map((tc) => ({
-                            value: tc.id,
-                            label: `${tc.name} - ${tc.tc_id || tc.uuid}`,
-                          }))
-                        : []
-                    }
-                    placeholder="Select a counsellor..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Date <span className="text-red-500">*</span>
-                    </label>
-
-                    <input
-                      type="date"
-                      value={bookForm.date}
-                      min={new Date().toLocaleDateString("en-CA")}
-                      onChange={(e) =>
-                        setBookForm({ ...bookForm, date: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Time <span className="text-red-500">*</span>
-                    </label>
-
-                    <SearchableSelect
-                      value={bookForm.time}
-                      onChange={(e) =>
-                        setBookForm({ ...bookForm, time: e.target.value })
-                      }
-                      options={[
-                        { value: "09:00 AM", label: "09:00 AM" },
-                        { value: "10:00 AM", label: "10:00 AM" },
-                        { value: "11:00 AM", label: "11:00 AM" },
-                        { value: "02:00 PM", label: "02:00 PM" },
-                        { value: "03:00 PM", label: "03:00 PM" },
-                      ]}
-                      placeholder="Select time..."
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notes (Optional)
-                  </label>
-
-                  <textarea
-                    value={bookForm.notes}
-                    onChange={(e) =>
-                      setBookForm({ ...bookForm, notes: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="sendConfirmation"
-                    checked={bookForm.sendConfirmation}
-                    onChange={(e) =>
-                      setBookForm({
-                        ...bookForm,
-                        sendConfirmation: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded"
-                  />
-
-                  <label
-                    htmlFor="sendConfirmation"
-                    className="text-sm text-gray-700"
-                  >
-                    Send confirmation email to client
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-                  <button
-                    type="button"
-                    onClick={() => setShowBookModal(false)}
-                    disabled={actionLoading}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={actionLoading}
-                    className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    style={{ backgroundColor: "#6f1d56" }}
-                  >
-                    {actionLoading ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Booking...
-                      </>
-                    ) : (
-                      "Book Consultation"
-                    )}
-                  </button>
-                </div>
-              </form>
             </div>
+
+            {viewMode === "list" && (
+              <div className="flex items-center gap-2">
+                {[
+                  { id: "today", label: "Today", count: todayCount },
+
+                  { id: "upcoming", label: "Upcoming", count: upcomingCount },
+
+                  {
+                    id: "completed",
+                    label: "Completed",
+                    count: completedCount,
+                  },
+
+                  { id: "all", label: "All", count: consultations.length },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === tab.id
+                        ? "bg-purple-100 text-purple-900"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    {tab.label}
+
+                    <span
+                      className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                        activeTab === tab.id
+                          ? "bg-purple-600 text-white"
+                          : "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        </>
-      )}
 
-      {/* Complete Modal */}
+          {/* Content */}
 
-      {showCompleteModal && selectedConsultation && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setShowCompleteModal(false)}
-          ></div>
+          <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-[var(--background)]">
+            {loading && consultations.length === 0 && (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <RefreshCw className="w-8 h-8 text-gray-400 dark:text-[var(--text-tertiary)] animate-spin mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-[var(--text-secondary)]">
+                    Loading consultations...
+                  </p>
+                </div>
+              </div>
+            )}
 
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white dark:bg-[var(--card-bg)] border-b border-gray-200 dark:border-[var(--card-border)] px-6 py-4">
-                <div className="flex items-center justify-between">
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                      Mark Consultation as Completed
-                    </h2>
-
-                    <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">
-                      {formatName(
-                        selectedConsultation.clientName || "Unknown Client",
-                        "client",
-                      )}{" "}
-                      - {selectedConsultation.date} {selectedConsultation.time}
+                    <p className="text-sm font-medium text-red-900 dark:text-red-200">
+                      {error}
                     </p>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="text-sm text-red-700 dark:text-red-300 underline mt-1"
+                    >
+                      Try again
+                    </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {!loading &&
+              (viewMode === "list" ? (
+                <ListViewComponent />
+              ) : (
+                <CalendarViewComponent />
+              ))}
+          </div>
+        </div>
+
+        {/* Book Modal */}
+
+        {showBookModal && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setShowBookModal(false)}
+            ></div>
+
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white dark:bg-[var(--card-bg)] border-b border-gray-200 dark:border-[var(--card-border)] px-6 py-4 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                    Book New Consultation
+                  </h2>
 
                   <button
-                    onClick={() => setShowCompleteModal(false)}
+                    onClick={() => setShowBookModal(false)}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
                   >
                     <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
                   </button>
                 </div>
-              </div>
 
-              <form onSubmit={handleCompleteSubmit} className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Duration <span className="text-red-500">*</span>
-                    </label>
+                <form onSubmit={handleBookSubmit} className="p-6 space-y-4">
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
 
-                    <select
-                      value={completeForm.duration}
-                      onChange={(e) =>
-                        setCompleteForm({
-                          ...completeForm,
-                          duration: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                      required
-                    >
-                      <option value="30">30 minutes</option>
+                    <div>
+                      <p className="text-sm font-medium text-yellow-900 mb-1">
+                        Payment Required
+                      </p>
 
-                      <option value="45">45 minutes</option>
-
-                      <option value="60">60 minutes</option>
-                    </select>
+                      <p className="text-sm text-yellow-800">
+                        Client must have paid the consultation fee (£13 for
+                        Counselling, £25 for Coaching/Counselling) before
+                        booking.
+                      </p>
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Outcome <span className="text-red-500">*</span>
+                      Select Client <span className="text-red-500">*</span>
                     </label>
 
                     <SearchableSelect
-                      value={completeForm.outcome}
+                      value={bookForm.clientId}
                       onChange={(e) =>
-                        setCompleteForm({
-                          ...completeForm,
-                          outcome: e.target.value,
-                        })
+                        setBookForm({ ...bookForm, clientId: e.target.value })
                       }
-                      options={[
-                        { value: "approved", label: "Approved for Therapy" },
-                        { value: "not_approved", label: "Not Approved" },
-                        { value: "pending", label: "Pending Review" },
-                      ]}
-                      placeholder="Select outcome..."
+                      options={
+                        Array.isArray(clients)
+                          ? clients.map((client) => ({
+                              value: client.id,
+                              label: `${client.name} - ${client.client_id || client.uuid}`,
+                            }))
+                          : []
+                      }
+                      placeholder="Select a client..."
                       required
                     />
                   </div>
-                </div>
 
-                {completeForm.outcome === "approved" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Assign Counsellor (Optional)
+                    </label>
+
+                    <SearchableSelect
+                      value={bookForm.tcId}
+                      onChange={(e) =>
+                        setBookForm({ ...bookForm, tcId: e.target.value })
+                      }
+                      options={
+                        Array.isArray(trainingCounsellors)
+                          ? trainingCounsellors.map((tc) => ({
+                              value: tc.id,
+                              label: `${tc.name} - ${tc.tc_id || tc.uuid}`,
+                            }))
+                          : []
+                      }
+                      placeholder="Select a counsellor..."
+                    />
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Recommended Service
+                        Date <span className="text-red-500">*</span>
                       </label>
 
-                      <SearchableSelect
-                        value={completeForm.recommendedService}
+                      <input
+                        type="date"
+                        value={bookForm.date}
+                        min={new Date().toLocaleDateString("en-CA")}
                         onChange={(e) =>
-                          setCompleteForm({
-                            ...completeForm,
-                            recommendedService: e.target.value,
-                          })
+                          setBookForm({ ...bookForm, date: e.target.value })
                         }
-                        options={[
-                          {
-                            value: "Low Cost Counselling",
-                            label: "Low Cost Counselling",
-                          },
-                          {
-                            value: "Mid Range Counselling",
-                            label: "Mid Range Counselling",
-                          },
-                          {
-                            value: "Coaching/Counselling",
-                            label: "Coaching/Counselling",
-                          },
-                        ]}
-                        placeholder="Select service..."
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        required
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Recommended Modality
+                        Time <span className="text-red-500">*</span>
                       </label>
 
                       <SearchableSelect
-                        value={completeForm.recommendedModality}
+                        value={bookForm.time}
                         onChange={(e) =>
-                          setCompleteForm({
-                            ...completeForm,
-                            recommendedModality: e.target.value,
-                          })
+                          setBookForm({ ...bookForm, time: e.target.value })
                         }
                         options={[
-                          { value: "CBT", label: "CBT" },
-                          { value: "Person-Centred", label: "Person-Centred" },
-                          { value: "Integrative", label: "Integrative" },
+                          { value: "09:00 AM", label: "09:00 AM" },
+                          { value: "10:00 AM", label: "10:00 AM" },
+                          { value: "11:00 AM", label: "11:00 AM" },
+                          { value: "02:00 PM", label: "02:00 PM" },
+                          { value: "03:00 PM", label: "03:00 PM" },
                         ]}
-                        placeholder="Select modality..."
+                        placeholder="Select time..."
+                        required
                       />
                     </div>
                   </div>
-                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Consultation Notes <span className="text-red-500">*</span>
-                  </label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Notes (Optional)
+                    </label>
 
-                  <textarea
-                    value={completeForm.notes}
-                    onChange={(e) =>
-                      setCompleteForm({
-                        ...completeForm,
-                        notes: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
-                    rows={5}
-                    placeholder="Detailed notes about the consultation..."
-                    required
-                  />
+                    <textarea
+                      value={bookForm.notes}
+                      onChange={(e) =>
+                        setBookForm({ ...bookForm, notes: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="sendConfirmation"
+                      checked={bookForm.sendConfirmation}
+                      onChange={(e) =>
+                        setBookForm({
+                          ...bookForm,
+                          sendConfirmation: e.target.checked,
+                        })
+                      }
+                      className="w-4 h-4 text-purple-600 border-gray-300 rounded"
+                    />
+
+                    <label
+                      htmlFor="sendConfirmation"
+                      className="text-sm text-gray-700"
+                    >
+                      Send confirmation email to client
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setShowBookModal(false)}
+                      disabled={actionLoading}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={actionLoading}
+                      className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      style={{ backgroundColor: "#6f1d56" }}
+                    >
+                      {actionLoading ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Booking...
+                        </>
+                      ) : (
+                        "Book Consultation"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Complete Modal */}
+
+        {showCompleteModal && selectedConsultation && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setShowCompleteModal(false)}
+            ></div>
+
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white dark:bg-[var(--card-bg)] border-b border-gray-200 dark:border-[var(--card-border)] px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                        Mark Consultation as Completed
+                      </h2>
+
+                      <p className="text-base mt-2">
+                        <span
+                          className="font-extrabold"
+                          style={{ color: "#6f1d56" }}
+                        >
+                          {formatName(
+                            selectedConsultation.clientName || "Unknown Client",
+                            "client",
+                          )}
+                        </span>
+                        <span className="mx-2 text-gray-400 font-bold">-</span>
+                        <span className="font-bold text-gray-900 dark:text-white bg-yellow-50 dark:bg-yellow-900/20 px-2 py-1 rounded border border-yellow-200 dark:border-yellow-800">
+                          {selectedConsultation.date
+                            ? new Date(
+                                selectedConsultation.date,
+                              ).toLocaleDateString("en-GB", {
+                                weekday: "long",
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })
+                            : "Unscheduled"}
+                          {selectedConsultation.time &&
+                            ` at ${selectedConsultation.time}`}
+                          <span className="ml-1 text-xs opacity-75 uppercase tracking-wider">
+                            UK Time
+                          </span>
+                        </span>
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setShowCompleteModal(false)}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+                    >
+                      <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
+                    </button>
+                  </div>
                 </div>
 
-                {completeForm.outcome === "approved" && (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <form onSubmit={handleCompleteSubmit} className="p-6 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Duration <span className="text-red-500">*</span>
+                      </label>
 
-                      <div>
-                        <p className="text-sm font-medium text-green-900 mb-1">
-                          Client Will Move to Pending Match
-                        </p>
+                      <select
+                        value={completeForm.duration}
+                        onChange={(e) =>
+                          setCompleteForm({
+                            ...completeForm,
+                            duration: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        required
+                      >
+                        <option value="30">30 minutes</option>
 
-                        <p className="text-sm text-green-800">
-                          Once saved, this client will automatically move to the
-                          "Pending Match" stage.
-                        </p>
-                      </div>
+                        <option value="45">45 minutes</option>
+
+                        <option value="60">60 minutes</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Outcome <span className="text-red-500">*</span>
+                      </label>
+
+                      <SearchableSelect
+                        value={completeForm.outcome}
+                        onChange={(e) =>
+                          setCompleteForm({
+                            ...completeForm,
+                            outcome: e.target.value,
+                          })
+                        }
+                        options={[
+                          { value: "approved", label: "Approved for Therapy" },
+                          { value: "not_approved", label: "Not Approved" },
+                          { value: "pending", label: "Pending Review" },
+                        ]}
+                        placeholder="Select outcome..."
+                        required
+                      />
                     </div>
                   </div>
-                )}
 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-                  <button
-                    type="button"
-                    onClick={() => setShowCompleteModal(false)}
-                    disabled={actionLoading}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Cancel
-                  </button>
+                  {completeForm.outcome === "approved" && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Recommended Service
+                        </label>
 
-                  <button
-                    type="submit"
-                    disabled={actionLoading}
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {actionLoading ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Completing...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-5 h-5" />
-                        Save & Complete
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </>
-      )}
+                        <SearchableSelect
+                          value={completeForm.recommendedService}
+                          onChange={(e) =>
+                            setCompleteForm({
+                              ...completeForm,
+                              recommendedService: e.target.value,
+                            })
+                          }
+                          options={[
+                            {
+                              value: "Low Cost Counselling",
+                              label: "Low Cost Counselling",
+                            },
+                            {
+                              value: "Mid Range Counselling",
+                              label: "Mid Range Counselling",
+                            },
+                            {
+                              value: "Coaching/Counselling",
+                              label: "Coaching/Counselling",
+                            },
+                          ]}
+                          placeholder="Select service..."
+                        />
+                      </div>
 
-      {/* Reschedule Modal */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Recommended Modality
+                        </label>
 
-      {showRescheduleModal && selectedConsultation && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => {
-              setShowRescheduleModal(false);
-              setRescheduleForm({ date: "", time: "", sendNotification: true });
-            }}
-          ></div>
+                        <SearchableSelect
+                          value={completeForm.recommendedModality}
+                          onChange={(e) =>
+                            setCompleteForm({
+                              ...completeForm,
+                              recommendedModality: e.target.value,
+                            })
+                          }
+                          options={[
+                            { value: "CBT", label: "CBT" },
+                            {
+                              value: "Person-Centred",
+                              label: "Person-Centred",
+                            },
+                            { value: "Integrative", label: "Integrative" },
+                          ]}
+                          placeholder="Select modality..."
+                        />
+                      </div>
+                    </div>
+                  )}
 
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-md w-full">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                  Reschedule Consultation
-                </h2>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Consultation Notes <span className="text-red-500">*</span>
+                    </label>
 
-                <button
-                  onClick={() => {
-                    setShowRescheduleModal(false);
-                    setRescheduleForm({
-                      date: "",
-                      time: "",
-                      sendNotification: true,
-                    });
-                  }}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
-                </button>
+                    <textarea
+                      value={completeForm.notes}
+                      onChange={(e) =>
+                        setCompleteForm({
+                          ...completeForm,
+                          notes: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                      rows={5}
+                      placeholder="Detailed notes about the consultation..."
+                      required
+                    />
+                  </div>
+
+                  {completeForm.outcome === "approved" && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+
+                        <div>
+                          <p className="text-sm font-medium text-green-900 mb-1">
+                            Client Will Move to Pending Match
+                          </p>
+
+                          <p className="text-sm text-green-800">
+                            Once saved, this client will automatically move to
+                            the "Pending Match" stage.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setShowCompleteModal(false)}
+                      disabled={actionLoading}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={actionLoading}
+                      className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {actionLoading ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Completing...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-5 h-5" />
+                          Save & Complete
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
+            </div>
+          </>
+        )}
 
-              <div className="p-6 space-y-4">
-                <p className="text-sm text-gray-700">
-                  Reschedule for{" "}
-                  <strong>
-                    {formatName(
-                      selectedConsultation.clientName || "Unknown Client",
-                      "client",
-                    )}
-                  </strong>
-                </p>
+        {/* Reschedule Modal */}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    New Date <span className="text-red-500">*</span>
-                  </label>
+        {showRescheduleModal && selectedConsultation && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => {
+                setShowRescheduleModal(false);
+                setRescheduleForm({
+                  date: "",
+                  time: "",
+                  sendNotification: true,
+                });
+              }}
+            ></div>
 
-                  <input
-                    type="date"
-                    value={rescheduleForm.date}
-                    min={new Date().toLocaleDateString("en-CA")}
-                    onChange={(e) =>
-                      setRescheduleForm({
-                        ...rescheduleForm,
-                        date: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    required
-                  />
-                </div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-md w-full">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                    Reschedule Consultation
+                  </h2>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    New Time <span className="text-red-500">*</span>
-                  </label>
-
-                  <SearchableSelect
-                    value={rescheduleForm.time}
-                    onChange={(e) =>
-                      setRescheduleForm({
-                        ...rescheduleForm,
-                        time: e.target.value,
-                      })
-                    }
-                    options={[
-                      { value: "09:00 AM", label: "09:00 AM" },
-                      { value: "10:00 AM", label: "10:00 AM" },
-                      { value: "11:00 AM", label: "11:00 AM" },
-                      { value: "02:00 PM", label: "02:00 PM" },
-                      { value: "03:00 PM", label: "03:00 PM" },
-                      { value: "04:00 PM", label: "04:00 PM" },
-                    ]}
-                    placeholder="Select time..."
-                    required
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="notify"
-                    checked={rescheduleForm.sendNotification}
-                    onChange={(e) =>
-                      setRescheduleForm({
-                        ...rescheduleForm,
-                        sendNotification: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded"
-                  />
-
-                  <label htmlFor="notify" className="text-sm text-gray-700">
-                    Send notification to client
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
                   <button
                     onClick={() => {
                       setShowRescheduleModal(false);
@@ -1602,219 +1667,315 @@ export default function ConsultationsManagementPageFixed() {
                         sendNotification: true,
                       });
                     }}
-                    disabled={actionLoading}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
                   >
-                    Cancel
+                    <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
                   </button>
+                </div>
 
-                  <button
-                    onClick={async () => {
-                      try {
-                        setActionLoading(true);
+                <div className="p-6 space-y-4">
+                  <p className="text-sm text-gray-700">
+                    Reschedule for{" "}
+                    <strong>
+                      {formatName(
+                        selectedConsultation.clientName || "Unknown Client",
+                        "client",
+                      )}
+                    </strong>
+                  </p>
 
-                        if (!rescheduleForm.date || !rescheduleForm.time) {
-                          showError("Please select both date and time.");
-                          setActionLoading(false);
-                          return;
-                        }
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      New Date <span className="text-red-500">*</span>
+                    </label>
 
-                        const time24h = convertTo24Hour(rescheduleForm.time);
-                        if (!time24h) {
-                          showError(
-                            "Invalid time format. Please select a valid time.",
-                          );
-                          setActionLoading(false);
-                          return;
-                        }
+                    <input
+                      type="date"
+                      value={rescheduleForm.date}
+                      min={new Date().toLocaleDateString("en-CA")}
+                      onChange={(e) =>
+                        setRescheduleForm({
+                          ...rescheduleForm,
+                          date: e.target.value,
+                        })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      required
+                    />
+                  </div>
 
-                        const scheduledDateTimeObj = new Date(
-                          `${rescheduleForm.date}T${time24h}`,
-                        );
-                        const now = new Date();
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      New Time <span className="text-red-500">*</span>
+                    </label>
 
-                        if (scheduledDateTimeObj <= now) {
-                          showError(
-                            "Please select a date and time in the future",
-                          );
-                          setActionLoading(false);
-                          return;
-                        }
+                    <SearchableSelect
+                      value={rescheduleForm.time}
+                      onChange={(e) =>
+                        setRescheduleForm({
+                          ...rescheduleForm,
+                          time: e.target.value,
+                        })
+                      }
+                      options={[
+                        { value: "09:00 AM", label: "09:00 AM" },
+                        { value: "10:00 AM", label: "10:00 AM" },
+                        { value: "11:00 AM", label: "11:00 AM" },
+                        { value: "02:00 PM", label: "02:00 PM" },
+                        { value: "03:00 PM", label: "03:00 PM" },
+                        { value: "04:00 PM", label: "04:00 PM" },
+                      ]}
+                      placeholder="Select time..."
+                      required
+                    />
+                  </div>
 
-                        const scheduledDateTime =
-                          scheduledDateTimeObj.toISOString();
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="notify"
+                      checked={rescheduleForm.sendNotification}
+                      onChange={(e) =>
+                        setRescheduleForm({
+                          ...rescheduleForm,
+                          sendNotification: e.target.checked,
+                        })
+                      }
+                      className="w-4 h-4 text-purple-600 border-gray-300 rounded"
+                    />
 
-                        // Validate date
-                        if (isNaN(new Date(scheduledDateTime).getTime())) {
-                          showError(
-                            "Invalid date/time combination. Please check your selection.",
-                          );
-                          setActionLoading(false);
-                          return;
-                        }
+                    <label htmlFor="notify" className="text-sm text-gray-700">
+                      Send notification to client
+                    </label>
+                  </div>
 
-                        await apiService.rescheduleConsultation(
-                          selectedConsultation.id,
-                          {
-                            scheduled_at: scheduledDateTime,
-                          },
-                        );
-
-                        success("Consultation rescheduled successfully!");
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => {
                         setShowRescheduleModal(false);
                         setRescheduleForm({
                           date: "",
                           time: "",
                           sendNotification: true,
                         });
-                        // Refresh data
-                        const data = await apiService.getConsultations();
-                        const consultationsArray = Array.isArray(data)
-                          ? data
-                          : data?.data || [];
-                        setConsultations(
-                          transformConsultationData(consultationsArray),
-                        );
-                      } catch (err) {
-                        console.error("Error rescheduling consultation:", err);
-                        showError(
-                          err.message ||
-                            "Failed to reschedule consultation. Please try again.",
-                        );
-                      } finally {
-                        setActionLoading(false);
-                      }
-                    }}
-                    disabled={actionLoading}
-                    className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    style={{ backgroundColor: "#6f1d56" }}
-                  >
-                    {actionLoading ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Rescheduling...
-                      </>
-                    ) : (
-                      "Reschedule"
-                    )}
-                  </button>
+                      }}
+                      disabled={actionLoading}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        try {
+                          setActionLoading(true);
+
+                          if (!rescheduleForm.date || !rescheduleForm.time) {
+                            showError("Please select both date and time.");
+                            setActionLoading(false);
+                            return;
+                          }
+
+                          const time24h = convertTo24Hour(rescheduleForm.time);
+                          if (!time24h) {
+                            showError(
+                              "Invalid time format. Please select a valid time.",
+                            );
+                            setActionLoading(false);
+                            return;
+                          }
+
+                          const scheduledDateTimeObj = new Date(
+                            `${rescheduleForm.date}T${time24h}`,
+                          );
+                          const now = new Date();
+
+                          if (scheduledDateTimeObj <= now) {
+                            showError(
+                              "Please select a date and time in the future",
+                            );
+                            setActionLoading(false);
+                            return;
+                          }
+
+                          const scheduledDateTime =
+                            scheduledDateTimeObj.toISOString();
+
+                          // Validate date
+                          if (isNaN(new Date(scheduledDateTime).getTime())) {
+                            showError(
+                              "Invalid date/time combination. Please check your selection.",
+                            );
+                            setActionLoading(false);
+                            return;
+                          }
+
+                          await apiService.rescheduleConsultation(
+                            selectedConsultation.id,
+                            {
+                              scheduled_at: scheduledDateTime,
+                            },
+                          );
+
+                          success("Consultation rescheduled successfully!");
+                          setShowRescheduleModal(false);
+                          setRescheduleForm({
+                            date: "",
+                            time: "",
+                            sendNotification: true,
+                          });
+                          // Refresh data
+                          const data = await apiService.getConsultations();
+                          const consultationsArray = Array.isArray(data)
+                            ? data
+                            : data?.data || [];
+                          setConsultations(
+                            transformConsultationData(consultationsArray),
+                          );
+                        } catch (err) {
+                          console.error(
+                            "Error rescheduling consultation:",
+                            err,
+                          );
+                          showError(
+                            err.message ||
+                              "Failed to reschedule consultation. Please try again.",
+                          );
+                        } finally {
+                          setActionLoading(false);
+                        }
+                      }}
+                      disabled={actionLoading}
+                      className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      style={{ backgroundColor: "#6f1d56" }}
+                    >
+                      {actionLoading ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Rescheduling...
+                        </>
+                      ) : (
+                        "Reschedule"
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
 
-      {/* Cancel Modal */}
+        {/* Cancel Modal */}
 
-      {showCancelModal && selectedConsultation && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setShowCancelModal(false)}
-          ></div>
+        {showCancelModal && selectedConsultation && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setShowCancelModal(false)}
+            ></div>
 
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-md w-full">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)]">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                  Cancel Consultation
-                </h2>
-              </div>
-
-              <div className="p-6">
-                <p className="text-gray-700 mb-4">
-                  Cancel consultation for{" "}
-                  <strong>
-                    {formatName(
-                      selectedConsultation.clientName || "Unknown Client",
-                      "client",
-                    )}
-                  </strong>{" "}
-                  on {selectedConsultation.date}?
-                </p>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Reason (Optional)
-                  </label>
-
-                  <textarea
-                    value={cancelReason}
-                    onChange={(e) => setCancelReason(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
-                    rows={3}
-                    placeholder="Enter reason for cancellation..."
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
-                  <button
-                    onClick={() => setShowCancelModal(false)}
-                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-                  >
-                    Keep Consultation
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowCancelModal(false);
-                      setShowCancelConfirmModal(true);
-                    }}
-                    disabled={actionLoading}
-                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-md w-full">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)]">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
                     Cancel Consultation
-                  </button>
+                  </h2>
+                </div>
+
+                <div className="p-6">
+                  <p className="text-gray-700 mb-4">
+                    Cancel consultation for{" "}
+                    <strong>
+                      {formatName(
+                        selectedConsultation.clientName || "Unknown Client",
+                        "client",
+                      )}
+                    </strong>{" "}
+                    on {selectedConsultation.date}?
+                  </p>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Reason (Optional)
+                    </label>
+
+                    <textarea
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                      rows={3}
+                      placeholder="Enter reason for cancellation..."
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-200 mt-6">
+                    <button
+                      onClick={() => setShowCancelModal(false)}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                    >
+                      Keep Consultation
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowCancelModal(false);
+                        setShowCancelConfirmModal(true);
+                      }}
+                      disabled={actionLoading}
+                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Cancel Consultation
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
 
-      {/* Cancel Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={showCancelConfirmModal}
-        onClose={() => {
-          setShowCancelConfirmModal(false);
-          setCancelReason("");
-        }}
-        onConfirm={async () => {
-          try {
-            setActionLoading(true);
-            await apiService.cancelConsultation(
-              selectedConsultation.id,
-              cancelReason,
-            );
-            success("Consultation cancelled successfully!");
+        {/* Cancel Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={showCancelConfirmModal}
+          onClose={() => {
             setShowCancelConfirmModal(false);
-            setShowCancelModal(false);
             setCancelReason("");
-            // Refresh data
-            const data = await apiService.getConsultations();
-            const consultationsArray = Array.isArray(data)
-              ? data
-              : data?.data || [];
-            setConsultations(transformConsultationData(consultationsArray));
-          } catch (err) {
-            console.error("Error cancelling consultation:", err);
-            showError(
-              err.message || "Failed to cancel consultation. Please try again.",
-            );
-          } finally {
-            setActionLoading(false);
-          }
-        }}
-        title="Cancel Consultation"
-        message={`Are you sure you want to cancel the consultation for ${selectedConsultation?.clientName || "Unknown Client"} on ${selectedConsultation?.date}? This action cannot be undone.`}
-        confirmText="Cancel Consultation"
-        cancelText="Keep Consultation"
-        type="danger"
-        loading={actionLoading}
-        confirmButtonColor="#dc2626"
-      />
-    </DashboardLayout>
+          }}
+          onConfirm={async () => {
+            try {
+              setActionLoading(true);
+              await apiService.cancelConsultation(
+                selectedConsultation.id,
+                cancelReason,
+              );
+              success("Consultation cancelled successfully!");
+              setShowCancelConfirmModal(false);
+              setShowCancelModal(false);
+              setCancelReason("");
+              // Refresh data
+              const data = await apiService.getConsultations();
+              const consultationsArray = Array.isArray(data)
+                ? data
+                : data?.data || [];
+              setConsultations(transformConsultationData(consultationsArray));
+            } catch (err) {
+              console.error("Error cancelling consultation:", err);
+              showError(
+                err.message ||
+                  "Failed to cancel consultation. Please try again.",
+              );
+            } finally {
+              setActionLoading(false);
+            }
+          }}
+          title="Cancel Consultation"
+          message={`Are you sure you want to cancel the consultation for ${selectedConsultation?.clientName || "Unknown Client"} on ${selectedConsultation?.date}? This action cannot be undone.`}
+          confirmText="Cancel Consultation"
+          cancelText="Keep Consultation"
+          type="danger"
+          loading={actionLoading}
+          confirmButtonColor="#dc2626"
+        />
+      </DashboardLayout>
     </PageGuard>
   );
 }

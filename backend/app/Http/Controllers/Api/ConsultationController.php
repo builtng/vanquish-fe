@@ -66,6 +66,12 @@ class ConsultationController extends Controller
         $validated['consultation_id'] = 'CONS' . str_pad(Consultation::count() + 1, 3, '0', STR_PAD_LEFT);
         $validated['status'] = 'scheduled';
 
+        // Automatically link to a slot if one matches the scheduled time
+        $matchingSlot = \App\Models\ConsultationSlot::where('consultation_datetime', $validated['scheduled_at'])->first();
+        if ($matchingSlot) {
+            $validated['consultation_slot_id'] = $matchingSlot->id;
+        }
+
         $consultation = Consultation::create($validated);
         $consultation->load(['client', 'tc']);
 
@@ -140,6 +146,9 @@ class ConsultationController extends Controller
                     'time' => \Carbon\Carbon::parse($consultation->scheduled_at)->format('H:i')
                 ]
             );
+
+            // Update client stage to Consultation Booked
+            $consultation->client->update(['stage' => 'Consultation Booked']);
         }
 
         return response()->json($consultation, 201);
@@ -160,6 +169,11 @@ class ConsultationController extends Controller
             'notes' => 'nullable|string',
             'status' => 'sometimes|in:scheduled,completed,cancelled,no_show',
         ]);
+
+        if (isset($validated['scheduled_at'])) {
+            $matchingSlot = \App\Models\ConsultationSlot::where('consultation_datetime', $validated['scheduled_at'])->first();
+            $validated['consultation_slot_id'] = $matchingSlot ? $matchingSlot->id : null;
+        }
 
         $consultation->update($validated);
 
@@ -267,6 +281,9 @@ class ConsultationController extends Controller
             'scheduled_at' => 'required|date',
         ]);
 
+        $matchingSlot = \App\Models\ConsultationSlot::where('consultation_datetime', $validated['scheduled_at'])->first();
+        $validated['consultation_slot_id'] = $matchingSlot ? $matchingSlot->id : null;
+
         $consultation->update($validated);
 
         // Send reschedule email if client has email
@@ -326,14 +343,20 @@ class ConsultationController extends Controller
 
         $stats = [
             'today_count' => Consultation::where('status', 'scheduled')
-                ->whereDate('scheduled_at', $today)
+                ->where(function ($query) use ($today) {
+                    $query->whereDate('scheduled_at', $today)
+                        ->orWhere(function ($q) use ($today) {
+                            $q->whereNull('scheduled_at')
+                                ->whereDate('created_at', $today);
+                        });
+                })
                 ->count(),
 
             'upcoming_count' => Consultation::where('status', 'scheduled')
-                ->whereDate('scheduled_at', '>=', $today)
                 ->count(),
 
             'this_week_count' => Consultation::where('status', 'scheduled')
+                ->whereDate('scheduled_at', '>=', $today)
                 ->count(),
 
             'completed_this_month' => Consultation::where('status', 'completed')

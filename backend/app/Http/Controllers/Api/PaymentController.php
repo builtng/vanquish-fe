@@ -210,6 +210,12 @@ class PaymentController extends Controller
                             'status' => 'processed'
                         ]);
                     }
+
+                    // Also update client stage
+                    $client = Client::find($validated['client_id']);
+                    if ($client) {
+                        $client->update(['stage' => 'Consultation Booked']);
+                    }
                 } else {
                     // Create consultation if it doesn't exist
                     $consultation = Consultation::create([
@@ -223,6 +229,12 @@ class PaymentController extends Controller
                         'payment_method' => $paymentIntent->payment_method_types[0] ?? 'card',
                         'status' => 'scheduled',
                     ]);
+
+                    // Also update client stage
+                    $client = Client::find($validated['client_id']);
+                    if ($client) {
+                        $client->update(['stage' => 'Consultation Booked']);
+                    }
                 }
             } elseif ($paymentType === 'session' || $paymentType === 'session_block') {
                 if (!empty($sessionIds)) {

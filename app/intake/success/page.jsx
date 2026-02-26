@@ -8,7 +8,6 @@ import PublicFormWrapper from "@/components/PublicFormWrapper";
 function SuccessContent() {
   const searchParams = useSearchParams();
   const uuid = searchParams.get("uuid");
-  const email = searchParams.get("email");
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -37,11 +36,7 @@ function SuccessContent() {
                 <div className="w-6 h-6 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold">
                   1
                 </div>
-                <p>
-                  Check your email (
-                  <strong>{email || "the one provided"}</strong>) for a
-                  confirmation message.
-                </p>
+                <p>Check your email for a confirmation message.</p>
               </li>
               <li className="flex items-start gap-3">
                 <div className="w-6 h-6 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold">

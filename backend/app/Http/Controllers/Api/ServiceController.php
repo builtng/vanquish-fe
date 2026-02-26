@@ -123,12 +123,68 @@ class ServiceController extends Controller
     }
 
     /**
+     * Check global maintenance mode status
+     */
+    public function checkMaintenance()
+    {
+        try {
+            $setting = ServiceSetting::where('service_name', 'Maintenance')->first();
+
+            return response()->json([
+                'maintenance_mode' => $setting ? (bool) $setting->capacity_full : false,
+                'message' => $setting && $setting->capacity_message
+                    ? $setting->capacity_message
+                    : "The system is currently undergoing maintenance. Registration and intake are temporarily disabled.",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error checking maintenance mode: ' . $e->getMessage());
+            return response()->json([
+                'maintenance_mode' => false,
+                'message' => "The system is currently undergoing maintenance.",
+            ], 200);
+        }
+    }
+
+    /**
+     * Update global maintenance mode (admin only)
+     */
+    public function updateMaintenance(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'maintenance_mode' => 'required|boolean',
+                'message'          => 'nullable|string',
+            ]);
+
+            $setting = ServiceSetting::updateOrCreate(
+                ['service_name' => 'Maintenance'],
+                [
+                    'capacity_full'    => $validated['maintenance_mode'],
+                    'capacity_message' => $validated['message'] ?? "The system is currently undergoing maintenance. Registration and intake are temporarily disabled.",
+                ]
+            );
+
+            return response()->json([
+                'maintenance_mode' => (bool) $setting->capacity_full,
+                'message'          => $setting->capacity_message,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating maintenance mode: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to update maintenance mode',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
+            ], 500);
+        }
+    }
+
+    /**
      * Get all services (admin only)
      */
     public function getAllServices()
     {
         try {
-            $services = ServiceSetting::orderBy('id', 'desc')->get();
+            $services = ServiceSetting::where('service_name', '!=', 'Maintenance')
+                ->orderBy('id', 'desc')->get();
             return response()->json($services);
         } catch (\Exception $e) {
             Log::error('Error getting all services: ' . $e->getMessage());

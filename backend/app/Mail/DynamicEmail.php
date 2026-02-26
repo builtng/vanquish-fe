@@ -52,9 +52,48 @@ class DynamicEmail extends Mailable
     {
         $subject = $this->renderString($this->template->subject);
 
+        // Determine category based on template type
+        $type = $this->template->type ?? collect(array_keys($this->getDefaults()))->first(fn($key) => $this->getDefaults()[$key]['subject'] == $this->template->subject);
+        $category = $this->determineCategory($type);
+
+        $sender = app(\App\Services\DynamicMailSenderService::class)->resolve($category);
+
         return new Envelope(
+            from: new \Illuminate\Mail\Mailables\Address($sender['email'], $sender['name'] ?? config('mail.from.name')),
             subject: $subject,
         );
+    }
+
+    /**
+     * Determine sender category based on email type
+     */
+    private function determineCategory($type): string
+    {
+        if (!$type) return 'general';
+
+        $counsellorTypes = [
+            'booking_notification',
+            'tc_welcome',
+            'tc_match_notification',
+            'induction_invitation',
+            'qualified_form',
+            'generic_tc_email'
+        ];
+
+        $generalTypes = [
+            // Any system level emails here if applicable
+        ];
+
+        if (in_array($type, $counsellorTypes)) {
+            return 'counsellor';
+        }
+
+        if (in_array($type, $generalTypes)) {
+            return 'general';
+        }
+
+        // Default to client since most emails are for clients
+        return 'client';
     }
 
     /**

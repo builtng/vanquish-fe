@@ -292,24 +292,23 @@ export default function IndividualClientDetailPage() {
           totalSessions - sessionsCompleted - sessionsDNA,
         );
 
-        // Determine start date - use first completed session or first scheduled session, or matched_date, or start_date
+        // Sort consultations by date to find the true start date
+        const sortedConsultations = [...consultations]
+          .filter((c) => c.scheduled_at)
+          .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+
+        // Determine start date - use first scheduled/completed session
         let startDate = null;
-        if (consultations.length > 0) {
-          const firstCompleted = consultations.find(
-            (c) => c.status === "completed",
-          );
-          const firstScheduled = consultations.find((c) => c.scheduled_at);
-          const firstSession = firstCompleted || firstScheduled;
-          if (firstSession?.scheduled_at) {
-            startDate = new Date(firstSession.scheduled_at).toLocaleDateString(
-              "en-GB",
-              {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              },
-            );
-          }
+        let startDateObj = null;
+
+        if (sortedConsultations.length > 0) {
+          const firstSession = sortedConsultations[0];
+          startDateObj = new Date(firstSession.scheduled_at);
+          startDate = startDateObj.toLocaleDateString("en-GB", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
         }
         if (!startDate && data.start_date) {
           startDate = new Date(data.start_date).toLocaleDateString("en-GB", {
@@ -329,18 +328,6 @@ export default function IndividualClientDetailPage() {
         // Calculate expected end date (assuming weekly sessions, 7 days apart)
         let expectedEndDate = null;
         if (totalSessions > 0) {
-          // Get the actual start date object for calculation
-          let startDateObj = null;
-          if (consultations.length > 0) {
-            const firstCompleted = consultations.find(
-              (c) => c.status === "completed",
-            );
-            const firstScheduled = consultations.find((c) => c.scheduled_at);
-            const firstSession = firstCompleted || firstScheduled;
-            if (firstSession?.scheduled_at) {
-              startDateObj = new Date(firstSession.scheduled_at);
-            }
-          }
           if (!startDateObj && data.start_date) {
             startDateObj = new Date(data.start_date);
           }
@@ -367,7 +354,14 @@ export default function IndividualClientDetailPage() {
           status = "Completed";
         } else if (stage === "Active Therapy" || sessionsCompleted > 0) {
           status = "Active";
-        } else if (["Matched", "Agreement Pending"].includes(stage)) {
+        } else if (
+          [
+            "Matched with TC",
+            "Agreement Sent",
+            "Agreement Signed",
+            "Sessions Bookable",
+          ].includes(stage)
+        ) {
           status = "Pending";
         }
 
@@ -530,6 +524,7 @@ export default function IndividualClientDetailPage() {
         }
         return {};
       })(),
+      updatedAt: data.updated_at || data.created_at,
     };
   };
 
@@ -1288,7 +1283,22 @@ export default function IndividualClientDetailPage() {
                         </span>
 
                         <span className="text-sm text-[var(--text-secondary)]">
-                          Last activity: 2 hours ago
+                          Last activity:{" "}
+                          {client.updatedAt
+                            ? (() => {
+                                const diff =
+                                  new Date() - new Date(client.updatedAt);
+                                const hours = Math.floor(
+                                  diff / (1000 * 60 * 60),
+                                );
+                                const days = Math.floor(hours / 24);
+                                if (days > 0)
+                                  return `${days} day${days > 1 ? "s" : ""} ago`;
+                                if (hours > 0)
+                                  return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+                                return "Just now";
+                              })()
+                            : "N/A"}
                         </span>
                       </div>
                     </div>
@@ -1440,7 +1450,18 @@ export default function IndividualClientDetailPage() {
                     </p>
 
                     <p className="text-sm font-bold text-orange-900 dark:text-orange-100">
-                      28 Mar, 10:00 AM
+                      {client.sessions &&
+                      client.sessions.filter((s) => s.status === "scheduled")
+                        .length > 0
+                        ? (() => {
+                            const next = client.sessions
+                              .filter((s) => s.status === "scheduled")
+                              .sort(
+                                (a, b) => new Date(a.date) - new Date(b.date),
+                              )[0];
+                            return `${new Date(next.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}, ${next.time}`;
+                          })()
+                        : "No session scheduled"}
                     </p>
                   </div>
                 </div>
@@ -2888,7 +2909,7 @@ export default function IndividualClientDetailPage() {
                           onClick={handleProgressStage}
                           disabled={
                             actionLoading ||
-                            client.stage === "Completed" ||
+                            client.stage === "Active Therapy" ||
                             client.status === "archived"
                           }
                           className="w-full py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"

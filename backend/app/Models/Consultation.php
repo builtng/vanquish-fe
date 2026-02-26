@@ -55,4 +55,74 @@ class Consultation extends Model
     {
         return $this->belongsTo(ConsultationSlot::class);
     }
+
+    protected static function booted()
+    {
+        static::saved(function ($consultation) {
+            $consultation->syncRelatedSlots();
+        });
+
+        static::deleted(function ($consultation) {
+            $consultation->syncRelatedSlots();
+        });
+    }
+
+    public function syncRelatedSlots()
+    {
+        $slotIds = [];
+
+        if ($this->consultation_slot_id) {
+            $slotIds[] = $this->consultation_slot_id;
+        }
+
+        if ($this->isDirty('consultation_slot_id') && $this->getOriginal('consultation_slot_id')) {
+            $slotIds[] = $this->getOriginal('consultation_slot_id');
+        }
+
+        if ($this->scheduled_at) {
+            $slotsByTime = ConsultationSlot::where('consultation_datetime', $this->scheduled_at)->pluck('id')->toArray();
+            $slotIds = array_merge($slotIds, $slotsByTime);
+        }
+
+        if ($this->isDirty('scheduled_at') && $this->getOriginal('scheduled_at')) {
+            $slotsByOldTime = ConsultationSlot::where('consultation_datetime', $this->getOriginal('scheduled_at'))->pluck('id')->toArray();
+            $slotIds = array_merge($slotIds, $slotsByOldTime);
+        }
+
+        $slotIds = array_unique($slotIds);
+
+        foreach ($slotIds as $slotId) {
+            $slot = ConsultationSlot::find($slotId);
+            if ($slot) {
+                // Dynamically count valid consultations
+                $count = Consultation::where(function ($q) use ($slot) {
+                    $q->where('consultation_slot_id', $slot->id)
+                        ->orWhere('scheduled_at', $slot->consultation_datetime);
+                })
+                    ->whereIn('status', ['scheduled', 'completed'])
+                    ->count();
+
+                $needsSave = false;
+
+                if ($slot->booked_slots !== $count) {
+                    $slot->booked_slots = $count;
+                    $needsSave = true;
+                }
+
+                if ($slot->max_slots && $slot->booked_slots >= $slot->max_slots) {
+                    if ($slot->status === 'available') {
+                        $slot->status = 'full';
+                        $needsSave = true;
+                    }
+                } elseif ($slot->status === 'full' && (!$slot->max_slots || $slot->booked_slots < $slot->max_slots)) {
+                    $slot->status = 'available';
+                    $needsSave = true;
+                }
+
+                if ($needsSave) {
+                    $slot->saveQuietly(); // Use saveQuietly to prevent redundant event triggers
+                }
+            }
+        }
+    }
 }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSidebar } from "@/contexts/SidebarContext";
 import apiService from "@/lib/api";
+import { usePushNotifications } from "@/lib/usePushNotifications";
 import {
   Home,
   Video,
@@ -45,6 +46,10 @@ export default function DashboardSidebar() {
   const [loading, setLoading] = useState(true);
   const isFetchingRef = React.useRef(false);
   const lastFetchRef = React.useRef(0);
+  // Track previous counts to detect increases
+  const prevPendingRef = React.useRef(null);
+  const prevUpcomingRef = React.useRef(null);
+  const { notify } = usePushNotifications();
 
   // Transform API consultation data to match component structure
   const transformConsultationData = (consultations) => {
@@ -133,6 +138,33 @@ export default function DashboardSidebar() {
         });
         setPendingMatchesCount(pendingCount || 0);
         setMenuPrivileges(privilegesData || []);
+
+        // ── Push notifications for new items ──────────────────────────
+        const newPending = pendingCount || 0;
+        const newUpcoming = upcomingCount;
+
+        if (
+          prevPendingRef.current !== null &&
+          newPending > prevPendingRef.current
+        ) {
+          const diff = newPending - prevPendingRef.current;
+          notify(`${diff} new pending match${diff > 1 ? "es" : ""}`, {
+            body: "A client is ready to be matched with a practitioner.",
+          });
+        }
+
+        if (
+          prevUpcomingRef.current !== null &&
+          newUpcoming > prevUpcomingRef.current
+        ) {
+          const diff = newUpcoming - prevUpcomingRef.current;
+          notify(`${diff} new upcoming consultation${diff > 1 ? "s" : ""}`, {
+            body: "A new consultation has been booked.",
+          });
+        }
+
+        prevPendingRef.current = newPending;
+        prevUpcomingRef.current = newUpcoming;
       } catch (err) {
         // Silently handle rate limit errors - don't spam console
         if (err.message && !err.message.includes("Too Many Attempts")) {

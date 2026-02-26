@@ -191,4 +191,47 @@ class ClientAgreementController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get client data for prefilling the agreement form
+     */
+    public function getAgreementData($uuid)
+    {
+        try {
+            $client = Client::where('uuid', $uuid)
+                ->orWhere('client_id', $uuid)
+                ->first();
+
+            if (!$client) {
+                return response()->json([
+                    'message' => 'Client not found',
+                ], 404);
+            }
+
+            // Return only necessary data for prefilling
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'name' => $client->name,
+                    'email' => $client->email,
+                    'address' => $client->address,
+                    'postcode' => $client->postcode,
+                    'current_address' => $client->current_address,
+                    'emergency_contact_name' => $client->emergency_contact_name,
+                    'emergency_contact_phone' => $client->emergency_contact_phone,
+                    'emergency_contact_relationship' => $client->emergency_contact_relationship,
+                    'gp_name' => $client->gp_name,
+                    'gp_practice_name' => $client->gp_practice_name,
+                    'gp_practice_phone' => $client->gp_practice_phone,
+                    'case_study_consent' => $client->case_study_consent,
+                    'service_type' => $client->service_type,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error fetching client data',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal error',
+            ], 500);
+        }
+    }
 }

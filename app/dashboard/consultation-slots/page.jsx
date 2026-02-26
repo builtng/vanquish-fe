@@ -78,7 +78,7 @@ export default function ConsultationSlotsAdminPage() {
   return (
     <PageGuard menuId="consultation-slots">
       <DashboardLayout>
-        <div className="flex flex-col flex-1 h-screen bg-gray-50 overflow-hidden">
+        <div className="flex flex-col flex-1 h-screen bg-gray-50 dark:bg-[var(--bg-primary)] overflow-hidden">
           <DashboardHeader
             actions={
               <button
@@ -91,10 +91,10 @@ export default function ConsultationSlotsAdminPage() {
             }
           >
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
                 Consultation Slots
               </h1>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-[var(--text-secondary)]">
                 Manage available dates and times for intake consultations
               </p>
             </div>
@@ -106,38 +106,43 @@ export default function ConsultationSlotsAdminPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
               </div>
             ) : slots.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg border">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <h3 className="text-lg font-medium">No slots found</h3>
-                <p className="text-gray-500">
+              <div className="text-center py-12 bg-white dark:bg-[var(--card-bg)] rounded-lg border dark:border-[var(--card-border)]">
+                <Calendar className="w-12 h-12 text-gray-400 dark:text-[var(--text-tertiary)] mx-auto mb-3" />
+                <h3 className="text-lg font-medium dark:text-[var(--text-primary)]">
+                  No slots found
+                </h3>
+                <p className="text-gray-500 dark:text-[var(--text-secondary)]">
                   Add some initial available slots for clients to book.
                 </p>
               </div>
             ) : (
-              <div className="bg-white rounded-lg border shadow-sm overflow-hidden text-gray-900">
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border dark:border-[var(--card-border)] shadow-sm overflow-hidden text-gray-900 dark:text-[var(--text-primary)]">
                 <table className="w-full text-left">
-                  <thead className="bg-gray-50/80 border-b">
+                  <thead className="bg-gray-50/80 dark:bg-[var(--bg-secondary)] border-b dark:border-[var(--card-border)]">
                     <tr>
-                      <th className="p-4 font-medium text-gray-600 text-sm">
+                      <th className="p-4 font-medium text-gray-600 dark:text-[var(--text-secondary)] text-sm">
                         Date & Time
                       </th>
-                      <th className="p-4 font-medium text-gray-600 text-sm">
+                      <th className="p-4 font-medium text-gray-600 dark:text-[var(--text-secondary)] text-sm">
                         Status
                       </th>
-                      <th className="p-4 font-medium text-gray-600 text-sm">
+                      <th className="p-4 font-medium text-gray-600 dark:text-[var(--text-secondary)] text-sm">
                         Bookings
                       </th>
-                      <th className="p-4 font-medium text-gray-600 text-sm text-right">
+                      <th className="p-4 font-medium text-gray-600 dark:text-[var(--text-secondary)] text-sm text-right">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
+                  <tbody className="divide-y dark:divide-[var(--card-border)]">
                     {slots.map((slot) => (
-                      <tr key={slot.id} className="hover:bg-gray-50/50">
+                      <tr
+                        key={slot.id}
+                        className="hover:bg-gray-50/50 dark:hover:bg-[var(--hover-bg)]"
+                      >
                         <td className="p-4">
                           <div className="flex flex-col">
-                            <span className="font-medium text-gray-900">
+                            <span className="font-medium text-gray-900 dark:text-[var(--text-primary)]">
                               {new Date(
                                 slot.consultation_datetime,
                               ).toLocaleDateString(undefined, {
@@ -147,7 +152,7 @@ export default function ConsultationSlotsAdminPage() {
                                 day: "numeric",
                               })}
                             </span>
-                            <span className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                            <span className="text-sm text-gray-500 dark:text-[var(--text-secondary)] flex items-center gap-1 mt-1">
                               <Clock className="w-3 h-3" />{" "}
                               {new Date(
                                 slot.consultation_datetime,
@@ -173,7 +178,7 @@ export default function ConsultationSlotsAdminPage() {
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className="flex items-center gap-1.5 text-sm text-gray-600">
+                          <span className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-[var(--text-secondary)]">
                             <Users className="w-4 h-4" /> {slot.booked_slots} /{" "}
                             {slot.max_slots || "∞"}
                           </span>
@@ -182,7 +187,7 @@ export default function ConsultationSlotsAdminPage() {
                           <button
                             onClick={() => handleDelete(slot.id)}
                             disabled={slot.booked_slots > 0}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
                             title={
                               slot.booked_slots > 0
                                 ? "Cannot delete slot with existing bookings"
@@ -203,21 +208,21 @@ export default function ConsultationSlotsAdminPage() {
 
         {showModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden text-gray-900">
-              <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-                <h3 className="font-bold text-lg text-gray-800">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl shadow-xl w-full max-w-md overflow-hidden text-gray-900 dark:text-[var(--text-primary)]">
+              <div className="flex items-center justify-between p-4 border-b dark:border-[var(--card-border)] bg-gray-50 dark:bg-[var(--bg-secondary)]">
+                <h3 className="font-bold text-lg text-gray-800 dark:text-[var(--text-primary)]">
                   Add New Slot
                 </h3>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-1 text-gray-500 hover:text-gray-800 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="p-1 text-gray-500 dark:text-[var(--text-secondary)] hover:text-gray-800 dark:hover:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <form onSubmit={handleSubmit} className="p-5 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
                     Date <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -228,11 +233,11 @@ export default function ConsultationSlotsAdminPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, date: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
                     Time <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -242,11 +247,11 @@ export default function ConsultationSlotsAdminPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, time: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
                     Max Bookings Allowed (Per Slot)
                   </label>
                   <input
@@ -256,18 +261,18 @@ export default function ConsultationSlotsAdminPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, maxSlots: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow placeholder-gray-400"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow placeholder-gray-400 dark:placeholder-[var(--text-tertiary)]"
                     placeholder="Leave empty for unlimited bookings"
                   />
-                  <p className="text-xs text-gray-500 mt-1.5 ml-1">
+                  <p className="text-xs text-gray-500 dark:text-[var(--text-tertiary)] mt-1.5 ml-1">
                     Leave empty for unlimited bookings per timeslot.
                   </p>
                 </div>
-                <div className="pt-4 mt-6 border-t flex justify-end gap-3">
+                <div className="pt-4 mt-6 border-t dark:border-[var(--card-border)] flex justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-5 py-2 text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                    className="px-5 py-2 text-gray-700 dark:text-[var(--text-primary)] border border-gray-300 dark:border-[var(--card-border)] rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors"
                   >
                     Cancel
                   </button>

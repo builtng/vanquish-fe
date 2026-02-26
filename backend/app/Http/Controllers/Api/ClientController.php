@@ -258,9 +258,9 @@ class ClientController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $query = Client::where('stage', 'Consultation Completed')
+        $query = Client::whereIn('stage', ['Consultation Booked', 'Consultation Completed'])
             ->with(['matchedTc', 'consultations' => function ($q) {
-                $q->where('status', 'completed')->orderBy('completed_at', 'desc')->with('tc');
+                $q->orderBy('id', 'desc')->with('tc');
             }]);
 
         if ($request->has('search')) {
@@ -292,11 +292,19 @@ class ClientController extends Controller
 
         $clients = $query->get()->map(function ($client) {
             // Priority for baseline: 
-            // 1. Latest completed consultation date
+            // 1. Latest consultation date (completed or scheduled)
             // 2. Client's submitted_date
             // 3. Client's created_at
-            $latestConsultation = $client->consultations->where('status', 'completed')->first();
-            $baseline = $latestConsultation ? $latestConsultation->completed_at : ($client->submitted_date ?: $client->created_at);
+            $latestConsultation = $client->consultations->first();
+            $baseline = null;
+
+            if ($latestConsultation) {
+                $baseline = $latestConsultation->completed_at ?: $latestConsultation->scheduled_at;
+            }
+
+            if (!$baseline) {
+                $baseline = $client->submitted_date ?: $client->created_at;
+            }
 
             // Ensure baseline is a valid Carbon instance
             if (!$baseline instanceof \Carbon\Carbon) {

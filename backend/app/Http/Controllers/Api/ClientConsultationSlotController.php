@@ -64,13 +64,23 @@ class ClientConsultationSlotController extends Controller
             // Verify payment
             // We assume successful intake or payment creates a consultation with payment_status = paid
             $consultation = Consultation::where('client_id', $client->id)
-                ->where('payment_status', 'paid')
                 ->whereNull('consultation_slot_id')
+                ->where(function ($query) {
+                    $query->where('payment_status', 'paid')
+                        ->orWhere('status', '!=', 'completed');
+                })
                 ->latest()
                 ->first();
 
             if (!$consultation) {
-                return response()->json(['message' => 'No paid consultation found. Please complete payment first.'], 400);
+                // If no consultation record exists, create one now
+                // This handles cases where intake was free/discounted or payment record sync issues
+                $consultation = Consultation::create([
+                    'consultation_id' => 'CONS' . str_pad(Consultation::count() + 1, 4, '0', STR_PAD_LEFT),
+                    'client_id' => $client->id,
+                    'status' => 'scheduled',
+                    'payment_status' => 'paid', // Default to paid if we allow booking
+                ]);
             }
 
             // Check if they already booked this exact slot to prevent double-booking
@@ -85,13 +95,10 @@ class ClientConsultationSlotController extends Controller
                 'status' => 'scheduled',
             ]);
 
-            // Increment booked slots
-            $slot->increment('booked_slots');
+            // Update client stage
+            $client->update(['stage' => 'Consultation Booked']);
 
-            // If max_slots reached -> mark as full
-            if ($slot->max_slots && $slot->booked_slots >= $slot->max_slots) {
-                $slot->update(['status' => 'full']);
-            }
+            // (Note: $slot->booked_slots and $slot->status are auto-updated by the Consultation model observer)
 
             // Send confirmation email
             if ($client->email) {

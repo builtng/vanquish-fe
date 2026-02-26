@@ -48,9 +48,55 @@ function LowCostAgreementContent() {
       return;
     }
 
-    setClientEmail(email);
-    setClientUuid(uuid || "");
-    setLoading(false);
+    const fetchClientData = async () => {
+      try {
+        setLoading(true);
+        // If we have a uuid, fetch full client details to prefill the form
+        if (uuid) {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/client-agreement/prefill/${uuid}`,
+          );
+          if (response.ok) {
+            const result = await response.json();
+            const clientData = result.data || result;
+
+            setClientEmail(clientData.email || email || "");
+            setClientUuid(uuid);
+            setFormData((prev) => ({
+              ...prev,
+              fullName: clientData.name || "",
+              currentAddress:
+                clientData.current_address ||
+                (clientData.address
+                  ? `${clientData.address}${clientData.postcode ? `, ${clientData.postcode}` : ""}`
+                  : ""),
+              emergencyContactName: clientData.emergency_contact_name || "",
+              emergencyContactPhone: clientData.emergency_contact_phone || "",
+              emergencyContactRelationship:
+                clientData.emergency_contact_relationship || "",
+              gpName: clientData.gp_name || "",
+              gpPracticeName: clientData.gp_practice_name || "",
+              gpPracticePhone: clientData.gp_practice_phone || "",
+              caseStudyConsent: clientData.case_study_consent || "",
+            }));
+          } else {
+            setClientEmail(email || "");
+            setClientUuid(uuid || "");
+          }
+        } else {
+          setClientEmail(email || "");
+          setClientUuid("");
+        }
+      } catch (err) {
+        console.error("Error fetching client for agreement:", err);
+        setClientEmail(email || "");
+        setClientUuid(uuid || "");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClientData();
   }, [searchParams]);
 
   const handleInputChange = (field, value) => {
@@ -408,8 +454,7 @@ function LowCostAgreementContent() {
                       Relationship To You{" "}
                       <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={formData.emergencyContactRelationship}
                       onChange={(e) =>
                         handleInputChange(
@@ -425,8 +470,17 @@ function LowCostAgreementContent() {
                         backgroundColor: "var(--bg-primary)",
                         color: "var(--text-primary)",
                       }}
-                      placeholder="e.g., Mother, Friend, Partner"
-                    />
+                    >
+                      <option value="">Select relationship...</option>
+                      <option value="Mother">Mother</option>
+                      <option value="Father">Father</option>
+                      <option value="Partner">Partner</option>
+                      <option value="Spouse">Spouse</option>
+                      <option value="Sibling">Sibling</option>
+                      <option value="Friend">Friend</option>
+                      <option value="Guardian">Guardian</option>
+                      <option value="Other">Other</option>
+                    </select>
                     {errors.emergencyContactRelationship && (
                       <p
                         className="text-sm mt-1"

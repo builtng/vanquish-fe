@@ -12,6 +12,11 @@ class ConsultationSlotController extends Controller
     public function index()
     {
         $slots = ConsultationSlot::orderBy('consultation_datetime', 'asc')->get();
+
+        // Because of the Consultation model Observer, 'booked_slots' and 'status' are automatically 
+        // synced in the database whenever a consultation is created, updated, or deleted. 
+        // Returning the slots directly is now accurate.
+
         return response()->json($slots);
     }
 

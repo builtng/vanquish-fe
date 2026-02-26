@@ -21,11 +21,12 @@ use Illuminate\Support\Facades\Route;
 // Public routes with stricter rate limiting
 Route::middleware('throttle:5,1')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login');
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('maintenance');
 });
 
 // Service routes (public)
 Route::get('/services/ish-capacity', [\App\Http\Controllers\Api\ServiceController::class, 'checkIshCapacity']);
+Route::get('/maintenance', [\App\Http\Controllers\Api\ServiceController::class, 'checkMaintenance']);
 Route::post('/coupons/verify', [\App\Http\Controllers\Api\CouponController::class, 'verify']);
 
 // Client booking routes (public - clients book without auth)
@@ -55,11 +56,12 @@ Route::post('/jotform/intake-webhook', [JotFormWebhookController::class, 'handle
 
 // Intake Forms (public - clients need to submit without auth)
 // Rate limited to prevent abuse
-Route::middleware('throttle:10,1')->group(function () {
+Route::middleware(['throttle:10,1', 'maintenance'])->group(function () {
     Route::post('/client-intake', [IntakeFormController::class, 'clientIntake']);
     Route::post('/intake/confirm-payment', [IntakeController::class, 'handlePaymentSuccess']);
     Route::get('/intake/success', [IntakeController::class, 'success'])->name('intake.success');
     Route::post('/tc-intake', [IntakeFormController::class, 'tcIntake']);
+    Route::get('/client-agreement/prefill/{uuid}', [ClientAgreementController::class, 'getAgreementData']);
     Route::post('/client-agreement/submit', [ClientAgreementController::class, 'submitAgreement']);
 });
 
@@ -156,6 +158,7 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
     Route::middleware('admin')->group(function () {
         Route::post('/services/update-capacity', [ServiceController::class, 'updateCapacity']);
         Route::post('/services/update-price', [ServiceController::class, 'updatePrice']);
+        Route::post('/services/update-maintenance', [ServiceController::class, 'updateMaintenance']);
         Route::get('/services/all', [ServiceController::class, 'getAllServices']);
 
         // Coupons
@@ -172,6 +175,11 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::get('/email-templates/{type}', [EmailTemplateController::class, 'show']);
         Route::put('/email-templates/{type}', [EmailTemplateController::class, 'update']);
         Route::post('/email-templates/{type}/reset', [EmailTemplateController::class, 'reset']);
+
+        // Email Sender Settings
+        Route::prefix('admin')->group(function () {
+            Route::apiResource('email-senders', \App\Http\Controllers\Admin\EmailSenderSettingController::class)->except(['show']);
+        });
 
         Route::apiResource('users', UserController::class);
         Route::get('/users-count', [UserController::class, 'count']);
