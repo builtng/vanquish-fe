@@ -175,7 +175,14 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
 
         Route::apiResource('users', UserController::class);
         Route::get('/users-count', [UserController::class, 'count']);
+
+        // Menu Privileges
+        Route::get('/menu-privileges', [\App\Http\Controllers\Api\MenuPrivilegeController::class, 'index']);
+        Route::put('/menu-privileges', [\App\Http\Controllers\Api\MenuPrivilegeController::class, 'update']);
     });
+
+    // Menu Privileges - available to all authenticated users (to show correct sidebar)
+    Route::get('/menu-privileges/for-role/{role}', [\App\Http\Controllers\Api\MenuPrivilegeController::class, 'getForRole']);
 
     // Inductions (staff and admin only)
     Route::middleware('staff')->group(function () {

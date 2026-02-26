@@ -86,7 +86,7 @@
                                         <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 15px; line-height: 1.6;">
                                             Please select your preferred session time from your counsellor's availability to get started.
                                         </p>
-                                        <a href="{{ config('app.frontend_url') }}/client-booking?uuid={{ $clientUuid }}&email={{ urlencode($clientEmail) }}" style="display: inline-block; background: linear-gradient(135deg, #6f1d56 0%, #9b3d8a 100%); color: #ffffff; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; box-shadow: 0 4px 6px rgba(111, 29, 86, 0.2);">
+                                        <a href="{{ config('app.frontend_url') }}/client-booking?uuid={{ $clientUuid }}" style="display: inline-block; background: linear-gradient(135deg, #6f1d56 0%, #9b3d8a 100%); color: #ffffff; font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; box-shadow: 0 4px 6px rgba(111, 29, 86, 0.2);">
                                             Book Your First Session
                                         </a>
                                     </td>

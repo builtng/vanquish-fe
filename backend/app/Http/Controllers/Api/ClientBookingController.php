@@ -78,7 +78,7 @@ class ClientBookingController extends Controller
                 'allocated_time' => $client->allocated_time,
                 'next_booking_deadline' => $client->next_booking_deadline,
                 'matched_tc' => $client->matchedTc ? [
-                    'name' => $client->matchedTc->name,
+                    'name' => $client->matchedTc->abbreviated_name,
                     'uuid' => $client->matchedTc->uuid,
                 ] : null,
             ],
@@ -96,6 +96,21 @@ class ClientBookingController extends Controller
 
         if (!$client->matched_tc_id) {
             return response()->json(['message' => 'Client not matched'], 400);
+        }
+
+        // --- BOOKING GATE ---
+        // Admin must explicitly enable bookings for each service type.
+        // If not enabled, return empty slots with a clear flag so the frontend can
+        // show a "Booking not yet open" message rather than a calendar of fake dates.
+        $serviceType = $client->service_type;
+        $serviceSetting = \App\Models\ServiceSetting::where('service_name', $serviceType)->first();
+
+        if (!$serviceSetting || !$serviceSetting->booking_enabled) {
+            return response()->json([
+                'slots'           => [],
+                'booking_enabled' => false,
+                'message'         => 'Booking is not yet open for your service. Please check back soon or contact support.',
+            ]);
         }
 
         $tc = TrainingCounsellor::find($client->matched_tc_id);
@@ -211,7 +226,7 @@ class ClientBookingController extends Controller
     {
         $validated = $request->validate([
             'client_uuid' => 'required|string',
-            'scheduled_at' => 'required|date|after:now',
+            'scheduled_at' => 'required|date|after:' . now()->subMinutes(5)->toDateTimeString(),
             'session_type' => 'required|in:mid_range,counselling_coaching',
         ]);
 
@@ -261,7 +276,7 @@ class ClientBookingController extends Controller
                 [
                     'client_name' => $client->name,
                     'booking_type' => 'session',
-                    'counsellor_name' => $session->tc ? $session->tc->name : 'Your Counsellor',
+                    'counsellor_name' => $session->tc ? $session->tc->abbreviated_name : 'Your Counsellor',
                     'booking_details' => Carbon::parse($session->scheduled_at)->format('l, jS F Y (H:i)'),
                     'location' => 'Online',
                     'duration' => 50,
@@ -286,7 +301,7 @@ class ClientBookingController extends Controller
     {
         $validated = $request->validate([
             'client_uuid' => 'required|string',
-            'start_date' => 'required|date|after:now',
+            'start_date' => 'required|date|after:' . now()->subMinutes(5)->toDateTimeString(),
             'sessions_count' => 'nullable|integer|in:3,4',
             'time_slot' => 'nullable|string', // Optional if already set, required if not
         ]);
@@ -415,10 +430,13 @@ class ClientBookingController extends Controller
                 [
                     'client_name' => $client->name,
                     'booking_type' => 'Block of ' . count($sessions) . ' Sessions' . ($sessionsCount === 3 ? ' (Penalty Applied)' : ''),
-                    'counsellor_name' => $client->matchedTc ? $client->matchedTc->name : 'Your Counsellor',
+                    'counsellor_name' => $client->matchedTc ? $client->matchedTc->abbreviated_name : 'Your Counsellor',
                     'booking_details' => $sessionDatesFormatted,
                     'location' => 'Online',
-                    'duration' => 50
+                    'duration' => 50,
+                    'consultation_link' => config('app.frontend_url') . '/client-booking?uuid=' . $client->uuid,
+                    'date' => $startDate->format('F j, Y'),
+                    'time' => $startDate->format('H:i')
                 ]
             );
         }

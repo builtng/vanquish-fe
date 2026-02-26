@@ -159,7 +159,7 @@ class ClientAgreementController extends Controller
             ]);
 
             $baseUrl = rtrim(config('app.frontend_url'), '/');
-            $redirectUrl = $baseUrl . '/client-booking?uuid=' . $client->uuid . '&email=' . urlencode($client->email);
+            $redirectUrl = $baseUrl . '/client-booking?uuid=' . $client->uuid;
 
             return response()->json([
                 'message' => 'Agreement submitted successfully',

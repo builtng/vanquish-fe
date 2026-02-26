@@ -54,7 +54,7 @@ class InductionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'tc_id' => 'required|exists:training_counsellors,id',
-            'scheduled_at' => 'required|date|after:now',
+            'scheduled_at' => 'required|date|after:' . now()->subMinutes(5)->toDateTimeString(),
             'location' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
             'attendee_tc_ids' => 'required|array|min:1',
@@ -117,7 +117,7 @@ class InductionController extends Controller
             ->firstOrFail();
 
         $validator = Validator::make($request->all(), [
-            'scheduled_at' => 'sometimes|date|after:now',
+            'scheduled_at' => 'sometimes|date|after:' . now()->subMinutes(5)->toDateTimeString(),
             'location' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
             'status' => 'sometimes|in:scheduled,completed,cancelled',

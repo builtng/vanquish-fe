@@ -40,59 +40,78 @@ class ServiceController extends Controller
     }
 
     /**
-     * Update service capacity (admin only)
+     * Update service capacity and prices (admin only)
      */
     public function updateCapacity(Request $request)
     {
         try {
             $validated = $request->validate([
-                'service_name' => 'required|string',
-                'capacity_full' => 'required|boolean',
-                'capacity_message' => 'nullable|string',
-                'alternative_url' => 'nullable|url',
+                'service_name'      => 'required|string',
+                'capacity_full'     => 'sometimes|boolean',
+                'capacity_message'  => 'nullable|string',
+                'alternative_url'   => 'nullable|string',
+                'consultation_price' => 'nullable|numeric|min:0',
+                'session_price'     => 'nullable|numeric|min:0',
+                'block_price'       => 'nullable|numeric|min:0',
+                'booking_enabled'   => 'sometimes|boolean',
             ]);
+
+            $updateData = [];
+            if (array_key_exists('capacity_full', $validated))
+                $updateData['capacity_full']      = (bool) $validated['capacity_full'];
+            if (array_key_exists('capacity_message', $validated))
+                $updateData['capacity_message']   = $validated['capacity_message'];
+            if (array_key_exists('alternative_url', $validated))
+                $updateData['alternative_url']    = $validated['alternative_url'];
+            if (array_key_exists('consultation_price', $validated))
+                $updateData['consultation_price'] = $validated['consultation_price'] ?? 13.00;
+            if (array_key_exists('session_price', $validated))
+                $updateData['session_price']      = $validated['session_price'] ?? 0;
+            if (array_key_exists('block_price', $validated))
+                $updateData['block_price']        = $validated['block_price'] ?? 0;
+            if (array_key_exists('booking_enabled', $validated))
+                $updateData['booking_enabled']    = (bool) $validated['booking_enabled'];
 
             $setting = ServiceSetting::updateOrCreate(
                 ['service_name' => $validated['service_name']],
-                [
-                    'capacity_full' => (bool) $validated['capacity_full'],
-                    'capacity_message' => $validated['capacity_message'] ?? null,
-                    'alternative_url' => $validated['alternative_url'] ?? null,
-                ]
+                $updateData
             );
 
-            return response()->json([
-                'id' => $setting->id,
-                'service_name' => $setting->service_name,
-                'capacity_full' => (bool) $setting->capacity_full,
-                'capacity_message' => $setting->capacity_message,
-                'alternative_url' => $setting->alternative_url,
-            ]);
+            return response()->json($setting);
         } catch (\Exception $e) {
-            Log::error('Error updating service capacity: ' . $e->getMessage());
+            Log::error('Error updating service setting: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Failed to update service capacity',
+                'message' => 'Failed to update service setting',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error',
             ], 500);
         }
     }
 
     /**
-     * Update service price (admin only)
+     * Update service price specifically (admin only alternative)
      */
     public function updatePrice(Request $request)
     {
         try {
             $validated = $request->validate([
                 'service_name' => 'required|string',
-                'price' => 'required|numeric|min:0',
+                'consultation_price' => 'nullable|numeric|min:0',
+                'session_price' => 'nullable|numeric|min:0',
+                'block_price' => 'nullable|numeric|min:0',
             ]);
 
-            // This can be extended to store prices in service_settings or a separate table
+            $setting = ServiceSetting::updateOrCreate(
+                ['service_name' => $validated['service_name']],
+                [
+                    'consultation_price' => $validated['consultation_price'] ?? 13.00,
+                    'session_price' => $validated['session_price'] ?? 0,
+                    'block_price' => $validated['block_price'] ?? 0,
+                ]
+            );
+
             return response()->json([
                 'message' => 'Price updated successfully',
-                'service_name' => $validated['service_name'],
-                'price' => $validated['price'],
+                'service' => $setting
             ]);
         } catch (\Exception $e) {
             Log::error('Error updating service price: ' . $e->getMessage());

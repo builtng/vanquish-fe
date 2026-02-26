@@ -11,10 +11,14 @@ class ServiceSetting extends Model
         'capacity_full',
         'capacity_message',
         'alternative_url',
+        'consultation_price',
+        'session_price',
+        'block_price',
+        'booking_enabled',
     ];
 
     protected $casts = [
-        'capacity_full' => 'boolean',
+        'capacity_full'    => 'boolean',
+        'booking_enabled'  => 'boolean',
     ];
 }
-

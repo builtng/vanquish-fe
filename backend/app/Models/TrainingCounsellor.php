@@ -70,6 +70,24 @@ class TrainingCounsellor extends Model
         'qualified_form_completed' => 'boolean',
     ];
 
+    /**
+     * Get the abbreviated name (e.g., "John Smith" -> "John S.")
+     */
+    public function getAbbreviatedNameAttribute()
+    {
+        if (!$this->name) {
+            return '';
+        }
+
+        $parts = explode(' ', trim($this->name));
+        if (count($parts) > 1) {
+            $lastName = array_pop($parts);
+            return implode(' ', $parts) . ' ' . substr($lastName, 0, 1) . '.';
+        }
+
+        return $this->name;
+    }
+
     public function clients(): HasMany
     {
         return $this->hasMany(Client::class, 'matched_tc_id');
@@ -110,7 +128,7 @@ class TrainingCounsellor extends Model
     public function resolveRouteBinding($value, $field = null)
     {
         $field = $field ?: $this->getRouteKeyName();
-        
+
         // Try UUID first, then fall back to tc_id for backward compatibility
         return $this->where($field, $value)
             ->orWhere('tc_id', $value)

@@ -18,7 +18,7 @@ class ConsultationSlotController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'consultation_datetime' => 'required|date|after:now',
+            'consultation_datetime' => 'required|date|after:' . now()->subMinutes(5)->toDateTimeString(),
             'max_slots' => 'nullable|integer|min:1',
         ]);
 
@@ -37,7 +37,7 @@ class ConsultationSlotController extends Controller
         $slot = ConsultationSlot::findOrFail($id);
 
         $validated = $request->validate([
-            'consultation_datetime' => 'sometimes|date|after:now',
+            'consultation_datetime' => 'sometimes|date|after:' . now()->subMinutes(5)->toDateTimeString(),
             'max_slots' => 'nullable|integer|min:1',
             'status' => 'sometimes|in:available,full,closed',
         ]);

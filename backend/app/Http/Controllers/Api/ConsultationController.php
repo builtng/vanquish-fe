@@ -131,7 +131,7 @@ class ConsultationController extends Controller
                 [
                     'client_name' => $consultation->client->name,
                     'booking_type' => 'consultation',
-                    'counsellor_name' => $consultation->tc ? $consultation->tc->name : 'Assigned Counsellor',
+                    'counsellor_name' => $consultation->tc ? $consultation->tc->abbreviated_name : 'Assigned Counsellor',
                     'booking_details' => \Carbon\Carbon::parse($consultation->scheduled_at)->format('l, jS F Y (H:i)'),
                     'location' => 'Online',
                     'duration' => 50,
@@ -280,7 +280,7 @@ class ConsultationController extends Controller
                 [
                     'client_name' => $consultation->client->name,
                     'booking_type' => 'consultation',
-                    'counsellor_name' => $consultation->tc ? $consultation->tc->name : 'Assigned Counsellor',
+                    'counsellor_name' => $consultation->tc ? $consultation->tc->abbreviated_name : 'Assigned Counsellor',
                     'new_scheduled_at' => \Carbon\Carbon::parse($consultation->scheduled_at)->format('l, jS F Y (H:i)'),
                     'notes' => $consultation->notes ?? 'N/A',
                     'consultation_link' => $consultationLink

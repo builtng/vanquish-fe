@@ -507,7 +507,7 @@ class ClientController extends Controller
                 // Generate agreement URL
                 $baseUrl = rtrim(config('app.frontend_url'), '/');
                 $slug = ($client->service_type === 'Low Cost') ? 'low-cost' : 'mid-range';
-                $agreementUrl = $baseUrl . '/agreement/' . $slug . '?uuid=' . $client->uuid . '&email=' . urlencode($client->email);
+                $agreementUrl = $baseUrl . '/agreement/' . $slug . '?uuid=' . $client->uuid;
 
                 // Send email to client using EmailService
                 if ($client->email) {
@@ -516,7 +516,7 @@ class ClientController extends Controller
                         'match_assigned',
                         [
                             'client_name' => $client->name,
-                            'tc_name' => $tc->name,
+                            'tc_name' => $tc->abbreviated_name,
                             'email' => $client->email,
                             'agreement_url' => $agreementUrl
                         ]
@@ -789,7 +789,7 @@ class ClientController extends Controller
         // Send email
         $baseUrl = rtrim(config('app.frontend_url'), '/');
         $slug = ($client->service_type === 'Low Cost') ? 'low-cost' : 'mid-range';
-        $agreementUrl = $baseUrl . '/agreement/' . $slug . '?uuid=' . $client->uuid . '&email=' . urlencode($client->email);
+        $agreementUrl = $baseUrl . '/agreement/' . $slug . '?uuid=' . $client->uuid;
 
         $success = $this->emailService->sendAndLog(
             $client,
