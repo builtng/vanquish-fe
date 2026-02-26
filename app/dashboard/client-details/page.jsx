@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -634,6 +635,7 @@ export default function IndividualClientDetailPage() {
 
 
   return (
+    <PageGuard menuId="clients">
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
 
@@ -2061,6 +2063,7 @@ export default function IndividualClientDetailPage() {
 
       </div>
     </DashboardLayout>
+    </PageGuard>
   );
 }
 

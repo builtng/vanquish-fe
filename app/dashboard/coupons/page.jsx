@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -148,6 +149,7 @@ export default function CouponsPage() {
     .sort((a, b) => b.id - a.id); // Sort by ID descending (newest first)
 
   return (
+    <PageGuard menuId="coupons">
     <DashboardLayout>
       <DashboardHeader
         actions={
@@ -500,5 +502,6 @@ export default function CouponsPage() {
         </div>
       )}
     </DashboardLayout>
+    </PageGuard>
   );
 }

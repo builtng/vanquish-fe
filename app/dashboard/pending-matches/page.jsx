@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -323,7 +324,10 @@ export default function PendingMatchesPage() {
           preferredModality: client.preferred_modality || null,
           availability: client.availability
             ? Object.entries(client.availability).flatMap(([day, slots]) =>
-                slots.map((slot) => `${day} ${formatTimeSlot(slot)}`),
+                slots.map(
+                  (slot) =>
+                    `${day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()} ${formatTimeSlot(slot)}`,
+                ),
               )
             : [],
           location: client.address
@@ -541,6 +545,7 @@ export default function PendingMatchesPage() {
   };
 
   return (
+    <PageGuard menuId="pending-matches">
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -586,7 +591,8 @@ export default function PendingMatchesPage() {
                       ? Object.entries(client.availability).flatMap(
                           ([day, slots]) =>
                             slots.map(
-                              (slot) => `${day} ${formatTimeSlot(slot)}`,
+                              (slot) =>
+                                `${day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()} ${formatTimeSlot(slot)}`,
                             ),
                         )
                       : [],
@@ -1054,19 +1060,9 @@ export default function PendingMatchesPage() {
                             ? Object.entries(client.availability).flatMap(
                                 ([day, slots]) =>
                                   slots.map((slot) => {
-                                    const slotMap = {
-                                      "morning-early": "10-11am",
-                                      "morning-late": "11am-1pm",
-                                      "afternoon-early": "1-4pm",
-                                      "afternoon-late": "4-5pm",
-                                      evening: "5-7pm",
-                                    };
                                     const formattedSlot =
-                                      slotMap[slot] ||
-                                      (typeof slot === "string"
-                                        ? slot.replace("-", " ")
-                                        : slot);
-                                    return `${day} ${formattedSlot}`;
+                                      formatTimeSlotDisplay(slot);
+                                    return `${day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()} ${formattedSlot}`;
                                   }),
                               )
                             : [],
@@ -1110,5 +1106,6 @@ export default function PendingMatchesPage() {
         </>
       )}
     </DashboardLayout>
+    </PageGuard>
   );
 }

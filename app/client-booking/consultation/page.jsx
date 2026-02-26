@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { Loader2, Calendar, CheckCircle } from "lucide-react";
 import apiService from "@/lib/api";
+import CalendarPicker from "@/components/CalendarPicker";
 
 function InternalBookConsultation() {
   const router = useRouter();
@@ -95,7 +96,7 @@ function InternalBookConsultation() {
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-lg">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-4xl">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {loading ? (
             <div className="flex justify-center items-center h-32">
@@ -114,57 +115,25 @@ function InternalBookConsultation() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Available Dates
               </label>
-              <div className="grid grid-cols-1 gap-4 max-h-64 overflow-y-auto pr-2">
-                {slots.map((slot) => {
+              <CalendarPicker
+                availableSlots={slots.map((slot) => {
                   const date = new Date(slot.consultation_datetime);
-                  const isFull =
-                    slot.max_slots && slot.booked_slots >= slot.max_slots;
-                  const isSelected = selectedSlot?.id === slot.id;
-
-                  return (
-                    <button
-                      key={slot.id}
-                      disabled={isFull}
-                      onClick={() => setSelectedSlot(slot)}
-                      className={`
-                        relative block w-full border rounded-lg p-4 text-left focus:outline-none 
-                        ${isFull ? "bg-gray-100 border-gray-200 cursor-not-allowed opacity-50" : "cursor-pointer hover:border-[#0f2c4a]"}
-                        ${isSelected ? "border-[#0f2c4a] ring-1 ring-[#0f2c4a] bg-blue-50" : "border-gray-300"}
-                      `}
-                    >
-                      <div className="flex justify-between items-center text-gray-900">
-                        <div>
-                          <p className="text-base font-medium">
-                            {date.toLocaleDateString("en-GB", {
-                              weekday: "long",
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {date.toLocaleTimeString("en-GB", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              timeZone: "UTC",
-                            })}
-                          </p>
-                        </div>
-                        {isFull && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            Full
-                          </span>
-                        )}
-                        {!isFull && slot.max_slots && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            {slot.max_slots - slot.booked_slots} spots left
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
+                  return {
+                    ...slot,
+                    date: date.toISOString().split("T")[0],
+                    formatted_time: date.toLocaleTimeString("en-GB", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      timeZone: "UTC",
+                    }),
+                    available: !(
+                      slot.max_slots && slot.booked_slots >= slot.max_slots
+                    ),
+                  };
                 })}
-              </div>
+                selectedSlot={selectedSlot}
+                onSelect={(slot) => setSelectedSlot(slot)}
+              />
 
               <div className="pt-6">
                 <button

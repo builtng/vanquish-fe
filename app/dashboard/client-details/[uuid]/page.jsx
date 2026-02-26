@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -6,6 +7,7 @@ import { usePathname, useParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/lib/api";
+import { formatTimeSlotDisplay } from "@/lib/timeFormatter";
 
 import SessionNotesModal from "@/components/SessionNotesModal";
 import { useToast, showToast } from "@/lib/toast";
@@ -13,6 +15,7 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import DashboardLayout from "@/components/DashboardLayout";
 import PhotoUpload from "@/components/PhotoUpload";
+import RichTextEditor from "@/components/RichTextEditor";
 
 import {
   Users,
@@ -257,7 +260,9 @@ export default function IndividualClientDetailPage() {
         typeof data.availability === "object" &&
         !Array.isArray(data.availability)
           ? Object.entries(data.availability).map(([day, timeBlocks]) => ({
-              day: day,
+              day: day
+                ? day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()
+                : day,
               timeBlocks: Array.isArray(timeBlocks) ? timeBlocks : [],
             }))
           : Array.isArray(data.availability)
@@ -1086,140 +1091,101 @@ export default function IndividualClientDetailPage() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="min-h-screen bg-[var(--bg-secondary)] flex">
-        {/* Notification Toast */}
-        {notification && (
-          <div
-            className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 ${
-              notification.type === "error"
-                ? "bg-red-500 text-white"
-                : "bg-green-500 text-white"
-            }`}
-          >
-            <span>{notification.message}</span>
-            <button onClick={() => setNotification(null)} className="ml-2">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Add Session Modal */}
-        {showAddSessionModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">Add New Session</h3>
-              <AddSessionFormComponent
-                client={client}
-                onSubmit={handleAddSession}
-                onCancel={() => setShowAddSessionModal(false)}
-                loading={actionLoading}
-              />
+    <PageGuard menuId="clients">
+      <DashboardLayout>
+        <div className="min-h-screen bg-[var(--bg-secondary)] flex">
+          {/* Notification Toast */}
+          {notification && (
+            <div
+              className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 ${
+                notification.type === "error"
+                  ? "bg-red-500 text-white"
+                  : "bg-green-500 text-white"
+              }`}
+            >
+              <span>{notification.message}</span>
+              <button onClick={() => setNotification(null)} className="ml-2">
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Send Email Modal */}
-        {showEmailModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">
-                Send Email to {client?.name}
-              </h3>
-              <EmailFormComponent
-                clientEmail={client?.email}
-                onSubmit={handleSendEmailSubmit}
-                onCancel={() => setShowEmailModal(false)}
-                loading={actionLoading}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Session Notes Modal */}
-        <SessionNotesModal
-          isOpen={showSessionNotesModal}
-          onClose={() => {
-            setShowSessionNotesModal(false);
-            setSelectedSession(null);
-          }}
-          session={selectedSession}
-        />
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
-
-          <div className="bg-[var(--card-bg)] border-b border-[var(--border-color)]">
-            {/* Breadcrumb */}
-
-            <div className="px-6 py-3 border-b border-[var(--border-color)]">
-              <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                <Link
-                  href="/dashboard/clients"
-                  className="hover:text-purple-600"
-                >
-                  All Clients
-                </Link>
-
-                <ChevronRight className="w-4 h-4" />
-
-                <span className="text-[var(--text-primary)] font-medium">
-                  {client.name}
-                </span>
+          {/* Add Session Modal */}
+          {showAddSessionModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-semibold mb-4">Add New Session</h3>
+                <AddSessionFormComponent
+                  client={client}
+                  onSubmit={handleAddSession}
+                  onCancel={() => setShowAddSessionModal(false)}
+                  loading={actionLoading}
+                />
               </div>
             </div>
+          )}
 
-            {/* Client Header */}
+          {/* Send Email Modal */}
+          {showEmailModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-semibold mb-4">
+                  Send Email to {client?.name}
+                </h3>
+                <EmailFormComponent
+                  clientEmail={client?.email}
+                  onSubmit={handleSendEmailSubmit}
+                  onCancel={() => setShowEmailModal(false)}
+                  loading={actionLoading}
+                />
+              </div>
+            </div>
+          )}
 
-            <div className="px-6 py-4">
-              <div className="flex items-start justify-between">
-                <div
-                  className={`flex items-start gap-4 ${client.status === "archived" ? "pointer-events-none" : ""}`}
-                >
-                  {clientPhoto ? (
-                    <PhotoUpload
-                      photoUrl={clientPhoto}
-                      entityId={client.uuid || client.id}
-                      entityType="client"
-                      onUpload={async (id, file) => {
-                        const response = await apiService.uploadClientPhoto(
-                          id,
-                          file,
-                        );
-                        setClientPhoto(response.photo_url || response.photo);
-                        // Refresh client data
-                        const data = await apiService.getClientDetails(uuid);
-                        const transformedData = transformClientData(data);
-                        setClient(transformedData);
-                        return response;
-                      }}
-                      onDelete={async (id) => {
-                        await apiService.deleteClientPhoto(id);
-                        setClientPhoto(null);
-                        // Refresh client data
-                        const data = await apiService.getClientDetails(uuid);
-                        const transformedData = transformClientData(data);
-                        setClient(transformedData);
-                      }}
-                      size="medium"
-                    />
-                  ) : (
-                    <div className="relative">
-                      <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold"
-                        style={{ backgroundColor: "#6f1d56" }}
-                      >
-                        {client.name
-                          ? client.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .toUpperCase()
-                          : "??"}
-                      </div>
+          {/* Session Notes Modal */}
+          <SessionNotesModal
+            isOpen={showSessionNotesModal}
+            onClose={() => {
+              setShowSessionNotesModal(false);
+              setSelectedSession(null);
+            }}
+            session={selectedSession}
+          />
+
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Header */}
+
+            <div className="bg-[var(--card-bg)] border-b border-[var(--border-color)]">
+              {/* Breadcrumb */}
+
+              <div className="px-6 py-3 border-b border-[var(--border-color)]">
+                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                  <Link
+                    href="/dashboard/clients"
+                    className="hover:text-purple-600"
+                  >
+                    All Clients
+                  </Link>
+
+                  <ChevronRight className="w-4 h-4" />
+
+                  <span className="text-[var(--text-primary)] font-medium">
+                    {client.name}
+                  </span>
+                </div>
+              </div>
+
+              {/* Client Header */}
+
+              <div className="px-6 py-4">
+                <div className="flex items-start justify-between">
+                  <div
+                    className={`flex items-start gap-4 ${client.status === "archived" ? "pointer-events-none" : ""}`}
+                  >
+                    {clientPhoto ? (
                       <PhotoUpload
-                        photoUrl={null}
+                        photoUrl={clientPhoto}
                         entityId={client.uuid || client.id}
                         entityType="client"
                         onUpload={async (id, file) => {
@@ -1244,716 +1210,767 @@ export default function IndividualClientDetailPage() {
                         }}
                         size="medium"
                       />
-                    </div>
-                  )}
+                    ) : (
+                      <div className="relative">
+                        <div
+                          className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold"
+                          style={{ backgroundColor: "#6f1d56" }}
+                        >
+                          {client.name
+                            ? client.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase()
+                            : "??"}
+                        </div>
+                        <PhotoUpload
+                          photoUrl={null}
+                          entityId={client.uuid || client.id}
+                          entityType="client"
+                          onUpload={async (id, file) => {
+                            const response = await apiService.uploadClientPhoto(
+                              id,
+                              file,
+                            );
+                            setClientPhoto(
+                              response.photo_url || response.photo,
+                            );
+                            // Refresh client data
+                            const data =
+                              await apiService.getClientDetails(uuid);
+                            const transformedData = transformClientData(data);
+                            setClient(transformedData);
+                            return response;
+                          }}
+                          onDelete={async (id) => {
+                            await apiService.deleteClientPhoto(id);
+                            setClientPhoto(null);
+                            // Refresh client data
+                            const data =
+                              await apiService.getClientDetails(uuid);
+                            const transformedData = transformClientData(data);
+                            setClient(transformedData);
+                          }}
+                          size="medium"
+                        />
+                      </div>
+                    )}
 
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-                        {client.name}
-                      </h1>
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+                          {client.name}
+                        </h1>
 
-                      <span className="text-gray-600">•</span>
+                        <span className="text-gray-600">•</span>
 
-                      <span className="text-lg text-[var(--text-secondary)]">
-                        {client.age} years old
-                      </span>
+                        <span className="text-lg text-[var(--text-secondary)]">
+                          {client.age} years old
+                        </span>
 
-                      <span className="text-gray-600">•</span>
+                        <span className="text-gray-600">•</span>
 
-                      <span className="text-sm text-[var(--text-tertiary)]">
-                        ID: {client.id}
-                      </span>
-                    </div>
+                        <span className="text-sm text-[var(--text-tertiary)]">
+                          ID: {client.id}
+                        </span>
+                      </div>
 
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-3 h-3 rounded-full ${getStatusColor(client.status)}`}
-                      ></div>
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-3 h-3 rounded-full ${getStatusColor(client.status)}`}
+                        ></div>
 
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${getStageBadgeColor(client.stage)}`}
-                      >
-                        {client.stage}
-                      </span>
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${getStageBadgeColor(client.stage)}`}
+                        >
+                          {client.stage}
+                        </span>
 
-                      <span className="text-sm text-[var(--text-secondary)]">
-                        Last activity: 2 hours ago
-                      </span>
+                        <span className="text-sm text-[var(--text-secondary)]">
+                          Last activity: 2 hours ago
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Quick Actions */}
+                  {/* Quick Actions */}
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleSendEmail}
-                    disabled={actionLoading || client.status === "archived"}
-                    className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Mail className="w-4 h-4" />
-                    Send Email
-                  </button>
-
-                  <button
-                    onClick={handleCall}
-                    disabled={client.status === "archived"}
-                    className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Phone className="w-4 h-4" />
-                    Call
-                  </button>
-
-                  {(client.stage === "Active Therapy" ||
-                    client.stage === "Completed") && (
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={handleSendFeedbackForm}
+                      onClick={handleSendEmail}
+                      disabled={actionLoading || client.status === "archived"}
+                      className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Mail className="w-4 h-4" />
+                      Send Email
+                    </button>
+
+                    <button
+                      onClick={handleCall}
+                      disabled={client.status === "archived"}
+                      className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Phone className="w-4 h-4" />
+                      Call
+                    </button>
+
+                    {(client.stage === "Active Therapy" ||
+                      client.stage === "Completed") && (
+                      <button
+                        onClick={handleSendFeedbackForm}
+                        disabled={
+                          actionLoading ||
+                          (client.lastFeedbackSentAt &&
+                            new Date(client.lastFeedbackSentAt) >
+                              new Date(
+                                Date.now() - 90 * 24 * 60 * 60 * 1000,
+                              )) ||
+                          client.status === "archived"
+                        }
+                        className="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Send className="w-4 h-4" />
+                        Send Feedback Form
+                      </button>
+                    )}
+
+                    <Link
+                      href={`/dashboard/clients/edit?id=${uuid}`}
+                      className={`px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 ${client.status === "archived" ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}`}
+                    >
+                      <Edit className="w-4 h-4" />
+                      Edit
+                    </Link>
+
+                    <button
+                      onClick={
+                        client.status === "archived"
+                          ? handleUnarchive
+                          : handleArchive
+                      }
                       disabled={
                         actionLoading ||
-                        (client.lastFeedbackSentAt &&
-                          new Date(client.lastFeedbackSentAt) >
-                            new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)) ||
-                        client.status === "archived"
+                        (client.status === "archived" && user?.role !== "admin")
                       }
-                      className="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`px-4 py-2 border rounded-lg font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        client.status === "archived"
+                          ? "border-green-300 text-green-700 hover:bg-green-50"
+                          : "border-red-300 text-red-700 hover:bg-red-50"
+                      }`}
                     >
-                      <Send className="w-4 h-4" />
-                      Send Feedback Form
+                      <Archive className="w-4 h-4" />
+
+                      {client.status === "archived" ? "Unarchive" : "Archive"}
                     </button>
-                  )}
-
-                  <Link
-                    href={`/dashboard/clients/edit?id=${uuid}`}
-                    className={`px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 ${client.status === "archived" ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}`}
-                  >
-                    <Edit className="w-4 h-4" />
-                    Edit
-                  </Link>
-
-                  <button
-                    onClick={
-                      client.status === "archived"
-                        ? handleUnarchive
-                        : handleArchive
-                    }
-                    disabled={
-                      actionLoading ||
-                      (client.status === "archived" && user?.role !== "admin")
-                    }
-                    className={`px-4 py-2 border rounded-lg font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      client.status === "archived"
-                        ? "border-green-300 text-green-700 hover:bg-green-50"
-                        : "border-red-300 text-red-700 hover:bg-red-50"
-                    }`}
-                  >
-                    <Archive className="w-4 h-4" />
-
-                    {client.status === "archived" ? "Unarchive" : "Archive"}
-                  </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Content Area - Scrollable */}
+            {/* Content Area - Scrollable */}
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-6 space-y-6">
-              {/* Overview Cards */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-6 space-y-6">
+                {/* Overview Cards */}
 
-              <div className="grid grid-cols-4 gap-4">
-                <div className="bg-[var(--purple-bg)] rounded-lg p-4 border border-[var(--purple-border)]">
-                  <p className="text-sm text-[var(--purple-primary)] mb-1">
-                    Service Type
-                  </p>
-
-                  <p className="text-xl font-bold text-[var(--purple-primary)]">
-                    {client.serviceType}
-                  </p>
-                </div>
-
-                <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
-                  <p className="text-sm text-blue-600 dark:text-blue-300 mb-1">
-                    Days in System
-                  </p>
-
-                  <p className="text-xl font-bold text-blue-900 dark:text-blue-100">
-                    {client.daysInSystem} days
-                  </p>
-                </div>
-
-                <div className="bg-[var(--success-bg)] rounded-lg p-4 border border-[var(--success-border)]">
-                  <p className="text-sm text-[var(--success-primary)] mb-1">
-                    Sessions Completed
-                  </p>
-
-                  <p className="text-xl font-bold text-[var(--success-primary)]">
-                    {client.packageDetails?.sessionsCompleted || 0}/
-                    {client.packageDetails?.totalSessions || 0}
-                  </p>
-                </div>
-
-                {(client.satisfactionScore !== null ||
-                  client.feedbackCount > 0) && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-lg p-4 border border-yellow-100 dark:border-yellow-800">
-                    <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-1">
-                      Client Satisfaction
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="bg-[var(--purple-bg)] rounded-lg p-4 border border-[var(--purple-border)]">
+                    <p className="text-sm text-[var(--purple-primary)] mb-1">
+                      Service Type
                     </p>
 
-                    <div className="flex items-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                      <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">
-                        {client.satisfactionScore
-                          ? client.satisfactionScore.toFixed(1)
-                          : "N/A"}
-                        {client.satisfactionScore && (
-                          <span className="text-sm text-yellow-700 dark:text-yellow-400">
-                            /5.0
+                    <p className="text-xl font-bold text-[var(--purple-primary)]">
+                      {client.serviceType}
+                    </p>
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
+                    <p className="text-sm text-blue-600 dark:text-blue-300 mb-1">
+                      Days in System
+                    </p>
+
+                    <p className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                      {client.daysInSystem} days
+                    </p>
+                  </div>
+
+                  <div className="bg-[var(--success-bg)] rounded-lg p-4 border border-[var(--success-border)]">
+                    <p className="text-sm text-[var(--success-primary)] mb-1">
+                      Sessions Completed
+                    </p>
+
+                    <p className="text-xl font-bold text-[var(--success-primary)]">
+                      {client.packageDetails?.sessionsCompleted || 0}/
+                      {client.packageDetails?.totalSessions || 0}
+                    </p>
+                  </div>
+
+                  {(client.satisfactionScore !== null ||
+                    client.feedbackCount > 0) && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-lg p-4 border border-yellow-100 dark:border-yellow-800">
+                      <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-1">
+                        Client Satisfaction
+                      </p>
+
+                      <div className="flex items-center gap-2">
+                        <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                        <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">
+                          {client.satisfactionScore
+                            ? client.satisfactionScore.toFixed(1)
+                            : "N/A"}
+                          {client.satisfactionScore && (
+                            <span className="text-sm text-yellow-700 dark:text-yellow-400">
+                              /5.0
+                            </span>
+                          )}
+                        </p>
+                        {client.feedbackCount > 0 && (
+                          <span className="text-xs text-yellow-700 dark:text-yellow-400">
+                            ({client.feedbackCount})
                           </span>
                         )}
-                      </p>
-                      {client.feedbackCount > 0 && (
-                        <span className="text-xs text-yellow-700 dark:text-yellow-400">
-                          ({client.feedbackCount})
-                        </span>
-                      )}
+                      </div>
                     </div>
+                  )}
+
+                  <div className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-4 border border-orange-100 dark:border-orange-800">
+                    <p className="text-sm text-orange-600 dark:text-orange-300 mb-1">
+                      Next Session
+                    </p>
+
+                    <p className="text-sm font-bold text-orange-900 dark:text-orange-100">
+                      28 Mar, 10:00 AM
+                    </p>
                   </div>
-                )}
-
-                <div className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-4 border border-orange-100 dark:border-orange-800">
-                  <p className="text-sm text-orange-600 dark:text-orange-300 mb-1">
-                    Next Session
-                  </p>
-
-                  <p className="text-sm font-bold text-orange-900 dark:text-orange-100">
-                    28 Mar, 10:00 AM
-                  </p>
                 </div>
-              </div>
 
-              {/* Journey Timeline */}
+                {/* Journey Timeline */}
 
-              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
-                <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-                  Client Journey
-                </h2>
+                <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+                    Client Journey
+                  </h2>
 
-                <div className="relative">
-                  {/* Timeline Line */}
+                  <div className="relative">
+                    {/* Timeline Line */}
 
-                  <div className="absolute top-6 left-0 right-0 h-0.5 bg-[var(--border-color)]"></div>
+                    <div className="absolute top-6 left-0 right-0 h-0.5 bg-[var(--border-color)]"></div>
 
-                  <div
-                    className="absolute top-6 left-0 h-0.5 bg-[var(--purple-primary)] transition-all duration-500"
-                    style={{
-                      width: `${
-                        client.journey && client.journey.length > 0
-                          ? ((client.journey.findIndex((j) => j.current) !== -1
-                              ? client.journey.findIndex((j) => j.current) + 1
-                              : client.journey.filter((j) => j.completed)
-                                  .length) /
-                              client.journey.length) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                  ></div>
+                    <div
+                      className="absolute top-6 left-0 h-0.5 bg-[var(--purple-primary)] transition-all duration-500"
+                      style={{
+                        width: `${
+                          client.journey && client.journey.length > 0
+                            ? ((client.journey.findIndex((j) => j.current) !==
+                              -1
+                                ? client.journey.findIndex((j) => j.current) + 1
+                                : client.journey.filter((j) => j.completed)
+                                    .length) /
+                                client.journey.length) *
+                              100
+                            : 0
+                        }%`,
+                      }}
+                    ></div>
 
-                  {/* Timeline Stages */}
+                    {/* Timeline Stages */}
 
-                  <div className="relative flex justify-between">
-                    {(client.journey || []).map((stage, index) => (
-                      <div
-                        key={index}
-                        className="flex flex-col items-center"
-                        style={{ flex: 1 }}
-                      >
-                        {/* Circle */}
-
+                    <div className="relative flex justify-between">
+                      {(client.journey || []).map((stage, index) => (
                         <div
-                          className={`w-12 h-12 rounded-full border-4 flex items-center justify-center relative z-10 ${
-                            stage.completed
-                              ? "bg-[var(--purple-primary)] border-[var(--purple-primary)]"
-                              : stage.current
-                                ? "bg-[var(--card-bg)] border-[var(--purple-primary)]"
-                                : "bg-[var(--card-bg)] border-[var(--border-color)]"
-                          }`}
+                          key={index}
+                          className="flex flex-col items-center"
+                          style={{ flex: 1 }}
                         >
-                          {stage.completed ? (
-                            <Check className="w-6 h-6 text-white" />
-                          ) : stage.current ? (
-                            <Clock className="w-6 h-6 text-[var(--purple-primary)]" />
-                          ) : (
-                            <div className="w-3 h-3 rounded-full bg-[var(--text-tertiary)] opacity-30"></div>
-                          )}
-                        </div>
+                          {/* Circle */}
 
-                        {/* Label */}
-
-                        <div className="mt-3 text-center">
-                          <p
-                            className={`text-xs font-medium ${
-                              stage.completed || stage.current
-                                ? "text-[var(--text-primary)]"
-                                : "text-[var(--text-tertiary)]"
+                          <div
+                            className={`w-12 h-12 rounded-full border-4 flex items-center justify-center relative z-10 ${
+                              stage.completed
+                                ? "bg-[var(--purple-primary)] border-[var(--purple-primary)]"
+                                : stage.current
+                                  ? "bg-[var(--card-bg)] border-[var(--purple-primary)]"
+                                  : "bg-[var(--card-bg)] border-[var(--border-color)]"
                             }`}
                           >
-                            {stage.stage}
-                          </p>
+                            {stage.completed ? (
+                              <Check className="w-6 h-6 text-white" />
+                            ) : stage.current ? (
+                              <Clock className="w-6 h-6 text-[var(--purple-primary)]" />
+                            ) : (
+                              <div className="w-3 h-3 rounded-full bg-[var(--text-tertiary)] opacity-30"></div>
+                            )}
+                          </div>
 
-                          {stage.date && (
-                            <p className="text-xs text-[var(--text-tertiary)] mt-1">
-                              {stage.date}
+                          {/* Label */}
+
+                          <div className="mt-3 text-center">
+                            <p
+                              className={`text-xs font-medium ${
+                                stage.completed || stage.current
+                                  ? "text-[var(--text-primary)]"
+                                  : "text-[var(--text-tertiary)]"
+                              }`}
+                            >
+                              {stage.stage}
                             </p>
-                          )}
+
+                            {stage.date && (
+                              <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                                {stage.date}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Two Column Layout */}
+                {/* Two Column Layout */}
 
-              <div className="grid grid-cols-3 gap-6">
-                {/* Left Column - 2/3 width */}
+                <div className="grid grid-cols-3 gap-6">
+                  {/* Left Column - 2/3 width */}
 
-                <div className="col-span-2 space-y-6">
-                  {/* Personal Information */}
+                  <div className="col-span-2 space-y-6">
+                    {/* Personal Information */}
 
-                  <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                        Personal Information
-                      </h2>
+                    <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                          Personal Information
+                        </h2>
 
-                      <Link
-                        href={`/dashboard/clients/edit?id=${uuid}`}
-                        className="text-[var(--purple-primary)] hover:opacity-80 text-sm font-medium flex items-center gap-1"
-                      >
-                        <Edit className="w-4 h-4" />
-                        Edit
-                      </Link>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-[var(--text-secondary)] mb-1">
-                          Full Name
-                        </p>
-
-                        <p className="text-sm font-medium text-[var(--text-primary)]">
-                          {client.name}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-[var(--text-secondary)] mb-1">
-                          Age
-                        </p>
-
-                        <p className="text-sm font-medium text-[var(--text-primary)]">
-                          {client.age} years old
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-[var(--text-secondary)] mb-1">
-                          Email
-                        </p>
-
-                        <p className="text-sm font-medium text-[var(--text-primary)]">
-                          {client.email}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-[var(--text-secondary)] mb-1">
-                          Phone
-                        </p>
-
-                        <p className="text-sm font-medium text-[var(--text-primary)]">
-                          {client.phone}
-                        </p>
-                      </div>
-
-                      <div className="col-span-2">
-                        <p className="text-sm text-[var(--text-secondary)] mb-1">
-                          Address
-                        </p>
-
-                        <p className="text-sm font-medium text-[var(--text-primary)]">
-                          {client.address}, {client.postcode}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-[var(--text-secondary)] mb-1">
-                          Gender
-                        </p>
-
-                        <p className="text-sm font-medium text-[var(--text-primary)]">
-                          {client.gender}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-[var(--text-secondary)] mb-1">
-                          Ethnicity
-                        </p>
-
-                        <p className="text-sm font-medium text-[var(--text-primary)]">
-                          {client.ethnicity}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-[var(--text-secondary)] mb-1">
-                          Sexual Orientation
-                        </p>
-
-                        <p className="text-sm font-medium text-[var(--text-primary)]">
-                          {client.sexualOrientation}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">
-                          Voicemail Permission
-                        </p>
-
-                        <p className="text-sm font-medium text-gray-900">
-                          {client.voicemailPermission}
-                        </p>
-                      </div>
-
-                      <div className="col-span-2">
-                        <p className="text-sm text-gray-600 mb-1">
-                          How They Heard About Us
-                        </p>
-
-                        <p className="text-sm font-medium text-gray-900">
-                          {client.howHeardAbout}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Clinical Information */}
-
-                  <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
-                    <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-                      Clinical Information
-                    </h2>
-
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-sm text-[var(--text-secondary)] mb-2">
-                          Primary Issues / Concerns
-                        </p>
-
-                        <div className="flex flex-wrap gap-2">
-                          {client.primaryIssues.map((issue) => (
-                            <span
-                              key={issue}
-                              className="px-3 py-1 bg-red-100 text-red-800 text-sm rounded-full"
-                            >
-                              {issue}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-sm text-[var(--text-secondary)] mb-2">
-                          Additional Details
-                        </p>
-
-                        <p className="text-sm text-[var(--text-primary)] bg-[var(--bg-secondary)] p-3 rounded-lg">
-                          {client.additionalDetails}
-                        </p>
+                        <Link
+                          href={`/dashboard/clients/edit?id=${uuid}`}
+                          className="text-[var(--purple-primary)] hover:opacity-80 text-sm font-medium flex items-center gap-1"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </Link>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-2">
-                            Medication
+                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                            Full Name
                           </p>
 
-                          <p className="text-sm text-[var(--text-primary)]">
-                            {client.medication}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-2">
-                            Disabilities / Impairments
-                          </p>
-
-                          <p className="text-sm text-[var(--text-primary)]">
-                            {client.disabilities}
+                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                            {client.name}
                           </p>
                         </div>
 
                         <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-2">
-                            Risk Flags
+                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                            Age
                           </p>
 
-                          <p className="text-sm text-[var(--text-primary)]">
-                            {client.riskFlags}
+                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                            {client.age} years old
                           </p>
                         </div>
 
                         <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-2">
-                            Substance Misuse
+                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                            Email
                           </p>
 
-                          <p className="text-sm text-[var(--text-primary)]">
-                            {client.substanceMisuse}
+                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                            {client.email}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                            Phone
+                          </p>
+
+                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                            {client.phone}
+                          </p>
+                        </div>
+
+                        <div className="col-span-2">
+                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                            Address
+                          </p>
+
+                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                            {client.address}, {client.postcode}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                            Gender
+                          </p>
+
+                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                            {client.gender}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                            Ethnicity
+                          </p>
+
+                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                            {client.ethnicity}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                            Sexual Orientation
+                          </p>
+
+                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                            {client.sexualOrientation}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">
+                            Voicemail Permission
+                          </p>
+
+                          <p className="text-sm font-medium text-gray-900">
+                            {client.voicemailPermission}
+                          </p>
+                        </div>
+
+                        <div className="col-span-2">
+                          <p className="text-sm text-gray-600 mb-1">
+                            How They Heard About Us
+                          </p>
+
+                          <p className="text-sm font-medium text-gray-900">
+                            {client.howHeardAbout}
                           </p>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* CORE-34 Assessment Section */}
-                  <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] overflow-hidden">
-                    <button
-                      onClick={() => setShowAssessment(!showAssessment)}
-                      className="w-full flex items-center justify-between p-6 hover:bg-[var(--hover-bg)] transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                          <ClipboardList className="w-5 h-5 text-[var(--purple-primary)]" />
-                        </div>
-                        <div className="text-left">
-                          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-                            CORE-34 Assessment
-                          </h2>
-                          <p className="text-sm text-[var(--text-tertiary)]">
-                            {Object.keys(client.core34Answers || {}).length} of
-                            34 questions answered
-                          </p>
-                        </div>
-                      </div>
-                      {showAssessment ? (
-                        <ChevronDown className="w-5 h-5 text-[var(--text-tertiary)]" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-[var(--text-tertiary)]" />
-                      )}
-                    </button>
+                    {/* Clinical Information */}
 
-                    {showAssessment && (
-                      <div className="p-6 pt-0 border-t border-[var(--border-color)]">
-                        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 mt-6 custom-scrollbar">
-                          {core34Questions.map((question, index) => {
-                            const answer = client.core34Answers?.[index];
-                            const isRiskItem = [5, 8, 15, 23, 33].includes(
-                              index,
-                            ); // 0-based indices for 6, 9, 16, 24, 34
-
-                            return (
-                              <div
-                                key={index}
-                                className={`p-4 rounded-xl border ${
-                                  isRiskItem &&
-                                  (answer === "Often" ||
-                                    answer === "Most or all the time")
-                                    ? "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30"
-                                    : "bg-[var(--bg-secondary)] border-[var(--border-color)]"
-                                }`}
-                              >
-                                <div className="flex justify-between items-start gap-4">
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <span className="text-xs font-medium text-[var(--text-tertiary)]">
-                                        Question {index + 1}
-                                      </span>
-                                      {isRiskItem && (
-                                        <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] font-bold rounded uppercase tracking-wider">
-                                          Risk Item
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-sm font-medium text-[var(--text-primary)] leading-relaxed">
-                                      {question}
-                                    </p>
-                                  </div>
-                                  <div className="text-right shrink-0">
-                                    <span
-                                      className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${
-                                        !answer
-                                          ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
-                                          : answer === "Not at all"
-                                            ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400"
-                                            : answer === "Only occasionally"
-                                              ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
-                                              : answer === "Sometimes"
-                                                ? "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400"
-                                                : "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400"
-                                      }`}
-                                    >
-                                      {answer || "Unanswered"}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Availability */}
-
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                      Availability Schedule
-                    </h2>
-
-                    <div className="space-y-3">
-                      {Array.isArray(client.availability) &&
-                      client.availability.length > 0 ? (
-                        client.availability.map((avail) => (
-                          <div
-                            key={avail.day}
-                            className="flex items-center gap-4 p-3 bg-[var(--purple-bg)] rounded-lg border border-[var(--purple-border)]"
-                          >
-                            <div className="w-28">
-                              <p className="text-sm font-medium text-[var(--purple-primary)]">
-                                {avail.day}
-                              </p>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                              {avail.timeBlocks.map((block) => {
-                                const slotMap = {
-                                  "morning-early": "10-11am",
-                                  "morning-late": "11am-1pm",
-                                  "afternoon-early": "1-4pm",
-                                  "afternoon-late": "4-5pm",
-                                  evening: "5-7pm",
-                                };
-                                const formattedBlock =
-                                  slotMap[block] ||
-                                  (typeof block === "string"
-                                    ? block.replace("-", " ")
-                                    : block);
-                                return (
-                                  <span
-                                    key={block}
-                                    className="px-3 py-1 bg-[var(--purple-primary)] text-white text-sm rounded-full"
-                                  >
-                                    {formattedBlock}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-500 italic">
-                          No availability information available
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Matched Trainee Counsellor */}
-
-                  {client.matchedTC && (
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                        Matched Trainee Counsellor
+                    <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
+                      <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+                        Clinical Information
                       </h2>
 
-                      {/* TC Profile Card */}
-
-                      <div className="border border-gray-200 rounded-lg p-4 mb-4">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-[var(--purple-bg)] flex items-center justify-center">
-                              <User className="w-6 h-6 text-[var(--purple-primary)]" />
-                            </div>
-
-                            <div>
-                              <p className="font-semibold text-gray-900">
-                                {client.matchedTC.name}
-                              </p>
-
-                              <p className="text-sm text-gray-600">
-                                {client.matchedTC.modality}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-[var(--purple-primary)]">
-                              {client.matchedTC.matchScore}%
-                            </p>
-
-                            <p className="text-xs text-gray-600">Match Score</p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 mb-4">
-                          <div className="bg-gray-50 p-3 rounded-lg">
-                            <p className="text-xs text-gray-600 mb-1">
-                              Current Caseload
-                            </p>
-
-                            <p className="text-sm font-semibold text-gray-900">
-                              {client.matchedTC.currentClients}/
-                              {client.matchedTC.maxClients} clients
-                            </p>
-                          </div>
-
-                          <div className="bg-gray-50 p-3 rounded-lg">
-                            <p className="text-xs text-gray-600 mb-1">
-                              Contact
-                            </p>
-
-                            <p className="text-sm font-semibold text-gray-900">
-                              {client.matchedTC.email}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Other Clients */}
-
+                      <div className="space-y-4">
                         <div>
-                          <p className="text-xs text-gray-600 mb-2">
-                            Other Clients
+                          <p className="text-sm text-[var(--text-secondary)] mb-2">
+                            Primary Issues / Concerns
                           </p>
 
                           <div className="flex flex-wrap gap-2">
-                            {client.matchedTC.otherClients.map((oc, idx) => (
+                            {client.primaryIssues.map((issue) => (
                               <span
-                                key={idx}
-                                className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                                key={issue}
+                                className="px-3 py-1 bg-red-100 text-red-800 text-sm rounded-full"
                               >
-                                {oc.name}, {oc.age}
+                                {issue}
                               </span>
                             ))}
                           </div>
                         </div>
+
+                        <div>
+                          <p className="text-sm text-[var(--text-secondary)] mb-2">
+                            Additional Details
+                          </p>
+
+                          <p className="text-sm text-[var(--text-primary)] bg-[var(--bg-secondary)] p-3 rounded-lg">
+                            {client.additionalDetails}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-[var(--text-secondary)] mb-2">
+                              Medication
+                            </p>
+
+                            <p className="text-sm text-[var(--text-primary)]">
+                              {client.medication}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-sm text-[var(--text-secondary)] mb-2">
+                              Disabilities / Impairments
+                            </p>
+
+                            <p className="text-sm text-[var(--text-primary)]">
+                              {client.disabilities}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-sm text-[var(--text-secondary)] mb-2">
+                              Risk Flags
+                            </p>
+
+                            <p className="text-sm text-[var(--text-primary)]">
+                              {client.riskFlags}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-sm text-[var(--text-secondary)] mb-2">
+                              Substance Misuse
+                            </p>
+
+                            <p className="text-sm text-[var(--text-primary)]">
+                              {client.substanceMisuse}
+                            </p>
+                          </div>
+                        </div>
                       </div>
+                    </div>
 
-                      {/* Match Score Breakdown */}
+                    {/* CORE-34 Assessment Section */}
+                    <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] overflow-hidden">
+                      <button
+                        onClick={() => setShowAssessment(!showAssessment)}
+                        className="w-full flex items-center justify-between p-6 hover:bg-[var(--hover-bg)] transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                            <ClipboardList className="w-5 h-5 text-[var(--purple-primary)]" />
+                          </div>
+                          <div className="text-left">
+                            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                              CORE-34 Assessment
+                            </h2>
+                            <p className="text-sm text-[var(--text-tertiary)]">
+                              {Object.keys(client.core34Answers || {}).length}{" "}
+                              of 34 questions answered
+                            </p>
+                          </div>
+                        </div>
+                        {showAssessment ? (
+                          <ChevronDown className="w-5 h-5 text-[var(--text-tertiary)]" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-[var(--text-tertiary)]" />
+                        )}
+                      </button>
 
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 mb-3">
-                          Match Score Breakdown
-                        </p>
+                      {showAssessment && (
+                        <div className="p-6 pt-0 border-t border-[var(--border-color)]">
+                          <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 mt-6 custom-scrollbar">
+                            {core34Questions.map((question, index) => {
+                              const answer = client.core34Answers?.[index];
+                              const isRiskItem = [5, 8, 15, 23, 33].includes(
+                                index,
+                              ); // 0-based indices for 6, 9, 16, 24, 34
 
-                        <div className="space-y-3">
-                          {Object.entries(client.matchedTC.matchBreakdown).map(
-                            ([key, value]) => (
+                              return (
+                                <div
+                                  key={index}
+                                  className={`p-4 rounded-xl border ${
+                                    isRiskItem &&
+                                    (answer === "Often" ||
+                                      answer === "Most or all the time")
+                                      ? "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30"
+                                      : "bg-[var(--bg-secondary)] border-[var(--border-color)]"
+                                  }`}
+                                >
+                                  <div className="flex justify-between items-start gap-4">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-xs font-medium text-[var(--text-tertiary)]">
+                                          Question {index + 1}
+                                        </span>
+                                        {isRiskItem && (
+                                          <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-[10px] font-bold rounded uppercase tracking-wider">
+                                            Risk Item
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-sm font-medium text-[var(--text-primary)] leading-relaxed">
+                                        {question}
+                                      </p>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <span
+                                        className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${
+                                          !answer
+                                            ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
+                                            : answer === "Not at all"
+                                              ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400"
+                                              : answer === "Only occasionally"
+                                                ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400"
+                                                : answer === "Sometimes"
+                                                  ? "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400"
+                                                  : "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400"
+                                        }`}
+                                      >
+                                        {answer || "Unanswered"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Availability */}
+
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                        Availability Schedule
+                      </h2>
+
+                      <div className="space-y-3">
+                        {Array.isArray(client.availability) &&
+                        client.availability.length > 0 ? (
+                          client.availability.map((avail) => (
+                            <div
+                              key={avail.day}
+                              className="flex items-center gap-4 p-3 bg-[var(--purple-bg)] rounded-lg border border-[var(--purple-border)]"
+                            >
+                              <div className="w-28">
+                                <p className="text-sm font-medium text-[var(--purple-primary)]">
+                                  {avail.day
+                                    ? avail.day.charAt(0).toUpperCase() +
+                                      avail.day.slice(1).toLowerCase()
+                                    : ""}
+                                </p>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                {avail.timeBlocks.map((block) => {
+                                  const slotMap = {
+                                    "morning-early": "10-11am",
+                                    "morning-late": "11am-1pm",
+                                    "afternoon-early": "1-4pm",
+                                    "afternoon-late": "4-5pm",
+                                    evening: "5-7pm",
+                                  };
+                                  const formattedBlock =
+                                    slotMap[block] ||
+                                    formatTimeSlotDisplay(block);
+                                  return (
+                                    <span
+                                      key={block}
+                                      className="px-3 py-1 bg-[var(--purple-primary)] text-white text-sm rounded-full"
+                                    >
+                                      {formattedBlock}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 italic">
+                            No availability information available
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Matched Trainee Counsellor */}
+
+                    {client.matchedTC && (
+                      <div className="bg-white rounded-lg border border-gray-200 p-6">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                          Matched Trainee Counsellor
+                        </h2>
+
+                        {/* TC Profile Card */}
+
+                        <div className="border border-gray-200 rounded-lg p-4 mb-4">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-full bg-[var(--purple-bg)] flex items-center justify-center">
+                                <User className="w-6 h-6 text-[var(--purple-primary)]" />
+                              </div>
+
+                              <div>
+                                <p className="font-semibold text-gray-900">
+                                  {client.matchedTC.name}
+                                </p>
+
+                                <p className="text-sm text-gray-600">
+                                  {client.matchedTC.modality}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <p className="text-2xl font-bold text-[var(--purple-primary)]">
+                                {client.matchedTC.matchScore}%
+                              </p>
+
+                              <p className="text-xs text-gray-600">
+                                Match Score
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-600 mb-1">
+                                Current Caseload
+                              </p>
+
+                              <p className="text-sm font-semibold text-gray-900">
+                                {client.matchedTC.currentClients}/
+                                {client.matchedTC.maxClients} clients
+                              </p>
+                            </div>
+
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-600 mb-1">
+                                Contact
+                              </p>
+
+                              <p className="text-sm font-semibold text-gray-900">
+                                {client.matchedTC.email}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Other Clients */}
+
+                          <div>
+                            <p className="text-xs text-gray-600 mb-2">
+                              Other Clients
+                            </p>
+
+                            <div className="flex flex-wrap gap-2">
+                              {client.matchedTC.otherClients.map((oc, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                                >
+                                  {oc.name}, {oc.age}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Match Score Breakdown */}
+
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 mb-3">
+                            Match Score Breakdown
+                          </p>
+
+                          <div className="space-y-3">
+                            {Object.entries(
+                              client.matchedTC.matchBreakdown,
+                            ).map(([key, value]) => (
                               <div key={key}>
                                 <div className="flex items-center justify-between mb-1">
                                   <span className="text-sm text-gray-700 capitalize">
@@ -1973,659 +1990,555 @@ export default function IndividualClientDetailPage() {
                                   ></div>
                                 </div>
                               </div>
-                            ),
-                          )}
+                            ))}
+                          </div>
                         </div>
+
+                        {client.matchedTC.warningFlags.length > 0 && (
+                          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div className="flex items-start gap-2">
+                              <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+
+                              <div>
+                                <p className="text-sm font-medium text-yellow-900 mb-1">
+                                  Warning Flags
+                                </p>
+
+                                <p className="text-sm text-yellow-800">
+                                  TC marked as not ready for:{" "}
+                                  {client.matchedTC.warningFlags.join(", ")}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Payment History */}
+
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                        Payment History
+                      </h2>
+
+                      <div className="space-y-3">
+                        {client.payments.map((payment) => (
+                          <div
+                            key={payment.id}
+                            className="border border-gray-200 rounded-lg p-4"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                  <CreditCard className="w-5 h-5 text-green-600" />
+                                </div>
+
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    {payment.type}
+                                  </p>
+
+                                  <p className="text-sm text-gray-600">
+                                    {payment.description}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="text-right">
+                                <p className="text-xl font-bold text-gray-900">
+                                  £{payment.amount}
+                                </p>
+
+                                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                  {payment.status}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-sm text-gray-600 mt-2">
+                              <span>{payment.date}</span>
+
+                              <span>{payment.method}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
-                      {client.matchedTC.warningFlags.length > 0 && (
-                        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                          <div className="flex items-start gap-2">
-                            <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-gray-900">
+                            Total Paid
+                          </span>
+
+                          <span className="text-2xl font-bold text-gray-900">
+                            £
+                            {client.payments.reduce(
+                              (sum, p) => sum + p.amount,
+                              0,
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Session History */}
+
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-gray-900">
+                          Session History
+                        </h2>
+
+                        <button
+                          onClick={() => setShowAddSessionModal(true)}
+                          disabled={
+                            actionLoading || client.status === "archived"
+                          }
+                          className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ backgroundColor: "#6f1d56" }}
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Session
+                        </button>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                Session
+                              </th>
+
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                Date & Time
+                              </th>
+
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                TC Name
+                              </th>
+
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                Duration
+                              </th>
+
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                Status
+                              </th>
+
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+
+                          <tbody className="divide-y divide-gray-200">
+                            {client.sessions.map((session) => (
+                              <tr
+                                key={session.sessionNumber}
+                                className="hover:bg-gray-50"
+                              >
+                                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                  #{session.sessionNumber}
+                                </td>
+
+                                <td className="px-4 py-3 text-sm text-gray-700">
+                                  {session.date}
+                                  <br />
+
+                                  <span className="text-gray-500">
+                                    {session.time}
+                                  </span>
+                                </td>
+
+                                <td className="px-4 py-3 text-sm text-gray-700">
+                                  {session.tcName}
+                                </td>
+
+                                <td className="px-4 py-3 text-sm text-gray-700">
+                                  {session.duration}
+                                </td>
+
+                                <td className="px-4 py-3">
+                                  {getSessionStatusBadge(session.status)}
+                                </td>
+
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleViewSession(session)}
+                                      className="p-2 hover:bg-gray-100 rounded-lg"
+                                      title="View Session Notes"
+                                    >
+                                      <Eye className="w-4 h-4 text-gray-600" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteSession(session)
+                                      }
+                                      disabled={
+                                        actionLoading ||
+                                        client.status === "archived"
+                                      }
+                                      className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="Delete Session"
+                                    >
+                                      <Trash2 className="w-4 h-4 text-red-600" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Consultation Record */}
+
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                        Initial Consultation Record
+                      </h2>
+
+                      {client.consultation ? (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <p className="text-sm text-gray-600 mb-1">Date</p>
+
+                              <p className="text-sm font-medium text-gray-900">
+                                {client.consultation.date || "N/A"}
+                              </p>
+                            </div>
 
                             <div>
-                              <p className="text-sm font-medium text-yellow-900 mb-1">
-                                Warning Flags
+                              <p className="text-sm text-gray-600 mb-1">Time</p>
+
+                              <p className="text-sm font-medium text-gray-900">
+                                {client.consultation.time || "N/A"}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-sm text-gray-600 mb-1">
+                                Duration
                               </p>
 
-                              <p className="text-sm text-yellow-800">
-                                TC marked as not ready for:{" "}
-                                {client.matchedTC.warningFlags.join(", ")}
+                              <p className="text-sm font-medium text-gray-900">
+                                {client.consultation.duration || "N/A"}
                               </p>
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-sm text-gray-600 mb-1">
+                              Conducted By
+                            </p>
+
+                            <p className="text-sm font-medium text-gray-900">
+                              {client.consultation.conductedBy || "N/A"}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-sm text-gray-600 mb-2">
+                              Consultation Notes
+                            </p>
+
+                            <p className="text-sm text-gray-900 bg-gray-50 p-4 rounded-lg">
+                              {client.consultation.notes ||
+                                "No notes available"}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                              <p className="text-sm text-gray-600 mb-1">
+                                Outcome
+                              </p>
+
+                              <p className="text-sm font-medium text-green-900">
+                                {client.consultation.outcome || "N/A"}
+                              </p>
+                            </div>
+
+                            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                              <p className="text-sm text-gray-600 mb-1">
+                                Recommended Service
+                              </p>
+
+                              <p className="text-sm font-medium text-blue-900">
+                                {client.consultation.recommendedService ||
+                                  "N/A"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-sm text-gray-500 italic">
+                            No consultation record available yet
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Emergency Contact - Prominently Displayed */}
+                    {client.emergencyContact &&
+                      (client.emergencyContact.name ||
+                        client.emergencyContact.phone) && (
+                        <div className="bg-red-50 rounded-lg border-2 border-red-200 p-6">
+                          <div className="flex items-start gap-3">
+                            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                              <AlertTriangle className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div className="flex-1">
+                              <h2 className="text-lg font-semibold text-red-900 mb-2">
+                                Emergency Contact
+                              </h2>
+                              <p className="text-sm text-red-700 mb-3">
+                                For duty of care and safeguarding concerns -
+                                contact immediately if needed
+                              </p>
+                              <div className="space-y-2">
+                                {client.emergencyContact.name && (
+                                  <div className="flex items-center gap-2">
+                                    <User className="w-4 h-4 text-red-600" />
+                                    <span className="text-sm font-medium text-red-900">
+                                      {client.emergencyContact.name}
+                                    </span>
+                                    {client.emergencyContact.relationship && (
+                                      <span className="text-sm text-red-700">
+                                        ({client.emergencyContact.relationship})
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                {client.emergencyContact.phone && (
+                                  <div className="flex items-center gap-2">
+                                    <Phone className="w-4 h-4 text-red-600" />
+                                    <a
+                                      href={`tel:${client.emergencyContact.phone}`}
+                                      className="text-sm font-medium text-red-900 hover:text-red-700 underline"
+                                    >
+                                      {client.emergencyContact.phone}
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  {/* Payment History */}
-
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                      Payment History
-                    </h2>
-
-                    <div className="space-y-3">
-                      {client.payments.map((payment) => (
-                        <div
-                          key={payment.id}
-                          className="border border-gray-200 rounded-lg p-4"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                                <CreditCard className="w-5 h-5 text-green-600" />
-                              </div>
-
-                              <div>
-                                <p className="font-medium text-gray-900">
-                                  {payment.type}
-                                </p>
-
-                                <p className="text-sm text-gray-600">
-                                  {payment.description}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="text-right">
-                              <p className="text-xl font-bold text-gray-900">
-                                £{payment.amount}
-                              </p>
-
-                              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                                {payment.status}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between text-sm text-gray-600 mt-2">
-                            <span>{payment.date}</span>
-
-                            <span>{payment.method}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-gray-900">
-                          Total Paid
-                        </span>
-
-                        <span className="text-2xl font-bold text-gray-900">
-                          £
-                          {client.payments.reduce(
-                            (sum, p) => sum + p.amount,
-                            0,
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Session History */}
-
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold text-gray-900">
-                        Session History
+                    {/* Agreement Status */}
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                        Client Agreement
                       </h2>
 
-                      <button
-                        onClick={() => setShowAddSessionModal(true)}
-                        disabled={actionLoading || client.status === "archived"}
-                        className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: "#6f1d56" }}
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Session
-                      </button>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                              Session
-                            </th>
-
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                              Date & Time
-                            </th>
-
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                              TC Name
-                            </th>
-
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                              Duration
-                            </th>
-
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                              Status
-                            </th>
-
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-
-                        <tbody className="divide-y divide-gray-200">
-                          {client.sessions.map((session) => (
-                            <tr
-                              key={session.sessionNumber}
-                              className="hover:bg-gray-50"
-                            >
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                                #{session.sessionNumber}
-                              </td>
-
-                              <td className="px-4 py-3 text-sm text-gray-700">
-                                {session.date}
-                                <br />
-
-                                <span className="text-gray-500">
-                                  {session.time}
-                                </span>
-                              </td>
-
-                              <td className="px-4 py-3 text-sm text-gray-700">
-                                {session.tcName}
-                              </td>
-
-                              <td className="px-4 py-3 text-sm text-gray-700">
-                                {session.duration}
-                              </td>
-
-                              <td className="px-4 py-3">
-                                {getSessionStatusBadge(session.status)}
-                              </td>
-
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => handleViewSession(session)}
-                                    className="p-2 hover:bg-gray-100 rounded-lg"
-                                    title="View Session Notes"
-                                  >
-                                    <Eye className="w-4 h-4 text-gray-600" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteSession(session)}
-                                    disabled={
-                                      actionLoading ||
-                                      client.status === "archived"
-                                    }
-                                    className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Delete Session"
-                                  >
-                                    <Trash2 className="w-4 h-4 text-red-600" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Consultation Record */}
-
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                      Initial Consultation Record
-                    </h2>
-
-                    {client.consultation ? (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <p className="text-sm text-gray-600 mb-1">Date</p>
-
-                            <p className="text-sm font-medium text-gray-900">
-                              {client.consultation.date || "N/A"}
-                            </p>
+                      {client.agreement ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            {client.agreement.status === "Signed" ? (
+                              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                                <CheckCircle className="w-6 h-6 text-green-600" />
+                              </div>
+                            ) : client.agreement.status === "Sent" ? (
+                              <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                                <Clock className="w-6 h-6 text-yellow-600" />
+                              </div>
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                                <FileText className="w-6 h-6 text-gray-600" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                Agreement{" "}
+                                {client.agreement.status === "Signed"
+                                  ? "Signed"
+                                  : client.agreement.status === "Sent"
+                                    ? "Sent"
+                                    : "Not Sent"}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {client.agreement.status === "Signed"
+                                  ? client.agreement.signedDate
+                                    ? `Signed on ${client.agreement.signedDate}`
+                                    : "Signed"
+                                  : client.agreement.status === "Sent" &&
+                                      client.agreement.sentDate
+                                    ? `Sent on ${client.agreement.sentDate}`
+                                    : "Agreement has not been sent yet"}
+                              </p>
+                            </div>
                           </div>
 
-                          <div>
-                            <p className="text-sm text-gray-600 mb-1">Time</p>
-
-                            <p className="text-sm font-medium text-gray-900">
-                              {client.consultation.time || "N/A"}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-sm text-gray-600 mb-1">
-                              Duration
-                            </p>
-
-                            <p className="text-sm font-medium text-gray-900">
-                              {client.consultation.duration || "N/A"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="text-sm text-gray-600 mb-1">
-                            Conducted By
-                          </p>
-
-                          <p className="text-sm font-medium text-gray-900">
-                            {client.consultation.conductedBy || "N/A"}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-sm text-gray-600 mb-2">
-                            Consultation Notes
-                          </p>
-
-                          <p className="text-sm text-gray-900 bg-gray-50 p-4 rounded-lg">
-                            {client.consultation.notes || "No notes available"}
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                            <p className="text-sm text-gray-600 mb-1">
-                              Outcome
-                            </p>
-
-                            <p className="text-sm font-medium text-green-900">
-                              {client.consultation.outcome || "N/A"}
-                            </p>
-                          </div>
-
-                          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <p className="text-sm text-gray-600 mb-1">
-                              Recommended Service
-                            </p>
-
-                            <p className="text-sm font-medium text-blue-900">
-                              {client.consultation.recommendedService || "N/A"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <p className="text-sm text-gray-500 italic">
-                          No consultation record available yet
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Emergency Contact - Prominently Displayed */}
-                  {client.emergencyContact &&
-                    (client.emergencyContact.name ||
-                      client.emergencyContact.phone) && (
-                      <div className="bg-red-50 rounded-lg border-2 border-red-200 p-6">
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                            <AlertTriangle className="w-6 h-6 text-red-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h2 className="text-lg font-semibold text-red-900 mb-2">
-                              Emergency Contact
-                            </h2>
-                            <p className="text-sm text-red-700 mb-3">
-                              For duty of care and safeguarding concerns -
-                              contact immediately if needed
-                            </p>
-                            <div className="space-y-2">
-                              {client.emergencyContact.name && (
-                                <div className="flex items-center gap-2">
-                                  <User className="w-4 h-4 text-red-600" />
-                                  <span className="text-sm font-medium text-red-900">
-                                    {client.emergencyContact.name}
-                                  </span>
-                                  {client.emergencyContact.relationship && (
-                                    <span className="text-sm text-red-700">
-                                      ({client.emergencyContact.relationship})
-                                    </span>
+                          {client.agreement.status === "Signed" && (
+                            <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <p className="text-sm text-green-800 font-medium mb-1">
+                                ✓ Signature Verified
+                              </p>
+                              <p className="text-xs text-green-700">
+                                Agreement was signed with signature upload on{" "}
+                                {client.agreement.signedDate}
+                              </p>
+                              {client.agreement.signatureUrl && (
+                                <a
+                                  href={apiService.getStorageUrl(
+                                    client.agreement.signatureUrl,
                                   )}
-                                </div>
-                              )}
-                              {client.emergencyContact.phone && (
-                                <div className="flex items-center gap-2">
-                                  <Phone className="w-4 h-4 text-red-600" />
-                                  <a
-                                    href={`tel:${client.emergencyContact.phone}`}
-                                    className="text-sm font-medium text-red-900 hover:text-red-700 underline"
-                                  >
-                                    {client.emergencyContact.phone}
-                                  </a>
-                                </div>
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-2 inline-flex items-center gap-2 text-sm text-green-700 hover:text-green-900 underline"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  View Signature
+                                </a>
                               )}
                             </div>
+                          )}
+                          <div className="flex items-center gap-3 mt-4">
+                            {client.agreement.status === "Signed" &&
+                              client.agreement.jotformId && (
+                                <a
+                                  href={`https://form.jotform.com/231635798225060`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2"
+                                >
+                                  <Download className="w-4 h-4" />
+                                  View Agreement Form
+                                </a>
+                              )}
+                            {client.agreement.status !== "Signed" && (
+                              <button
+                                onClick={handleResendAgreement}
+                                disabled={
+                                  actionLoading || client.status === "archived"
+                                }
+                                className="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <Send className="w-4 h-4" />
+                                {client.agreement.status === "Not Sent"
+                                  ? "Send Agreement"
+                                  : "Resend Agreement"}
+                              </button>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    )}
-
-                  {/* Agreement Status */}
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                      Client Agreement
-                    </h2>
-
-                    {client.agreement ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                          {client.agreement.status === "Signed" ? (
-                            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                              <CheckCircle className="w-6 h-6 text-green-600" />
-                            </div>
-                          ) : client.agreement.status === "Sent" ? (
-                            <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                              <Clock className="w-6 h-6 text-yellow-600" />
-                            </div>
-                          ) : (
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
                               <FileText className="w-6 h-6 text-gray-600" />
                             </div>
-                          )}
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              Agreement{" "}
-                              {client.agreement.status === "Signed"
-                                ? "Signed"
-                                : client.agreement.status === "Sent"
-                                  ? "Sent"
-                                  : "Not Sent"}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {client.agreement.status === "Signed"
-                                ? client.agreement.signedDate
-                                  ? `Signed on ${client.agreement.signedDate}`
-                                  : "Signed"
-                                : client.agreement.status === "Sent" &&
-                                    client.agreement.sentDate
-                                  ? `Sent on ${client.agreement.sentDate}`
-                                  : "Agreement has not been sent yet"}
-                            </p>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                Agreement Not Sent
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Send the agreement form to the client to proceed
+                              </p>
+                            </div>
                           </div>
+                          <button
+                            onClick={handleResendAgreement}
+                            disabled={
+                              actionLoading || client.status === "archived"
+                            }
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Send className="w-4 h-4" />
+                            Send Agreement
+                          </button>
                         </div>
-
-                        {client.agreement.status === "Signed" && (
-                          <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                            <p className="text-sm text-green-800 font-medium mb-1">
-                              ✓ Signature Verified
-                            </p>
-                            <p className="text-xs text-green-700">
-                              Agreement was signed with signature upload on{" "}
-                              {client.agreement.signedDate}
-                            </p>
-                            {client.agreement.signatureUrl && (
-                              <a
-                                href={apiService.getStorageUrl(
-                                  client.agreement.signatureUrl,
-                                )}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-2 inline-flex items-center gap-2 text-sm text-green-700 hover:text-green-900 underline"
-                              >
-                                <Eye className="w-4 h-4" />
-                                View Signature
-                              </a>
-                            )}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-3 mt-4">
-                          {client.agreement.status === "Signed" &&
-                            client.agreement.jotformId && (
-                              <a
-                                href={`https://form.jotform.com/231635798225060`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2"
-                              >
-                                <Download className="w-4 h-4" />
-                                View Agreement Form
-                              </a>
-                            )}
-                          {client.agreement.status !== "Signed" && (
-                            <button
-                              onClick={handleResendAgreement}
-                              disabled={
-                                actionLoading || client.status === "archived"
-                              }
-                              className="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <Send className="w-4 h-4" />
-                              {client.agreement.status === "Not Sent"
-                                ? "Send Agreement"
-                                : "Resend Agreement"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                            <FileText className="w-6 h-6 text-gray-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              Agreement Not Sent
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              Send the agreement form to the client to proceed
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={handleResendAgreement}
-                          disabled={
-                            actionLoading || client.status === "archived"
-                          }
-                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Send className="w-4 h-4" />
-                          Send Agreement
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Notes Section with Tabs */}
-
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold text-gray-900">
-                        Notes & Activity
-                      </h2>
-                      {activeNotesTab === "admin" && (
-                        <button
-                          onClick={() => fetchAdminNotes()}
-                          disabled={
-                            actionLoading || client.status === "archived"
-                          }
-                          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Refresh notes to see latest changes"
-                        >
-                          <RefreshCw
-                            className={`w-4 h-4 ${actionLoading ? "animate-spin" : ""}`}
-                          />
-                          <span>Refresh</span>
-                        </button>
                       )}
                     </div>
 
-                    {/* Tabs */}
+                    {/* Notes Section with Tabs */}
 
-                    <div className="flex items-center gap-2 border-b border-gray-200 mb-4">
-                      <button
-                        onClick={() => setActiveNotesTab("consultation")}
-                        className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                          activeNotesTab === "consultation"
-                            ? "border-purple-600 text-purple-600"
-                            : "border-transparent text-gray-600 hover:text-gray-900"
-                        }`}
-                      >
-                        Consultation Notes
-                      </button>
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-gray-900">
+                          Notes & Activity
+                        </h2>
+                        {activeNotesTab === "admin" && (
+                          <button
+                            onClick={() => fetchAdminNotes()}
+                            disabled={
+                              actionLoading || client.status === "archived"
+                            }
+                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Refresh notes to see latest changes"
+                          >
+                            <RefreshCw
+                              className={`w-4 h-4 ${actionLoading ? "animate-spin" : ""}`}
+                            />
+                            <span>Refresh</span>
+                          </button>
+                        )}
+                      </div>
 
-                      <button
-                        onClick={() => setActiveNotesTab("session")}
-                        className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                          activeNotesTab === "session"
-                            ? "border-purple-600 text-purple-600"
-                            : "border-transparent text-gray-600 hover:text-gray-900"
-                        }`}
-                      >
-                        Session Notes
-                      </button>
+                      {/* Tabs */}
 
-                      <button
-                        onClick={() => setActiveNotesTab("admin")}
-                        className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                          activeNotesTab === "admin"
-                            ? "border-purple-600 text-purple-600"
-                            : "border-transparent text-gray-600 hover:text-gray-900"
-                        }`}
-                      >
-                        Admin Notes
-                      </button>
-                    </div>
+                      <div className="flex items-center gap-2 border-b border-gray-200 mb-4">
+                        <button
+                          onClick={() => setActiveNotesTab("consultation")}
+                          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                            activeNotesTab === "consultation"
+                              ? "border-purple-600 text-purple-600"
+                              : "border-transparent text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          Consultation Notes
+                        </button>
 
-                    {/* Notes Content */}
+                        <button
+                          onClick={() => setActiveNotesTab("session")}
+                          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                            activeNotesTab === "session"
+                              ? "border-purple-600 text-purple-600"
+                              : "border-transparent text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          Session Notes
+                        </button>
 
-                    <div className="space-y-4">
-                      {activeNotesTab === "consultation" &&
-                        (consultationNotes.length > 0 ? (
-                          consultationNotes.map((note) => (
-                            <div
-                              key={note.id}
-                              className="border border-gray-200 rounded-lg p-4"
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <div>
-                                  <p className="font-medium text-gray-900">
-                                    {note.author}
-                                  </p>
+                        <button
+                          onClick={() => setActiveNotesTab("admin")}
+                          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                            activeNotesTab === "admin"
+                              ? "border-purple-600 text-purple-600"
+                              : "border-transparent text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          Admin Notes
+                        </button>
+                      </div>
 
-                                  <p className="text-sm text-gray-600">
-                                    {note.date}
-                                  </p>
-                                </div>
-                              </div>
+                      {/* Notes Content */}
 
-                              <p className="text-sm text-gray-700">
-                                {note.content}
-                              </p>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-8">
-                            <p className="text-sm text-gray-500 italic">
-                              No consultation notes available yet
-                            </p>
-                          </div>
-                        ))}
-
-                      {activeNotesTab === "session" &&
-                        (sessionNotes.length > 0 ? (
-                          sessionNotes.map((note) => (
-                            <div
-                              key={note.id}
-                              className="border border-gray-200 rounded-lg p-4"
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <div>
-                                  <p className="font-medium text-gray-900">
-                                    {note.author}
-                                  </p>
-
-                                  <p className="text-sm text-gray-600">
-                                    {note.session} • {note.date}
-                                  </p>
-                                </div>
-
-                                <button className="p-2 hover:bg-gray-100 rounded-lg">
-                                  <Eye className="w-4 h-4 text-gray-600" />
-                                </button>
-                              </div>
-
-                              <p className="text-sm text-gray-700">
-                                {note.content}
-                              </p>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-8">
-                            <p className="text-sm text-gray-500 italic">
-                              No session notes available yet
-                            </p>
-                          </div>
-                        ))}
-
-                      {activeNotesTab === "admin" && (
-                        <>
-                          {adminNotes.length > 0 ? (
-                            adminNotes.map((note) => (
+                      <div className="space-y-4">
+                        {activeNotesTab === "consultation" &&
+                          (consultationNotes.length > 0 ? (
+                            consultationNotes.map((note) => (
                               <div
                                 key={note.id}
                                 className="border border-gray-200 rounded-lg p-4"
                               >
                                 <div className="flex items-start justify-between mb-2">
                                   <div>
-                                    <div className="flex items-center gap-2">
-                                      <p className="font-medium text-gray-900">
-                                        {note.author}
-                                      </p>
-                                      {note.authorRole && (
-                                        <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
-                                          {note.authorRole}
-                                        </span>
-                                      )}
-                                    </div>
+                                    <p className="font-medium text-gray-900">
+                                      {note.author}
+                                    </p>
 
                                     <p className="text-sm text-gray-600">
-                                      {note.isEdited
-                                        ? `Edited: ${note.updatedDate}`
-                                        : `Created: ${note.date}`}
-                                      {note.isEdited && (
-                                        <span className="text-gray-400 ml-1">
-                                          (Created: {note.date})
-                                        </span>
-                                      )}
+                                      {note.date}
                                     </p>
-                                    {note.authorEmail && (
-                                      <p className="text-xs text-gray-500 mt-0.5">
-                                        {note.authorEmail}
-                                      </p>
-                                    )}
-                                  </div>
-
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={() => handleEditNote(note)}
-                                      disabled={client.status === "archived"}
-                                      className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      <Edit className="w-4 h-4 text-gray-600" />
-                                    </button>
-
-                                    <button
-                                      onClick={() => handleDeleteNote(note.id)}
-                                      disabled={
-                                        actionLoading ||
-                                        client.status === "archived"
-                                      }
-                                      className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      <Trash2 className="w-4 h-4 text-red-600" />
-                                    </button>
                                   </div>
                                 </div>
 
@@ -2637,342 +2550,461 @@ export default function IndividualClientDetailPage() {
                           ) : (
                             <div className="text-center py-8">
                               <p className="text-sm text-gray-500 italic">
-                                No admin notes yet. Add your first note below.
+                                No consultation notes available yet
                               </p>
                             </div>
-                          )}
+                          ))}
 
-                          {/* Add New Admin Note */}
-                          {editingNoteId ? (
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                              <textarea
-                                value={editingNoteText}
-                                onChange={(e) =>
-                                  setEditingNoteText(e.target.value)
-                                }
-                                placeholder="Edit admin note..."
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
-                                rows={3}
-                              ></textarea>
-                              <div className="flex items-center justify-end gap-2 mt-2">
-                                <button
-                                  onClick={() => {
-                                    setEditingNoteId(null);
-                                    setEditingNoteText("");
-                                  }}
-                                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={handleUpdateNote}
-                                  disabled={
-                                    actionLoading ||
-                                    client.status === "archived"
-                                  }
-                                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                  style={{ backgroundColor: "#6f1d56" }}
-                                >
-                                  Update Note
-                                </button>
+                        {activeNotesTab === "session" &&
+                          (sessionNotes.length > 0 ? (
+                            sessionNotes.map((note) => (
+                              <div
+                                key={note.id}
+                                className="border border-gray-200 rounded-lg p-4"
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div>
+                                    <p className="font-medium text-gray-900">
+                                      {note.author}
+                                    </p>
+
+                                    <p className="text-sm text-gray-600">
+                                      {note.session} • {note.date}
+                                    </p>
+                                  </div>
+
+                                  <button className="p-2 hover:bg-gray-100 rounded-lg">
+                                    <Eye className="w-4 h-4 text-gray-600" />
+                                  </button>
+                                </div>
+
+                                <p className="text-sm text-gray-700">
+                                  {note.content}
+                                </p>
                               </div>
-                            </div>
+                            ))
                           ) : (
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                              <textarea
-                                value={newNoteText}
-                                onChange={(e) => setNewNoteText(e.target.value)}
-                                placeholder="Add a new admin note..."
-                                disabled={client.status === "archived"}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                rows={3}
-                              ></textarea>
-                              <div className="flex items-center justify-end gap-2 mt-2">
-                                <button
-                                  onClick={() => {
-                                    setNewNoteText("");
-                                    setShowAddNoteModal(false);
-                                  }}
-                                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={handleAddAdminNote}
-                                  disabled={
-                                    actionLoading ||
-                                    client.status === "archived"
-                                  }
-                                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                  style={{ backgroundColor: "#6f1d56" }}
-                                >
-                                  Add Note
-                                </button>
-                              </div>
+                            <div className="text-center py-8">
+                              <p className="text-sm text-gray-500 italic">
+                                No session notes available yet
+                              </p>
                             </div>
-                          )}
-                        </>
-                      )}
+                          ))}
+
+                        {activeNotesTab === "admin" && (
+                          <>
+                            {adminNotes.length > 0 ? (
+                              adminNotes.map((note) => (
+                                <div
+                                  key={note.id}
+                                  className="border border-gray-200 rounded-lg p-4"
+                                >
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-medium text-gray-900">
+                                          {note.author}
+                                        </p>
+                                        {note.authorRole && (
+                                          <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                                            {note.authorRole}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <p className="text-sm text-gray-600">
+                                        {note.isEdited
+                                          ? `Edited: ${note.updatedDate}`
+                                          : `Created: ${note.date}`}
+                                        {note.isEdited && (
+                                          <span className="text-gray-400 ml-1">
+                                            (Created: {note.date})
+                                          </span>
+                                        )}
+                                      </p>
+                                      {note.authorEmail && (
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                          {note.authorEmail}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={() => handleEditNote(note)}
+                                        disabled={client.status === "archived"}
+                                        className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        <Edit className="w-4 h-4 text-gray-600" />
+                                      </button>
+
+                                      <button
+                                        onClick={() =>
+                                          handleDeleteNote(note.id)
+                                        }
+                                        disabled={
+                                          actionLoading ||
+                                          client.status === "archived"
+                                        }
+                                        className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        <Trash2 className="w-4 h-4 text-red-600" />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <p className="text-sm text-gray-700">
+                                    {note.content}
+                                  </p>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center py-8">
+                                <p className="text-sm text-gray-500 italic">
+                                  No admin notes yet. Add your first note below.
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Add New Admin Note */}
+                            {editingNoteId ? (
+                              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                                <textarea
+                                  value={editingNoteText}
+                                  onChange={(e) =>
+                                    setEditingNoteText(e.target.value)
+                                  }
+                                  placeholder="Edit admin note..."
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                                  rows={3}
+                                ></textarea>
+                                <div className="flex items-center justify-end gap-2 mt-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingNoteId(null);
+                                      setEditingNoteText("");
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={handleUpdateNote}
+                                    disabled={
+                                      actionLoading ||
+                                      client.status === "archived"
+                                    }
+                                    className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: "#6f1d56" }}
+                                  >
+                                    Update Note
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                                <textarea
+                                  value={newNoteText}
+                                  onChange={(e) =>
+                                    setNewNoteText(e.target.value)
+                                  }
+                                  placeholder="Add a new admin note..."
+                                  disabled={client.status === "archived"}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                  rows={3}
+                                ></textarea>
+                                <div className="flex items-center justify-end gap-2 mt-2">
+                                  <button
+                                    onClick={() => {
+                                      setNewNoteText("");
+                                      setShowAddNoteModal(false);
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={handleAddAdminNote}
+                                    disabled={
+                                      actionLoading ||
+                                      client.status === "archived"
+                                    }
+                                    className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: "#6f1d56" }}
+                                  >
+                                    Add Note
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Right Column - 1/3 width - Package Summary */}
+                  {/* Right Column - 1/3 width - Package Summary */}
 
-                <div className="col-span-1">
-                  <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-6">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                      Package Summary
-                    </h2>
+                  <div className="col-span-1">
+                    <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-6">
+                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                        Package Summary
+                      </h2>
 
-                    <div className="space-y-4">
-                      <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Package className="w-5 h-5 text-purple-600" />
+                      <div className="space-y-4">
+                        <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Package className="w-5 h-5 text-purple-600" />
 
-                          <p className="font-medium text-purple-900">
-                            {client.packageDetails.name}
+                            <p className="font-medium text-purple-900">
+                              {client.packageDetails.name}
+                            </p>
+                          </div>
+
+                          <p className="text-sm text-purple-700">
+                            {client.packageDetails.totalSessions} Sessions
+                            Package
                           </p>
                         </div>
 
-                        <p className="text-sm text-purple-700">
-                          {client.packageDetails.totalSessions} Sessions Package
-                        </p>
-                      </div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              Total Sessions
+                            </span>
 
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">
-                            Total Sessions
-                          </span>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {client.packageDetails.totalSessions}
+                            </span>
+                          </div>
 
-                          <span className="text-sm font-semibold text-gray-900">
-                            {client.packageDetails.totalSessions}
-                          </span>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              Completed
+                            </span>
+
+                            <span className="text-sm font-semibold text-green-600">
+                              {client.packageDetails.sessionsCompleted}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              DNA (Did Not Attend)
+                            </span>
+
+                            <span className="text-sm font-semibold text-red-600">
+                              {client.packageDetails.sessionsDNA}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              Remaining
+                            </span>
+
+                            <span className="text-sm font-semibold text-blue-600">
+                              {client.packageDetails.sessionsRemaining}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">
-                            Completed
-                          </span>
+                        <div className="pt-4 border-t border-gray-200">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm text-gray-600">
+                              Progress
+                            </span>
 
-                          <span className="text-sm font-semibold text-green-600">
-                            {client.packageDetails.sessionsCompleted}
-                          </span>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {client.packageDetails &&
+                              client.packageDetails.totalSessions > 0
+                                ? Math.round(
+                                    (client.packageDetails.sessionsCompleted /
+                                      client.packageDetails.totalSessions) *
+                                      100,
+                                  )
+                                : 0}
+                              %
+                            </span>
+                          </div>
+
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-purple-600 h-2 rounded-full transition-all duration-500"
+                              style={{
+                                width: `${client.packageDetails && client.packageDetails.totalSessions > 0 ? (client.packageDetails.sessionsCompleted / client.packageDetails.totalSessions) * 100 : 0}%`,
+                              }}
+                            ></div>
+                          </div>
                         </div>
 
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">
-                            DNA (Did Not Attend)
-                          </span>
+                        <div className="pt-4 border-t border-gray-200 space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              Start Date
+                            </span>
 
-                          <span className="text-sm font-semibold text-red-600">
-                            {client.packageDetails.sessionsDNA}
-                          </span>
-                        </div>
+                            <span className="text-sm font-medium text-gray-900">
+                              {client.packageDetails.startDate}
+                            </span>
+                          </div>
 
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">
-                            Remaining
-                          </span>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              Expected End
+                            </span>
 
-                          <span className="text-sm font-semibold text-blue-600">
-                            {client.packageDetails.sessionsRemaining}
-                          </span>
-                        </div>
-                      </div>
+                            <span className="text-sm font-medium text-gray-900">
+                              {client.packageDetails.expectedEndDate}
+                            </span>
+                          </div>
 
-                      <div className="pt-4 border-t border-gray-200">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-sm text-gray-600">
-                            Progress
-                          </span>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              Status
+                            </span>
 
-                          <span className="text-sm font-semibold text-gray-900">
-                            {client.packageDetails &&
-                            client.packageDetails.totalSessions > 0
-                              ? Math.round(
-                                  (client.packageDetails.sessionsCompleted /
-                                    client.packageDetails.totalSessions) *
-                                    100,
-                                )
-                              : 0}
-                            %
-                          </span>
-                        </div>
-
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-purple-600 h-2 rounded-full transition-all duration-500"
-                            style={{
-                              width: `${client.packageDetails && client.packageDetails.totalSessions > 0 ? (client.packageDetails.sessionsCompleted / client.packageDetails.totalSessions) * 100 : 0}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      <div className="pt-4 border-t border-gray-200 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">
-                            Start Date
-                          </span>
-
-                          <span className="text-sm font-medium text-gray-900">
-                            {client.packageDetails.startDate}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">
-                            Expected End
-                          </span>
-
-                          <span className="text-sm font-medium text-gray-900">
-                            {client.packageDetails.expectedEndDate}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Status</span>
-
-                          <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              client.packageDetails.status === "Active"
-                                ? "bg-green-100 text-green-800"
-                                : client.packageDetails.status === "Completed"
-                                  ? "bg-gray-100 text-gray-800"
-                                  : client.packageDetails.status === "Pending"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {client.packageDetails.status}
-                          </span>
+                            <span
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                client.packageDetails.status === "Active"
+                                  ? "bg-green-100 text-green-800"
+                                  : client.packageDetails.status === "Completed"
+                                    ? "bg-gray-100 text-gray-800"
+                                    : client.packageDetails.status === "Pending"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {client.packageDetails.status}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Quick Actions */}
+                      {/* Quick Actions */}
 
-                    <div className="mt-6 space-y-2">
-                      <button
-                        onClick={handleProgressStage}
-                        disabled={
-                          actionLoading ||
-                          client.stage === "Completed" ||
-                          client.status === "archived"
-                        }
-                        className="w-full py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: "#6f1d56" }}
-                      >
-                        Progress to Next Stage
-                      </button>
+                      <div className="mt-6 space-y-2">
+                        <button
+                          onClick={handleProgressStage}
+                          disabled={
+                            actionLoading ||
+                            client.stage === "Completed" ||
+                            client.status === "archived"
+                          }
+                          className="w-full py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ backgroundColor: "#6f1d56" }}
+                        >
+                          Progress to Next Stage
+                        </button>
 
-                      <button
-                        onClick={handleBookNextSession}
-                        disabled={actionLoading || client.status === "archived"}
-                        className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Book Next Session
-                      </button>
+                        <button
+                          onClick={handleBookNextSession}
+                          disabled={
+                            actionLoading || client.status === "archived"
+                          }
+                          className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Book Next Session
+                        </button>
 
-                      <button
-                        onClick={handleDownloadReport}
-                        disabled={
-                          downloadingReport || client.status === "archived"
-                        }
-                        className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {downloadingReport
-                          ? "Downloading..."
-                          : "Download Report"}
-                      </button>
+                        <button
+                          onClick={handleDownloadReport}
+                          disabled={
+                            downloadingReport || client.status === "archived"
+                          }
+                          className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {downloadingReport
+                            ? "Downloading..."
+                            : "Download Report"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Archive Confirmation Modal */}
+          <ConfirmationModal
+            isOpen={showArchiveConfirmModal}
+            onClose={() => setShowArchiveConfirmModal(false)}
+            onConfirm={confirmArchive}
+            title="Archive Client"
+            message={`Are you sure you want to archive ${client?.name}? This will mark the client as archived.`}
+            confirmText="Archive Client"
+            cancelText="Cancel"
+            type="warning"
+            loading={actionLoading}
+            confirmButtonColor="#f59e0b"
+          />
+
+          {/* Unarchive Confirmation Modal */}
+          <ConfirmationModal
+            isOpen={showUnarchiveConfirmModal}
+            onClose={() => setShowUnarchiveConfirmModal(false)}
+            onConfirm={confirmUnarchive}
+            title="Unarchive Client"
+            message={`Are you sure you want to unarchive ${client?.name}? This will mark the client as active.`}
+            confirmText="Unarchive Client"
+            cancelText="Cancel"
+            type="info"
+            loading={actionLoading}
+            confirmButtonColor="#10b981"
+          />
+
+          {/* Delete Note Confirmation Modal */}
+          <DeleteConfirmationModal
+            isOpen={showDeleteNoteConfirmModal}
+            onClose={() => {
+              setShowDeleteNoteConfirmModal(false);
+              setNoteToDelete(null);
+            }}
+            onConfirm={confirmDeleteNote}
+            title="Delete Note"
+            message="Are you sure you want to delete this note? This action cannot be undone."
+            itemName="this note"
+            confirmText="Delete Note"
+            cancelText="Cancel"
+            loading={actionLoading}
+          />
+
+          {/* Progress Stage Confirmation Modal */}
+          <ConfirmationModal
+            isOpen={showProgressStageConfirmModal}
+            onClose={() => {
+              setShowProgressStageConfirmModal(false);
+              setNextStage(null);
+            }}
+            onConfirm={confirmProgressStage}
+            title="Progress Client Stage"
+            message={`Are you sure you want to progress ${client?.name} to "${nextStage}" stage?`}
+            confirmText={`Progress to ${nextStage}`}
+            cancelText="Cancel"
+            type="info"
+            loading={actionLoading}
+            confirmButtonColor="#6f1d56"
+          />
+
+          {/* Delete Session Confirmation Modal */}
+          <DeleteConfirmationModal
+            isOpen={showDeleteSessionConfirmModal}
+            onClose={() => {
+              setShowDeleteSessionConfirmModal(false);
+              setSessionToDelete(null);
+            }}
+            onConfirm={confirmDeleteSession}
+            title="Delete Session"
+            message={`Are you sure you want to delete Session #${sessionToDelete?.sessionNumber || "N/A"} scheduled for ${sessionToDelete?.date || "N/A"}? This action cannot be undone.`}
+            itemName={`Session #${sessionToDelete?.sessionNumber || "N/A"}`}
+            confirmText="Delete Session"
+            cancelText="Cancel"
+            loading={actionLoading}
+          />
         </div>
-
-        {/* Archive Confirmation Modal */}
-        <ConfirmationModal
-          isOpen={showArchiveConfirmModal}
-          onClose={() => setShowArchiveConfirmModal(false)}
-          onConfirm={confirmArchive}
-          title="Archive Client"
-          message={`Are you sure you want to archive ${client?.name}? This will mark the client as archived.`}
-          confirmText="Archive Client"
-          cancelText="Cancel"
-          type="warning"
-          loading={actionLoading}
-          confirmButtonColor="#f59e0b"
-        />
-
-        {/* Unarchive Confirmation Modal */}
-        <ConfirmationModal
-          isOpen={showUnarchiveConfirmModal}
-          onClose={() => setShowUnarchiveConfirmModal(false)}
-          onConfirm={confirmUnarchive}
-          title="Unarchive Client"
-          message={`Are you sure you want to unarchive ${client?.name}? This will mark the client as active.`}
-          confirmText="Unarchive Client"
-          cancelText="Cancel"
-          type="info"
-          loading={actionLoading}
-          confirmButtonColor="#10b981"
-        />
-
-        {/* Delete Note Confirmation Modal */}
-        <DeleteConfirmationModal
-          isOpen={showDeleteNoteConfirmModal}
-          onClose={() => {
-            setShowDeleteNoteConfirmModal(false);
-            setNoteToDelete(null);
-          }}
-          onConfirm={confirmDeleteNote}
-          title="Delete Note"
-          message="Are you sure you want to delete this note? This action cannot be undone."
-          itemName="this note"
-          confirmText="Delete Note"
-          cancelText="Cancel"
-          loading={actionLoading}
-        />
-
-        {/* Progress Stage Confirmation Modal */}
-        <ConfirmationModal
-          isOpen={showProgressStageConfirmModal}
-          onClose={() => {
-            setShowProgressStageConfirmModal(false);
-            setNextStage(null);
-          }}
-          onConfirm={confirmProgressStage}
-          title="Progress Client Stage"
-          message={`Are you sure you want to progress ${client?.name} to "${nextStage}" stage?`}
-          confirmText={`Progress to ${nextStage}`}
-          cancelText="Cancel"
-          type="info"
-          loading={actionLoading}
-          confirmButtonColor="#6f1d56"
-        />
-
-        {/* Delete Session Confirmation Modal */}
-        <DeleteConfirmationModal
-          isOpen={showDeleteSessionConfirmModal}
-          onClose={() => {
-            setShowDeleteSessionConfirmModal(false);
-            setSessionToDelete(null);
-          }}
-          onConfirm={confirmDeleteSession}
-          title="Delete Session"
-          message={`Are you sure you want to delete Session #${sessionToDelete?.sessionNumber || "N/A"} scheduled for ${sessionToDelete?.date || "N/A"}? This action cannot be undone.`}
-          itemName={`Session #${sessionToDelete?.sessionNumber || "N/A"}`}
-          confirmText="Delete Session"
-          cancelText="Cancel"
-          loading={actionLoading}
-        />
-      </div>
-    </DashboardLayout>
+      </DashboardLayout>
+    </PageGuard>
   );
 }
 
@@ -3092,12 +3124,10 @@ function EmailFormComponent({ clientEmail, onSubmit, onCancel, loading }) {
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Message
         </label>
-        <textarea
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
-          rows={6}
-          required
+        <RichTextEditor
+          content={message}
+          onChange={(html) => setMessage(html)}
+          placeholder="Type your message here..."
         />
       </div>
       <div className="flex items-center justify-end gap-2 pt-4">

@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -169,6 +170,7 @@ export default function TrainingProvidersPage() {
   const allCourses = [...new Set(trainingProviders.flatMap(p => p.courses.map(c => c.courseTitle)))];
 
   return (
+    <PageGuard menuId="providers">
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -412,6 +414,7 @@ export default function TrainingProvidersPage() {
         </div>
       </div>
     </DashboardLayout>
+    </PageGuard>
   );
 }
 

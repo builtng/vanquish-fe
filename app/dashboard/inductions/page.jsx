@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -168,6 +169,7 @@ export default function InductionsPage() {
   };
 
   return (
+    <PageGuard menuId="inductions">
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -538,6 +540,7 @@ export default function InductionsPage() {
         </>
       )}
     </DashboardLayout>
+    </PageGuard>
   );
 }
 

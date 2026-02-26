@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -513,9 +514,16 @@ export default function ConsultationsManagementPageFixed() {
         return;
       }
 
-      const scheduledDateTime = new Date(
-        `${bookForm.date}T${time24h}`,
-      ).toISOString();
+      const scheduledDateTimeObj = new Date(`${bookForm.date}T${time24h}`);
+      const now = new Date();
+
+      if (scheduledDateTimeObj <= now) {
+        showError("Please select a date and time in the future");
+        setActionLoading(false);
+        return;
+      }
+
+      const scheduledDateTime = scheduledDateTimeObj.toISOString();
 
       await apiService.createConsultation({
         client_id: bookForm.clientId,
@@ -858,6 +866,7 @@ export default function ConsultationsManagementPageFixed() {
   );
 
   return (
+    <PageGuard menuId="consultations">
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -1156,6 +1165,7 @@ export default function ConsultationsManagementPageFixed() {
                     <input
                       type="date"
                       value={bookForm.date}
+                      min={new Date().toLocaleDateString("en-CA")}
                       onChange={(e) =>
                         setBookForm({ ...bookForm, date: e.target.value })
                       }
@@ -1525,6 +1535,7 @@ export default function ConsultationsManagementPageFixed() {
                   <input
                     type="date"
                     value={rescheduleForm.date}
+                    min={new Date().toLocaleDateString("en-CA")}
                     onChange={(e) =>
                       setRescheduleForm({
                         ...rescheduleForm,
@@ -1617,9 +1628,21 @@ export default function ConsultationsManagementPageFixed() {
                           return;
                         }
 
-                        const scheduledDateTime = new Date(
+                        const scheduledDateTimeObj = new Date(
                           `${rescheduleForm.date}T${time24h}`,
-                        ).toISOString();
+                        );
+                        const now = new Date();
+
+                        if (scheduledDateTimeObj <= now) {
+                          showError(
+                            "Please select a date and time in the future",
+                          );
+                          setActionLoading(false);
+                          return;
+                        }
+
+                        const scheduledDateTime =
+                          scheduledDateTimeObj.toISOString();
 
                         // Validate date
                         if (isNaN(new Date(scheduledDateTime).getTime())) {
@@ -1792,5 +1815,6 @@ export default function ConsultationsManagementPageFixed() {
         confirmButtonColor="#dc2626"
       />
     </DashboardLayout>
+    </PageGuard>
   );
 }

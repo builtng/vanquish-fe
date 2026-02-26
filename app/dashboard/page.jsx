@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -681,6 +682,7 @@ export default function ClientDashboard() {
   }
 
   return (
+    <PageGuard menuId="overview">
     <DashboardLayout>
         {/* Header */}
         <DashboardHeader
@@ -1372,5 +1374,6 @@ export default function ClientDashboard() {
         </div>
       )}
     </DashboardLayout>
+    </PageGuard>
   );
 }

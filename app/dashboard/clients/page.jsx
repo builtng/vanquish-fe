@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -335,7 +336,7 @@ export default function ViewAllClients() {
         {client.matchedTC && (
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
-              Matched Trainee Counsellor
+              Counsellor
             </h3>
             <div className="border border-gray-200 rounded-lg p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
@@ -345,7 +346,7 @@ export default function ViewAllClients() {
                 <p className="font-medium text-gray-900">
                   {formatName(client.matchedTC, "tc")}
                 </p>
-                <p className="text-sm text-gray-600">Trainee Counsellor</p>
+                <p className="text-sm text-gray-600">Counsellor</p>
               </div>
             </div>
           </div>
@@ -414,6 +415,14 @@ export default function ViewAllClients() {
                   {client.lastActivity}
                 </span>
               </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Date Registered</span>
+                <span className="font-semibold text-gray-900">
+                  {client.submittedDate
+                    ? new Date(client.submittedDate).toLocaleDateString("en-GB")
+                    : "N/A"}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -461,6 +470,7 @@ export default function ViewAllClients() {
   );
 
   return (
+    <PageGuard menuId="clients">
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -530,7 +540,10 @@ export default function ViewAllClients() {
                     value: "Consultation Completed",
                     label: "Consultation Completed",
                   },
-                  { value: "Matched with TC", label: "Matched with TC" },
+                  {
+                    value: "Matched with TC",
+                    label: "Matched with Counsellor",
+                  },
                   { value: "Agreement Sent", label: "Agreement Sent" },
                   { value: "Agreement Signed", label: "Agreement Signed" },
                   { value: "Sessions Bookable", label: "Sessions Bookable" },
@@ -545,10 +558,10 @@ export default function ViewAllClients() {
                 value={filterTC}
                 onChange={(e) => setFilterTC(e.target.value)}
                 options={[
-                  { value: "all", label: "All TCs" },
+                  { value: "all", label: "All Counsellors" },
                   ...uniqueTCs.map((tc) => ({ value: tc, label: tc })),
                 ]}
-                placeholder="All TCs"
+                placeholder="All Counsellors"
                 className="text-sm"
               />
             </div>
@@ -653,7 +666,7 @@ export default function ViewAllClients() {
                     Stage
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
-                    Matched TC
+                    Counsellor
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
                     Service
@@ -665,6 +678,9 @@ export default function ViewAllClients() {
                     Last Activity
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
+                    Date Registered
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -672,7 +688,7 @@ export default function ViewAllClients() {
               <tbody className="bg-white dark:bg-[var(--background)] divide-y divide-gray-200 dark:divide-[var(--card-border)]">
                 {paginatedClients.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="px-6 py-12 text-center">
+                    <td colSpan="9" className="px-6 py-12 text-center">
                       <Users className="w-16 h-16 text-gray-400 dark:text-[var(--text-tertiary)] mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-2">
                         No Clients Found
@@ -749,6 +765,15 @@ export default function ViewAllClients() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
                           {client.lastActivity}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-900 dark:text-[var(--text-primary)]">
+                          {client.submittedDate
+                            ? new Date(client.submittedDate).toLocaleDateString(
+                                "en-GB",
+                              )
+                            : "N/A"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -878,5 +903,6 @@ export default function ViewAllClients() {
         </>
       )}
     </DashboardLayout>
+    </PageGuard>
   );
 }

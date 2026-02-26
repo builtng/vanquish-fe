@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -450,6 +451,7 @@ export default function IndividualTCDetailPage() {
 
 
   return (
+    <PageGuard menuId="tcs">
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
 
@@ -1772,6 +1774,7 @@ export default function IndividualTCDetailPage() {
         confirmButtonColor="#6f1d56"
       />
     </DashboardLayout>
+    </PageGuard>
   );
 }
 

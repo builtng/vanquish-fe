@@ -39,9 +39,9 @@ function MidRangeAgreementContent() {
       searchParams.get("uuid") ||
       searchParams.get("client_id");
 
-    if (!email) {
+    if (!email && !uuid) {
       setError(
-        "Missing client email. Please use the link provided in your email.",
+        "Missing access token. Please use the link provided in your email.",
       );
       setLoading(false);
       return;
@@ -153,7 +153,7 @@ function MidRangeAgreementContent() {
 
       // Redirect to internal booking system
       setTimeout(() => {
-        window.location.href = `/client-booking?uuid=${clientUuid || data.client_uuid}&email=${encodeURIComponent(clientEmail)}`;
+        window.location.href = `/client-booking?uuid=${clientUuid || data.client_uuid}`;
       }, 2000);
     } catch (error) {
       console.error("Error submitting agreement:", error);

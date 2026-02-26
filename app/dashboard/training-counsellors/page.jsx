@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -392,6 +393,7 @@ export default function ViewAllTrainingCounsellorsPage() {
   };
 
   return (
+    <PageGuard menuId="tcs">
     <DashboardLayout>
       <div
         className="flex flex-col"
@@ -1043,5 +1045,6 @@ export default function ViewAllTrainingCounsellorsPage() {
         </>
       )}
     </DashboardLayout>
+    </PageGuard>
   );
 }

@@ -19,6 +19,7 @@ import {
   X,
   Send,
 } from "lucide-react";
+import CalendarPicker from "@/components/CalendarPicker";
 
 function ClientBookingContent() {
   const searchParams = useSearchParams();
@@ -38,8 +39,10 @@ function ClientBookingContent() {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [pendingBookingData, setPendingBookingData] = useState(null);
   const [availableSlots, setAvailableSlots] = useState([]);
+  const [bookingEnabled, setBookingEnabled] = useState(null); // null = unknown yet
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [pricing, setPricing] = useState({});
 
   useEffect(() => {
     if (showBookingModal && clientData?.client?.uuid) {
@@ -49,6 +52,8 @@ function ClientBookingContent() {
           const data = await apiService.getAvailableSlots(
             clientData.client.uuid,
           );
+          // booking_enabled=false means admin has not opened this service yet
+          setBookingEnabled(data.booking_enabled !== false);
           setAvailableSlots(data.slots || []);
 
           // If it's a block booking and we have a specific date from the server, use it
@@ -68,17 +73,31 @@ function ClientBookingContent() {
 
   useEffect(() => {
     if (clientUuid) {
-      // Try to authenticate with UUID
       handleAuthenticate();
     } else {
       setLoading(false);
     }
+
+    // Fetch pricing
+    const fetchPricing = async () => {
+      try {
+        const services = await apiService.getAllServices();
+        const pricingMap = {};
+        services.forEach((s) => {
+          pricingMap[s.service_name] = s;
+        });
+        setPricing(pricingMap);
+      } catch (err) {
+        console.error("Failed to load dynamic pricing:", err);
+      }
+    };
+    fetchPricing();
   }, [clientUuid]);
 
   const handleAuthenticate = async (e) => {
     if (e) e.preventDefault();
 
-    const currentEmail = email || emailParam;
+    const currentEmail = email || emailParam || null;
 
     if (!currentEmail && !clientUuid) {
       setError("Invalid or missing access tokens.");
@@ -138,9 +157,12 @@ function ClientBookingContent() {
       is_single: true,
     };
 
+    const servicePricing = pricing[serviceType] || pricing["Mid Range"];
+    const sessionFee = parseFloat(servicePricing?.session_price || 40.0);
+
     setPendingBookingData(bookingData);
-    setPaymentAmount(40.0); // Fixed price for mid-range/coaching session
-    setBookingType("single"); // Explicitly set for payment context
+    setPaymentAmount(sessionFee); // Dynamic price
+    setBookingType("single");
     setShowBookingModal(false);
     setShowPaymentModal(true);
   };
@@ -159,13 +181,15 @@ function ClientBookingContent() {
     }
 
     // Calculate payment amount based on service type
+    const serviceType = clientData?.client?.service_type;
+    const servicePricing = pricing[serviceType] || pricing["Low Cost"];
+
     let amount = 0;
-    if (clientData?.client?.service_type === "Low Cost") {
-      // £25 for block of 4 sessions
-      amount = 25.0;
+    if (serviceType === "Low Cost") {
+      amount = parseFloat(servicePricing?.block_price || 25.0);
     } else {
-      // £40 per session for Mid Range, Ish, etc.
-      amount = 40.0 * sessionsCount;
+      const sessionFee = parseFloat(servicePricing?.session_price || 40.0);
+      amount = sessionFee * sessionsCount;
     }
 
     // Store booking data for after payment
@@ -372,30 +396,94 @@ function ClientBookingContent() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Your Service Details
           </h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-600">Service Type</p>
-              <p className="font-medium text-gray-900">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Service Type
+              </p>
+              <p className="font-medium text-gray-900 text-lg">
                 {client?.service_type}
               </p>
             </div>
-            {client?.allocated_day && (
-              <div>
-                <p className="text-sm text-gray-600">Allocated Day & Time</p>
-                <p className="font-medium text-gray-900">
-                  {client.allocated_day}{" "}
-                  {formatTimeSlotDisplay(client.allocated_time)}
-                </p>
-              </div>
-            )}
+
             {client?.matched_tc && (
-              <div>
-                <p className="text-sm text-gray-600">Your Counsellor</p>
-                <p className="font-medium text-gray-900">
-                  {client.matched_tc.name}
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Your Counsellor
                 </p>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs">
+                    {client.matched_tc.name.charAt(0)}
+                  </div>
+                  <p className="font-medium text-gray-900 border-b border-dashed border-gray-300">
+                    {client.matched_tc.name}
+                  </p>
+                </div>
               </div>
             )}
+
+            {client?.allocated_day && (
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Allocated Day & Time
+                </p>
+                <div className="flex items-center gap-2 text-gray-900">
+                  <Clock className="w-4 h-4 text-purple-500" />
+                  <p className="font-medium">
+                    {client.allocated_day
+                      ? client.allocated_day.charAt(0).toUpperCase() +
+                        client.allocated_day.slice(1).toLowerCase()
+                      : ""}
+                    s at {formatTimeSlotDisplay(client.allocated_time)}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-green-600" />
+              Payment Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-green-50/50 rounded-xl p-4 border border-green-100">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-bold text-green-800 uppercase">
+                    Assessment Fee
+                  </span>
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase">
+                    Paid
+                  </span>
+                </div>
+                <p className="text-sm text-green-700">
+                  Your intake assessment fee of £
+                  {(
+                    pricing["General Assessment"]?.consultation_price ||
+                    pricing["TrafftBooking"]?.consultation_price ||
+                    13
+                  ).toFixed(2)}{" "}
+                  has been received. This covered your initial matching and
+                  assessment process.
+                </p>
+              </div>
+
+              <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-bold text-blue-800 uppercase">
+                    Therapy Sessions Fee
+                  </span>
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full uppercase">
+                    Pay as you go
+                  </span>
+                </div>
+                <p className="text-sm text-blue-700">
+                  {client?.service_type === "Low Cost"
+                    ? `Therapy sessions are £${(pricing["Low Cost"]?.block_price || 25).toFixed(2)} for a block of sessions (£${(pricing["Low Cost"]?.session_price || 6.25).toFixed(2)} per session).`
+                    : `Therapy sessions for ${client?.service_type} are billed at £${(pricing[client?.service_type]?.session_price || 40).toFixed(2)} per session.`}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -405,18 +493,20 @@ function ClientBookingContent() {
             <h2 className="text-lg font-semibold text-gray-900">
               Upcoming Sessions
             </h2>
-            {client?.service_type !== "Low Cost" && (
-              <button
-                onClick={() => {
-                  setBookingType("single");
-                  setShowBookingModal(true);
-                }}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium flex items-center gap-2"
-              >
-                <Calendar className="w-4 h-4" />
-                Book Session
-              </button>
-            )}
+            <button
+              onClick={() => {
+                setBookingType(
+                  client?.service_type === "Low Cost" ? "block" : "single",
+                );
+                setShowBookingModal(true);
+              }}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium flex items-center gap-2"
+            >
+              <Calendar className="w-4 h-4" />
+              {client?.service_type === "Low Cost"
+                ? "Book Block"
+                : "Book Session"}
+            </button>
           </div>
 
           {upcomingSessions.length === 0 ? (
@@ -467,7 +557,7 @@ function ClientBookingContent() {
             onClick={() => setShowBookingModal(false)}
           ></div>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full">
+            <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
               <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">
                   {bookingType === "block"
@@ -482,189 +572,133 @@ function ClientBookingContent() {
                 </button>
               </div>
               <div className="p-6">
-                {bookingType === "block" && (
-                  <>
-                    {!client?.allocated_day || !client?.allocated_time ? (
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Select Your Weekly Time Slot
-                        </label>
-                        <p className="text-xs text-gray-500 mb-3">
-                          For {client?.service_type} services, you'll have this
-                          same slot each week.
-                        </p>
-                        <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-                          {availableSlots.length > 0 ? (
-                            availableSlots.map((slot, index) => (
-                              <button
-                                key={index}
-                                onClick={() => {
-                                  setSelectedSlot(slot);
-                                  setSelectedDate(slot.date);
-                                }}
-                                disabled={!slot.available}
-                                className={`p-2 border rounded-lg text-sm transition-colors text-left ${
-                                  selectedSlot === slot
-                                    ? "bg-purple-100 border-purple-500 text-purple-700"
-                                    : !slot.available
-                                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"
-                                      : "hover:bg-gray-50 border-gray-300 text-gray-700"
-                                }`}
-                              >
-                                <div className="font-medium">
-                                  {new Date(slot.date).toLocaleDateString(
-                                    undefined,
-                                    {
-                                      weekday: "short",
-                                      month: "short",
-                                      day: "numeric",
-                                    },
-                                  )}
-                                </div>
-                                <div className="text-xs opacity-75">
-                                  {formatTimeSlotDisplay(slot.time)}
-                                </div>
-                                {!slot.available && (
-                                  <div className="text-[10px] text-red-500 font-medium font-inter mt-1">
-                                    Booked
-                                  </div>
-                                )}
-                              </button>
-                            ))
-                          ) : (
-                            <div className="col-span-2 text-center py-4 text-gray-500">
-                              {loadingSlots ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mx-auto mb-2"></div>
-                                  Loading available slots...
-                                </>
-                              ) : (
-                                "No available dates found"
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Booking Start Date *
-                        </label>
-                        <input
-                          type="date"
-                          value={selectedDate}
-                          onChange={(e) => setSelectedDate(e.target.value)}
-                          min={new Date().toISOString().split("T")[0]}
-                          disabled={client?.service_type === "Low Cost"}
-                          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                            client?.service_type === "Low Cost"
-                              ? "bg-gray-100 cursor-not-allowed border-gray-200"
-                              : "border-gray-300"
-                          }`}
-                          required
-                        />
-                        <p className="text-xs text-purple-600 mt-2 font-medium">
-                          Consistent weekly slot maintained:{" "}
-                          {client?.allocated_day}s at{" "}
-                          {formatTimeSlotDisplay(client?.allocated_time)}.
-                        </p>
-                      </div>
-                    )}
-
-                    {client?.service_type === "Low Cost" && (
-                      <div
-                        className={`mb-4 p-3 rounded-lg border ${
-                          daysUntilDeadline !== null && daysUntilDeadline < 0
-                            ? "bg-red-50 border-red-200"
-                            : "bg-blue-50 border-blue-200"
-                        }`}
-                      >
-                        <p className="text-sm font-semibold mb-1">
-                          {daysUntilDeadline !== null && daysUntilDeadline < 0
-                            ? "Booking Deadline Passed"
-                            : "Next Block Details"}
-                        </p>
-                        <p className="text-xs text-gray-700">
-                          {daysUntilDeadline !== null && daysUntilDeadline < 0
-                            ? "Your sessions will be automatically reduced to 3 (penalty applied)."
-                            : "Your sessions will be scheduled for a block of 4."}
-                        </p>
-                      </div>
-                    )}
-                    {client?.service_type !== "Low Cost" && (
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Number of Sessions
-                        </label>
-                        <select
-                          value={sessionsCount}
-                          onChange={(e) =>
-                            setSessionsCount(parseInt(e.target.value))
-                          }
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        >
-                          <option value={4}>4 sessions (Full block)</option>
-                          <option value={8}>8 sessions</option>
-                          <option value={12}>12 sessions</option>
-                        </select>
-                      </div>
-                    )}
-                  </>
+                {loadingSlots && (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <p className="ml-3 text-sm text-gray-500">
+                      Checking availability…
+                    </p>
+                  </div>
                 )}
 
-                {bookingType === "single" && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Select Time Slot
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-                      {loadingSlots ? (
-                        <div className="col-span-2 text-center py-4 text-gray-500">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mx-auto mb-2"></div>
-                          Loading available slots...
-                        </div>
-                      ) : availableSlots.length > 0 ? (
-                        availableSlots.map((slot, index) => (
-                          <button
-                            key={index}
-                            onClick={() => setSelectedSlot(slot)}
-                            disabled={!slot.available}
-                            className={`p-2 border rounded-lg text-sm transition-colors text-left ${
-                              selectedSlot === slot
-                                ? "bg-purple-100 border-purple-500 text-purple-700"
-                                : !slot.available
-                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"
-                                  : "hover:bg-gray-50 border-gray-300 text-gray-700"
-                            }`}
-                          >
-                            <div className="font-medium">
-                              {new Date(slot.date).toLocaleDateString(
-                                undefined,
-                                {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                },
-                              )}
-                            </div>
-                            <div className="text-xs opacity-75">
-                              {formatTimeSlotDisplay(slot.time)}
-                            </div>
-                            {!slot.available && (
-                              <div className="text-[10px] text-red-500 font-medium font-inter mt-1">
-                                Booked
-                              </div>
-                            )}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="col-span-2 text-center py-4 text-gray-500">
-                          No available slots at the moment
-                        </div>
-                      )}
+                {!loadingSlots && bookingEnabled === false && (
+                  <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-5 flex gap-3">
+                    <div className="text-2xl">🔒</div>
+                    <div>
+                      <h4 className="font-semibold text-amber-900 mb-1">
+                        Booking Not Yet Open
+                      </h4>
+                      <p className="text-sm text-amber-800">
+                        Booking for your service is not open yet. Your
+                        coordinator will open dates when they are ready. Please
+                        check back soon or contact support.
+                      </p>
                     </div>
                   </div>
                 )}
+
+                {!loadingSlots &&
+                  bookingEnabled !== false &&
+                  bookingType === "block" && (
+                    <>
+                      {!client?.allocated_day || !client?.allocated_time ? (
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Select Your Weekly Time Slot
+                          </label>
+                          <p className="text-xs text-gray-500 mb-3">
+                            For {client?.service_type} services, you'll have
+                            this same slot each week.
+                          </p>
+                          <CalendarPicker
+                            availableSlots={availableSlots}
+                            selectedSlot={selectedSlot}
+                            onSelect={(slot) => {
+                              setSelectedSlot(slot);
+                              setSelectedDate(slot.date);
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Booking Start Date *
+                          </label>
+                          <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            min={new Date().toISOString().split("T")[0]}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent border-gray-300"
+                            required
+                          />
+                          <p className="text-xs text-purple-600 mt-2 font-medium">
+                            Consistent weekly slot maintained:{" "}
+                            {client?.allocated_day
+                              ? client.allocated_day.charAt(0).toUpperCase() +
+                                client.allocated_day.slice(1).toLowerCase()
+                              : ""}
+                            s at {formatTimeSlotDisplay(client?.allocated_time)}
+                            .
+                          </p>
+                        </div>
+                      )}
+
+                      {client?.service_type === "Low Cost" && (
+                        <div
+                          className={`mb-4 p-3 rounded-lg border ${
+                            daysUntilDeadline !== null && daysUntilDeadline < 0
+                              ? "bg-red-50 border-red-200"
+                              : "bg-blue-50 border-blue-200"
+                          }`}
+                        >
+                          <p className="text-sm font-semibold mb-1">
+                            {daysUntilDeadline !== null && daysUntilDeadline < 0
+                              ? "Booking Deadline Passed"
+                              : "Next Block Details"}
+                          </p>
+                          <p className="text-xs text-gray-700">
+                            {daysUntilDeadline !== null && daysUntilDeadline < 0
+                              ? "Your sessions will be automatically reduced to 3 (penalty applied)."
+                              : "Your sessions will be scheduled for a block of 4."}
+                          </p>
+                        </div>
+                      )}
+                      {client?.service_type !== "Low Cost" && (
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Number of Sessions
+                          </label>
+                          <select
+                            value={sessionsCount}
+                            onChange={(e) =>
+                              setSessionsCount(parseInt(e.target.value))
+                            }
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          >
+                            <option value={4}>4 sessions (Full block)</option>
+                            <option value={8}>8 sessions</option>
+                            <option value={12}>12 sessions</option>
+                          </select>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                {!loadingSlots &&
+                  bookingEnabled !== false &&
+                  bookingType === "single" && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Time Slot
+                      </label>
+                      <CalendarPicker
+                        availableSlots={availableSlots}
+                        selectedSlot={selectedSlot}
+                        onSelect={(slot) => setSelectedSlot(slot)}
+                      />
+                    </div>
+                  )}
 
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
@@ -710,7 +744,7 @@ function ClientBookingContent() {
             <div className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
               <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">
-                  Complete Payment
+                  Complete Booking Payment
                 </h2>
                 <button
                   onClick={() => setShowPaymentModal(false)}
@@ -720,9 +754,15 @@ function ClientBookingContent() {
                 </button>
               </div>
               <div className="p-6">
-                <div className="mb-6 bg-blue-50 border-blue-200 border rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-2">
-                    Booking Summary
+                <p className="text-sm text-gray-600 mb-4">
+                  This payment is for your upcoming{" "}
+                  <strong>therapy sessions</strong>. Your previous payment
+                  during intake was for the initial assessment and matching.
+                </p>
+                <div className="mb-6 bg-blue-50 border-blue-200 border rounded-lg p-4 shadow-sm">
+                  <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Session Summary
                   </h3>
                   <p className="text-sm text-blue-800">
                     {pendingBookingData?.is_single ? (

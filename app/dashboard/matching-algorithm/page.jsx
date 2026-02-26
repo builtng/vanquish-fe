@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -10,6 +11,7 @@ import {
 
 export default function MatchingAlgorithmPage() {
   return (
+    <PageGuard menuId="matching-algo">
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader>
@@ -162,5 +164,6 @@ export default function MatchingAlgorithmPage() {
         </div>
       </div>
     </DashboardLayout>
+    </PageGuard>
   );
 }

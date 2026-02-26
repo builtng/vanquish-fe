@@ -16,6 +16,7 @@ import {
 import { StripePaymentWrapper } from "@/components/StripePayment";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { toast } from "react-toastify";
+import apiService from "@/lib/api";
 
 export default function VanquishClientIntake() {
   const [formData, setFormData] = useState({
@@ -88,14 +89,31 @@ export default function VanquishClientIntake() {
   const [errors, setErrors] = useState({});
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isDiscountApplied, setIsDiscountApplied] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentProps, setPaymentProps] = useState(null);
+  const [baseFee, setBaseFee] = useState(13.0);
   const formContentRef = useRef(null);
+
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        const services = await apiService.getAllServices();
+        const generalSetting = services.find(
+          (s) =>
+            s.service_name === "General Assessment" ||
+            s.service_name === "TrafftBooking",
+        );
+        if (generalSetting) {
+          setBaseFee(parseFloat(generalSetting.consultation_price));
+        }
+      } catch (err) {
+        console.error("Failed to load dynamic pricing:", err);
+      }
+    };
+    fetchPricing();
+  }, []);
 
   // Calculate consultation fee based on service type
   const getConsultationFee = () => {
-    let baseFee = 13.0;
-
     return Math.max(0, baseFee - discountAmount);
   };
 

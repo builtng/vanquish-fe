@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -115,6 +116,7 @@ export default function EmailManagement() {
 
   if (loading) {
     return (
+      <PageGuard menuId="email-management">
       <DashboardLayout>
         <DashboardHeader>
           <h1 className="text-2xl font-bold">Email Management</h1>
@@ -123,6 +125,7 @@ export default function EmailManagement() {
           <RefreshCcw className="w-8 h-8 animate-spin text-purple-600" />
         </div>
       </DashboardLayout>
+      </PageGuard>
     );
   }
 

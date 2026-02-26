@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -222,6 +223,7 @@ function EditTrainingCounsellorContent() {
 
   if (loading) {
     return (
+      <PageGuard menuId="tcs">
       <DashboardLayout>
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
@@ -230,6 +232,7 @@ function EditTrainingCounsellorContent() {
           </div>
         </div>
       </DashboardLayout>
+      </PageGuard>
     );
   }
 

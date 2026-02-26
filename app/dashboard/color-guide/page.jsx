@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -23,6 +24,7 @@ export default function ColorGuidePage() {
   ];
 
   return (
+    <PageGuard menuId="color-guide">
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader>
@@ -127,5 +129,6 @@ export default function ColorGuidePage() {
         </div>
       </div>
     </DashboardLayout>
+    </PageGuard>
   );
 }

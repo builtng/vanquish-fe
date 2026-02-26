@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -252,6 +253,7 @@ export default function ActivityLogPage() {
   };
 
   return (
+    <PageGuard menuId="activity">
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -519,6 +521,7 @@ export default function ActivityLogPage() {
         </div>
       </div>
     </DashboardLayout>
+    </PageGuard>
   );
 }
 

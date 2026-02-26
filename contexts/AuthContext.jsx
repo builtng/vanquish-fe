@@ -34,15 +34,42 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    // Protect dashboard routes
+    // Protect dashboard and counsellor-portal routes
     if (!isLoading) {
       const isDashboardRoute = pathname?.startsWith("/dashboard");
       const isLoginRoute = pathname === "/login";
+      const isCounsellorPortalRoute =
+        pathname?.startsWith("/counsellor-portal");
+      const isCounsellorLoginRoute = pathname === "/counsellor-login";
 
-      if (isDashboardRoute && !user) {
-        router.push("/login");
+      // Admin dashboard protection
+      if (isDashboardRoute) {
+        if (!user) {
+          router.push("/login");
+        } else if (user.role === "counsellor") {
+          router.push("/counsellor-portal");
+        }
       } else if (isLoginRoute && user) {
-        router.push("/dashboard");
+        if (user.role === "counsellor") {
+          router.push("/counsellor-portal");
+        } else {
+          router.push("/dashboard");
+        }
+      }
+
+      // Counsellor portal protection
+      if (isCounsellorPortalRoute) {
+        if (!user) {
+          router.push("/counsellor-login");
+        } else if (user.role !== "counsellor") {
+          router.push("/dashboard");
+        }
+      } else if (isCounsellorLoginRoute && user) {
+        if (user.role === "counsellor") {
+          router.push("/counsellor-portal");
+        } else {
+          router.push("/dashboard");
+        }
       }
     }
   }, [user, isLoading, pathname, router]);
@@ -50,12 +77,12 @@ export function AuthProvider({ children }) {
   const login = async (email, password, twoFactorCode = null) => {
     try {
       const response = await apiService.login(email, password, twoFactorCode);
-      
+
       // Check if 2FA is required
       if (response.requires_two_factor) {
         return { requiresTwoFactor: true, message: response.message };
       }
-      
+
       setUser(response.user);
       return response;
     } catch (error) {
@@ -64,13 +91,18 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
+    const role = user?.role;
     try {
       await apiService.logout();
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
       setUser(null);
-      router.push("/login");
+      if (role === "counsellor") {
+        router.push("/counsellor-login");
+      } else {
+        router.push("/login");
+      }
     }
   };
 

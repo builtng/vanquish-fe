@@ -1,4 +1,5 @@
 "use client";
+import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
@@ -497,14 +498,15 @@ function EditClientPageContent() {
     try {
       setDeleteLoading(true);
       await apiService.deleteClient(clientId);
+      setDeleteLoading(false);
+      setShowDeleteConfirmModal(false);
       success("Client deleted successfully!");
       router.push("/dashboard/clients");
     } catch (err) {
       console.error("Error deleting client:", err);
-      showError(err.message || "Failed to delete client. Please try again.");
-      setShowDeleteConfirmModal(false);
-    } finally {
       setDeleteLoading(false);
+      setShowDeleteConfirmModal(false);
+      showError(err.message || "Failed to delete client. Please try again.");
     }
   };
 
@@ -529,6 +531,7 @@ function EditClientPageContent() {
   );
 
   return (
+    <PageGuard menuId="clients">
     <DashboardLayout>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -1428,6 +1431,7 @@ function EditClientPageContent() {
         confirmButtonColor="var(--button-primary-bg)"
       />
     </DashboardLayout>
+    </PageGuard>
   );
 }
 

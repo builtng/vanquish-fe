@@ -27,6 +27,7 @@ import {
   ChevronRight,
   Clock,
   Mail,
+  Calendar,
 } from "lucide-react";
 
 export default function DashboardSidebar() {
@@ -40,6 +41,7 @@ export default function DashboardSidebar() {
     completed: 0,
   });
   const [pendingMatchesCount, setPendingMatchesCount] = useState(0);
+  const [menuPrivileges, setMenuPrivileges] = useState([]);
   const [loading, setLoading] = useState(true);
   const isFetchingRef = React.useRef(false);
   const lastFetchRef = React.useRef(0);
@@ -68,9 +70,9 @@ export default function DashboardSidebar() {
     }));
   };
 
-  // Fetch sidebar counts from backend with throttling
+  // Fetch sidebar counts and privileges from backend with throttling
   useEffect(() => {
-    const fetchSidebarCounts = async () => {
+    const fetchSidebarData = async () => {
       // Prevent multiple simultaneous requests
       if (isFetchingRef.current) {
         return;
@@ -87,10 +89,23 @@ export default function DashboardSidebar() {
         isFetchingRef.current = true;
         lastFetchRef.current = now;
 
-        const [consultationsData, pendingCount] = await Promise.all([
-          apiService.getConsultations(),
-          apiService.getPendingMatchesCount(),
-        ]);
+        // Fetch consultations and pending count (staff/admin only; counsellors get empty)
+        const userRole = user?.role;
+        const canFetchStaffData = userRole === "admin" || userRole === "staff";
+
+        const [consultationsData, pendingCount, privilegesData] =
+          await Promise.all([
+            canFetchStaffData
+              ? apiService.getConsultations()
+              : Promise.resolve([]),
+            canFetchStaffData
+              ? apiService.getPendingMatchesCount()
+              : Promise.resolve(0),
+            // Admins get full list; staff/counsellors fetch their role-specific allowed menu IDs
+            isAdmin
+              ? apiService.getMenuPrivileges()
+              : apiService.getMenuPrivilegesForRole(userRole),
+          ]);
 
         // Transform consultations data
         const consultationsArray = Array.isArray(consultationsData)
@@ -117,26 +132,25 @@ export default function DashboardSidebar() {
           completed: completedCount,
         });
         setPendingMatchesCount(pendingCount || 0);
+        setMenuPrivileges(privilegesData || []);
       } catch (err) {
         // Silently handle rate limit errors - don't spam console
         if (err.message && !err.message.includes("Too Many Attempts")) {
-          console.error("Error fetching sidebar counts:", err);
+          console.error("Error fetching sidebar data:", err);
         }
-        // Keep existing counts on error instead of resetting to 0
-        // This prevents flickering when rate limited
       } finally {
         isFetchingRef.current = false;
         setLoading(false);
       }
     };
 
-    fetchSidebarCounts();
+    fetchSidebarData();
 
     // Refresh counts every 30 seconds
-    const interval = setInterval(fetchSidebarCounts, 30000);
+    const interval = setInterval(fetchSidebarData, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isAdmin]);
 
   const [matchesExpanded, setMatchesExpanded] = useState(
     pathname?.startsWith("/dashboard/pending-matches") ||
@@ -161,7 +175,7 @@ export default function DashboardSidebar() {
       onToggle: () => setMatchesExpanded(!matchesExpanded),
       subItems: [
         {
-          id: "matches",
+          id: "pending-matches",
           label: "Pending Matches",
           icon: Clock,
           badge: pendingMatchesCount,
@@ -207,6 +221,12 @@ export default function DashboardSidebar() {
     },
     { id: "coupons", icon: Tag, label: "Coupons", href: "/dashboard/coupons" },
     {
+      id: "consultation-slots",
+      icon: Calendar,
+      label: "Consultation Slots",
+      href: "/dashboard/consultation-slots",
+    },
+    {
       id: "color-guide",
       icon: Info,
       label: "Color Guide",
@@ -218,23 +238,61 @@ export default function DashboardSidebar() {
       label: "Matching Logic",
       href: "/dashboard/matching-algorithm",
     },
-    ...(isAdmin
-      ? [
-          {
-            id: "email-management",
-            icon: Mail,
-            label: "Email Management",
-            href: "/dashboard/email-management",
-          },
-          {
-            id: "users",
-            icon: UserCog,
-            label: "User Management",
-            href: "/dashboard/users",
-          },
-        ]
-      : []),
+    {
+      id: "email-management",
+      icon: Mail,
+      label: "Email Management",
+      href: "/dashboard/email-management",
+    },
+    {
+      id: "users",
+      icon: UserCog,
+      label: "User Management",
+      href: "/dashboard/users",
+    },
   ];
+
+  // Role-based filtering logic
+  const filteredMenuItems = menuItems.filter((item) => {
+    const userRole = user?.role;
+
+    // Admin: check against fetched privileges (if loaded), otherwise see everything
+    if (userRole === "admin") {
+      if (menuPrivileges && menuPrivileges.length > 0) {
+        const privilege = menuPrivileges.find((p) => p.menu_id === item.id);
+        // Admins always see items in DB; only hide if explicitly set to empty roles
+        if (privilege) {
+          return privilege.roles.includes("admin");
+        }
+      }
+      return true; // Default: admin sees everything not in DB
+    }
+
+    // For non-admins: privileges is an array of allowed menu_id strings (from getForRole)
+    if (menuPrivileges && menuPrivileges.length > 0) {
+      // getForRole returns an array of menu_id strings the role can access
+      return menuPrivileges.includes(item.id);
+    }
+
+    // Static fallback while privileges are loading
+    const adminOnly = [
+      "coupons",
+      "email-management",
+      "users",
+      "consultation-slots",
+      "matching-algo",
+    ];
+
+    if (userRole === "staff") {
+      return !adminOnly.includes(item.id);
+    }
+
+    if (userRole === "counsellor") {
+      return item.id === "overview" || item.id === "activity";
+    }
+
+    return false;
+  });
 
   return (
     <div
@@ -273,10 +331,10 @@ export default function DashboardSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => {
+        {filteredMenuItems.map((item) => {
           const isActive =
             pathname === item.href ||
-            (item.id === "matches" &&
+            (item.id === "pending-matches" &&
               pathname?.startsWith("/dashboard/pending-matches")) ||
             (item.id === "clients" &&
               pathname?.startsWith("/dashboard/client-details")) ||
@@ -315,38 +373,59 @@ export default function DashboardSidebar() {
 
                 {item.expanded && sidebarOpen && (
                   <div className="ml-9 space-y-1">
-                    {item.subItems.map((subItem) => {
-                      const isSubActive = pathname === subItem.href;
-                      return (
-                        <Link
-                          key={subItem.id}
-                          href={subItem.href}
-                          className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${
-                            isSubActive
-                              ? "bg-purple-50 dark:bg-purple-900/20 text-[#6f1c56] dark:text-purple-300 font-semibold"
-                              : "text-gray-600 dark:text-[var(--text-secondary)] hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)]"
-                          }`}
-                        >
-                          <div className="flex-1 flex items-center gap-2">
-                            {subItem.icon && (
-                              <subItem.icon className="w-4 h-4" />
-                            )}
-                            <span>{subItem.label}</span>
-                          </div>
-                          {subItem.badge !== undefined && subItem.badge > 0 && (
-                            <span
-                              className={`px-2 py-0.5 text-xs rounded-full font-semibold ${
-                                isSubActive
-                                  ? "bg-[#6f1c56] text-white"
-                                  : "bg-red-500 text-white"
-                              }`}
-                            >
-                              {subItem.badge}
-                            </span>
-                          )}
-                        </Link>
-                      );
-                    })}
+                    {item.subItems
+                      .filter((sub) => {
+                        const userRole = user?.role;
+                        if (userRole === "admin") {
+                          // Check admin privilege for sub-items too
+                          if (menuPrivileges && menuPrivileges.length > 0) {
+                            const privilege = menuPrivileges.find(
+                              (p) => p.menu_id === sub.id,
+                            );
+                            if (privilege)
+                              return privilege.roles.includes("admin");
+                          }
+                          return true;
+                        }
+                        // Non-admins: menuPrivileges is array of accessible menu_id strings
+                        if (menuPrivileges && menuPrivileges.length > 0) {
+                          return menuPrivileges.includes(sub.id);
+                        }
+                        return userRole === "staff"; // Default fallback for subitems
+                      })
+                      .map((subItem) => {
+                        const isSubActive = pathname === subItem.href;
+                        return (
+                          <Link
+                            key={subItem.id}
+                            href={subItem.href}
+                            className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${
+                              isSubActive
+                                ? "bg-purple-50 dark:bg-purple-900/20 text-[#6f1c56] dark:text-purple-300 font-semibold"
+                                : "text-gray-600 dark:text-[var(--text-secondary)] hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)]"
+                            }`}
+                          >
+                            <div className="flex-1 flex items-center gap-2">
+                              {subItem.icon && (
+                                <subItem.icon className="w-4 h-4" />
+                              )}
+                              <span>{subItem.label}</span>
+                            </div>
+                            {subItem.badge !== undefined &&
+                              subItem.badge > 0 && (
+                                <span
+                                  className={`px-2 py-0.5 text-xs rounded-full font-semibold ${
+                                    isSubActive
+                                      ? "bg-[#6f1c56] text-white"
+                                      : "bg-red-500 text-white"
+                                  }`}
+                                >
+                                  {subItem.badge}
+                                </span>
+                              )}
+                          </Link>
+                        );
+                      })}
                   </div>
                 )}
               </div>
