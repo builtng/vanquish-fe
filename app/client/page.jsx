@@ -90,6 +90,7 @@ export default function VanquishClientIntake() {
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isDiscountApplied, setIsDiscountApplied] = useState(false);
   const [paymentProps, setPaymentProps] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [baseFee, setBaseFee] = useState(13.0);
   const formContentRef = useRef(null);
 
