@@ -13,7 +13,7 @@ const ALWAYS_BYPASS = [
 // Paths that staff, admin, and counsellors can access even during maintenance
 const STAFF_PATHS = ["/dashboard", "/counsellor-portal", "/counsellor"];
 
-export async function middleware(request) {
+export default async function proxy(request) {
   const { pathname } = request.nextUrl;
 
   // Let assets and login pages through without any check
