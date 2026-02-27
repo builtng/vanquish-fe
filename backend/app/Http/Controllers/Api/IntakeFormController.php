@@ -62,6 +62,8 @@ class IntakeFormController extends Controller
                 'core34_answers' => 'nullable|array',
                 'terms_accepted' => 'required|boolean|accepted',
                 'create_client' => 'nullable|boolean',
+                'consultation_fee' => 'nullable|numeric',
+                'discount_code' => 'nullable|string',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -108,6 +110,8 @@ class IntakeFormController extends Controller
                 'referrer_email' => $validated['referrer_email'] ?? null,
                 'core34_answers' => $validated['core34_answers'] ?? [],
                 'terms_accepted' => $validated['terms_accepted'],
+                'discount_code' => $validated['discount_code'] ?? null,
+                'payment_amount' => $validated['consultation_fee'] ?? 0,
                 'status' => 'submitted',
             ]);
 
@@ -201,6 +205,36 @@ class IntakeFormController extends Controller
             } elseif ($form->client_id) {
                 $client = Client::find($form->client_id);
                 $clientUuid = $client ? $client->uuid : null;
+            }
+
+            // Check if this is a free intake (due to coupon) and send emails
+            if (isset($validated['consultation_fee']) && $validated['consultation_fee'] <= 0 && $client) {
+                $form->update([
+                    'payment_status' => 'paid',
+                    'payment_method' => 'coupon',
+                    'paid_at' => now(),
+                    'status' => 'processed'
+                ]);
+
+                // Send emails
+                try {
+                    $this->emailService->sendAndLog($client, 'intake_submission', [
+                        'client_name' => $client->name,
+                        'email' => $client->email
+                    ]);
+
+                    sleep(1);
+
+                    $bookingLink = config('app.frontend_url') . "/client-booking?uuid=" . $client->uuid;
+                    $this->emailService->sendAndLog($client, 'consultation_booking_link', [
+                        'client_name' => $client->name,
+                        'booking_link' => $bookingLink,
+                        'tc_name' => 'To Be Assigned',
+                        'session_date' => 'Pending'
+                    ]);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to send free intake emails: ' . $e->getMessage());
+                }
             }
 
             return response()->json([
