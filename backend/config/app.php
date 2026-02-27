@@ -54,7 +54,7 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
-    'frontend_url' => env('APP_BASE_URL', 'http://localhost:3000'),
+    'frontend_url' => explode(',', env('FRONTEND_URL', env('APP_BASE_URL', 'http://localhost:3000')))[0],
 
     /*
     |--------------------------------------------------------------------------

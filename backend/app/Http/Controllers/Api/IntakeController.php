@@ -80,7 +80,7 @@ class IntakeController extends Controller
 
                 sleep(2);
 
-                $bookingLink = env('FRONTEND_URL', 'http://localhost:3000') . "/client-booking?uuid=" . $client->uuid;
+                $bookingLink = config('app.frontend_url') . "/client-booking?uuid=" . $client->uuid;
                 $emailService->sendAndLog($client, 'consultation_booking_link', [
                     'client_name' => $client->name,
                     'booking_link' => $bookingLink,
