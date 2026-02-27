@@ -44,6 +44,22 @@ return Application::configure(basePath: dirname(__DIR__))
         if (config('app.env') === 'production') {
             $exceptions->render(function (Throwable $e, $request) {
                 if ($request->is('api/*')) {
+                    // Respect ValidationException
+                    if ($e instanceof \Illuminate\Validation\ValidationException) {
+                        return response()->json([
+                            'message' => $e->getMessage(),
+                            'errors' => $e->errors(),
+                        ], $e->status);
+                    }
+
+                    // Respect AuthenticationException
+                    if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                        return response()->json([
+                            'message' => $e->getMessage(),
+                        ], 401);
+                    }
+
+                    // Respect generic HttpException
                     $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
                     $message = $statusCode === 500
                         ? 'An error occurred. Please try again later.'

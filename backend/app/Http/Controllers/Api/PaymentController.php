@@ -93,7 +93,7 @@ class PaymentController extends Controller
             }
         }
 
-        $amountInPence = (int)($finalAmount * 100);
+        $amountInPence = (int)round($finalAmount * 100);
 
         try {
             $client = Client::findOrFail($validated['client_id']);
@@ -101,20 +101,27 @@ class PaymentController extends Controller
             // Create or retrieve Stripe customer
             $customerId = $this->getOrCreateStripeCustomer($client, $request->email ?? $client->email);
 
+            $metadata = [
+                'client_id' => (string) $client->id,
+                'client_name' => (string) $client->name,
+                'payment_type' => (string) $validated['payment_type'],
+                'original_amount' => (string) $originalAmount,
+                'discount_amount' => (string) $discountAmount
+            ];
+
+            if (isset($validated['session_ids'])) {
+                $metadata['session_ids'] = implode(',', $validated['session_ids']);
+            }
+            if (!empty($validated['coupon_code'])) {
+                $metadata['coupon_code'] = (string) $validated['coupon_code'];
+            }
+
             // Create payment intent
             $paymentIntent = PaymentIntent::create([
                 'amount' => $amountInPence,
                 'currency' => $currency,
                 'customer' => $customerId,
-                'metadata' => [
-                    'client_id' => $client->id,
-                    'client_name' => $client->name,
-                    'payment_type' => $validated['payment_type'],
-                    'session_ids' => isset($validated['session_ids']) ? implode(',', $validated['session_ids']) : null,
-                    'coupon_code' => $validated['coupon_code'] ?? null,
-                    'original_amount' => $originalAmount,
-                    'discount_amount' => $discountAmount
-                ],
+                'metadata' => $metadata,
                 'automatic_payment_methods' => [
                     'enabled' => true,
                 ],
@@ -316,20 +323,38 @@ class PaymentController extends Controller
 
             // Log activity (if user is authenticated)
             if ($request->user()) {
-                ActivityLog::create([
-                    'user_id' => $request->user()->id,
-                    'action' => 'payment_completed',
-                    'model_type' => Consultation::class,
-                    'model_id' => $consultation->id,
-                    'description' => "Payment of £{$consultation->payment_amount} completed for consultation",
-                    'ip_address' => $request->ip(),
-                ]);
+                if ($paymentType === 'consultation' && isset($consultation)) {
+                    ActivityLog::create([
+                        'user_id' => $request->user()->id,
+                        'action' => 'payment_completed',
+                        'model_type' => Consultation::class,
+                        'model_id' => $consultation->id,
+                        'description' => "Payment of £{$consultation->payment_amount} completed for consultation",
+                        'ip_address' => $request->ip(),
+                    ]);
+                } elseif (($paymentType === 'session' || $paymentType === 'session_block') && isset($sessions) && count($sessions) > 0) {
+                    ActivityLog::create([
+                        'user_id' => $request->user()->id,
+                        'action' => 'payment_completed',
+                        'model_type' => \App\Models\Session::class,
+                        'model_id' => $sessions[0]->id,
+                        'description' => "Payment of £" . ($paymentIntent->amount / 100) . " completed for session(s)",
+                        'ip_address' => $request->ip(),
+                    ]);
+                }
             }
 
-            return response()->json([
-                'message' => 'Payment confirmed successfully',
-                'consultation' => $consultation->load(['client']),
-            ]);
+            if ($paymentType === 'consultation' && isset($consultation)) {
+                return response()->json([
+                    'message' => 'Payment confirmed successfully',
+                    'consultation' => $consultation->load(['client']),
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'Payment confirmed successfully',
+                    'sessions' => isset($sessions) ? $sessions : [],
+                ]);
+            }
         } catch (ApiErrorException $e) {
             Log::error('Stripe Payment Confirmation Error: ' . $e->getMessage(), [
                 'payment_intent_id' => $validated['payment_intent_id'],
@@ -429,9 +454,9 @@ class PaymentController extends Controller
 
         $customer = \Stripe\Customer::create([
             'email' => $email,
-            'name' => $client->firstName . ' ' . $client->lastName,
+            'name' => (string) $client->name,
             'metadata' => [
-                'client_id' => $client->id,
+                'client_id' => (string) $client->id,
             ],
         ]);
 
