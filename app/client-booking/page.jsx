@@ -601,48 +601,26 @@ function ClientBookingContent() {
                   bookingEnabled !== false &&
                   bookingType === "block" && (
                     <>
-                      {!client?.allocated_day || !client?.allocated_time ? (
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Select Your Weekly Time Slot
-                          </label>
-                          <p className="text-xs text-gray-500 mb-3">
-                            For {client?.service_type} services, you'll have
-                            this same slot each week.
-                          </p>
-                          <CalendarPicker
-                            availableSlots={availableSlots}
-                            selectedSlot={selectedSlot}
-                            onSelect={(slot) => {
-                              setSelectedSlot(slot);
-                              setSelectedDate(slot.date);
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Booking Start Date *
-                          </label>
-                          <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            min={new Date().toISOString().split("T")[0]}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent border-gray-300"
-                            required
-                          />
-                          <p className="text-xs text-purple-600 mt-2 font-medium">
-                            Consistent weekly slot maintained:{" "}
-                            {client?.allocated_day
-                              ? client.allocated_day.charAt(0).toUpperCase() +
-                                client.allocated_day.slice(1).toLowerCase()
-                              : ""}
-                            s at {formatTimeSlotDisplay(client?.allocated_time)}
-                            .
-                          </p>
-                        </div>
-                      )}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {!client?.allocated_day || !client?.allocated_time
+                            ? "Select Your Weekly Time Slot"
+                            : "Select Your Booking Start Date"}
+                        </label>
+                        <p className="text-xs text-gray-500 mb-3">
+                          {!client?.allocated_day || !client?.allocated_time
+                            ? `For ${client?.service_type} services, you'll have this same slot each week.`
+                            : `Consistent weekly slot maintained: ${client?.allocated_day ? client.allocated_day.charAt(0).toUpperCase() + client.allocated_day.slice(1).toLowerCase() : ""}s at ${formatTimeSlotDisplay(client?.allocated_time)}.`}
+                        </p>
+                        <CalendarPicker
+                          availableSlots={availableSlots}
+                          selectedSlot={selectedSlot}
+                          onSelect={(slot) => {
+                            setSelectedSlot(slot);
+                            setSelectedDate(slot.date);
+                          }}
+                        />
+                      </div>
 
                       {client?.service_type === "Low Cost" && (
                         <div

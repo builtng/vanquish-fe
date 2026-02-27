@@ -128,31 +128,38 @@ class ClientBookingController extends Controller
             return $session->scheduled_at->format('Y-m-d H:i');
         })->toArray();
 
-        // For Low Cost: if already allocated, show only that
+        // For Low Cost: if already allocated, show next few occurrences
         if ($client->service_type === 'Low Cost' && $client->allocated_day && $client->allocated_time) {
+            $slots = [];
             $dayOfWeek = $this->getDayOfWeekNumber($client->allocated_day);
-            $nextSessionDate = Carbon::now()->next($dayOfWeek);
+            $startDate = Carbon::now()->next($dayOfWeek);
 
             // If next session is within 48 hours, it's CLOSED. Skip to the following week.
-            if (Carbon::now()->diffInHours($nextSessionDate, false) < 48) {
-                $nextSessionDate->addWeek();
+            if (Carbon::now()->diffInHours($startDate, false) < 48) {
+                $startDate->addWeek();
             }
 
-            $slotDateTime = $nextSessionDate->format('Y-m-d') . ' ' . $this->formatTimeToHHi($client->allocated_time);
+            // Provide 8 weeks of options
+            for ($i = 0; $i < 8; $i++) {
+
+                $date = $startDate->copy()->addWeeks($i);
+                $slotDateTime = $date->format('Y-m-d') . ' ' . $this->formatTimeToHHi($client->allocated_time);
+
+                $slots[] = [
+                    'date' => $date->format('Y-m-d'),
+                    'day' => $client->allocated_day,
+                    'time' => $client->allocated_time,
+                    'formatted_time' => $this->formatTimeToHHi($client->allocated_time),
+                    'available' => !in_array($slotDateTime, $bookedTimes),
+                ];
+            }
 
             return response()->json([
-                'slots' => [
-                    [
-                        'day' => $client->allocated_day,
-                        'time' => $client->allocated_time,
-                        'formatted_time' => $this->formatTimeToHHi($client->allocated_time),
-                        'date' => $nextSessionDate->format('Y-m-d'),
-                        'available' => !in_array($slotDateTime, $bookedTimes),
-                    ]
-                ],
+                'slots' => $slots,
                 'booking_type' => 'block',
             ]);
         }
+
 
         // For Mid-Range: if already allocated, show same day/time each week
         if ($client->service_type === 'Mid Range' && $client->allocated_day && $client->allocated_time) {
