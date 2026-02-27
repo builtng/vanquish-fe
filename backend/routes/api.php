@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\JotFormWebhookController;
 use App\Http\Controllers\Api\ClientAgreementController;
 use App\Http\Controllers\Api\EmailTemplateController;
 use App\Http\Controllers\Api\IntakeController;
+use App\Http\Controllers\StaffNoteController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes with stricter rate limiting
@@ -189,6 +190,9 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::put('/menu-privileges', [\App\Http\Controllers\Api\MenuPrivilegeController::class, 'update']);
     });
 
+    // List of users for notes (accessible by any auth user, used by staff notes)
+    Route::get('/users-list', [UserController::class, 'publicList']);
+
     // Menu Privileges - available to all authenticated users (to show correct sidebar)
     Route::get('/menu-privileges/for-role/{role}', [\App\Http\Controllers\Api\MenuPrivilegeController::class, 'getForRole']);
 
@@ -214,5 +218,13 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/send-to-staff', [MessageController::class, 'sendToStaff']);
         });
+    });
+
+    // Staff Notes
+    Route::prefix('staff-notes')->group(function () {
+        Route::get('/', [StaffNoteController::class, 'index']);
+        Route::post('/', [StaffNoteController::class, 'store']);
+        Route::get('/unread', [StaffNoteController::class, 'getUnreadNotes']);
+        Route::post('/{id}/read', [StaffNoteController::class, 'markAsRead']);
     });
 });

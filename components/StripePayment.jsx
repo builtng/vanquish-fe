@@ -175,7 +175,7 @@ export function StripePaymentForm({ clientId, amount, onSuccess, onError }) {
         ) : (
           <>
             <CreditCard className="w-5 h-5" />
-            Pay £{amount.toFixed(2)}
+            Pay £{Number(amount).toFixed(2)}
           </>
         )}
       </button>

@@ -29,6 +29,7 @@ import {
   Clock,
   Mail,
   Calendar,
+  MessageSquare,
 } from "lucide-react";
 
 export default function DashboardSidebar() {
@@ -250,6 +251,12 @@ export default function DashboardSidebar() {
       icon: Activity,
       label: "Activity Log",
       href: "/dashboard/activity-log",
+    },
+    {
+      id: "staff-notes",
+      icon: MessageSquare,
+      label: "Staff Notes",
+      href: "/dashboard/staff-notes",
     },
     { id: "coupons", icon: Tag, label: "Coupons", href: "/dashboard/coupons" },
     {

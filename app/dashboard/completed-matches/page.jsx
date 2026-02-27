@@ -405,7 +405,7 @@ export default function CompletedMatchesPage() {
                 <div>
                   <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
                     {client.satisfactionScore
-                      ? client.satisfactionScore.toFixed(1)
+                      ? Number(client.satisfactionScore).toFixed(1)
                       : "N/A"}
                     {client.satisfactionScore && (
                       <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
@@ -511,420 +511,422 @@ export default function CompletedMatchesPage() {
 
   return (
     <PageGuard menuId="completed-matches">
-    <DashboardLayout>
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <DashboardHeader
-          actions={
-            <>
-              <button
-                onClick={fetchClients}
-                disabled={loading}
-                className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-700 dark:text-[var(--text-primary)] bg-white dark:bg-[var(--card-bg)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 transition-colors"
-                title="Refresh data"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+      <DashboardLayout>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <DashboardHeader
+            actions={
+              <>
+                <button
+                  onClick={fetchClients}
+                  disabled={loading}
+                  className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-700 dark:text-[var(--text-primary)] bg-white dark:bg-[var(--card-bg)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 transition-colors"
+                  title="Refresh data"
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                  />
+                  Refresh
+                </button>
+                <Link
+                  href="/dashboard/clients/edit"
+                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 transition-opacity"
+                  style={{ backgroundColor: "#6f1d56" }}
+                >
+                  <Users className="w-4 h-4" />
+                  Add New Client
+                </Link>
+              </>
+            }
+          >
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                Completed Matches
+              </h1>
+              <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">
+                {filteredClients.length} clients total
+              </p>
+            </div>
+          </DashboardHeader>
+
+          {/* Filters */}
+          <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by name or email..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                 />
-                Refresh
-              </button>
-              <Link
-                href="/dashboard/clients/edit"
-                className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 transition-opacity"
-                style={{ backgroundColor: "#6f1d56" }}
-              >
-                <Users className="w-4 h-4" />
-                Add New Client
-              </Link>
-            </>
-          }
-        >
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-              Completed Matches
-            </h1>
-            <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">
-              {filteredClients.length} clients total
-            </p>
-          </div>
-        </DashboardHeader>
-
-        {/* Filters */}
-        <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by name or email..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-              />
-            </div>
-            <div className="min-w-[120px] flex-shrink-0">
-              <SearchableSelect
-                value={filterStage}
-                onChange={(e) => setFilterStage(e.target.value)}
-                options={[
-                  { value: "all", label: "All Stages" },
-                  { value: "Matched with TC", label: "Matched with TC" },
-                  { value: "Agreement Sent", label: "Agreement Sent" },
-                  { value: "Agreement Signed", label: "Agreement Signed" },
-                  { value: "Sessions Bookable", label: "Sessions Bookable" },
-                  { value: "Active Therapy", label: "Active Therapy" },
-                ]}
-                placeholder="All Stages"
-                className="text-sm"
-              />
-            </div>
-            <div className="min-w-[120px] flex-shrink-0">
-              <SearchableSelect
-                value={filterTC}
-                onChange={(e) => setFilterTC(e.target.value)}
-                options={[
-                  { value: "all", label: "All TCs" },
-                  ...uniqueTCs.map((tc) => ({ value: tc, label: tc })),
-                ]}
-                placeholder="All TCs"
-                className="text-sm"
-              />
-            </div>
-            <div className="min-w-[120px] flex-shrink-0">
-              <SearchableSelect
-                value={filterService}
-                onChange={(e) => setFilterService(e.target.value)}
-                options={[
-                  { value: "all", label: "All Services" },
-                  { value: "Low Cost", label: "Low Cost" },
-                  { value: "Mid Range", label: "Mid Range" },
-                ]}
-                placeholder="All Services"
-                className="text-sm"
-              />
-            </div>
-            <div className="min-w-[120px] flex-shrink-0">
-              <SearchableSelect
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                options={[
-                  { value: "all", label: "All Status" },
-                  { value: "urgent", label: "Urgent" },
-                  { value: "stuck", label: "Stuck" },
-                  { value: "active", label: "Active" },
-                ]}
-                placeholder="All Status"
-                className="text-sm"
-              />
-            </div>
-            <div className="min-w-[120px] flex-shrink-0">
-              <SearchableSelect
-                value={sortColumn}
-                onChange={(e) => {
-                  setSortColumn(e.target.value);
-                  if (
-                    e.target.value === "submittedDate" ||
-                    e.target.value === "satisfactionScore"
-                  ) {
-                    setSortDirection("desc");
-                  } else {
-                    setSortDirection("asc");
-                  }
-                }}
-                options={[
-                  { value: "name", label: "Sort: Name" },
-                  { value: "client_id", label: "Sort: Client ID" },
-                  { value: "submittedDate", label: "Sort: Newest" },
-                  { value: "satisfactionScore", label: "Sort: Satisfaction" },
-                ]}
-                placeholder="Sort By"
-                className="text-sm"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="flex-1 overflow-auto bg-gray-50 dark:bg-[var(--background)]">
-          {loading && allClients.length === 0 && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <RefreshCw className="w-8 h-8 text-gray-400 dark:text-[var(--text-tertiary)] animate-spin mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-[var(--text-secondary)]">
-                  Loading clients...
-                </p>
+              </div>
+              <div className="min-w-[120px] flex-shrink-0">
+                <SearchableSelect
+                  value={filterStage}
+                  onChange={(e) => setFilterStage(e.target.value)}
+                  options={[
+                    { value: "all", label: "All Stages" },
+                    { value: "Matched with TC", label: "Matched with TC" },
+                    { value: "Agreement Sent", label: "Agreement Sent" },
+                    { value: "Agreement Signed", label: "Agreement Signed" },
+                    { value: "Sessions Bookable", label: "Sessions Bookable" },
+                    { value: "Active Therapy", label: "Active Therapy" },
+                  ]}
+                  placeholder="All Stages"
+                  className="text-sm"
+                />
+              </div>
+              <div className="min-w-[120px] flex-shrink-0">
+                <SearchableSelect
+                  value={filterTC}
+                  onChange={(e) => setFilterTC(e.target.value)}
+                  options={[
+                    { value: "all", label: "All TCs" },
+                    ...uniqueTCs.map((tc) => ({ value: tc, label: tc })),
+                  ]}
+                  placeholder="All TCs"
+                  className="text-sm"
+                />
+              </div>
+              <div className="min-w-[120px] flex-shrink-0">
+                <SearchableSelect
+                  value={filterService}
+                  onChange={(e) => setFilterService(e.target.value)}
+                  options={[
+                    { value: "all", label: "All Services" },
+                    { value: "Low Cost", label: "Low Cost" },
+                    { value: "Mid Range", label: "Mid Range" },
+                  ]}
+                  placeholder="All Services"
+                  className="text-sm"
+                />
+              </div>
+              <div className="min-w-[120px] flex-shrink-0">
+                <SearchableSelect
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  options={[
+                    { value: "all", label: "All Status" },
+                    { value: "urgent", label: "Urgent" },
+                    { value: "stuck", label: "Stuck" },
+                    { value: "active", label: "Active" },
+                  ]}
+                  placeholder="All Status"
+                  className="text-sm"
+                />
+              </div>
+              <div className="min-w-[120px] flex-shrink-0">
+                <SearchableSelect
+                  value={sortColumn}
+                  onChange={(e) => {
+                    setSortColumn(e.target.value);
+                    if (
+                      e.target.value === "submittedDate" ||
+                      e.target.value === "satisfactionScore"
+                    ) {
+                      setSortDirection("desc");
+                    } else {
+                      setSortDirection("asc");
+                    }
+                  }}
+                  options={[
+                    { value: "name", label: "Sort: Name" },
+                    { value: "client_id", label: "Sort: Client ID" },
+                    { value: "submittedDate", label: "Sort: Newest" },
+                    { value: "satisfactionScore", label: "Sort: Satisfaction" },
+                  ]}
+                  placeholder="Sort By"
+                  className="text-sm"
+                />
               </div>
             </div>
-          )}
+          </div>
 
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 m-6">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                <div>
-                  <p className="text-sm font-medium text-red-900 dark:text-red-200">
-                    {error}
+          {/* Table */}
+          <div className="flex-1 overflow-auto bg-gray-50 dark:bg-[var(--background)]">
+            {loading && allClients.length === 0 && (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <RefreshCw className="w-8 h-8 text-gray-400 dark:text-[var(--text-tertiary)] animate-spin mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-[var(--text-secondary)]">
+                    Loading clients...
                   </p>
-                  <button
-                    onClick={fetchClients}
-                    className="text-sm text-red-700 dark:text-red-300 underline mt-1"
-                  >
-                    Try again
-                  </button>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {!loading && !error && (
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-[var(--card-bg)] sticky top-0">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
-                    Client
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
-                    Stage
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
-                    Matched TC
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
-                    Service
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
-                    Satisfaction
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
-                    Last Activity
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-[var(--background)] divide-y divide-gray-200 dark:divide-[var(--card-border)]">
-                {paginatedClients.length === 0 ? (
-                  <tr>
-                    <td colSpan="8" className="px-6 py-12 text-center">
-                      <CheckCheck className="w-16 h-16 text-gray-400 dark:text-[var(--text-tertiary)] mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-2">
-                        No Completed Matches Found
-                      </h3>
-                      <p className="text-gray-600 dark:text-[var(--text-secondary)]">
-                        Clients will appear here once they are matched with a
-                        TC.
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedClients.map((client) => (
-                    <tr
-                      key={client.id}
-                      className="hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors"
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 m-6">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  <div>
+                    <p className="text-sm font-medium text-red-900 dark:text-red-200">
+                      {error}
+                    </p>
+                    <button
+                      onClick={fetchClients}
+                      className="text-sm text-red-700 dark:text-red-300 underline mt-1"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div
-                          className={`w-3 h-3 rounded-full ${getStatusColor(client.status)}`}
-                        ></div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <span
-                            onClick={() => setSelectedClient(client)}
-                            className="font-medium text-gray-900 dark:text-[var(--text-primary)] hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer"
-                          >
-                            {formatName(client.name, "client")}
-                          </span>
-                          <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
-                            {client.age} years old
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${getStageBadgeColor(client.stage)}`}
-                        >
-                          {client.stage}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {client.matchedTC ? (
-                          <span className="text-sm text-gray-900 dark:text-[var(--text-primary)]">
-                            {formatName(client.matchedTC, "tc")}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400 dark:text-[var(--text-tertiary)] italic">
-                            Not assigned
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-900 dark:text-[var(--text-primary)]">
-                          {client.serviceType}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {client.satisfactionScore !== null ? (
-                          <div className="flex items-center gap-2">
-                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                            <span className="text-sm font-semibold text-gray-900 dark:text-[var(--text-primary)]">
-                              {client.satisfactionScore.toFixed(1)}
-                            </span>
-                            <span className="text-xs text-gray-500 dark:text-[var(--text-tertiary)]">
-                              ({client.feedbackCount})
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-400 dark:text-[var(--text-tertiary)] italic">
-                            No feedback
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
-                          {client.lastActivity}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setSelectedClient(client)}
-                            className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
-                            title="View Details"
-                          >
-                            <Eye className="w-4 h-4 text-purple-600" />
-                          </button>
-                          {/* <button className="p-2 hover:bg-blue-100 rounded-lg transition-colors" title="Send Email">
-                        <Mail className="w-4 h-4 text-blue-600" />
-                      </button> */}
-                          <Link
-                            href={`/dashboard/clients/edit?id=${client.uuid || client.id}`}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Edit Client"
-                          >
-                            <Edit className="w-4 h-4 text-gray-600" />
-                          </Link>
-                          {(client.stage === "Active Therapy" ||
-                            client.stage === "Completed") && (
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await apiService.sendFeedbackForm(
-                                    client.uuid || client.id,
-                                  );
-                                  success(
-                                    "Feedback form email sent successfully!",
-                                  );
-                                  fetchClients();
-                                } catch (err) {
-                                  showError(
-                                    err.message ||
-                                      "Failed to send feedback form",
-                                  );
-                                }
-                              }}
-                              disabled={
-                                client.lastFeedbackSentAt &&
-                                new Date(client.lastFeedbackSentAt) >
-                                  new Date(
-                                    Date.now() - 90 * 24 * 60 * 60 * 1000,
-                                  )
-                              }
-                              className="p-2 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Send Feedback Form"
-                            >
-                              <Send className="w-4 h-4 text-green-600" />
-                            </button>
-                          )}
-                          <button
-                            onClick={() =>
-                              handleUnassign(client.uuid || client.id)
-                            }
-                            className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                            title="Unassign Practitioner"
-                          >
-                            <UserCheck className="w-4 h-4 text-red-600" />
-                          </button>
-                          {/* <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="More">
-                        <MoreVertical className="w-4 h-4 text-gray-600" />
-                      </button> */}
-                        </div>
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!loading && !error && (
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-[var(--card-bg)] sticky top-0">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
+                      Client
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
+                      Stage
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
+                      Matched TC
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
+                      Service
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
+                      Satisfaction
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
+                      Last Activity
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-[var(--text-secondary)] uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-[var(--background)] divide-y divide-gray-200 dark:divide-[var(--card-border)]">
+                  {paginatedClients.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="px-6 py-12 text-center">
+                        <CheckCheck className="w-16 h-16 text-gray-400 dark:text-[var(--text-tertiary)] mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-2">
+                          No Completed Matches Found
+                        </h3>
+                        <p className="text-gray-600 dark:text-[var(--text-secondary)]">
+                          Clients will appear here once they are matched with a
+                          TC.
+                        </p>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          )}
-        </div>
+                  ) : (
+                    paginatedClients.map((client) => (
+                      <tr
+                        key={client.id}
+                        className="hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div
+                            className={`w-3 h-3 rounded-full ${getStatusColor(client.status)}`}
+                          ></div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <Link
+                              href={`/dashboard/client-details/${client.uuid || client.id}`}
+                              className="font-medium text-gray-900 dark:text-[var(--text-primary)] hover:text-purple-600 dark:hover:text-purple-400"
+                            >
+                              {formatName(client.name, "client")}
+                            </Link>
+                            <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
+                              {client.age} years old
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-medium ${getStageBadgeColor(client.stage)}`}
+                          >
+                            {client.stage}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {client.matchedTC ? (
+                            <span className="text-sm text-gray-900 dark:text-[var(--text-primary)]">
+                              {formatName(client.matchedTC, "tc")}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400 dark:text-[var(--text-tertiary)] italic">
+                              Not assigned
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-900 dark:text-[var(--text-primary)]">
+                            {client.serviceType}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {client.satisfactionScore !== null ? (
+                            <div className="flex items-center gap-2">
+                              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                              <span className="text-sm font-semibold text-gray-900 dark:text-[var(--text-primary)]">
+                                {Number(client.satisfactionScore).toFixed(1)}
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-[var(--text-tertiary)]">
+                                ({client.feedbackCount})
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400 dark:text-[var(--text-tertiary)] italic">
+                              No feedback
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
+                            {client.lastActivity}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/dashboard/client-details/${client.uuid || client.id}`}
+                              className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4 text-purple-600" />
+                            </Link>
+                            {/* <button className="p-2 hover:bg-blue-100 rounded-lg transition-colors" title="Send Email">
+                        <Mail className="w-4 h-4 text-blue-600" />
+                      </button> */}
+                            <Link
+                              href={`/dashboard/clients/edit?id=${client.uuid || client.id}`}
+                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Edit Client"
+                            >
+                              <Edit className="w-4 h-4 text-gray-600" />
+                            </Link>
+                            {(client.stage === "Active Therapy" ||
+                              client.stage === "Completed") && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await apiService.sendFeedbackForm(
+                                      client.uuid || client.id,
+                                    );
+                                    success(
+                                      "Feedback form email sent successfully!",
+                                    );
+                                    fetchClients();
+                                  } catch (err) {
+                                    showError(
+                                      err.message ||
+                                        "Failed to send feedback form",
+                                    );
+                                  }
+                                }}
+                                disabled={
+                                  client.lastFeedbackSentAt &&
+                                  new Date(client.lastFeedbackSentAt) >
+                                    new Date(
+                                      Date.now() - 90 * 24 * 60 * 60 * 1000,
+                                    )
+                                }
+                                className="p-2 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Send Feedback Form"
+                              >
+                                <Send className="w-4 h-4 text-green-600" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() =>
+                                handleUnassign(client.uuid || client.id)
+                              }
+                              className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                              title="Unassign Practitioner"
+                            >
+                              <UserCheck className="w-4 h-4 text-red-600" />
+                            </button>
+                            {/* <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="More">
+                        <MoreVertical className="w-4 h-4 text-gray-600" />
+                      </button> */}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
 
-        {/* Pagination */}
-        <div className="bg-white dark:bg-[var(--sidebar-bg)] border-t border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-700 dark:text-[var(--text-secondary)]">
-                Showing {startIndex + 1} to{" "}
-                {Math.min(startIndex + itemsPerPage, filteredClients.length)} of{" "}
-                {filteredClients.length} clients
-              </span>
-              <SearchableSelect
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                options={[
-                  { value: 20, label: "20 per page" },
-                  { value: 50, label: "50 per page" },
-                  { value: 100, label: "100 per page" },
-                ]}
-                placeholder="20 per page"
-                className="text-sm"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-700 dark:text-[var(--text-secondary)]">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                }
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-              </button>
+          {/* Pagination */}
+          <div className="bg-white dark:bg-[var(--sidebar-bg)] border-t border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-gray-700 dark:text-[var(--text-secondary)]">
+                  Showing {startIndex + 1} to{" "}
+                  {Math.min(startIndex + itemsPerPage, filteredClients.length)}{" "}
+                  of {filteredClients.length} clients
+                </span>
+                <SearchableSelect
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  options={[
+                    { value: 20, label: "20 per page" },
+                    { value: 50, label: "50 per page" },
+                    { value: 100, label: "100 per page" },
+                  ]}
+                  placeholder="20 per page"
+                  className="text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-700 dark:text-[var(--text-secondary)]">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Side Panel */}
-      {selectedClient && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setSelectedClient(null)}
-          ></div>
-          <ClientDetailPanel
-            client={selectedClient}
-            onClose={() => setSelectedClient(null)}
-          />
-        </>
-      )}
-    </DashboardLayout>
+        {/* Side Panel */}
+        {selectedClient && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setSelectedClient(null)}
+            ></div>
+            <ClientDetailPanel
+              client={selectedClient}
+              onClose={() => setSelectedClient(null)}
+            />
+          </>
+        )}
+      </DashboardLayout>
     </PageGuard>
   );
 }

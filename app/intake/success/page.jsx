@@ -87,15 +87,6 @@ function SuccessContent() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            href="/"
-            className="px-8 py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-all transform hover:scale-105 flex items-center justify-center gap-2"
-          >
-            Return Home
-          </Link>
-        </div>
-
         <p className="mt-12 text-xs text-gray-400">
           © {new Date().getFullYear()} Vanquish Therapies. All rights reserved.
         </p>

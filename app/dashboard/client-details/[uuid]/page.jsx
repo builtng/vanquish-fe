@@ -1427,7 +1427,7 @@ export default function IndividualClientDetailPage() {
                         <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                         <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">
                           {client.satisfactionScore
-                            ? client.satisfactionScore.toFixed(1)
+                            ? Number(client.satisfactionScore).toFixed(1)
                             : "N/A"}
                           {client.satisfactionScore && (
                             <span className="text-sm text-yellow-700 dark:text-yellow-400">

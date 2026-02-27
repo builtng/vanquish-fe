@@ -190,7 +190,7 @@ export default function VanquishClientIntake() {
       setIsDiscountApplied(true);
 
       toast.success(
-        `Discount code applied! You saved £${newDiscountAmount.toFixed(2)}`,
+        `Discount code applied! You saved £${Number(newDiscountAmount).toFixed(2)}`,
       );
     } catch (error) {
       toast.error(error.message || "Invalid discount code");

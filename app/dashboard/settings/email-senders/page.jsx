@@ -33,7 +33,7 @@ export default function EmailSendersSettings() {
     try {
       setLoading(true);
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/email-senders`,
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/email-senders`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -80,8 +80,8 @@ export default function EmailSendersSettings() {
 
     try {
       const url = editingId
-        ? `${process.env.NEXT_PUBLIC_API_URL}/api/admin/email-senders/${editingId}`
-        : `${process.env.NEXT_PUBLIC_API_URL}/api/admin/email-senders`;
+        ? `${process.env.NEXT_PUBLIC_API_URL}/admin/email-senders/${editingId}`
+        : `${process.env.NEXT_PUBLIC_API_URL}/admin/email-senders`;
 
       const method = editingId ? "PUT" : "POST";
 
@@ -121,7 +121,7 @@ export default function EmailSendersSettings() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/email-senders/${id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/email-senders/${id}`,
         {
           method: "DELETE",
           headers: {

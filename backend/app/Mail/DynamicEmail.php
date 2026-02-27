@@ -165,8 +165,8 @@ class DynamicEmail extends Mailable
                 'placeholders' => ['client_name', 'outcome', 'next_steps']
             ],
             'consultation_booking_link' => [
-                'subject' => 'Book Your Consultation - Vanquish Therapies',
-                'body' => '<h1>Book Your Consultation</h1><p>Hi {{client_name}},</p><p>Please use the button below to select a preferred date and time for your consultation.</p><p><a href="{{booking_link}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Book Consultation</a></p>',
+                'subject' => 'Book sessions - Vanquish Therapies',
+                'body' => '<h1>Book sessions</h1><p>Hi {{client_name}},</p><p>Please use the button below to select a preferred date and time for your sessions.</p><p><a href="{{booking_link}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Book sessions</a></p>',
                 'placeholders' => ['client_name', 'booking_link', 'tc_name', 'session_date']
             ],
             'feedback_form' => [

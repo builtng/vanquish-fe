@@ -232,4 +232,12 @@ class UserController extends Controller
             'can_add_more' => $count < $maxUsers,
         ]);
     }
+    /**
+     * Get a list of users for dropdown selection (name and id only)
+     */
+    public function publicList(Request $request)
+    {
+        $users = User::select('id', 'name', 'role')->get();
+        return response()->json($users);
+    }
 }

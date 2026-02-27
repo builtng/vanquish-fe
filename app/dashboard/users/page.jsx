@@ -21,6 +21,7 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  MessageSquarePlus,
 } from "lucide-react";
 
 export default function UsersPage() {
@@ -37,6 +38,9 @@ export default function UsersPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showEditConfirmModal, setShowEditConfirmModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDropNoteModal, setShowDropNoteModal] = useState(false);
+  const [noteContent, setNoteContent] = useState("");
+  const [sendingNote, setSendingNote] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -133,6 +137,34 @@ export default function UsersPage() {
     }
     setSelectedUser(user);
     setShowDeleteModal(true);
+  };
+
+  const handleDropNote = (user) => {
+    setSelectedUser(user);
+    setNoteContent("");
+    setShowDropNoteModal(true);
+  };
+
+  const submitNote = async () => {
+    if (!noteContent.trim()) {
+      showError("Please enter a note.");
+      return;
+    }
+
+    try {
+      setSendingNote(true);
+      await apiService.storeStaffNote({
+        staff_id: selectedUser.id,
+        note: noteContent.trim(),
+      });
+      success("Note sent successfully!");
+      setShowDropNoteModal(false);
+      setNoteContent("");
+    } catch (err) {
+      showError(err.message || "Failed to drop note");
+    } finally {
+      setSendingNote(false);
+    }
   };
 
   const saveUser = async () => {
@@ -413,6 +445,13 @@ export default function UsersPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end gap-2">
                             <button
+                              onClick={() => handleDropNote(user)}
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                              title="Drop Note to Staff"
+                            >
+                              <MessageSquarePlus className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleEditUser(user)}
                               className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300 p-2 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
                               title="Edit user"
@@ -645,6 +684,64 @@ export default function UsersPage() {
           loading={saving}
           confirmButtonColor="#6f1d56"
         />
+
+        {/* Drop Note Modal */}
+        {showDropNoteModal && selectedUser && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setShowDropNoteModal(false)}
+            ></div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-md w-full">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)] flex items-center gap-2">
+                    <MessageSquarePlus className="w-5 h-5 text-blue-600" />
+                    Drop Note for {selectedUser.name}
+                  </h2>
+                  <button
+                    onClick={() => setShowDropNoteModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg"
+                  >
+                    <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] mb-2">
+                      Note Content *
+                    </label>
+                    <textarea
+                      value={noteContent}
+                      onChange={(e) => setNoteContent(e.target.value)}
+                      rows={4}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Type your note here. They will receive it as a notification."
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => setShowDropNoteModal(false)}
+                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors font-medium bg-white dark:bg-[var(--card-bg)]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={submitNote}
+                      disabled={sendingNote || !noteContent.trim()}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <MessageSquarePlus className="w-4 h-4" />
+                      {sendingNote ? "Sending..." : "Send Note"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </DashboardLayout>
     </PageGuard>
   );

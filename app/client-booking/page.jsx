@@ -458,10 +458,10 @@ function ClientBookingContent() {
                 </div>
                 <p className="text-sm text-green-700">
                   Your intake assessment fee of £
-                  {(
+                  {Number(
                     pricing["General Assessment"]?.consultation_price ||
-                    pricing["TrafftBooking"]?.consultation_price ||
-                    13
+                      pricing["TrafftBooking"]?.consultation_price ||
+                      13,
                   ).toFixed(2)}{" "}
                   has been received. This covered your initial matching and
                   assessment process.
@@ -479,8 +479,8 @@ function ClientBookingContent() {
                 </div>
                 <p className="text-sm text-blue-700">
                   {client?.service_type === "Low Cost"
-                    ? `Therapy sessions are £${(pricing["Low Cost"]?.block_price || 25).toFixed(2)} for a block of sessions (£${(pricing["Low Cost"]?.session_price || 6.25).toFixed(2)} per session).`
-                    : `Therapy sessions for ${client?.service_type} are billed at £${(pricing[client?.service_type]?.session_price || 40).toFixed(2)} per session.`}
+                    ? `Therapy sessions are £${Number(pricing["Low Cost"]?.block_price || 25).toFixed(2)} for a block of sessions (£${Number(pricing["Low Cost"]?.session_price || 6.25).toFixed(2)} per session).`
+                    : `Therapy sessions for ${client?.service_type} are billed at £${Number(pricing[client?.service_type]?.session_price || 40).toFixed(2)} per session.`}
                 </p>
               </div>
             </div>
@@ -794,7 +794,7 @@ function ClientBookingContent() {
                   </p>
                   <div className="mt-2 pt-2 border-t border-blue-200 flex justify-between items-center font-bold text-blue-900">
                     <span>Total to pay:</span>
-                    <span>£{paymentAmount.toFixed(2)}</span>
+                    <span>£{Number(paymentAmount || 0).toFixed(2)}</span>
                   </div>
                 </div>
 
