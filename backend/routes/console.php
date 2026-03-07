@@ -22,3 +22,8 @@ Schedule::command('bookings:send-reminders')
 Schedule::command('bookings:apply-auto-deduction')
     ->daily()
     ->description('Apply auto-deduction (3 sessions instead of 4) for clients who missed booking deadline');
+
+// Trainee interview reminders
+Schedule::command('app:send-trainee-reminders')
+    ->everyTenMinutes()
+    ->description('Send 48h and 2h reminders for trainee interviews');

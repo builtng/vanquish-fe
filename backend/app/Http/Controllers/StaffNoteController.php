@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 
 use App\Models\StaffNote;
+use App\Events\StaffNoteSent;
 use Illuminate\Support\Facades\Auth;
 
 class StaffNoteController extends Controller
@@ -22,7 +23,7 @@ class StaffNoteController extends Controller
         $sender = Auth::user();
 
         // Allow any staff or admin to send notes
-        if (!in_array($sender->role, ['admin', 'manager', 'supervisor', 'hr', 'staff'])) {
+        if (!in_array($sender->role, ['admin', 'super_admin', 'manager', 'supervisor', 'hr', 'staff', 'compliance_officer'])) {
             return response()->json(['success' => false, 'message' => 'Unauthorized entry'], 403);
         }
 
@@ -31,6 +32,9 @@ class StaffNoteController extends Controller
             'admin_id' => $sender->id,
             'note' => $request->note,
         ]);
+
+        // Dispatch Event for Real-time Notification
+        broadcast(new StaffNoteSent($note))->toOthers();
 
         return response()->json([
             'success' => true,

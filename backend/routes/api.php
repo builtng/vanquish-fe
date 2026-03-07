@@ -13,10 +13,16 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\ClientBookingController;
 use App\Http\Controllers\Api\JotFormWebhookController;
+use App\Http\Controllers\Api\HireVireWebhookController;
+use App\Http\Controllers\Api\TrafftWebhookController;
 use App\Http\Controllers\Api\ClientAgreementController;
 use App\Http\Controllers\Api\EmailTemplateController;
 use App\Http\Controllers\Api\IntakeController;
+use App\Http\Controllers\Api\TraineeApplicationController;
 use App\Http\Controllers\StaffNoteController;
+use App\Http\Controllers\Api\MenuPrivilegeController;
+use App\Http\Controllers\Api\CouponController;
+use App\Http\Controllers\Api\CompanySettingsController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes with stricter rate limiting
@@ -29,6 +35,9 @@ Route::middleware('throttle:5,1')->group(function () {
 Route::get('/services/ish-capacity', [\App\Http\Controllers\Api\ServiceController::class, 'checkIshCapacity']);
 Route::get('/maintenance', [\App\Http\Controllers\Api\ServiceController::class, 'checkMaintenance']);
 Route::post('/coupons/verify', [\App\Http\Controllers\Api\CouponController::class, 'verify']);
+
+// Company settings (public read — used by sidebar, PDFs, etc.)
+Route::get('/company-settings', [CompanySettingsController::class, 'index']);
 
 // Client booking routes (public - clients book without auth)
 Route::prefix('client-booking')->group(function () {
@@ -54,6 +63,13 @@ Route::post('/payments/webhook', [PaymentController::class, 'handleWebhook'])->w
 // JotForm webhooks (public - no auth required)
 Route::post('/jotform/agreement-webhook', [JotFormWebhookController::class, 'handleAgreementSubmission'])->withoutMiddleware(['throttle:api']);
 Route::post('/jotform/intake-webhook', [JotFormWebhookController::class, 'handleIntakeSubmission'])->withoutMiddleware(['throttle:api']);
+Route::post('/jotform/webhook/trainee', [JotFormWebhookController::class, 'handleTraineeSubmission'])->withoutMiddleware(['throttle:api']);
+
+// HireVire webhook (Stage 2 video completion)
+Route::post('/hirevire/webhook', [HireVireWebhookController::class, 'handleSubmission'])->withoutMiddleware(['throttle:api']);
+
+// Trafft webhook (Stage 3 interview booking)
+Route::post('/trafft/webhook', [TrafftWebhookController::class, 'handleBooking'])->withoutMiddleware(['throttle:api']);
 
 // Intake Forms (public - clients need to submit without auth)
 // Rate limited to prevent abuse
@@ -64,6 +80,10 @@ Route::middleware(['throttle:10,1', 'maintenance'])->group(function () {
     Route::post('/tc-intake', [IntakeFormController::class, 'tcIntake']);
     Route::get('/client-agreement/prefill/{uuid}', [ClientAgreementController::class, 'getAgreementData']);
     Route::post('/client-agreement/submit', [ClientAgreementController::class, 'submitAgreement']);
+    Route::post('/trainee-application/submit', [TraineeApplicationController::class, 'store']);
+    Route::post('/trainee-application/stage-two-submission', [TraineeApplicationController::class, 'handleStageTwoSubmission']);
+    Route::get('/trainee-interview/slots', [TraineeApplicationController::class, 'getAvailableInterviewSlots']);
+    Route::post('/trainee-interview/book', [TraineeApplicationController::class, 'bookInterview']);
 });
 
 // Induction acceptance (public - TCs need to accept without auth)
@@ -188,6 +208,29 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         // Menu Privileges
         Route::get('/menu-privileges', [\App\Http\Controllers\Api\MenuPrivilegeController::class, 'index']);
         Route::put('/menu-privileges', [\App\Http\Controllers\Api\MenuPrivilegeController::class, 'update']);
+
+        // Company Branding Settings
+        Route::put('/company-settings', [CompanySettingsController::class, 'update']);
+        Route::post('/company-settings/logo', [CompanySettingsController::class, 'uploadLogo']);
+        Route::delete('/company-settings/logo', [CompanySettingsController::class, 'deleteLogo']);
+
+        // Trainee Applications
+        Route::get('/trainee-applications', [TraineeApplicationController::class, 'index']);
+        Route::get('/trainee-applications/{trainee_application}', [TraineeApplicationController::class, 'show']);
+        Route::post('/trainee-applications/{trainee_application}/status', [TraineeApplicationController::class, 'updateStatus']);
+        Route::post('/trainee-applications/{trainee_application}/invite', [TraineeApplicationController::class, 'sendInvite']);
+        Route::post('/trainee-applications/{trainee_application}/invite-stage-three', [TraineeApplicationController::class, 'sendStageThreeInvite']);
+        Route::post('/trainee-applications/{trainee_application}/attendance', [TraineeApplicationController::class, 'recordAttendance']);
+        Route::post('/trainee-applications/{trainee_application}/decision', [TraineeApplicationController::class, 'makeDecision']);
+        // Stage 4 Onboarding
+        Route::post('/trainee-applications/{trainee_application}/paperwork', [TraineeApplicationController::class, 'updatePaperwork']);
+        Route::post('/trainee-applications/{trainee_application}/induction-attendance', [TraineeApplicationController::class, 'recordInductionAttendance']);
+        Route::post('/trainee-applications/{trainee_application}/portal-invite', [TraineeApplicationController::class, 'sendPortalInvite']);
+        Route::post('/trainee-applications/{trainee_application}/finalize', [TraineeApplicationController::class, 'finalizePlacement']);
+        
+        Route::delete('/trainee-applications/{trainee_application}', [TraineeApplicationController::class, 'destroy']);
+        Route::get('/trainee-applications-settings', [TraineeApplicationController::class, 'getSettings']);
+        Route::post('/trainee-applications-settings', [TraineeApplicationController::class, 'updateSettings']);
     });
 
     // List of users for notes (accessible by any auth user, used by staff notes)
@@ -226,5 +269,10 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::post('/', [StaffNoteController::class, 'store']);
         Route::get('/unread', [StaffNoteController::class, 'getUnreadNotes']);
         Route::post('/{id}/read', [StaffNoteController::class, 'markAsRead']);
+    });
+
+    // Broadcasting auth (for private channels via Laravel Echo)
+    Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
+        return \Illuminate\Support\Facades\Broadcast::auth($request);
     });
 });

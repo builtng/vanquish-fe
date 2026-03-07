@@ -9,6 +9,8 @@ use App\Mail\DynamicEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class TrainingCounsellorController extends Controller
@@ -897,6 +899,9 @@ class TrainingCounsellorController extends Controller
         $totalSessions = $tc->consultations->count();
         $completedSessions = $tc->consultations->where('status', 'completed')->count();
 
+        // Fetch company settings
+        $companySettings = DB::table('company_settings')->pluck('value', 'key')->toArray();
+
         // Generate PDF
         $pdf = Pdf::loadView('pdf.training-counsellor-report', [
             'tc' => $tc,
@@ -904,6 +909,7 @@ class TrainingCounsellorController extends Controller
             'clients' => $clients,
             'totalSessions' => $totalSessions,
             'completedSessions' => $completedSessions,
+            'companySettings' => $companySettings,
         ]);
 
         // Set paper size and orientation

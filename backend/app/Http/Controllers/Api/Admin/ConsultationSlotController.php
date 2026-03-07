@@ -25,6 +25,9 @@ class ConsultationSlotController extends Controller
         $validated = $request->validate([
             'consultation_datetime' => 'required|date|after:' . now()->subMinutes(5)->toDateTimeString(),
             'max_slots' => 'nullable|integer|min:1',
+            'type' => 'nullable|string|in:consultation,placement_interview',
+            'zoom_link' => 'nullable|string',
+            'host_name' => 'nullable|string',
         ]);
 
         $slot = ConsultationSlot::create([
@@ -32,6 +35,9 @@ class ConsultationSlotController extends Controller
             'max_slots' => $validated['max_slots'] ?? null,
             'status' => 'available',
             'booked_slots' => 0,
+            'type' => $validated['type'] ?? 'consultation',
+            'zoom_link' => $validated['zoom_link'] ?? null,
+            'host_name' => $validated['host_name'] ?? null,
         ]);
 
         return response()->json(['message' => 'Consultation slot created successfully', 'slot' => $slot], 201);
@@ -45,6 +51,9 @@ class ConsultationSlotController extends Controller
             'consultation_datetime' => 'sometimes|date|after:' . now()->subMinutes(5)->toDateTimeString(),
             'max_slots' => 'nullable|integer|min:1',
             'status' => 'sometimes|in:available,full,closed',
+            'type' => 'sometimes|string|in:consultation,placement_interview',
+            'zoom_link' => 'nullable|string',
+            'host_name' => 'nullable|string',
         ]);
 
         // If reducing max_slots, ensure it's not lower than already booked
@@ -57,7 +66,7 @@ class ConsultationSlotController extends Controller
         // Auto update status to full if max is reached
         if ($slot->max_slots && $slot->booked_slots >= $slot->max_slots) {
             $slot->update(['status' => 'full']);
-        } elseif ($slot->status === 'full' && (!$slot->max_slots || $slot->booked_slots < $slot->max_slots)) {
+        } elseif (($slot->status === 'full' || $slot->status === 'available') && ($slot->max_slots && $slot->booked_slots < $slot->max_slots)) {
             $slot->update(['status' => 'available']);
         }
 

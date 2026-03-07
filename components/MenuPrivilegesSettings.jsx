@@ -40,9 +40,9 @@ export default function MenuPrivilegesSettings() {
 
     // Admins must always have access to crucial items
     if (
-      role === "admin" &&
+      (role === "admin" || role === "super_admin") &&
       ["users", "settings", "email-management"].includes(menuId) &&
-      !newRoles.includes("admin")
+      !newRoles.includes(role)
     ) {
       showError("Admins must have access to management tools");
       return;
@@ -81,7 +81,7 @@ export default function MenuPrivilegesSettings() {
     );
   }
 
-  const roles = ["admin", "staff", "counsellor"];
+  const roles = ["admin", "super_admin", "staff", "counsellor"];
 
   return (
     <div className="space-y-6">
@@ -136,19 +136,19 @@ export default function MenuPrivilegesSettings() {
                     <button
                       onClick={() => toggleRole(item.menu_id, role)}
                       disabled={
-                        // Lock admin access OFF for critical management items
-                        role === "admin" &&
+                        // Lock admin/super_admin access OFF for critical management items
+                        (role === "admin" || role === "super_admin") &&
                         ["users", "settings", "email-management"].includes(
                           item.menu_id,
                         ) &&
-                        item.roles.includes("admin")
+                        item.roles.includes(role)
                       }
                       title={
-                        role === "admin" &&
+                        (role === "admin" || role === "super_admin") &&
                         ["users", "settings", "email-management"].includes(
                           item.menu_id,
                         ) &&
-                        item.roles.includes("admin")
+                        item.roles.includes(role)
                           ? "Admins must always have access to this item"
                           : undefined
                       }

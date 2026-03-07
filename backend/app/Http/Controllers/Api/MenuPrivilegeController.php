@@ -24,7 +24,7 @@ class MenuPrivilegeController extends Controller
         $validated = $request->validate([
             'menu_id' => 'required|string|exists:menu_privileges,menu_id',
             'roles' => 'present|array',
-            'roles.*' => 'in:admin,staff,counsellor',
+            'roles.*' => 'in:admin,super_admin,staff,counsellor',
         ]);
 
         $privilege = MenuPrivilege::where('menu_id', $validated['menu_id'])->first();
@@ -38,7 +38,7 @@ class MenuPrivilegeController extends Controller
      */
     public function getForRole(string $role)
     {
-        if (!in_array($role, ['admin', 'staff', 'counsellor'])) {
+        if (!in_array($role, ['admin', 'super_admin', 'staff', 'counsellor', 'consultation_staff', 'compliance_officer'])) {
             return response()->json(['message' => 'Invalid role'], 400);
         }
 

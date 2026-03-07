@@ -37,6 +37,7 @@ return new class extends Migration
             ['menu_id' => 'consultation-slots', 'roles' => json_encode(['admin']), 'created_at' => now(), 'updated_at' => now()],
             ['menu_id' => 'color-guide', 'roles' => json_encode(['admin', 'staff']), 'created_at' => now(), 'updated_at' => now()],
             ['menu_id' => 'matching-algo', 'roles' => json_encode(['admin']), 'created_at' => now(), 'updated_at' => now()],
+            ['menu_id' => 'reports-group', 'roles' => json_encode(['admin', 'staff']), 'created_at' => now(), 'updated_at' => now()],
         ]);
     }
 

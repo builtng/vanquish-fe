@@ -98,8 +98,8 @@ class User extends Authenticatable
      */
     public function hasPermission(string $permissionName): bool
     {
-        // Admins have all permissions
-        if ($this->role === 'admin') {
+        // Super Admins and Admins have all permissions
+        if (in_array($this->role, ['super_admin', 'admin'])) {
             return true;
         }
 
@@ -112,24 +112,48 @@ class User extends Authenticatable
      */
     public function canPerform(string $action): bool
     {
-        // Admins can do everything
-        if ($this->role === 'admin') {
+        // Super Admins and Admins can do everything
+        if (in_array($this->role, ['super_admin', 'admin'])) {
             return true;
         }
 
-        // Staff can do most things (unless restricted by permissions)
+        // Consultation Staff
+        if ($this->role === 'consultation_staff') {
+            $allowed = [
+                'view_consultations',
+                'manage_bookings',
+                'view_clients',
+                'view_trainee_applications'
+            ];
+            $denied = [
+                'financial_access',
+                'system_settings',
+                'user_management',
+                'manage_finance',
+                'manage_settings'
+            ];
+
+            if (in_array($action, $denied)) return false;
+            return in_array($action, $allowed) || $this->hasPermission($action);
+        }
+
+        // Compliance Officer
+        if ($this->role === 'compliance_officer') {
+            $denied = ['financial_access', 'manage_finance'];
+            if (in_array($action, $denied)) return false;
+            return true; // Compliance can see most things except finance
+        }
+
+        // Staff (Legacy role) can do most things (unless restricted by permissions)
         if ($this->role === 'staff') {
-            // Check for explicit denial permission
             if ($this->hasPermission('deny_' . $action)) {
                 return false;
             }
-            // If no explicit permission required, staff can do it
             return true;
         }
 
         // Counsellors have minimal permissions
         if ($this->role === 'counsellor') {
-            // Only allow specific actions
             $allowedActions = ['view_own_clients', 'view_own_sessions', 'send_message'];
             return in_array($action, $allowedActions) || $this->hasPermission($action);
         }
@@ -142,15 +166,15 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return in_array($this->role, ['super_admin', 'admin']);
     }
 
     /**
-     * Check if user is staff (admin or staff role)
+     * Check if user is staff (any admin/staff role)
      */
     public function isStaff(): bool
     {
-        return in_array($this->role, ['admin', 'staff']);
+        return in_array($this->role, ['super_admin', 'admin', 'staff', 'consultation_staff', 'compliance_officer']);
     }
 
     /**

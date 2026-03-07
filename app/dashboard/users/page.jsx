@@ -55,7 +55,7 @@ export default function UsersPage() {
   const [deleting, setDeleting] = useState(false);
 
   // Check if user is admin
-  const isAdmin = authUser?.role === "admin";
+  const isAdmin = authUser?.role === "admin" || authUser?.role === "super_admin";
 
   useEffect(() => {
     // Only load data if user is admin
@@ -411,8 +411,12 @@ export default function UsersPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              user.role === "admin"
+                              user.role === "admin" || user.role === "super_admin"
                                 ? "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300"
+                                : user.role === "consultation_staff"
+                                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
+                                : user.role === "compliance_officer"
+                                ? "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300"
                                 : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300"
                             }`}
                           >
@@ -421,6 +425,15 @@ export default function UsersPage() {
                                 <Shield className="w-3 h-3 mr-1" />
                                 Admin
                               </>
+                            ) : user.role === "super_admin" ? (
+                              <>
+                                <Shield className="w-3 h-3 mr-1 text-red-500" />
+                                Super Admin
+                              </>
+                            ) : user.role === "consultation_staff" ? (
+                              "Consultation Staff"
+                            ) : user.role === "compliance_officer" ? (
+                              "Compliance Officer"
                             ) : (
                               "Staff"
                             )}
@@ -553,8 +566,11 @@ export default function UsersPage() {
                       }
                       className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
-                      <option value="staff">Staff</option>
+                      <option value="super_admin">Super Admin</option>
                       <option value="admin">Admin</option>
+                      <option value="staff">Staff</option>
+                      <option value="consultation_staff">Consultation Staff</option>
+                      <option value="compliance_officer">Compliance Officer</option>
                     </select>
                   </div>
 

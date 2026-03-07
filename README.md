@@ -16,23 +16,21 @@ vanquish/
 ## Features
 
 ### Frontend (Next.js)
-- Admin dashboard
-- Client management
-- Training counsellor management
-- Consultation booking and management
-- Pending matches system
-- Activity logging
-- Client and TC intake forms
-- Responsive design with Tailwind CSS
+- ✅ **Admin Dashboard**: Real-time stats and management hub.
+- ✅ **Trainee Recruitment Flow**: 4-stage automated application system.
+- ✅ **Client Management**: Full CRM with consultation history.
+- ✅ **Training Counsellor Management**: Track modalities, availability, and clinical hours.
+- ✅ **Booking System**: Integration with Trafft for seamless scheduling.
+- ✅ **Activity Logging**: Comprehensive audit trail for all admin actions.
+- ✅ **Company Branding**: Customizable logos, headers, and reporting templates.
 
 ### Backend (Laravel)
-- RESTful API with Laravel Sanctum authentication
-- Comprehensive data models
-- Activity logging
-- Input validation
-- CORS configuration
-- Rate limiting
-- Production-ready security
+- ✅ **RESTful API**: Secure Laravel 12 API with Sanctum.
+- ✅ **Automation Engine**: Queued jobs for email triggers and status updates.
+- ✅ **Webhooks**: Deep integration with JotForm, HireVire, and Trafft.
+- ✅ **Email System**: Rich HTML dynamic templates for all candidate touchpoints.
+- ✅ **Security**: CORS, rate limiting, and role-based access control (RBAC).
+- ✅ **SEO**: Optimized metadata and semantic structure for public pages.
 
 ## Quick Start
 

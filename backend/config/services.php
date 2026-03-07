@@ -47,7 +47,22 @@ return [
         ],
         'key' => env('STRIPE_MODE', 'test') === 'live' ? env('STRIPE_LIVE_PUBLIC_KEY') : env('STRIPE_TEST_PUBLIC_KEY'),
         'secret_key' => env('STRIPE_MODE', 'test') === 'live' ? env('STRIPE_LIVE_SECRET_KEY') : env('STRIPE_TEST_SECRET_KEY'),
-        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'stripe_webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
+    // HireVire — Stage 2 video interview platform
+    'hirevire' => [
+        'webhook_secret' => env('HIREVIRE_WEBHOOK_SECRET', null),
+        'interview_url'  => env('HIREVIRE_INTERVIEW_URL', 'https://app.hirevire.com/applications/091820fa-6fef-45e0-97e8-d714fc0b27cf'),
+    ],
+
+    // Trafft — Stage 3 face-to-face interview booking (Zoom)
+    'trafft' => [
+        'webhook_secret'     => env('TRAFFT_WEBHOOK_SECRET', null),
+        'booking_url'        => env('TRAFFT_BOOKING_URL', 'https://vanquishtherapies.co.uk/placement-interview/'),
+        'default_zoom_link'  => env('TRAFFT_DEFAULT_ZOOM_LINK', 'https://zoom.us/j/vanquishtherapies'),
+        // Update this whenever the next induction cohort date changes:
+        'next_induction_date' => env('TRAFFT_NEXT_INDUCTION_DATE', 'Monday, 19th January, 10:00am'),
     ],
 
 ];

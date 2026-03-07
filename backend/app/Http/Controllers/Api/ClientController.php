@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\EmailService;
@@ -1108,6 +1109,9 @@ class ClientController extends Controller
                 }
             }
         }
+    
+        // Fetch company settings
+        $companySettings = DB::table('company_settings')->pluck('value', 'key')->toArray();
 
         // Get consultations sorted by date
         $consultations = $client->consultations->sortByDesc('scheduled_at');
@@ -1118,6 +1122,7 @@ class ClientController extends Controller
             'emergencyContact' => $emergencyContact,
             'gpDetails' => $gpDetails,
             'consultations' => $consultations,
+            'companySettings' => $companySettings,
         ]);
 
         // Set paper size and orientation

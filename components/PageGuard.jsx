@@ -33,12 +33,17 @@ export default function PageGuard({ menuId, children }) {
     }
 
     const checkAccess = async () => {
+      const isAdminRole = user.role === "admin" || user.role === "super_admin";
       try {
-        if (user.role === "admin") {
-          // Admins: fetch full list and check if admin is in the roles array
+        if (isAdminRole) {
+          // Admins / Super-admins: fetch full list and check if role is allowed
           const privileges = await apiService.getMenuPrivileges();
           const priv = privileges.find((p) => p.menu_id === menuId);
-          if (priv && !priv.roles.includes("admin")) {
+          if (
+            priv &&
+            !priv.roles.includes("admin") &&
+            !priv.roles.includes("super_admin")
+          ) {
             setStatus("denied");
             router.replace("/dashboard");
           } else {
@@ -58,7 +63,7 @@ export default function PageGuard({ menuId, children }) {
         }
       } catch {
         // On error (network, auth) fall back to denying if not admin
-        if (user.role === "admin") {
+        if (isAdminRole) {
           setStatus("allowed"); // admins get benefit of the doubt on error
         } else {
           setStatus("denied");

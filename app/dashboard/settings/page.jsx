@@ -38,6 +38,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import MenuPrivilegesSettings from "@/components/MenuPrivilegesSettings";
+import CompanyBrandingSettings from "@/components/CompanyBrandingSettings";
 
 export default function SettingsPage() {
   const pathname = usePathname();
@@ -273,7 +274,7 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="text"
-                      value={profile.name}
+                      value={profile.name || ""}
                       onChange={(e) =>
                         setProfile({ ...profile, name: e.target.value })
                       }
@@ -286,7 +287,7 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="email"
-                      value={profile.email}
+                      value={profile.email || ""}
                       disabled
                       className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-[var(--text-secondary)] rounded-lg cursor-not-allowed"
                     />
@@ -475,6 +476,16 @@ export default function SettingsPage() {
               {/* Admin Settings - Only visible for admin roles */}
               {authUser && authUser.role === "admin" && (
                 <div className="space-y-6">
+                  <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <Building2 className="w-5 h-5 text-purple-600" />
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)]">
+                        Company Branding
+                      </h2>
+                    </div>
+                    <CompanyBrandingSettings />
+                  </div>
+
                   <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-red-200 dark:border-red-900/30 p-6">
                     <div className="flex items-center gap-3 mb-6">
                       <Power className="w-5 h-5 text-red-600" />
@@ -1041,7 +1052,7 @@ function ServiceSettingsSection() {
                 Capacity Message
               </label>
               <textarea
-                value={ishCapacity.capacity_message}
+                value={ishCapacity.capacity_message || ""}
                 onChange={(e) =>
                   setIshCapacity({
                     ...ishCapacity,
@@ -1059,7 +1070,7 @@ function ServiceSettingsSection() {
               </label>
               <input
                 type="url"
-                value={ishCapacity.alternative_url}
+                value={ishCapacity.alternative_url || ""}
                 onChange={(e) =>
                   setIshCapacity({
                     ...ishCapacity,
@@ -1304,7 +1315,7 @@ function PricingSettingsSection() {
               <input
                 type="number"
                 step="0.01"
-                value={service.consultation_price}
+                value={service.consultation_price || ""}
                 onChange={(e) =>
                   handlePriceChange(
                     service.id,
@@ -1468,7 +1479,7 @@ function MaintenanceSettingsSection() {
                 Public Maintenance Message
               </label>
               <textarea
-                value={maintenance.message}
+                value={maintenance.message || ""}
                 onChange={(e) =>
                   setMaintenance({ ...maintenance, message: e.target.value })
                 }
