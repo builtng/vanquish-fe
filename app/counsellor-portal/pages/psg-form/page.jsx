@@ -18,16 +18,27 @@ import {
 
 function PSGFormPageContent() {
   const [unreadCount, setUnreadCount] = useState(0);
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUnreadCount();
+    loadData();
   }, []);
 
-  const loadUnreadCount = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const res = await apiService.getUnreadMessageCount();
-      setUnreadCount(res.count || 0);
-    } catch (err) {}
+      const [unreadRes, settingsRes] = await Promise.all([
+        apiService.getUnreadMessageCount(),
+        apiService.getCompanySettings(),
+      ]);
+      setUnreadCount(unreadRes.count || 0);
+      setSettings(settingsRes);
+    } catch (err) {
+      console.error("Error loading PSG data:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -78,7 +89,7 @@ function PSGFormPageContent() {
             </div>
 
             <a
-              href="https://jotform.com/vanquish/psg-reflection"
+              href={settings?.jotform_psg_form_url || "https://jotform.com/vanquish/psg-reflection"}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-4 bg-[#6f1d56] text-white rounded-xl font-black text-lg hover:opacity-90 transition-all shadow-lg hover:shadow-xl shadow-purple-500/20 active:scale-95"

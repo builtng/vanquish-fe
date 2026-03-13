@@ -40,17 +40,20 @@ class CompanySettingsController extends Controller
             'company_name', 'company_tagline', 'company_email',
             'company_phone', 'company_address', 'company_website',
             'pdf_header_text', 'pdf_footer_text',
+            'jotform_session_notes_url', 'jotform_psg_form_url',
         ];
 
         $data = $request->validate([
-            'company_name'    => 'sometimes|string|max:200',
-            'company_tagline' => 'sometimes|string|max:300',
-            'company_email'   => 'sometimes|email|max:200|nullable',
-            'company_phone'   => 'sometimes|string|max:50|nullable',
-            'company_address' => 'sometimes|string|max:500|nullable',
-            'company_website' => 'sometimes|url|max:300|nullable',
-            'pdf_header_text' => 'sometimes|string|max:300',
-            'pdf_footer_text' => 'sometimes|string|max:300',
+            'company_name'              => 'sometimes|string|max:200',
+            'company_tagline'           => 'sometimes|string|max:300',
+            'company_email'             => 'sometimes|email|max:200|nullable',
+            'company_phone'             => 'sometimes|string|max:50|nullable',
+            'company_address'           => 'sometimes|string|max:500|nullable',
+            'company_website'           => 'sometimes|url|max:300|nullable',
+            'pdf_header_text'           => 'sometimes|string|max:300',
+            'pdf_footer_text'           => 'sometimes|string|max:300',
+            'jotform_session_notes_url' => 'sometimes|url|max:500|nullable',
+            'jotform_psg_form_url'      => 'sometimes|url|max:500|nullable',
         ]);
 
         foreach ($data as $key => $value) {

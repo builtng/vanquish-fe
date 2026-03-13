@@ -46,6 +46,7 @@ class DatabaseSeeder extends Seeder
         $this->call(ConsultationSeeder::class);
         $this->call(ClientTcMatchSeeder::class);
         $this->call(ActivityLogSeeder::class);
+        $this->call(CompanySettingsSeeder::class);
         
         $this->command->info('All seeders completed successfully!');
     }

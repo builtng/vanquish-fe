@@ -18,23 +18,34 @@ import {
 
 function SessionNotesPageContent() {
   const [unreadCount, setUnreadCount] = useState(0);
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUnreadCount();
+    loadData();
   }, []);
 
-  const loadUnreadCount = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const res = await apiService.getUnreadMessageCount();
-      setUnreadCount(res.count || 0);
-    } catch (err) {}
+      const [unreadRes, settingsRes] = await Promise.all([
+        apiService.getUnreadMessageCount(),
+        apiService.getCompanySettings(),
+      ]);
+      setUnreadCount(unreadRes.count || 0);
+      setSettings(settingsRes);
+    } catch (err) {
+      console.error("Error loading notes data:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const forms = [
     {
       title: "Weekly Session Note Form",
       description: "Standard form for documenting individual therapy sessions.",
-      url: "https://jotform.com/vanquish/session-note",
+      url: settings?.jotform_session_notes_url || "https://jotform.com/vanquish/session-note",
       time: "5-10 mins",
     },
     {
