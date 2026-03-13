@@ -36,7 +36,7 @@ Route::get('/services/ish-capacity', [\App\Http\Controllers\Api\ServiceControlle
 Route::get('/maintenance', [\App\Http\Controllers\Api\ServiceController::class, 'checkMaintenance']);
 Route::post('/coupons/verify', [\App\Http\Controllers\Api\CouponController::class, 'verify']);
 
-// Company settings (public read — used by sidebar, PDFs, etc.)
+// Company settings (public read)
 Route::get('/company-settings', [CompanySettingsController::class, 'index']);
 
 // Client booking routes (public - clients book without auth)
@@ -104,11 +104,18 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
     Route::post('/2fa/disable', [AuthController::class, 'disable2FA']);
     Route::post('/2fa/regenerate', [AuthController::class, 'regenerate2FACode']);
 
-    // Clients (staff and admin only)
+    // Clients
     Route::middleware('staff')->group(function () {
-        Route::apiResource('clients', ClientController::class);
-        Route::get('/clients/{client}/details', [ClientController::class, 'details']);
-        Route::get('/clients/{client}/download-report', [ClientController::class, 'downloadReport']);
+        Route::apiResource('clients', ClientController::class)->except(['show']);
+    });
+
+    // Client view access (Staff, Admin, or Assigned Counsellor)
+    Route::get('/clients/{client}', [ClientController::class, 'show']);
+    Route::get('/clients/{client}/details', [ClientController::class, 'details']);
+    Route::get('/clients/{client}/download-report', [ClientController::class, 'downloadReport']);
+
+    // Protected client actions
+    Route::middleware('staff')->group(function () {
         Route::post('/clients/{client}/progress-stage', [ClientController::class, 'progressStage']);
         Route::post('/clients/{client}/send-email', [ClientController::class, 'sendEmail']);
         Route::post('/clients/{client}/send-feedback-form', [ClientController::class, 'sendFeedbackForm']);

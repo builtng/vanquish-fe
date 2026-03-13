@@ -90,12 +90,12 @@ class TraineeApplication extends Model
         'doc_valid_id',
         'doc_indemnity_insurance',
 
-        // Stage 2, 3 & 4 tracking
         'video_url',
         'interview_data',
         'onboarding_data',
         'induction_date',
         'portal_access_granted',
+        'assessment_answers',
 
         // Disclaimer
         'disclaimer_date',

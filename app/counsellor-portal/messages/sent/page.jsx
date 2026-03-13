@@ -20,6 +20,12 @@ import {
   CheckCircle,
 } from "lucide-react";
 
+const stripHtml = (html) => {
+  if (typeof window === "undefined") return html;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || "";
+};
+
 /* ── VIEW MESSAGE MODAL (Simplified for Sent Folder) ── */
 function ViewMessageModal({ message, onClose }) {
   return (
@@ -159,7 +165,7 @@ function MessagesSentPage() {
                             </h5>
                             <p className="text-xs text-gray-500 dark:text-[var(--text-tertiary)] truncate">
                               To: Administrative Staff —{" "}
-                              {msg.message?.slice(0, 100)}...
+                              {stripHtml(msg.message)?.slice(0, 100)}...
                             </p>
                           </div>
                         </div>

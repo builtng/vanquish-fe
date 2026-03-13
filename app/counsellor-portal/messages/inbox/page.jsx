@@ -22,6 +22,12 @@ import {
 } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
 
+const stripHtml = (html) => {
+  if (typeof window === "undefined") return html;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent || "";
+};
+
 /* ── SEND MESSAGE MODAL ── */
 function SendMessageModal({ onClose, onSend, sending }) {
   const [form, setForm] = useState({ subject: "", message: "" });
@@ -380,8 +386,8 @@ function MessageRow({ msg, onSelect }) {
             </div>
             <p className="text-xs text-gray-500 dark:text-[var(--text-tertiary)] truncate">
               {msg.from_user?.name || "Staff Team"} —{" "}
-              {msg.message?.slice(0, 80)}
-              {msg.message?.length > 80 ? "..." : ""}
+              {stripHtml(msg.message)?.slice(0, 80)}
+              {stripHtml(msg.message)?.length > 80 ? "..." : ""}
             </p>
           </div>
         </div>

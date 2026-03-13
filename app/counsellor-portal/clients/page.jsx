@@ -8,6 +8,7 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import apiService from "@/lib/api";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
+import Link from "next/link";
 import {
   Users,
   Search,
@@ -18,6 +19,7 @@ import {
   ChevronRight,
   Filter,
   User,
+  MessageSquare,
 } from "lucide-react";
 
 function ClientsPageContent() {

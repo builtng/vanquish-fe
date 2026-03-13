@@ -20,7 +20,15 @@ class ClientPolicy
      */
     public function view(User $user, Client $client): bool
     {
-        return in_array($user->role, ['admin', 'staff']);
+        if (in_array($user->role, ['admin', 'staff', 'consultation_staff', 'compliance_officer'])) {
+            return true;
+        }
+
+        if ($user->role === 'counsellor' && $user->training_counsellor_id) {
+            return (int) $client->matched_tc_id === (int) $user->training_counsellor_id;
+        }
+
+        return false;
     }
 
     /**

@@ -77,7 +77,15 @@ class DynamicEmail extends Mailable
             'tc_match_notification',
             'induction_invitation',
             'qualified_form',
-            'generic_tc_email'
+            'generic_tc_email',
+            'trainee_application_received',
+            'trainee_stage_two_invite',
+            'trainee_video_interview_received',
+            'trainee_stage_three_invite',
+            'trainee_interview_reminder',
+            'trainee_placement_acceptance',
+            'trainee_placement_rejection',
+            'trainee_portal_invite'
         ];
 
         $generalTypes = [

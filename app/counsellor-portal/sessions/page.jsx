@@ -19,6 +19,7 @@ import {
   User,
   ArrowUpRight,
 } from "lucide-react";
+import Link from "next/link";
 
 function SessionsPageContent() {
   const router = useRouter();
@@ -117,9 +118,12 @@ function SessionsPageContent() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                              <Link 
+                                href={`/counsellor-portal/clients/${session.client?.uuid || session.client?.id}`}
+                                className="font-bold text-gray-900 dark:text-[var(--text-primary)] hover:text-[#6f1d56] dark:hover:text-purple-400 transition-colors"
+                              >
                                 {session.client?.name || "Private Client"}
-                              </h3>
+                              </Link>
                               <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
                               <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
                                 <Clock className="w-3.5 h-3.5" />
