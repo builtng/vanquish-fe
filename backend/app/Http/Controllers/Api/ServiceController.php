@@ -16,9 +16,16 @@ class ServiceController extends Controller
     {
         try {
             $setting = ServiceSetting::where('service_name', 'Ish')->first();
+            $companySettings = \Illuminate\Support\Facades\DB::table('company_settings')->pluck('value', 'key')->toArray();
+            $useInternalIntake = ($companySettings['use_internal_intake_form'] ?? '0') === '1';
 
             $defaultMessage = "This service is at capacity at this time. If you would like to work with Ish, you can click here to proceed with our Partner service VQT COACHING & THERAPY";
-            $defaultUrl = "https://pci.jotform.com/form/243161740962456";
+            
+            if ($useInternalIntake) {
+                $defaultUrl = rtrim(config('app.frontend_url'), '/') . "/clform";
+            } else {
+                $defaultUrl = $companySettings['jotform_intake_form_url'] ?? "https://pci.jotform.com/form/243161740962456";
+            }
 
             return response()->json([
                 'capacity_full' => $setting ? (bool) $setting->capacity_full : false,

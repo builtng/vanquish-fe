@@ -168,35 +168,35 @@ export default function IshClientIntake() {
     "High sensitivity",
   ];
 
+  const ISH_SCHEDULE = {
+    monday: ["12pm-1pm", "5pm-6pm"],
+    tuesday: ["11am-12pm"],
+    wednesday: ["3pm-4pm", "6pm-7pm"],
+    thursday: ["10am-11am", "12pm-1pm", "1pm-2pm", "5pm-6pm", "6pm-7pm"],
+    friday: ["2pm-3pm", "4pm-5pm"],
+  };
+
   const timeSlots = [
-    { value: "10am-1050am", label: "10:00 AM - 10:50 AM", category: "Morning" },
-    { value: "11am-1150am", label: "11:00 AM - 11:50 AM", category: "Morning" },
-    {
-      value: "12pm-1250pm",
-      label: "12:00 PM - 12:50 PM",
-      category: "Afternoon",
-    },
-    { value: "1pm-150pm", label: "1:00 PM - 1:50 PM", category: "Afternoon" },
-    { value: "2pm-250pm", label: "2:00 PM - 2:50 PM", category: "Afternoon" },
-    { value: "3pm-350pm", label: "3:00 PM - 3:50 PM", category: "Afternoon" },
-    { value: "4pm-450pm", label: "4:00 PM - 4:50 PM", category: "Afternoon" },
-    { value: "5pm-550pm", label: "5:00 PM - 5:50 PM", category: "Evening" },
-    { value: "6pm-650pm", label: "6:00 PM - 6:50 PM", category: "Evening" },
+    { value: "10am-11am", label: "10:00 AM - 11:00 AM", category: "Morning" },
+    { value: "11am-12pm", label: "11:00 AM - 12:00 PM", category: "Morning" },
+    { value: "12pm-1pm", label: "12:00 PM - 1:00 PM", category: "Afternoon" },
+    { value: "1pm-2pm", label: "1:00 PM - 2:00 PM", category: "Afternoon" },
+    { value: "2pm-3pm", label: "2:00 PM - 3:00 PM", category: "Afternoon" },
+    { value: "3pm-4pm", label: "3:00 PM - 4:00 PM", category: "Afternoon" },
+    { value: "4pm-5pm", label: "4:00 PM - 5:00 PM", category: "Afternoon" },
+    { value: "5pm-6pm", label: "5:00 PM - 6:00 PM", category: "Evening" },
+    { value: "6pm-7pm", label: "6:00 PM - 7:00 PM", category: "Evening" },
   ];
 
   const fridayTimeSlots = [
-    { value: "10am-1050am", label: "10:00 AM - 10:50 AM", category: "Morning" },
-    { value: "11am-1150am", label: "11:00 AM - 11:50 AM", category: "Morning" },
-    {
-      value: "12pm-1250pm",
-      label: "12:00 PM - 12:50 PM",
-      category: "Afternoon",
-    },
-    { value: "1pm-150pm", label: "1:00 PM - 1:50 PM", category: "Afternoon" },
-    { value: "2pm-250pm", label: "2:00 PM - 2:50 PM", category: "Afternoon" },
-    { value: "3pm-350pm", label: "3:00 PM - 3:50 PM", category: "Afternoon" },
-    { value: "4pm-450pm", label: "4:00 PM - 4:50 PM", category: "Afternoon" },
-    { value: "5pm-550pm", label: "5:00 PM - 5:50 PM", category: "Evening" },
+    { value: "10am-11am", label: "10:00 AM - 11:00 AM", category: "Morning" },
+    { value: "11am-12pm", label: "11:00 AM - 12:00 PM", category: "Morning" },
+    { value: "12pm-1pm", label: "12:00 PM - 1:00 PM", category: "Afternoon" },
+    { value: "1pm-2pm", label: "1:00 PM - 2:00 PM", category: "Afternoon" },
+    { value: "2pm-3pm", label: "2:00 PM - 3:00 PM", category: "Afternoon" },
+    { value: "3pm-4pm", label: "3:00 PM - 4:00 PM", category: "Afternoon" },
+    { value: "4pm-5pm", label: "4:00 PM - 5:00 PM", category: "Afternoon" },
+    { value: "5pm-6pm", label: "5:00 PM - 6:00 PM", category: "Evening" },
   ];
 
   const validateStep = (step) => {
@@ -922,8 +922,9 @@ export default function IshClientIntake() {
                         {day}
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {(day === "friday" ? fridayTimeSlots : timeSlots).map(
-                          (slot) => (
+                        {(day === "friday" ? fridayTimeSlots : timeSlots)
+                          .filter((slot) => ISH_SCHEDULE[day].includes(slot.value))
+                          .map((slot) => (
                             <label
                               key={slot.value}
                               className="flex items-center gap-3 p-2 bg-gray-50 rounded cursor-pointer"

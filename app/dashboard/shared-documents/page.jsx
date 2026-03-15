@@ -1,32 +1,34 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { SidebarProvider } from "@/contexts/SidebarContext";
+import DashboardLayout from "@/components/DashboardLayout";
+import DashboardHeader from "@/components/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import apiService from "@/lib/api";
-import CounsellorLayout from "@/components/CounsellorLayout";
-import DashboardHeader from "@/components/DashboardHeader";
+import { useModal } from "@/contexts/ModalContext";
 import {
+  Files,
   Search,
   FileText,
   Download,
-  Shield,
   Upload,
   FolderOpen,
   RefreshCw,
+  Trash2,
   X,
   User,
 } from "lucide-react";
 
-function FilesPageContent() {
+export default function AdminSharedDocuments() {
   const { user } = useAuth();
   const { success, error: showError } = useToast();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { confirm } = useModal();
   const [loading, setLoading] = useState(true);
   const [documents, setDocuments] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [downloading, setDownloading] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   
@@ -43,14 +45,10 @@ function FilesPageContent() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [countRes, docsRes] = await Promise.all([
-        apiService.getUnreadMessageCount(),
-        apiService.getSharedDocuments(),
-      ]);
-      setUnreadCount(countRes.count || 0);
+      const docsRes = await apiService.getSharedDocuments();
       setDocuments(docsRes || []);
     } catch (err) {
-      console.error("Error loading files:", err);
+      console.error("Error loading documents:", err);
       showError("Failed to load documents");
     } finally {
       setLoading(false);
@@ -66,6 +64,27 @@ function FilesPageContent() {
       showError("Failed to download file");
     } finally {
       setDownloading(null);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const ok = await confirm({
+      title: "Delete Document",
+      message: "Are you sure you want to delete this document? This action cannot be undone.",
+      confirmText: "Delete",
+      type: "danger"
+    });
+    if (!ok) return;
+    
+    setDeleting(id);
+    try {
+      await apiService.deleteSharedDocument(id);
+      success("Document deleted successfully");
+      setDocuments(documents.filter(doc => doc.id !== id));
+    } catch (err) {
+      showError("Failed to delete document");
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -100,12 +119,12 @@ function FilesPageContent() {
   );
 
   return (
-    <CounsellorLayout unreadCount={unreadCount}>
+    <DashboardLayout>
       <DashboardHeader
         actions={
           <button 
             onClick={() => setIsUploadModalOpen(true)}
-            className="px-4 py-2 bg-[#6f1d56] text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 transition-all text-sm"
+            className="px-4 py-2 bg-[#6f1d56] text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 transition-all"
           >
             <Upload className="w-4 h-4" />
             Upload Document
@@ -113,10 +132,10 @@ function FilesPageContent() {
         }
       >
         <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-          Shared Files
+          Resource Library
         </h1>
         <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">
-          Access organizational documents and resources
+          Manage documents shared with all practitioners
         </p>
       </DashboardHeader>
 
@@ -128,16 +147,16 @@ function FilesPageContent() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search files..."
+                  placeholder="Search resources..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#6f1d56]"
+                  className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#6f1d56]"
                 />
               </div>
               <button 
                 onClick={loadData}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                title="Refresh"
+                disabled={loading}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               </button>
@@ -147,13 +166,13 @@ function FilesPageContent() {
               {loading ? (
                 <div className="p-12 text-center">
                   <RefreshCw className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-3" />
-                  <p className="text-sm text-gray-500">Loading documents...</p>
+                  <p className="text-sm text-gray-500">Loading library...</p>
                 </div>
               ) : filteredDocs.length === 0 ? (
                 <div className="p-12 text-center">
                   <FolderOpen className="w-12 h-12 text-gray-200 dark:text-gray-800 mx-auto mb-3" />
                   <p className="text-gray-400 dark:text-gray-600 text-sm font-medium italic">
-                    {searchTerm ? "No files match your search" : "No shared documents available"}
+                    {searchTerm ? "No files match your search" : "The resource library is empty"}
                   </p>
                 </div>
               ) : (
@@ -163,7 +182,7 @@ function FilesPageContent() {
                     className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/10 flex items-center justify-center text-red-600 flex-shrink-0">
+                      <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/10 flex items-center justify-center text-[#6f1d56] flex-shrink-0">
                         <FileText className="w-5 h-5" />
                       </div>
                       <div>
@@ -177,7 +196,7 @@ function FilesPageContent() {
                           <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></span>
                           <span className="text-[10px] text-gray-500 flex items-center gap-1">
                             <User className="w-3 h-3" />
-                            {doc.uploader?.name || "System"}
+                            By {doc.uploader?.name || "Admin"}
                           </span>
                           <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></span>
                           <span className="text-[10px] text-gray-400 font-medium">
@@ -190,7 +209,7 @@ function FilesPageContent() {
                       <button 
                         onClick={() => handleDownload(doc)}
                         disabled={downloading === doc.id}
-                        className="p-2 text-gray-400 hover:text-[#6f1d56] transition-colors rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/10 disabled:opacity-50"
+                        className="p-2 text-gray-400 hover:text-[#6f1d56] transition-colors rounded-lg hover:bg-purple-50"
                         title="Download"
                       >
                         {downloading === doc.id ? (
@@ -199,35 +218,22 @@ function FilesPageContent() {
                           <Download className="w-4 h-4" />
                         )}
                       </button>
+                      <button 
+                        onClick={() => handleDelete(doc.id)}
+                        disabled={deleting === doc.id}
+                        className="p-2 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
+                        title="Delete"
+                      >
+                        {deleting === doc.id ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
                 ))
               )}
-            </div>
-
-            {!loading && filteredDocs.length > 0 && (
-              <div className="p-4 text-center bg-gray-50/30 dark:bg-gray-900/5">
-                <p className="text-gray-400 dark:text-gray-600 text-[10px] font-medium italic">
-                  End of file list
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-6 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-xl p-5 flex items-start gap-4">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-              <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h4 className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-sm mb-1">
-                Confidentiality Reminder
-              </h4>
-              <p className="text-xs text-gray-600 dark:text-[var(--text-secondary)] leading-relaxed">
-                All files in this section are highly confidential and for your
-                professional use only. Please do not download them to public
-                devices or share them externally without explicit written
-                permission from the Vanquish Therapy management team.
-              </p>
             </div>
           </div>
         </div>
@@ -238,55 +244,58 @@ function FilesPageContent() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-[var(--card-bg)] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="px-6 py-4 border-b border-gray-100 dark:border-[var(--card-border)] flex items-center justify-between bg-gray-50/50 dark:bg-[var(--bg-secondary)]">
-              <h3 className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-sm">Upload Document</h3>
+              <h3 className="font-bold text-gray-900 dark:text-[var(--text-primary)]">Upload Resource</h3>
               <button 
                 onClick={() => setIsUploadModalOpen(false)}
                 className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
               >
-                <X className="w-4 h-4 text-gray-500" />
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
             
             <form onSubmit={handleUpload} className="p-6 space-y-4">
               <div>
-                <label className="block text-[10px] font-bold text-gray-700 dark:text-[var(--text-secondary)] uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
                   Document Name
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Session Feedback"
+                  placeholder="e.g. Practitioner Handbook 2024"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#6f1d56]"
+                  className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#6f1d56]"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-gray-700 dark:text-[var(--text-secondary)] uppercase tracking-wider mb-1">
-                  Short Description
+                <label className="block text-xs font-bold text-gray-700 dark:text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+                  Description (Optional)
                 </label>
                 <textarea
-                  rows="2"
-                  placeholder="What is this document about?"
+                  rows="3"
+                  placeholder="Briefly describe what this document contains..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#6f1d56] resize-none"
+                  className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#6f1d56] resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-gray-700 dark:text-[var(--text-secondary)] uppercase tracking-wider mb-1">
-                  File
+                <label className="block text-xs font-bold text-gray-700 dark:text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
+                  Select File
                 </label>
-                <div className="mt-1 flex justify-center px-4 pt-4 pb-4 border-2 border-gray-200 dark:border-gray-700 border-dashed rounded-lg hover:border-[#6f1d56] transition-colors cursor-pointer group relative">
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-700 border-dashed rounded-xl hover:border-[#6f1d56] transition-colors cursor-pointer group relative">
                   <div className="space-y-1 text-center">
-                    <Upload className="mx-auto h-8 w-8 text-gray-400 group-hover:text-[#6f1d56]" />
-                    <div className="flex text-xs text-gray-600 dark:text-gray-400">
-                      <span className="relative cursor-pointer font-medium text-[#6f1d56]">
-                        {formData.file ? formData.file.name : "Choose a file"}
+                    <Upload className="mx-auto h-12 w-12 text-gray-400 group-hover:text-[#6f1d56] transition-colors" />
+                    <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                      <span className="relative cursor-pointer font-medium text-[#6f1d56] hover:text-[#5a1746]">
+                        {formData.file ? formData.file.name : "Upload a file"}
                       </span>
                     </div>
+                    <p className="text-xs text-gray-500 italic">
+                      PDF, DOCX, XLSX up to 10MB
+                    </p>
                   </div>
                   <input
                     type="file"
@@ -296,23 +305,26 @@ function FilesPageContent() {
                 </div>
               </div>
 
-              <div className="pt-2 flex gap-3">
+              <div className="pt-4 flex gap-3">
                 <button
                   type="button"
                   onClick={() => setIsUploadModalOpen(false)}
-                  className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-50 text-sm transition-colors"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={uploading}
-                  className="flex-1 px-4 py-2 bg-[#6f1d56] text-white font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 text-sm transition-all flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2.5 bg-[#6f1d56] text-white font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
                   {uploading ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Uploading...
+                    </>
                   ) : (
-                    "Upload"
+                    "Confirm Upload"
                   )}
                 </button>
               </div>
@@ -320,14 +332,6 @@ function FilesPageContent() {
           </div>
         </div>
       )}
-    </CounsellorLayout>
-  );
-}
-
-export default function FilesPage() {
-  return (
-    <SidebarProvider>
-      <FilesPageContent />
-    </SidebarProvider>
+    </DashboardLayout>
   );
 }

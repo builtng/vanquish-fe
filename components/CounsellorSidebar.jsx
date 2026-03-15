@@ -23,11 +23,15 @@ import {
   Files,
   User,
 } from "lucide-react";
+import { useBranding } from "@/contexts/BrandingContext";
+import { useTheme } from "next-themes";
 
 export default function CounsellorSidebar({ unreadCount = 0 }) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
   const { sidebarOpen, setSidebarOpen } = useSidebar();
+  const { branding } = useBranding();
+  const { theme } = useTheme();
 
   const [expandedItems, setExpandedItems] = useState({
     messages: pathname?.startsWith("/counsellor-portal/messages"),
@@ -81,12 +85,6 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
       href: "/counsellor-portal/sessions",
     },
     {
-      id: "files",
-      icon: Files,
-      label: "Files",
-      href: "/counsellor-portal/files",
-    },
-    {
       id: "pages",
       icon: Layout,
       label: "My Pages",
@@ -106,6 +104,12 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
           icon: FileText,
           href: "/counsellor-portal/pages/psg-form",
         },
+        {
+          id: "files",
+          label: "Shared Files",
+          icon: Files,
+          href: "/counsellor-portal/files",
+        },
       ],
     },
   ];
@@ -118,18 +122,32 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
       <div className="p-4 border-b border-gray-200 dark:border-[var(--sidebar-border)]">
         <div className="flex items-center justify-between">
           {sidebarOpen && (
-            <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold"
-                style={{ backgroundColor: "#6f1d56" }}
-              >
-                <HeartHandshake className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                  Vanquish
+            <div className="flex items-center gap-3 overflow-hidden">
+              {branding.platform_logo_url ? (
+                <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
+                  <img
+                    src={
+                      theme === "dark" && branding.platform_logo_dark_url
+                        ? branding.platform_logo_dark_url
+                        : branding.platform_logo_url
+                    }
+                    alt={branding.company_name}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div
+                  className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-white font-bold"
+                  style={{ backgroundColor: "#6f1d56" }}
+                >
+                  <HeartHandshake className="w-5 h-5" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <h1 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)] truncate">
+                  {branding.company_name || "Vanquish"}
                 </h1>
-                <p className="text-[10px] text-gray-500 dark:text-[var(--text-secondary)] font-medium leading-none mt-0.5">
+                <p className="text-[10px] text-gray-500 dark:text-[var(--text-secondary)] font-medium leading-none mt-0.5 truncate">
                   Counsellor Portal
                 </p>
               </div>

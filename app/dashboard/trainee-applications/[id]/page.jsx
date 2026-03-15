@@ -13,6 +13,9 @@ import { toast } from "react-toastify";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import PageGuard from "@/components/PageGuard";
+import apiService from "@/lib/api";
+import { useModal } from "@/contexts/ModalContext";
+import EmbeddedZoomMeeting from "@/components/EmbeddedZoomMeeting";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -110,6 +113,147 @@ function PaperworkToggle({ label, status, onToggle }) {
   );
 }
 
+function AvailabilitySchedule({ value }) {
+  if (!value) return <div className="text-sm text-gray-300 italic">Not provided</div>;
+  
+  let schedule = null;
+  try {
+    schedule = typeof value === 'string' ? JSON.parse(value) : value;
+  } catch (e) {
+    // If not JSON, just show as string
+    return <div className="text-sm text-gray-800 dark:text-gray-200">{value}</div>;
+  }
+
+  if (!schedule || typeof schedule !== 'object' || Array.isArray(schedule)) {
+    return <div className="text-sm text-gray-800 dark:text-gray-200">{String(value)}</div>;
+  }
+
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+  const hasData = days.some(day => schedule[day] && schedule[day].length > 0);
+  if (!hasData) return <div className="text-sm text-gray-800 dark:text-gray-200">{String(value)}</div>;
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+      {days.map(day => {
+        const slots = schedule[day];
+        if (!slots || slots.length === 0) return null;
+        
+        return (
+          <div key={day} className="bg-gray-50 dark:bg-gray-800/20 p-3 rounded-xl border border-gray-100 dark:border-gray-700/50">
+            <div className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest mb-2 border-b border-purple-100 dark:border-purple-900/30 pb-1 flex items-center gap-1.5">
+              <Calendar className="w-3 h-3" />
+              {day}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {slots.map((slot, idx) => (
+                <span key={idx} className="px-2 py-0.5 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-md text-[11px] font-medium text-gray-700 dark:text-gray-300 shadow-sm">
+                  {slot}
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AssessmentResults({ answers }) {
+  if (!answers) return <div className="text-sm text-gray-300 italic">Not provided</div>;
+  
+  let data = answers;
+  if (typeof answers === 'string') {
+    try {
+      data = JSON.parse(answers);
+    } catch (e) {
+      return <div className="text-sm text-gray-800 dark:text-gray-200">{answers}</div>;
+    }
+  }
+
+  if (!data || typeof data !== 'object') {
+    return <div className="text-sm text-gray-800 dark:text-gray-200">{String(answers)}</div>;
+  }
+
+  const core34Questions = [
+    "I have felt terribly alone and isolated",
+    "I have felt tense, anxious or nervous",
+    "I have felt I have someone to turn to for support when needed",
+    "I have felt O.K about myself",
+    "I have felt totally lacking in energy and enthusiasm",
+    "I have been physically violent to others",
+    "I have felt able to cope when things go wrong",
+    "I have been troubled by aches, pains or other physical problems",
+    "I have thought of hurting myself",
+    "Talking to people has felt too much for me",
+    "Tension and anxiety have prevented me from doing important things",
+    "I have been happy with the things I have done",
+    "I have been disturbed by unwanted thoughts and feelings",
+    "I have felt like crying",
+    "I have felt panic or terror",
+    "I made plans to end my life",
+    "I have felt overwhelmed by my problems",
+    "I have had difficulty getting to sleep or staying asleep",
+    "I have felt warmth or affection for someone",
+    "My problems have been impossible to put to one side",
+    "I have been able to do most things I needed to",
+    "I have threatened or intimidated another person",
+    "I have felt despairing or hopeless",
+    "I have thought it would be better if I were dead",
+    "I have felt criticised by other people",
+    "I have thought I have no friends",
+    "I have felt unhappy",
+    "Unwanted images or memories have been distressing me",
+    "I have been irritable when with other people",
+    "I have thought I am to blame for my problems and difficulties",
+    "I have felt optimistic about my future",
+    "I have achieved the things I wanted to",
+    "I have felt humiliated or shamed by other people",
+    "I have hurt myself physically or taken dangerous risks with my health",
+  ];
+
+  const categories = [
+    { name: "Risk Assessment", indices: [5, 8, 15, 21, 23, 33], icon: AlertCircle, color: "text-red-500" },
+    { name: "Emotional Wellbeing", indices: [0, 1, 4, 12, 13, 14, 16, 22, 26, 27], icon: Heart, color: "text-purple-500" },
+    { name: "Functioning & Social", indices: [2, 6, 9, 10, 18, 20, 24, 25, 28, 30, 31, 32], icon: Users, color: "text-blue-500" },
+    { name: "Physical & Other", indices: [3, 7, 11, 17, 19, 29], icon: BookOpen, color: "text-gray-500" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {categories.map((cat) => (
+        <div key={cat.name} className="space-y-3">
+          <div className="flex items-center gap-2 mb-2">
+            <cat.icon className={`w-4 h-4 ${cat.color}`} />
+            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest">{cat.name}</h4>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {cat.indices.map(idx => {
+              const q = core34Questions[idx];
+              const answer = data[idx] || data[String(idx)];
+              if (!answer) return null;
+
+              const isPriority = ["Often", "Most or all the time"].includes(answer);
+              const isHighRisk = isPriority && cat.name === "Risk Assessment";
+
+              return (
+                <div key={idx} className={`p-4 rounded-xl border transition-all ${isHighRisk ? 'bg-red-50 border-red-200 shadow-md ring-1 ring-red-500/20' : isPriority ? 'bg-amber-50 border-amber-100' : 'bg-gray-50/50 border-gray-100 hover:bg-white hover:shadow-sm'}`}>
+                  <div className="flex justify-between items-start gap-3">
+                    <span className={`text-sm font-medium ${isHighRisk ? 'text-red-900' : 'text-gray-700'}`}>{idx + 1}. {q}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${isHighRisk ? 'bg-red-600 text-white shadow-sm ring-2 ring-white' : isPriority ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'}`}>
+                      {answer}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function TraineeApplicationDetail() {
@@ -117,13 +261,14 @@ export default function TraineeApplicationDetail() {
   const router = useRouter();
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState(null);
+  const [zoomRoomConfig, setZoomRoomConfig] = useState(null);
+  const { prompt, confirm } = useModal();
 
   const fetchApplication = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.ok) setApplication(await res.json());
+      const data = await apiService.getTraineeApplication(id);
+      setApplication(data);
     } catch {
       toast.error("Failed to load application details.");
     } finally {
@@ -131,131 +276,171 @@ export default function TraineeApplicationDetail() {
     }
   };
 
-  useEffect(() => { fetchApplication(); }, [id]);
+  const enterMeetingRoom = async () => {
+    try {
+      const resp = await apiService.get(`/api/trainee-applications/${id}/zoom-signature`);
+      if (resp.error) {
+        toast.error(resp.error);
+        return;
+      }
+      setZoomRoomConfig({
+        signature: resp.signature,
+        sdkKey: resp.sdk_key,
+        meetingNumber: resp.meeting_number,
+        password: resp.password,
+        userName: "Vanquish Admin",
+        userEmail: "admin@vanquish.com"
+      });
+    } catch (err) {
+      toast.error("Failed to initialize secure room. Check SDK credentials.");
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const data = await apiService.getTraineeSettings();
+      setSettings(data);
+    } catch (err) {
+      console.error("Failed to fetch trainee settings", err);
+    }
+  };
+
+  useEffect(() => { 
+    fetchApplication(); 
+    fetchSettings();
+  }, [id]);
 
   const updateStatus = async (newStatus, inductionDate = null) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}/status`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ status: newStatus, induction_date: inductionDate }),
-      });
-      if (res.ok) { toast.success(`Status updated to ${newStatus}`); fetchApplication(); }
+      await apiService.updateTraineeApplicationStatus(id, newStatus, inductionDate);
+      toast.success(`Status updated to ${newStatus}`); 
+      fetchApplication();
     } catch { toast.error("Failed to update status."); }
   };
 
-  const handleStatusChange = (newStatus) => {
+  const handleStatusChange = async (newStatus) => {
     if (newStatus === 'Accepted') {
-      const date = prompt("Enter Induction Date:", "Monday, April 6th, 2026");
-      if (date !== null) updateStatus(newStatus, date);
+      const date = await prompt({
+        title: "Induction Date",
+        message: "Enter Induction Date:",
+        defaultValue: "Monday, April 6th, 2026"
+      });
+      if (date) updateStatus(newStatus, date);
     } else {
       updateStatus(newStatus);
     }
   };
 
   const handleAttendance = async (attended) => {
-    const notes = prompt(`Enter optional notes for the ${attended ? 'attendance' : 'no-show'}:`);
+    const notes = await prompt({
+      title: attended ? "Attendance Notes" : "No-Show Notes",
+      message: `Enter optional notes for the ${attended ? 'attendance' : 'no-show'}:`,
+      required: false
+    });
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}/attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ attended, notes }),
-      });
-      if (res.ok) { toast.success("Attendance recorded!"); fetchApplication(); }
+      await apiService.recordTraineeAttendance(id, attended, notes);
+      toast.success("Attendance recorded!"); 
+      fetchApplication();
     } catch { toast.error("Failed to record attendance."); }
   };
 
   const handleDecision = async (decision) => {
     let induction_date = null;
     if (decision === 'Accepted') {
-      induction_date = prompt("Confirm Induction Date:", application.induction_date || "Monday, 19th January, 10:00am");
-      if (induction_date === null) return;
-    }
-    const notes = prompt(`Enter final review notes (internal only):`);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}/decision`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ decision, induction_date, notes }),
+      induction_date = await prompt({
+        title: "Confirm Induction",
+        message: "Confirm Induction Date:",
+        defaultValue: application.induction_date || "Monday, 19th January, 10:00am"
       });
-      if (res.ok) { toast.success(`Candidate ${decision}!`); fetchApplication(); }
+      if (!induction_date) return;
+    }
+    const notes = await prompt({
+      title: "Review Notes",
+      message: `Enter final review notes (internal only):`,
+      required: false
+    });
+    try {
+      await apiService.makeTraineeDecision(id, decision, induction_date, notes || "");
+      toast.success(`Candidate ${decision}!`); 
+      fetchApplication();
     } catch { toast.error("Failed to record decision."); }
   };
 
   const sendStageThreeInvite = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}/invite-stage-three`, {
-        method: "POST",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.ok) { toast.success("Stage 3 invitation (Trafft) sent!"); fetchApplication(); }
+      await apiService.sendTraineeStageThreeInvite(id);
+      toast.success("Stage 3 invitation (Trafft) sent!"); 
+      fetchApplication();
     } catch { toast.error("An error occurred."); }
   };
 
   const handlePaperworkUpdate = async (document_key, status) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}/paperwork`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ document_key, status }),
-      });
-      if (res.ok) { toast.success("Paperwork updated"); fetchApplication(); }
+      await apiService.updateTraineePaperwork(id, document_key, status);
+      toast.success("Paperwork updated"); 
+      fetchApplication();
     } catch { toast.error("Failed to update status."); }
   };
 
   const handleInductionAttendance = async (attended) => {
-    const notes = prompt("Enter induction notes:");
+    const notes = await prompt({
+      title: "Induction Notes",
+      message: "Enter induction notes:",
+      required: false
+    });
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}/induction-attendance`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: JSON.stringify({ attended, notes }),
-      });
-      if (res.ok) { toast.success(`Induction ${attended ? 'Attended' : 'No-Show'} recorded`); fetchApplication(); }
+      await apiService.recordTraineeInductionAttendance(id, attended, notes || "");
+      toast.success(`Induction ${attended ? 'Attended' : 'No-Show'} recorded`); 
+      fetchApplication();
     } catch { toast.error("An error occurred."); }
   };
 
   const handlePortalInvite = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}/portal-invite`, {
-        method: "POST",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      });
-      if (res.ok) { toast.success("SuiteDash invitation sent!"); fetchApplication(); }
+      await apiService.sendTraineePortalInvite(id);
+      toast.success("SuiteDash invitation sent!"); 
+      fetchApplication();
     } catch { toast.error("Failed to send invite."); }
   };
 
   const handleFinalizePlacement = async () => {
-    if (!confirm("Confirm this trainee has completed all onboarding and is ready for matching?")) return;
+    const ok = await confirm({
+      title: "Finalize Placement",
+      message: "Confirm this trainee has completed all onboarding and is ready for matching?",
+      confirmText: "Yes, Finalize",
+      type: "warning"
+    });
+    if (!ok) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}/finalize`, {
-        method: "POST",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      });
-      if (res.ok) { toast.success("PLACEMENT ACTIVE! Congratulations."); fetchApplication(); }
+      await apiService.finalizeTraineePlacement(id);
+      toast.success("PLACEMENT ACTIVE! Congratulations."); 
+      fetchApplication();
     } catch { toast.error("An error occurred."); }
   };
 
   const deleteApplication = async () => {
-    if (!confirm("Are you sure you want to delete this application?")) return;
+    const ok = await confirm({
+      title: "Delete Application",
+      message: "Are you sure you want to delete this application? This action cannot be undone.",
+      confirmText: "Delete",
+      type: "danger"
+    });
+    if (!ok) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}`, {
-        method: "DELETE",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.ok) { toast.success("Application deleted."); router.push('/dashboard/trainee-applications'); }
+      await apiService.deleteTraineeApplication(id);
+      toast.success("Application deleted."); 
+      router.push('/dashboard/trainee-applications');
     } catch { toast.error("Failed to delete application."); }
   };
 
   const sendInviteManual = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}/invite`, {
-        method: "POST",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (res.ok) { toast.success("Stage 2 invitation sent!"); fetchApplication(); }
-      else { const d = await res.json(); toast.error(d.message || "Failed to send invitation."); }
-    } catch { toast.error("An error occurred."); }
+      await apiService.sendTraineeInviteManual(id);
+      toast.success("Stage 2 invitation sent!"); 
+      fetchApplication();
+    } catch (err) { 
+      toast.error(err.message || "Failed to send invitation."); 
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -439,12 +624,47 @@ export default function TraineeApplicationDetail() {
                     </div>
                     
                     <div className="mt-6 flex flex-col md:flex-row gap-4">
-                      <a href={application.interview_data?.trafft?.zoom_link} target="_blank" rel="noreferrer" 
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#2d8cff] text-white rounded-xl font-bold text-sm hover:scale-[1.02] transition-all shadow-md">
-                        <Video className="w-5 h-5" /> Launch Zoom Meeting
-                      </a>
+                      {application.interview_data?.trafft?.zoom_link ? (
+                        settings?.zoom_mode === 'web_client' ? (
+                          <a 
+                            href={(() => {
+                              const data = application.interview_data.trafft;
+                              if (data.meeting_id) return `https://zoom.us/wc/${data.meeting_id}/join`;
+                              
+                              try {
+                                const match = data.zoom_link.match(/\/j\/(\d+)/);
+                                if (match) return `https://zoom.us/wc/${match[1]}/join`;
+                              } catch (e) {}
+                              
+                              return data.zoom_link;
+                            })()} 
+                            target="_blank" rel="noreferrer" 
+                            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm hover:scale-[1.02] transition-all shadow-xl hover:shadow-blue-500/20 active:scale-95 border-b-4 border-blue-800"
+                          >
+                            <ExternalLink className="w-6 h-6" /> Launch Zoom Web Client
+                          </a>
+                        ) : (
+                          <button 
+                            onClick={enterMeetingRoom}
+                            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 bg-purple-600 text-white rounded-2xl font-black text-sm hover:scale-[1.02] transition-all shadow-xl hover:shadow-purple-500/20 active:scale-95 border-b-4 border-purple-800"
+                          >
+                            <Video className="w-6 h-6" /> Enter Secure Virtual Room
+                          </button>
+                        )
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl text-gray-400 text-sm font-medium italic">
+                           <Video className="w-5 h-5 opacity-50" /> Secure Room Offline
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {zoomRoomConfig && (
+                    <EmbeddedZoomMeeting 
+                      meetingConfig={zoomRoomConfig} 
+                      onClose={() => setZoomRoomConfig(null)} 
+                    />
+                  )}
 
                   {application.status === 'Stage 3 Interview Booked' && (
                     <div className="flex flex-col sm:flex-row gap-3">
@@ -722,7 +942,10 @@ export default function TraineeApplicationDetail() {
                         ? <div className="text-sm text-gray-800 dark:text-gray-200 bg-red-50 p-2 rounded-lg border border-red-100">{application.criminal_convictions}</div>
                         : <span className="text-sm text-gray-300 italic">Not provided</span>}
                     </div>
-                    <Field label="Weekly Availability Schedule" value={application.availability_schedule} isLong />
+                    <div className="md:col-span-2">
+                       <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Weekly Availability Schedule</div>
+                       <AvailabilitySchedule value={application.availability_schedule} />
+                    </div>
                   </div>
                 </Section>
               </div>
@@ -820,6 +1043,11 @@ export default function TraineeApplicationDetail() {
                   </div>
                 </Section>
               )}
+
+              {/* ── Initial Assessment Answers ───────────────────────────────── */}
+              <Section icon={AlertCircle} title="Initial Assessment (CORE-34)" iconClass="text-red-500">
+                <AssessmentResults answers={application.assessment_answers} />
+              </Section>
 
             </div>
           </div>

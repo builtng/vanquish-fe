@@ -23,6 +23,9 @@ use App\Http\Controllers\StaffNoteController;
 use App\Http\Controllers\Api\MenuPrivilegeController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\Api\CompanySettingsController;
+use App\Http\Controllers\Api\PsgReflectionController;
+use App\Http\Controllers\Api\SharedDocumentController;
+use App\Http\Controllers\Api\SessionNoteController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes with stricter rate limiting
@@ -221,9 +224,14 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::post('/company-settings/logo', [CompanySettingsController::class, 'uploadLogo']);
         Route::delete('/company-settings/logo', [CompanySettingsController::class, 'deleteLogo']);
 
-        // Trainee Applications
+    });
+    
+    // Trainee Applications (staff and admin)
+    Route::middleware('staff')->group(function () {
         Route::get('/trainee-applications', [TraineeApplicationController::class, 'index']);
+        Route::get('/trainee-applications/count', [TraineeApplicationController::class, 'pendingCount']);
         Route::get('/trainee-applications/{trainee_application}', [TraineeApplicationController::class, 'show']);
+        Route::post('/trainee-applications/send-invite-email', [TraineeApplicationController::class, 'inviteEmail']);
         Route::post('/trainee-applications/{trainee_application}/status', [TraineeApplicationController::class, 'updateStatus']);
         Route::post('/trainee-applications/{trainee_application}/invite', [TraineeApplicationController::class, 'sendInvite']);
         Route::post('/trainee-applications/{trainee_application}/invite-stage-three', [TraineeApplicationController::class, 'sendStageThreeInvite']);
@@ -234,7 +242,11 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::post('/trainee-applications/{trainee_application}/induction-attendance', [TraineeApplicationController::class, 'recordInductionAttendance']);
         Route::post('/trainee-applications/{trainee_application}/portal-invite', [TraineeApplicationController::class, 'sendPortalInvite']);
         Route::post('/trainee-applications/{trainee_application}/finalize', [TraineeApplicationController::class, 'finalizePlacement']);
-        
+        Route::get('/trainee-applications/{id}/zoom-signature', [TraineeApplicationController::class, 'getZoomSignature']);
+    });
+
+    // Trainee Applications (admin only)
+    Route::middleware('admin')->group(function () {
         Route::delete('/trainee-applications/{trainee_application}', [TraineeApplicationController::class, 'destroy']);
         Route::get('/trainee-applications-settings', [TraineeApplicationController::class, 'getSettings']);
         Route::post('/trainee-applications-settings', [TraineeApplicationController::class, 'updateSettings']);
@@ -269,6 +281,22 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
             Route::post('/send-to-staff', [MessageController::class, 'sendToStaff']);
         });
     });
+
+    // Shared Documents
+    Route::get('/shared-documents', [SharedDocumentController::class, 'index']);
+    Route::post('/shared-documents', [SharedDocumentController::class, 'store']);
+    Route::get('/shared-documents/{document}/download', [SharedDocumentController::class, 'download']);
+    Route::middleware('admin')->group(function () {
+        Route::delete('/shared-documents/{document}', [SharedDocumentController::class, 'destroy']);
+    });
+
+    // PSG Reflections
+    Route::get('/psg-reflections', [PsgReflectionController::class, 'index']);
+    Route::post('/psg-reflections', [PsgReflectionController::class, 'store']);
+
+    // Session Notes
+    Route::get('/session-notes', [SessionNoteController::class, 'index']);
+    Route::post('/session-notes', [SessionNoteController::class, 'store']);
 
     // Staff Notes
     Route::prefix('staff-notes')->group(function () {

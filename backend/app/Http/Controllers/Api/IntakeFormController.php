@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ClientIntakeForm;
 use App\Models\TcIntakeForm;
+use App\Models\TraineeApplication;
 use App\Models\Client;
 use App\Models\TrainingCounsellor;
 use Illuminate\Http\Request;
@@ -349,61 +350,76 @@ class IntakeFormController extends Controller
                 'status' => 'submitted',
             ];
 
-            // Handle document uploads
+            // Handle document uploads - support both formats
             $documentFields = [
                 'fitnessTopractice' => 'fitness_to_practice',
+                'fitness_to_practice' => 'fitness_to_practice',
                 'qualifications' => 'qualifications',
                 'dbs' => 'dbs_certificate',
+                'dbs_certificate' => 'dbs_certificate',
                 'cv' => 'cv',
                 'validId' => 'valid_id',
+                'valid_id' => 'valid_id',
                 'insurance' => 'insurance_certificate',
+                'insurance_certificate' => 'insurance_certificate',
             ];
 
             foreach ($documentFields as $requestField => $dbField) {
                 if ($request->hasFile($requestField)) {
                     $file = $request->file($requestField);
-
-                    // Additional security checks
+                    
+                    // Basic validation already done by $request->validate, but we double check
                     $originalName = $file->getClientOriginalName();
-                    $extension = strtolower($file->getClientOriginalExtension());
-                    $mimeType = $file->getMimeType();
-
-                    // Validate file extension
-                    $allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
-                    if (!in_array($extension, $allowedExtensions)) {
-                        return response()->json([
-                            'message' => 'Invalid file type. Allowed types: PDF, DOC, DOCX, JPG, JPEG, PNG',
-                        ], 422);
-                    }
-
-                    // Validate MIME type
-                    $allowedMimeTypes = [
-                        'application/pdf',
-                        'application/msword',
-                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        'image/jpeg',
-                        'image/png',
-                    ];
-                    if (!in_array($mimeType, $allowedMimeTypes)) {
-                        return response()->json([
-                            'message' => 'Invalid file MIME type.',
-                        ], 422);
-                    }
-
-                    // Sanitize filename
                     $sanitizedName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
-                    $sanitizedName = substr($sanitizedName, 0, 255); // Limit filename length
-
-                    // Generate unique filename to prevent overwrites
                     $filename = time() . '_' . uniqid() . '_' . $sanitizedName;
 
                     $path = $file->storeAs("tc_intake_forms/documents/{$dbField}", $filename, 'public');
-                    $formData[$dbField] = $path;
+                    // Store full URL or path depending on app config
+                    $formData[$dbField] = config('app.url') . '/storage/' . $path;
                 }
             }
 
             // Create the intake form
             $form = TcIntakeForm::create($formData);
+
+            // Also Create a recruitment-style TraineeApplication so it shows up in the unified dashboard
+            try {
+                $application = TraineeApplication::updateOrCreate(
+                    ['email' => $validated['email']],
+                    [
+                        'first_name' => explode(' ', $validated['name'], 2)[0] ?? $validated['name'],
+                        'last_name'  => explode(' ', $validated['name'], 2)[1] ?? '',
+                        'email'      => $validated['email'],
+                        'phone'      => $validated['phone'] ?? null,
+                        'source'     => 'internal_form',
+                        'status'     => 'New Application',
+                        'institution' => $validated['training_org_name'] ?? $validated['institution'] ?? null,
+                        'course_name' => $validated['course_title'] ?? $validated['course'] ?? null,
+                        'availability_schedule' => json_encode($validated['availability'] ?? []),
+                        'experience_background' => $validated['additional_info'] ?? null,
+                        // Map documents
+                        'doc_fitness_to_practise' => $formData['fitness_to_practice'] ?? null,
+                        'doc_prior_qualifications' => $formData['qualifications'] ?? null,
+                        'doc_dbs_certificate' => $formData['dbs_certificate'] ?? null,
+                        'doc_cv' => $formData['cv'] ?? null,
+                        'doc_valid_id' => $formData['valid_id'] ?? null,
+                        'doc_indemnity_insurance' => $formData['insurance_certificate'] ?? null,
+                    ]
+                );
+
+                // Send confirmation email for trainee application
+                try {
+                    Mail::to($application->email)->send(new \App\Mail\DynamicEmail('trainee_application_received', [
+                        'first_name' => $application->first_name,
+                        'last_name' => $application->last_name,
+                        'email' => $application->email,
+                    ]));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to send trainee application received email from TC Intake: ' . $e->getMessage());
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to create TraineeApplication from TC Intake: ' . $e->getMessage());
+            }
 
             // Optionally create TC from intake form
             if ($request->has('create_tc') && $request->create_tc) {

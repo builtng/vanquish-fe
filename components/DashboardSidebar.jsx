@@ -37,6 +37,7 @@ import {
   GitBranch,
   Shuffle,
   Info,
+  Files,
 } from "lucide-react";
 
 export default function DashboardSidebar() {
@@ -53,6 +54,7 @@ export default function DashboardSidebar() {
     completed: 0,
   });
   const [pendingMatchesCount, setPendingMatchesCount] = useState(0);
+  const [traineeAppsCount, setTraineeAppsCount] = useState(0);
   const [menuPrivileges, setMenuPrivileges] = useState([]);
   const [loading, setLoading] = useState(true);
   const isFetchingRef = React.useRef(false);
@@ -108,13 +110,16 @@ export default function DashboardSidebar() {
       const userRole = user?.role;
       const canFetchStaffData = userRole === "admin" || userRole === "super_admin" || userRole === "staff" || userRole === "consultation_staff" || userRole === "compliance_officer";
 
-      const [consultationsData, pendingCount, privilegesData] =
+      const [consultationsData, pendingCount, traineeCount, privilegesData] =
         await Promise.all([
           canFetchStaffData
             ? apiService.getConsultations()
             : Promise.resolve([]),
           canFetchStaffData
             ? apiService.getPendingMatchesCount()
+            : Promise.resolve(0),
+          canFetchStaffData
+            ? apiService.getTraineeApplicationsCount()
             : Promise.resolve(0),
           // Admins get full list; staff/counsellors fetch their role-specific allowed menu IDs
           isAdmin
@@ -147,6 +152,7 @@ export default function DashboardSidebar() {
         completed: completedCount,
       });
       setPendingMatchesCount(pendingCount || 0);
+      setTraineeAppsCount(traineeCount || 0);
       setMenuPrivileges(privilegesData || []);
 
       // ── Push notifications for new items ──────────────────────────
@@ -229,6 +235,7 @@ export default function DashboardSidebar() {
           id: "trainee-applications",
           label: "Trainee Applications",
           icon: ClipboardList,
+          badge: traineeAppsCount,
           href: "/dashboard/trainee-applications",
         },
         {
@@ -316,6 +323,14 @@ export default function DashboardSidebar() {
       icon: Activity,
       label: "Activity Log",
       href: "/dashboard/activity-log",
+    },
+
+    // Resources
+    {
+      id: "resources",
+      icon: Files,
+      label: "Resources",
+      href: "/dashboard/shared-documents",
     },
 
     // Communications Group

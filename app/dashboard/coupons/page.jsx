@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import apiService from "@/lib/api";
+import { useModal } from "@/contexts/ModalContext";
 import {
   Tag,
   Plus,
@@ -23,6 +24,7 @@ import {
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { confirm } = useModal();
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [getError, setGetError] = useState(null);
@@ -125,13 +127,13 @@ export default function CouponsPage() {
   };
 
   const handleDelete = async (id) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this coupon? This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Delete Coupon",
+      message: "Are you sure you want to delete this coupon? This action cannot be undone.",
+      confirmText: "Delete",
+      type: "danger"
+    });
+    if (!ok) return;
 
     try {
       await apiService.deleteCoupon(id);

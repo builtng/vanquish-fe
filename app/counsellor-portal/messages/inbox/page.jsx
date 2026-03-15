@@ -29,8 +29,15 @@ const stripHtml = (html) => {
 };
 
 /* ── SEND MESSAGE MODAL ── */
+/* ── SEND MESSAGE MODAL ── */
 function SendMessageModal({ onClose, onSend, sending }) {
-  const [form, setForm] = useState({ subject: "", message: "" });
+  const [form, setForm] = useState({ to_email: "", subject: "", message: "" });
+  const [staffList, setStaffList] = useState([]);
+
+  useEffect(() => {
+    // Optionally fetch staff list if you want to provide suggestions
+    // For now, we'll just let them type the email as requested
+  }, []);
 
   return (
     <>
@@ -39,7 +46,7 @@ function SendMessageModal({ onClose, onSend, sending }) {
         <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl shadow-2xl w-full max-w-2xl">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900 dark:text-[var(--text-primary)]">
-              New Message to Admin Team
+              New Message
             </h2>
             <button
               onClick={onClose}
@@ -55,6 +62,28 @@ function SendMessageModal({ onClose, onSend, sending }) {
             }}
             className="p-6 space-y-4"
           >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
+                Recipient Email (Staff/Admin) *
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="email"
+                  list="staff-emails"
+                  value={form.to_email}
+                  onChange={(e) => setForm({ ...form, to_email: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--text-primary)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6f1d56]"
+                  placeholder="admin@vanquish.com"
+                  required
+                />
+                <datalist id="staff-emails">
+                  <option value="admin@vanquish.com" />
+                  <option value="compliance@vanquish.com" />
+                  <option value="support@vanquish.com" />
+                </datalist>
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
                 Subject *
@@ -194,7 +223,11 @@ function MessagesInboxPage() {
   const loadMessages = async () => {
     try {
       const res = await apiService.getMessages({ per_page: 50 });
-      setMessages(res.data || []);
+      // Filter for messages RECEIVED by the counsellor
+      const receivedMessages = (res.data || []).filter(
+        (m) => m.from_user_id !== authUser.id,
+      );
+      setMessages(receivedMessages);
     } catch (err) {
       console.error("Error loading messages:", err);
     } finally {
@@ -223,11 +256,14 @@ function MessagesInboxPage() {
   };
 
   const handleSend = async (form) => {
+    if (sending) return;
     setSending(true);
     try {
       await apiService.sendMessageToStaff(form);
       success("Message sent to admin team!");
       setShowSendModal(false);
+      // Optional: Refresh if you want to see it in some combined view,
+      // but since it's an Inbox, we don't necessarily need to reload.
     } catch (err) {
       showError(err.message || "Failed to send message");
     } finally {

@@ -65,4 +65,10 @@ return [
         'next_induction_date' => env('TRAFFT_NEXT_INDUCTION_DATE', 'Monday, 19th January, 10:00am'),
     ],
 
+    // Zoom Meeting SDK — Embedded meetings
+    'zoom' => [
+        'sdk_key'    => env('ZOOM_SDK_KEY'),
+        'sdk_secret' => env('ZOOM_SDK_SECRET'),
+    ],
+
 ];

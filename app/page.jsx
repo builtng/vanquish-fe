@@ -2,11 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBranding } from '@/contexts/BrandingContext';
+import { useTheme } from 'next-themes';
 import { Users, Calendar, Clock, CheckCircle, AlertCircle, Search, BarChart3, Settings, ChevronDown, ChevronUp, X, Check, AlertTriangle, Menu, Home, UserCheck, FileText, DollarSign, Bell, LogOut, Plus } from 'lucide-react';
 
 export default function VanquishAdminDashboard() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  const { branding } = useBranding();
+  const { theme } = useTheme();
   const [currentPage, setCurrentPage] = useState('pending-matches');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -26,8 +30,25 @@ export default function VanquishAdminDashboard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white font-bold text-2xl mb-4 animate-pulse" style={{ backgroundColor: "#6f1d56" }}>
-            VT
+          <div className="inline-flex items-center justify-center mb-4 animate-pulse">
+            {branding.platform_logo_url ? (
+              <img
+                src={
+                  theme === "dark" && branding.platform_logo_dark_url
+                    ? branding.platform_logo_dark_url
+                    : branding.platform_logo_url
+                }
+                alt={branding.company_name}
+                className="max-h-16 object-contain"
+              />
+            ) : (
+              <div
+                className="w-16 h-16 rounded-2xl text-white font-bold text-2xl flex items-center justify-center"
+                style={{ backgroundColor: "#6f1d56" }}
+              >
+                {branding.company_name?.substring(0, 2).toUpperCase() || "VT"}
+              </div>
+            )}
           </div>
           <p className="text-gray-600">Loading...</p>
         </div>

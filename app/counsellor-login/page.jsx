@@ -10,12 +10,16 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBranding } from "@/contexts/BrandingContext";
+import { useTheme } from "next-themes";
 import ThemeToggle from "@/components/ThemeToggle";
 import Link from "next/link";
 
 export default function CounsellorLoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const { branding } = useBranding();
+  const { theme } = useTheme();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -93,13 +97,29 @@ export default function CounsellorLoginPage() {
       <div className="w-full max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-white font-bold text-2xl mb-4"
-            style={{ backgroundColor: "var(--button-primary-bg)" }}
-          >
-            <HeartHandshake className="w-8 h-8" />
+          <div className="inline-flex items-center justify-center mb-4">
+            {branding.platform_logo_url ? (
+              <img
+                src={
+                  theme === "dark" && branding.platform_logo_dark_url
+                    ? branding.platform_logo_dark_url
+                    : branding.platform_logo_url
+                }
+                alt={branding.company_name}
+                className="max-h-20 object-contain"
+              />
+            ) : (
+              <div
+                className="w-16 h-16 rounded-2xl text-white font-bold text-2xl flex items-center justify-center"
+                style={{ backgroundColor: "var(--button-primary-bg)" }}
+              >
+                <HeartHandshake className="w-8 h-8" />
+              </div>
+            )}
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Vanquish</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            {branding.company_name || "Vanquish"}
+          </h1>
           <p className="text-muted-foreground">Counsellor Portal Login</p>
         </div>
 
@@ -289,7 +309,7 @@ export default function CounsellorLoginPage() {
 
         {/* Footer */}
         <p className="text-center text-sm text-muted-foreground mt-6">
-          © 2024 Vanquish. All rights reserved.
+          © {new Date().getFullYear()} {branding.company_name || "Vanquish"}. All rights reserved.
         </p>
       </div>
     </div>

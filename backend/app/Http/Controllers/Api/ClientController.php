@@ -514,9 +514,16 @@ class ClientController extends Controller
         if ($shouldSendNotification) {
             try {
                 // Generate agreement URL
-                $baseUrl = rtrim(config('app.frontend_url'), '/');
-                $slug = ($client->service_type === 'Low Cost') ? 'low-cost' : 'mid-range';
-                $agreementUrl = $baseUrl . '/agreement/' . $slug . '?uuid=' . $client->uuid;
+                $companySettings = DB::table('company_settings')->pluck('value', 'key')->toArray();
+                $useInternalAgreement = ($companySettings['use_internal_agreement_form'] ?? '0') === '1';
+
+                if ($useInternalAgreement) {
+                    $baseUrl = rtrim(config('app.frontend_url'), '/');
+                    $slug = ($client->service_type === 'Low Cost') ? 'low-cost' : 'mid-range';
+                    $agreementUrl = $baseUrl . '/agreement/' . $slug . '?uuid=' . $client->uuid;
+                } else {
+                    $agreementUrl = $companySettings['jotform_agreement_url'] ?? 'https://form.jotform.com/vanquish/agreement';
+                }
 
                 // Send email to client using EmailService
                 if ($client->email) {
@@ -795,10 +802,17 @@ class ClientController extends Controller
             ], 400);
         }
 
-        // Send email
-        $baseUrl = rtrim(config('app.frontend_url'), '/');
-        $slug = ($client->service_type === 'Low Cost') ? 'low-cost' : 'mid-range';
-        $agreementUrl = $baseUrl . '/agreement/' . $slug . '?uuid=' . $client->uuid;
+        // Generate agreement URL
+        $companySettings = DB::table('company_settings')->pluck('value', 'key')->toArray();
+        $useInternalAgreement = ($companySettings['use_internal_agreement_form'] ?? '0') === '1';
+
+        if ($useInternalAgreement) {
+            $baseUrl = rtrim(config('app.frontend_url'), '/');
+            $slug = ($client->service_type === 'Low Cost') ? 'low-cost' : 'mid-range';
+            $agreementUrl = $baseUrl . '/agreement/' . $slug . '?uuid=' . $client->uuid;
+        } else {
+            $agreementUrl = $companySettings['jotform_agreement_url'] ?? 'https://form.jotform.com/vanquish/agreement';
+        }
 
         $success = $this->emailService->sendAndLog(
             $client,

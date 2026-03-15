@@ -43,6 +43,15 @@ class TraineeApplicationController extends Controller
     }
 
     /**
+     * Get count of new trainee applications.
+     */
+    public function pendingCount()
+    {
+        $count = TraineeApplication::where('status', 'New Application')->count();
+        return response()->json($count);
+    }
+
+    /**
      * Store a newly created application (Internal Form).
      */
     public function store(Request $request)
@@ -61,6 +70,7 @@ class TraineeApplicationController extends Controller
         ]);
 
         $validated['source'] = 'internal_form';
+        $validated['status'] = 'New Application';
 
         // duplicate prevention: update if exists
         $application = TraineeApplication::updateOrCreate(
@@ -90,12 +100,38 @@ class TraineeApplicationController extends Controller
         }
 
         // QUEUE JOB: Send Email #2 after 48 hours
-        SendTraineeStageTwoInvite::dispatch($application)->delay(now()->addHours(48));
+        try {
+            SendTraineeStageTwoInvite::dispatch($application)->delay(now()->addHours(48));
+        } catch (\Exception $e) {
+            Log::error("Failed to dispatch trainee stage two invite: " . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Application submitted successfully',
             'application' => $application,
         ], 201);
+    }
+
+    /**
+     * Send initial invitation to apply (before application exists).
+     */
+    public function inviteEmail(Request $request)
+    {
+        $validated = $request->validate([
+            'email'      => 'required|email',
+            'first_name' => 'required|string|max:255',
+        ]);
+
+        try {
+            Mail::to($validated['email'])->send(new DynamicEmail('trainee_initial_invite', [
+                'first_name' => $validated['first_name'],
+            ]));
+
+            return response()->json(['message' => 'Invitation sent successfully']);
+        } catch (\Exception $e) {
+            Log::error("Failed to send initial trainee invite: " . $e->getMessage());
+            return response()->json(['message' => 'Failed to send invitation'], 500);
+        }
     }
 
     /**
@@ -114,7 +150,10 @@ class TraineeApplicationController extends Controller
         ]);
 
         $oldStatus = $traineeApplication->status;
-        $traineeApplication->update(['status' => $validated['status']]);
+        $traineeApplication->update([
+            'status' => $validated['status'],
+            'induction_date' => $validated['induction_date'] ?? $traineeApplication->induction_date
+        ]);
 
         ActivityLog::create([
             'user_id' => $request->user()->id,
@@ -125,7 +164,25 @@ class TraineeApplicationController extends Controller
             'changes' => ['old_status' => $oldStatus, 'new_status' => $validated['status']],
             'ip_address' => $request->ip(),
         ]);
-
+ 
+        // If manually moved to Stage 3 Interview Booked and no data exists, set defaults
+        if ($validated['status'] === 'Stage 3 Interview Booked' && empty($traineeApplication->interview_data)) {
+            $zoomLink = TraineeApplicationSetting::getByKey('default_zoom_link', config('services.trafft.default_zoom_link', 'https://zoom.us/j/vanquishtherapies'));
+            
+            $traineeApplication->update([
+                'interview_data' => [
+                    'trafft' => [
+                        'appointment_id' => 'MANUAL-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                        'meeting_id' => rand(100000000, 999999999),
+                        'date' => 'TBC',
+                        'time' => 'TBC',
+                        'host_name' => 'Vanquish Admin',
+                        'zoom_link' => $zoomLink,
+                    ]
+                ]
+            ]);
+        }
+ 
         // TRIGGER EMAIL: If Stage 2 is approved, send Stage 3 Invitation (Trafft booking link)
         if ($validated['status'] === 'Stage 2 Approved') {
             try {
@@ -177,25 +234,118 @@ class TraineeApplicationController extends Controller
     }
 
     /**
+     * Generate Zoom Meeting SDK Signature.
+     */
+    public function getZoomSignature(Request $request, $id)
+    {
+        $application = TraineeApplication::findOrFail($id);
+        $meetingNumber = $application->interview_data['trafft']['meeting_id'] ?? null;
+        
+        if (!$meetingNumber) {
+            return response()->json(['error' => 'No meeting ID associated with this application'], 422);
+        }
+
+        $sdkKey = TraineeApplicationSetting::getByKey('zoom_sdk_key', config('services.zoom.sdk_key'));
+        $sdkSecret = TraineeApplicationSetting::getByKey('zoom_sdk_secret', config('services.zoom.sdk_secret'));
+
+        if (!$sdkKey || !$sdkSecret) {
+            return response()->json(['error' => 'Zoom SDK credentials not configured'], 500);
+        }
+
+        $role = 1; // 1 for host/admin, 0 for participant
+        $iat = time() - 30; // issued at
+        $exp = $iat + 60 * 60 * 2; // expires in 2 hours
+
+        $header = base64_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
+        
+        $payload = base64_encode(json_encode([
+            'sdkKey' => $sdkKey,
+            'mn' => (int)$meetingNumber,
+            'role' => $role,
+            'iat' => $iat,
+            'exp' => $exp,
+            'appKey' => $sdkKey,
+            'tokenExp' => $exp
+        ]));
+
+        $signature = hash_hmac('sha256', "$header.$payload", $sdkSecret, true);
+        $base64Signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+        
+        $token = "$header.$payload.$base64Signature";
+
+        return response()->json([
+            'signature' => $token,
+            'sdk_key' => $sdkKey,
+            'meeting_number' => $meetingNumber,
+            'password' => '', // Meetings might require password, usually empty for Trafft unless set
+        ]);
+    }
+
+    /**
      * Settings for Trainee Applications.
      */
-    public function getSettings()
+     public function getSettings()
     {
         $priorityQuestions = TraineeApplicationSetting::getByKey('priority_questions', []);
-        return response()->json(['priority_questions' => $priorityQuestions]);
+        $zoomLink = TraineeApplicationSetting::getByKey('default_zoom_link', config('services.trafft.default_zoom_link'));
+        $inductionDate = TraineeApplicationSetting::getByKey('next_induction_date', config('services.trafft.next_induction_date'));
+        $zoomMode = TraineeApplicationSetting::getByKey('zoom_mode', 'embedded');
+        $sdkKey = TraineeApplicationSetting::getByKey('zoom_sdk_key', '');
+        $sdkSecret = TraineeApplicationSetting::getByKey('zoom_sdk_secret', '');
+        
+        return response()->json([
+            'priority_questions' => $priorityQuestions,
+            'default_zoom_link' => $zoomLink,
+            'next_induction_date' => $inductionDate,
+            'zoom_mode' => $zoomMode,
+            'zoom_sdk_key' => $sdkKey,
+            'zoom_sdk_secret' => $sdkSecret ? '********' : '' // Mask secret
+        ]);
     }
 
     public function updateSettings(Request $request)
     {
         $validated = $request->validate([
-            'priority_questions' => 'required|array',
+            'priority_questions' => 'sometimes|array',
+            'default_zoom_link' => 'sometimes|string|nullable',
+            'next_induction_date' => 'sometimes|string|nullable',
+            'zoom_mode' => 'sometimes|string|in:embedded,web_client',
+            'zoom_sdk_key' => 'sometimes|string|nullable',
+            'zoom_sdk_secret' => 'sometimes|string|nullable',
         ]);
         
-        TraineeApplicationSetting::setByKey('priority_questions', $validated['priority_questions']);
+        if (isset($validated['priority_questions'])) {
+            TraineeApplicationSetting::setByKey('priority_questions', $validated['priority_questions']);
+        }
+        
+        if (isset($validated['default_zoom_link'])) {
+            TraineeApplicationSetting::setByKey('default_zoom_link', $validated['default_zoom_link']);
+        }
+
+        if (isset($validated['next_induction_date'])) {
+            TraineeApplicationSetting::setByKey('next_induction_date', $validated['next_induction_date']);
+        }
+
+        if (isset($validated['zoom_mode'])) {
+            TraineeApplicationSetting::setByKey('zoom_mode', $validated['zoom_mode']);
+        }
+
+        if (isset($validated['zoom_sdk_key'])) {
+            TraineeApplicationSetting::setByKey('zoom_sdk_key', $validated['zoom_sdk_key']);
+        }
+
+        if (isset($validated['zoom_sdk_secret']) && $validated['zoom_sdk_secret'] !== '********') {
+            TraineeApplicationSetting::setByKey('zoom_sdk_secret', $validated['zoom_sdk_secret']);
+        }
         
         return response()->json([
-            'message' => 'Assessment settings updated successfully',
-            'priority_questions' => $validated['priority_questions']
+            'message' => 'Trainee settings updated successfully',
+            'priority_questions' => TraineeApplicationSetting::getByKey('priority_questions', []),
+            'default_zoom_link' => TraineeApplicationSetting::getByKey('default_zoom_link'),
+            'next_induction_date' => TraineeApplicationSetting::getByKey('next_induction_date'),
+            'zoom_mode' => TraineeApplicationSetting::getByKey('zoom_mode', 'embedded'),
+            'zoom_sdk_key' => TraineeApplicationSetting::getByKey('zoom_sdk_key'),
+            'zoom_sdk_secret' => '********'
         ]);
     }
 
@@ -353,11 +503,16 @@ class TraineeApplicationController extends Controller
         // Send emails (kept from previous step)
         if ($validated['decision'] === 'Accepted') {
             try {
+                $companySettings = \Illuminate\Support\Facades\DB::table('company_settings')->pluck('value', 'key')->toArray();
+                
                 Mail::to($traineeApplication->email)->send(new DynamicEmail('trainee_placement_acceptance', [
                     'first_name'              => $traineeApplication->first_name,
                     'induction_date'          => $validated['induction_date'] ?? 'Monday, 19th January, 10:00am',
                     'induction_zoom_link'    => config('services.trafft.default_zoom_link', 'https://zoom.us/j/vanquish-induction'),
                     'agreement_download_link' => 'https://vanquishtherapies.co.uk/templates/4-way-agreement-trainee.docx',
+                    'therapy_form_url'        => ($companySettings['use_internal_agreement_form'] ?? '0') === '1' 
+                                                ? rtrim(config('app.frontend_url'), '/') . '/therapy-form' 
+                                                : ($companySettings['jotform_therapy_form_url'] ?? 'https://form.jotform.com/241002800146035'),
                 ]));
             } catch (\Exception $e) {
                 Log::error("Failed to send acceptance email: " . $e->getMessage());

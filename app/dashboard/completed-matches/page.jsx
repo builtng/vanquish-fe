@@ -10,6 +10,7 @@ import SearchableSelect from "@/components/SearchableSelect";
 import { formatName } from "@/lib/nameFormatter";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
+import { useModal } from "@/contexts/ModalContext";
 import {
   Users,
   Search,
@@ -45,6 +46,7 @@ import {
 export default function CompletedMatchesPage() {
   const pathname = usePathname();
   const { success, error: showError } = useToast();
+  const { confirm } = useModal();
   const [selectedClient, setSelectedClient] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStage, setFilterStage] = useState("all");
@@ -132,13 +134,13 @@ export default function CompletedMatchesPage() {
   };
 
   const handleUnassign = async (clientId) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to unassign this practitioner? The client will be moved back to Pending Matches.",
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Unassign Practitioner",
+      message: "Are you sure you want to unassign this practitioner? The client will be moved back to Pending Matches.",
+      confirmText: "Unassign",
+      type: "danger"
+    });
+    if (!ok) return;
 
     try {
       setLoading(true);

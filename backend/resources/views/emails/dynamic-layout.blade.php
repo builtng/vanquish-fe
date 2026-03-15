@@ -32,11 +32,6 @@
                             <div style="color: #4b5563; font-size: 16px; line-height: 1.7;">
                                 {!! $body !!}
                             </div>
-
-                            <p style="margin: 32px 0 0 0; color: #4b5563; font-size: 16px; line-height: 1.7;">
-                                Warm regards,<br>
-                                <strong style="color: #6f1d56; font-weight: 700;">The Vanquish Therapies Team</strong>
-                            </p>
                         </td>
                     </tr>
 

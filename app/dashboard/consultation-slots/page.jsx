@@ -7,9 +7,11 @@ import apiService from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import { Calendar, Clock, Plus, Trash2, Users, Save, X } from "lucide-react";
 import PageGuard from "@/components/PageGuard";
+import { useModal } from "@/contexts/ModalContext";
 
 export default function ConsultationSlotsAdminPage() {
   const { success, error: showError } = useToast();
+  const { confirm } = useModal();
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -64,7 +66,13 @@ export default function ConsultationSlotsAdminPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this slot?")) return;
+    const ok = await confirm({
+      title: "Delete Slot",
+      message: "Are you sure you want to delete this consultation slot?",
+      confirmText: "Delete",
+      type: "danger"
+    });
+    if (!ok) return;
     try {
       await apiService.deleteConsultationSlot(id);
       success("Slot deleted");

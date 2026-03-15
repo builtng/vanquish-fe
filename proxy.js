@@ -26,7 +26,7 @@ export default async function proxy(request) {
 
   try {
     const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
     const res = await fetch(`${apiUrl}/maintenance`, {
       signal: AbortSignal.timeout(3000),
     });

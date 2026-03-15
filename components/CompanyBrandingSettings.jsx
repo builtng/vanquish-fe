@@ -4,9 +4,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { Upload, X, Save, Image as ImageIcon, Building2, FileText, Globe, Mail, Phone, MapPin, Loader2 } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
 import apiService from "@/lib/api";
+import { useModal } from "@/contexts/ModalContext";
 
 export default function CompanyBrandingSettings() {
   const { success, error: showError } = useToast();
+  const { confirm } = useModal();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
@@ -102,7 +104,13 @@ export default function CompanyBrandingSettings() {
   };
 
   const handleDeleteLogo = async (type) => {
-    if (!confirm(`Are you sure you want to remove the ${type === 'logo' ? 'main' : 'dark'} logo?`)) return;
+    const ok = await confirm({
+      title: "Remove Logo",
+      message: `Are you sure you want to remove the ${type === 'logo' ? 'main' : 'dark'} logo?`,
+      confirmText: "Remove",
+      type: "danger"
+    });
+    if (!ok) return;
 
     try {
       setSaving(true);

@@ -56,6 +56,8 @@ export default function ClientDashboard() {
     pendingNote: "Needs review",
     consultations: 0,
     consultationsNote: "0 today",
+    traineeApps: 0,
+    traineeAppsNote: "0 new",
   });
   const [pipelineStages, setPipelineStages] = useState([
     { stage: "Application", count: 0, color: "#3b82f6", icon: FileText },
@@ -158,11 +160,12 @@ export default function ClientDashboard() {
         setLoading(true);
         
         // Fetch all data in parallel with error handling for each request
-        const [clientsResult, pendingMatchesResult, consultationsResult, activityResult] = await Promise.allSettled([
+        const [clientsResult, pendingMatchesResult, consultationsResult, activityResult, traineeAppsResult] = await Promise.allSettled([
           apiService.getClients(),
           apiService.getPendingMatches(),
           apiService.getConsultations(),
           apiService.getActivityLogs({ per_page: 10 }),
+          apiService.getTraineeApplicationsCount(),
         ]);
         
         // Handle clients data
@@ -202,6 +205,14 @@ export default function ClientDashboard() {
           activities = Array.isArray(activityData) ? activityData : activityData.data || [];
         } else {
           console.error('Error fetching activity logs:', activityResult.reason);
+        }
+
+        // Handle trainee applications count
+        let traineeAppsCount = 0;
+        if (traineeAppsResult.status === 'fulfilled') {
+          traineeAppsCount = traineeAppsResult.value || 0;
+        } else {
+          console.error('Error fetching trainee applications count:', traineeAppsResult.reason);
         }
         
         if (!isMounted) return;
@@ -312,6 +323,18 @@ export default function ClientDashboard() {
           });
         }
         
+        if (traineeAppsCount > 0) {
+          urgentItemsList.push({
+            id: 4,
+            type: "trainee",
+            icon: ClipboardList,
+            message: `${traineeAppsCount} new trainee application${traineeAppsCount > 1 ? 's' : ''} to review`,
+            details: "Requires initial screening",
+            priority: "medium",
+            action: "Review Applications",
+          });
+        }
+        
         setUrgentItems(urgentItemsList);
         
         // Update stats
@@ -324,6 +347,8 @@ export default function ClientDashboard() {
           pendingNote: pendingMatch > 0 ? "Needs review" : "All caught up",
           consultations: thisWeekConsultations,
           consultationsNote: `${todayConsultations} today`,
+          traineeApps: traineeAppsCount,
+          traineeAppsNote: traineeAppsCount > 0 ? `${traineeAppsCount} new` : "All caught up",
         });
         
       } catch (err) {
@@ -599,6 +624,11 @@ export default function ClientDashboard() {
         item.action.includes("client")
       ) {
         return "/dashboard/clients";
+      } else if (
+        item.action === "Review Applications" ||
+        item.action.includes("trainee")
+      ) {
+        return "/dashboard/trainee-applications";
       }
       return null;
     };
@@ -739,7 +769,7 @@ export default function ClientDashboard() {
             <div className="space-y-6">
 
               {/* Stats Cards - Top Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
                 <StatCard
                   icon={Users}
                   label="Total Clients"
@@ -749,9 +779,16 @@ export default function ClientDashboard() {
                 />
                 <StatCard
                   icon={FileText}
-                  label="Application"
+                  label="Client Apps"
                   value={pipelineStages.find(s => s.stage === "Application")?.count || 0}
                   color="#3b82f6"
+                />
+                <StatCard
+                  icon={ClipboardList}
+                  label="Trainee Apps"
+                  value={stats.traineeApps}
+                  sublabel={stats.traineeAppsNote}
+                  color="#8b5cf6"
                 />
                 <StatCard
                   icon={Video}

@@ -7,6 +7,7 @@ import DashboardHeader from "@/components/DashboardHeader";
 import RichTextEditor from "@/components/RichTextEditor";
 import apiService from "@/lib/api";
 import { toast } from "react-toastify";
+import { useModal } from "@/contexts/ModalContext";
 import {
   Mail,
   Save,
@@ -23,6 +24,7 @@ import {
 export default function EmailManagement() {
   const [templates, setTemplates] = useState([]);
   const [selectedType, setSelectedType] = useState(null);
+  const { confirm } = useModal();
   const [formData, setFormData] = useState({
     subject: "",
     body: "",
@@ -83,12 +85,13 @@ export default function EmailManagement() {
 
   const handleReset = async () => {
     if (!selectedType) return;
-    if (
-      !window.confirm(
-        "Are you sure you want to reset this template to default?",
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Reset Template",
+      message: "Are you sure you want to reset this email template to its default version? This will overwrite your current changes.",
+      confirmText: "Reset to Default",
+      type: "warning"
+    });
+    if (!ok) return;
 
     try {
       setSaving(true);

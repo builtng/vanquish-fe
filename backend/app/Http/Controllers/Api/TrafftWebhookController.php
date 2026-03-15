@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\TraineeApplication;
+use App\Models\TraineeApplicationSetting;
 use App\Models\ActivityLog;
 use App\Mail\DynamicEmail;
 use App\Jobs\SendInterviewReminder;
@@ -265,8 +266,10 @@ class TrafftWebhookController extends Controller
                 ?? $this->extractMetadata($payload, 'meeting_link');
         }
 
-        // Fall back to default Zoom from config
-        $zoomLink = $zoomLink ?: config('services.trafft.default_zoom_link', 'https://zoom.us/j/vanquishtherapies');
+        // Fall back to default Zoom from config/settings
+        if (!$zoomLink) {
+            $zoomLink = TraineeApplicationSetting::getByKey('default_zoom_link', config('services.trafft.default_zoom_link', 'https://zoom.us/j/vanquishtherapies'));
+        }
 
         // Service name
         $serviceName = $payload['serviceName']

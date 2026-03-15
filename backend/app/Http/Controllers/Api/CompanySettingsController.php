@@ -41,6 +41,11 @@ class CompanySettingsController extends Controller
             'company_phone', 'company_address', 'company_website',
             'pdf_header_text', 'pdf_footer_text',
             'jotform_session_notes_url', 'jotform_psg_form_url',
+            'jotform_agreement_url', 'jotform_intake_form_url',
+            'jotform_trainee_application_url', 'jotform_therapy_form_url',
+            'use_internal_session_notes', 'use_internal_psg_form',
+            'use_internal_agreement_form', 'use_internal_intake_form',
+            'use_internal_trainee_application',
         ];
 
         $data = $request->validate([
@@ -54,6 +59,15 @@ class CompanySettingsController extends Controller
             'pdf_footer_text'           => 'sometimes|string|max:300',
             'jotform_session_notes_url' => 'sometimes|url|max:500|nullable',
             'jotform_psg_form_url'      => 'sometimes|url|max:500|nullable',
+            'jotform_agreement_url'     => 'sometimes|url|max:500|nullable',
+            'jotform_intake_form_url'    => 'sometimes|url|max:500|nullable',
+            'jotform_trainee_application_url' => 'sometimes|url|max:500|nullable',
+            'jotform_therapy_form_url'   => 'sometimes|url|max:500|nullable',
+            'use_internal_session_notes' => 'sometimes|string|in:0,1',
+            'use_internal_psg_form'      => 'sometimes|string|in:0,1',
+            'use_internal_agreement_form' => 'sometimes|string|in:0,1',
+            'use_internal_intake_form'   => 'sometimes|string|in:0,1',
+            'use_internal_trainee_application' => 'sometimes|string|in:0,1',
         ]);
 
         foreach ($data as $key => $value) {

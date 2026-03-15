@@ -15,6 +15,7 @@ import {
   Calendar,
   Sparkles,
 } from "lucide-react";
+import InternalPSGForm from "@/components/InternalPSGForm";
 
 function PSGFormPageContent() {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -88,14 +89,20 @@ function PSGFormPageContent() {
               </div>
             </div>
 
-            <a
-              href={settings?.jotform_psg_form_url || "https://jotform.com/vanquish/psg-reflection"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-[#6f1d56] text-white rounded-xl font-black text-lg hover:opacity-90 transition-all shadow-lg hover:shadow-xl shadow-purple-500/20 active:scale-95"
-            >
-              Submit PSG Form <ExternalLink className="w-5 h-5" />
-            </a>
+            {settings?.use_internal_psg_form === "1" ? (
+              <div className="max-w-2xl mx-auto text-left">
+                <InternalPSGForm />
+              </div>
+            ) : (
+              <a
+                href={settings?.jotform_psg_form_url || "https://jotform.com/vanquish/psg-reflection"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-[#6f1d56] text-white rounded-xl font-black text-lg hover:opacity-90 transition-all shadow-lg hover:shadow-xl shadow-purple-500/20 active:scale-95"
+              >
+                Submit PSG Form <ExternalLink className="w-5 h-5" />
+              </a>
+            )}
           </div>
 
           <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-xl p-5 border border-indigo-100 dark:border-indigo-800/30 flex items-start gap-4">

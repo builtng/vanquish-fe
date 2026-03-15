@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import PageGuard from "@/components/PageGuard";
+import { useModal } from "@/contexts/ModalContext";
 
 function TraineeApplicationsDashboardContent() {
   const searchParams = useSearchParams();
@@ -15,33 +16,28 @@ function TraineeApplicationsDashboardContent() {
   
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState(filterParam === "video" ? "Stage 2 Video Submitted" : "all");
   const [source, setSource] = useState("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const { prompt, confirm } = useModal();
+  const [updatingId, setUpdatingId] = useState(null);
 
   const fetchApplications = async () => {
     setLoading(true);
     try {
-      const query = new URLSearchParams({
+      const params = {
         page,
         search,
         status,
         source,
-      }).toString();
+      };
       
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications?${query}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        setApplications(data.data);
-        setTotalPages(data.last_page);
-      }
+      const data = await apiService.getTraineeApplications(params);
+      setApplications(data.data);
+      setTotalPages(data.last_page);
     } catch (err) {
       toast.error("Failed to fetch applications.");
       console.error(err);
@@ -66,23 +62,54 @@ function TraineeApplicationsDashboardContent() {
     fetchApplications();
   };
 
-  const updateStatus = async (id, newStatus) => {
+  const updateStatus = async (id, newStatus, inductionDate = null) => {
+    setUpdatingId(id);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/${id}/status`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      
-      if (res.ok) {
-        toast.success(`Status updated to ${newStatus}`);
-        fetchApplications();
-      }
+      await apiService.updateTraineeApplicationStatus(id, newStatus, inductionDate);
+      toast.success(`Status updated to ${newStatus}`);
+      fetchApplications();
     } catch (err) {
       toast.error("Failed to update status.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleStatusChangeAction = async (id, newStatus) => {
+    if (newStatus === 'Accepted') {
+      const date = await prompt({
+        title: "Induction Date",
+        message: "Enter Induction Date for this trainee:",
+        defaultValue: "Monday, April 6th, 2026"
+      });
+      if (date) updateStatus(id, newStatus, date);
+    } else {
+      updateStatus(id, newStatus);
+    }
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.length === applications.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(applications.map(app => app.id));
+    }
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const bulkUpdateStatus = async (newStatus) => {
+    if (selectedIds.length === 0) return;
+    try {
+      await Promise.all(selectedIds.map(id => apiService.updateTraineeApplicationStatus(id, newStatus)));
+      toast.success(`Updated ${selectedIds.length} applications to ${newStatus}`);
+      setSelectedIds([]);
+      fetchApplications();
+    } catch (err) {
+      toast.error("Failed to update some applications.");
     }
   };
 
@@ -163,16 +190,16 @@ function TraineeApplicationsDashboardContent() {
             >
               <option value="all">All Statuses</option>
               <option value="New Application">New Application</option>
-              <option value="Stage 1 Complete">Stage 1 Complete (Manual Review)</option>
-              <option value="Stage 2 Invited">Invited (S2)</option>
-              <option value="Stage 2 Video Submitted">Video Submitted (S2)</option>
-              <option value="Stage 2 Approved">Approved (S2) / S3 Pending</option>
-              <option value="Stage 3 Interview Booked">Interview Booked (S3)</option>
+              <option value="Stage 1 Complete">Stage 1 Complete</option>
+              <option value="Stage 2 Invited">Stage 2 Invited</option>
+              <option value="Stage 2 Video Submitted">Stage 2 Video Submitted</option>
+              <option value="Stage 2 Approved">Stage 2 Approved</option>
+              <option value="Stage 3 Interview Booked">Stage 3 Interview Booked</option>
               <option value="Interview Attended">Interview Attended</option>
-              <option value="Interview No Show">No Show</option>
+              <option value="Interview No Show">Interview No Show</option>
               <option value="Accepted">Accepted</option>
               <option value="Rejected">Rejected</option>
-              <option value="Hold">Hold / Waitlist</option>
+              <option value="Hold">Hold</option>
             </select>
           </div>
 
@@ -198,17 +225,55 @@ function TraineeApplicationsDashboardContent() {
         </form>
       </div>
 
+      {/* Bulk Actions */}
+      {selectedIds.length > 0 && (
+        <div className="mb-4 p-3 bg-purple-50 border border-purple-100 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold text-purple-700 ml-2">{selectedIds.length} Selected</span>
+            <div className="h-4 w-px bg-purple-200"></div>
+            <button 
+              onClick={() => bulkUpdateStatus('Stage 1 Complete')}
+              className="text-xs font-bold text-purple-600 hover:text-purple-800 transition-colors"
+            >
+              Approve All (S1)
+            </button>
+            <button 
+              onClick={() => bulkUpdateStatus('Rejected')}
+              className="text-xs font-bold text-red-600 hover:text-red-800 transition-colors"
+            >
+              Reject All
+            </button>
+          </div>
+          <button 
+            onClick={() => setSelectedIds([])}
+            className="text-xs text-gray-400 hover:text-gray-600 font-medium"
+          >
+            Clear Selection
+          </button>
+        </div>
+      )}
+
       {/* Applications Table */}
       <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden transition-all">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-400 uppercase tracking-widest">
               <tr>
+                <th className="px-6 py-4 w-12 text-center">
+                  <div className="flex justify-center">
+                    <input 
+                      type="checkbox" 
+                      checked={applications.length > 0 && selectedIds.length === applications.length}
+                      onChange={toggleSelectAll}
+                      className="w-5 h-5 rounded-md border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer shadow-sm transition-all hover:border-purple-400"
+                    />
+                  </div>
+                </th>
                 <th className="px-6 py-4">Applicant</th>
                 <th className="px-6 py-4">Course Info</th>
                 <th className="px-6 py-4">Source</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4">Status & Action</th>
+                <th className="px-6 py-4 text-right">View</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -222,72 +287,90 @@ function TraineeApplicationsDashboardContent() {
                 </tr>
               ) : (
                 applications.map((app) => (
-                  <tr key={app.id} className="hover:bg-gray-50/50 transition-colors group">
+                  <tr key={app.id} className={`hover:bg-gray-50/80 transition-all group ${selectedIds.includes(app.id) ? 'bg-purple-50/40 ring-1 ring-inset ring-purple-100' : ''}`}>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex justify-center">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedIds.includes(app.id)}
+                          onChange={() => toggleSelect(app.id)}
+                          className="w-5 h-5 rounded-md border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer shadow-sm transition-all hover:border-purple-400"
+                        />
+                      </div>
+                    </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold">
+                      <div className="flex items-center gap-4">
+                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-100 border border-purple-100 flex items-center justify-center text-purple-700 font-black shadow-inner">
                           {app.first_name[0]}{app.last_name[0]}
                         </div>
                         <div>
-                          <div className="font-bold text-gray-900 group-hover:text-purple-700 transition-colors">{app.first_name} {app.last_name}</div>
-                          <div className="text-xs text-gray-500 flex items-center gap-1">
-                            <Mail className="w-3 h-3" /> {app.email}
+                          <div className="font-black text-gray-900 group-hover:text-purple-700 transition-colors leading-tight text-sm translate-y-[-1px]">{app.first_name} {app.last_name}</div>
+                          <div className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-1 font-medium italic">
+                            <Mail className="w-3 h-3 text-purple-400" /> {app.email}
                           </div>
-                          {app.phone && (
-                            <div className="text-xs text-gray-400 flex items-center gap-1">
-                              <Phone className="w-3 h-3" /> {app.phone}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-700">{app.course_name}</div>
-                      <div className="text-xs text-gray-500">{app.institution}</div>
-                      <div className="text-xs text-gray-400 italic">Duration: {app.course_duration}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        app.source === 'jotform' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'
-                      }`}>
-                        {app.source.replace('_', ' ')}
-                      </span>
-                      <div className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {new Date(app.created_at).toLocaleDateString()}
+                      <div className="max-w-[180px]">
+                        <div className="text-xs font-black text-gray-800 leading-tight line-clamp-1">{app.course_name}</div>
+                        <div className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1 opacity-70">{app.institution}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={getStatusBadge(app.status)}>
-                        {app.status}
-                      </span>
+                      <div className="flex flex-col gap-1.5">
+                        <span className={`inline-flex px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest w-fit shadow-sm border ${
+                          app.source === 'jotform' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-purple-50 text-purple-600 border-purple-100'
+                        }`}>
+                          {app.source.replace('_', ' ')}
+                        </span>
+                        <div className="text-[9px] text-gray-400 flex items-center gap-1 font-bold">
+                          <Clock className="w-2.5 h-2.5 opacity-50" /> {new Date(app.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-2">
+                        <select 
+                          value={app.status}
+                          disabled={updatingId === app.id}
+                          onChange={(e) => handleStatusChangeAction(app.id, e.target.value)}
+                          className={`text-[10px] font-black uppercase tracking-widest py-1.5 px-3 rounded-xl border-2 outline-none cursor-pointer transition-all shadow-sm ${
+                            updatingId === app.id ? 'opacity-50 grayscale' : ''
+                          } ${
+                            app.status === 'Accepted' ? 'bg-emerald-600 text-white border-emerald-400' :
+                            app.status === 'Rejected' ? 'bg-red-50 text-red-600 border-red-100' :
+                            app.status === 'Hold' ? 'bg-slate-100 text-slate-600 border-slate-200' :
+                            'bg-white text-gray-700 border-gray-100 hover:border-purple-300'
+                          }`}
+                        >
+                          <option value="New Application">New Application</option>
+                          <option value="Stage 1 Complete">S1 Complete</option>
+                          <option value="Stage 2 Invited">S2 Invited</option>
+                          <option value="Stage 2 Video Submitted">S2 Video</option>
+                          <option value="Stage 2 Approved">S2 Approved</option>
+                          <option value="Stage 3 Interview Booked">S3 Booked</option>
+                          <option value="Interview Attended">Attended</option>
+                          <option value="Interview No Show">No Show</option>
+                          <option value="Accepted">Accepted</option>
+                          <option value="Rejected">Rejected</option>
+                          <option value="Hold">Hold</option>
+                        </select>
+                        {app.status === 'Accepted' && app.induction_date && (
+                          <div className="text-[9px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1 ml-1 animate-in fade-in slide-in-from-left-2">
+                            <CheckCircle className="w-2.5 h-2.5" /> Starts: {app.induction_date}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link 
-                          href={`/dashboard/trainee-applications/${app.id}`}
-                          className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
-                          title="View Details"
-                        >
-                          <ExternalLink className="w-5 h-5" />
-                        </Link>
-                        
-                        <div className="h-6 w-px bg-gray-200 mx-1"></div>
-                        
-                        <button 
-                          onClick={() => updateStatus(app.id, 'Stage 1 Complete')}
-                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
-                          title="Move to S1 Complete"
-                        >
-                          <CheckCircle className="w-5 h-5" />
-                        </button>
-                        <button 
-                          onClick={() => updateStatus(app.id, 'Rejected')}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          title="Reject"
-                        >
-                          <XCircle className="w-5 h-5" />
-                        </button>
-                      </div>
+                      <Link 
+                        href={`/dashboard/trainee-applications/${app.id}`}
+                        className="inline-flex p-3 text-gray-400 hover:text-purple-600 hover:bg-white hover:shadow-lg rounded-2xl transition-all border border-transparent hover:border-purple-100"
+                        title="View Full Profile"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                      </Link>
                     </td>
                   </tr>
                 ))

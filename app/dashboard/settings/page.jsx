@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import MenuPrivilegesSettings from "@/components/MenuPrivilegesSettings";
 import CompanyBrandingSettings from "@/components/CompanyBrandingSettings";
+import SystemModuleToggleSettings from "@/components/SystemModuleToggleSettings";
 
 export default function SettingsPage() {
   const pathname = usePathname();
@@ -534,6 +535,21 @@ export default function SettingsPage() {
                       </h2>
                     </div>
                     <ServiceSettingsSection />
+                  </div>
+
+                  <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <Settings className="w-5 h-5 text-purple-600" />
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)]">
+                          System Module Configuration
+                        </h2>
+                        <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">
+                          Toggle between external JotForms and in-house system modules.
+                        </p>
+                      </div>
+                    </div>
+                    <SystemModuleToggleSettings />
                   </div>
 
                   <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">

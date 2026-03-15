@@ -23,14 +23,20 @@ import {
   Redo,
   Link as LinkIcon,
 } from "lucide-react";
+import { useModal } from "@/contexts/ModalContext";
 
-const MenuBar = ({ editor }) => {
+const MenuBar = ({ editor, prompt }) => {
   if (!editor) {
     return null;
   }
 
-  const addLink = () => {
-    const url = window.prompt("URL");
+  const addLink = async () => {
+    const url = await prompt({
+      title: "Add Link",
+      message: "Enter URL for the link:",
+      placeholder: "https://example.com",
+      inputType: "text"
+    });
     if (url) {
       editor.chain().focus().setLink({ href: url }).run();
     }
@@ -166,6 +172,7 @@ const RichTextEditor = ({
   onChange,
   placeholder = "Start typing...",
 }) => {
+  const { prompt } = useModal();
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -196,7 +203,7 @@ const RichTextEditor = ({
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent transition-all">
-      <MenuBar editor={editor} />
+      <MenuBar editor={editor} prompt={prompt} />
       <EditorContent
         editor={editor}
         className="prose prose-sm dark:prose-invert max-w-none p-4 min-h-[300px] focus:outline-none"

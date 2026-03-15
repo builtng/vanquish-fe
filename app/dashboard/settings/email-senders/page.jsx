@@ -6,9 +6,11 @@ import { toast } from "react-hot-toast";
 import PageGuard from "@/components/PageGuard";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
+import { useModal } from "@/contexts/ModalContext";
 
 export default function EmailSendersSettings() {
   const { token, user } = useAuth();
+  const { confirm } = useModal();
   const [senders, setSenders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -112,12 +114,13 @@ export default function EmailSendersSettings() {
   };
 
   const handleDelete = async (id) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this sender configuration? The system will fall back to default.",
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Delete Sender",
+      message: "Are you sure you want to delete this sender configuration? The system will fall back to default.",
+      confirmText: "Delete",
+      type: "danger"
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(

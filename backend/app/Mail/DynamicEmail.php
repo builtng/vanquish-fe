@@ -78,6 +78,7 @@ class DynamicEmail extends Mailable
             'induction_invitation',
             'qualified_form',
             'generic_tc_email',
+            'trainee_initial_invite',
             'trainee_application_received',
             'trainee_stage_two_invite',
             'trainee_video_interview_received',
@@ -136,12 +137,12 @@ class DynamicEmail extends Mailable
         return [
             'intake_submission' => [
                 'subject' => 'We have received your intake form',
-                'body' => '<h1>Hello {{client_name}},</h1><p>Thank you for submitting your intake form. We will review it and get back to you soon.</p>',
+                'body' => '<h1>Hello {{client_name}},</h1><p>Thank thank you for submitting your intake form. We will review it and get back to you soon.</p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'email']
             ],
             'payment_confirmation' => [
                 'subject' => 'Payment Confirmation - Vanquish Therapies',
-                'body' => '<h1>Payment Received</h1><p>Hi {{client_name}},</p><p>We have successfully received your payment. Thank you for choosing Vanquish Therapies.</p>',
+                'body' => '<h1>Payment Received</h1><p>Hi {{client_name}},</p><p>We have successfully received your payment. Thank you for choosing Vanquish Therapies.</p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'email']
             ],
 
@@ -154,63 +155,63 @@ class DynamicEmail extends Mailable
 
             'agreement_sent' => [
                 'subject' => 'Action Required: Service Agreement',
-                'body' => '<h1>Service Agreement</h1><p>Hi {{client_name}},</p><p>Please review and sign the service agreement sent to your email.</p><p><a href="{{agreement_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Sign Agreement</a></p>',
+                'body' => '<h1>Service Agreement</h1><p>Hi {{client_name}},</p><p>Please review and sign the service agreement sent to your email.</p><p><a href="{{agreement_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Sign Agreement</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'email', 'agreement_url']
             ],
             'booking_confirmation' => [
                 'subject' => 'Booking Confirmation - Vanquish Therapies',
-                'body' => '<h1>Your Booking is Confirmed</h1><p>Hi {{client_name}},</p><p>Your {{booking_type}} with {{counsellor_name}} has been scheduled.</p><p><strong>Date:</strong> {{date}}</p><p><strong>Time:</strong> {{time}}</p><p><strong>Details:</strong> {{booking_details}}</p><p><strong>Location:</strong> {{location}}</p><p><strong>Duration:</strong> {{duration}} minutes</p><p><strong>Link:</strong> <a href="{{consultation_link}}">Join Session</a></p>',
+                'body' => '<h1>Your Booking is Confirmed</h1><p>Hi {{client_name}},</p><p>Your {{booking_type}} with {{counsellor_name}} has been scheduled.</p><p><strong>Date:</strong> {{date}}</p><p><strong>Time:</strong> {{time}}</p><p><strong>Details:</strong> {{booking_details}}</p><p><strong>Location:</strong> {{location}}</p><p><strong>Duration:</strong> {{duration}} minutes</p><p><strong>Link:</strong> <a href="{{consultation_link}}">Join Session</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'booking_type', 'counsellor_name', 'booking_details', 'location', 'duration', 'consultation_link', 'date', 'time']
             ],
             'booking_notification' => [
                 'subject' => 'New Booking Notification',
-                'body' => '<h1>New Booking</h1><p>Hi {{tc_name}},</p><p>A new {{booking_type}} has been scheduled with you.</p><p><strong>Client:</strong> {{client_name}}</p><p><strong>Date/Time:</strong> {{scheduled_at}}</p><p><strong>Notes:</strong> {{notes}}</p>',
+                'body' => '<h1>New Booking</h1><p>Hi {{tc_name}},</p><p>A new {{booking_type}} has been scheduled with you.</p><p><strong>Client:</strong> {{client_name}}</p><p><strong>Date/Time:</strong> {{scheduled_at}}</p><p><strong>Notes:</strong> {{notes}}</p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['tc_name', 'client_name', 'booking_type', 'scheduled_at', 'notes']
             ],
             'consultation_follow_up' => [
                 'subject' => 'Consultation Update - Vanquish Therapies',
-                'body' => '<h1>Consultation Completed</h1><p>Hi {{client_name}},</p><p>Thank you for attending your consultation. Your outcome is: <strong>{{outcome}}</strong>.</p><p>{{next_steps}}</p>',
+                'body' => '<h1>Consultation Completed</h1><p>Hi {{client_name}},</p><p>Thank you for attending your consultation. Your outcome is: <strong>{{outcome}}</strong>.</p><p>{{next_steps}}</p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'outcome', 'next_steps']
             ],
             'consultation_booking_link' => [
                 'subject' => 'Book sessions - Vanquish Therapies',
-                'body' => '<h1>Book sessions</h1><p>Hi {{client_name}},</p><p>Please use the button below to select a preferred date and time for your sessions.</p><p><a href="{{booking_link}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Book sessions</a></p>',
+                'body' => '<h1>Book sessions</h1><p>Hi {{client_name}},</p><p>Please use the button below to select a preferred date and time for your sessions.</p><p><a href="{{booking_link}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Book sessions</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'booking_link', 'tc_name', 'session_date']
             ],
             'feedback_form' => [
                 'subject' => 'How are we doing? - Vanquish Therapies',
-                'body' => '<h1>We value your feedback</h1><p>Hi {{client_name}},</p><p>We hope you are finding your sessions helpful. Could you please take a moment to provide us with some feedback?</p><p><a href="{{feedback_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Give Feedback</a></p>',
+                'body' => '<h1>We value your feedback</h1><p>Hi {{client_name}},</p><p>We hope you are finding your sessions helpful. Could you please take a moment to provide us with some feedback?</p><p><a href="{{feedback_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Give Feedback</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'feedback_url']
             ],
             'tc_welcome' => [
                 'subject' => 'Welcome to Vanquish Therapies',
-                'body' => '<h1>Welcome, {{tc_name}}!</h1><p>We are excited to have you join our team. Your Practitioner ID is {{tc_id}}.</p><p><strong>Modality:</strong> {{modality}}</p><p>We will be in touch soon with next steps.</p>',
+                'body' => '<h1>Welcome, {{tc_name}}!</h1><p>We are excited to have you join our team. Your Practitioner ID is {{tc_id}}.</p><p><strong>Modality:</strong> {{modality}}</p><p>We will be in touch soon with next steps.</p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['tc_name', 'tc_id', 'email', 'modality']
             ],
             'tc_match_notification' => [
                 'subject' => 'New Client Match - Action Required',
-                'body' => '<h1>New Client Match</h1><p>Hi {{tc_name}},</p><p>You have been matched with a new client: {{client_name}}.</p><p><strong>Client Age:</strong> {{client_age}}</p><p><strong>Service Type:</strong> {{service_type}}</p><p><strong>Match Score:</strong> {{match_score}}%</p><p><strong>Notes:</strong> {{notes}}</p><p><a href="{{dashboard_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">View Client Details</a></p>',
+                'body' => '<h1>New Client Match</h1><p>Hi {{tc_name}},</p><p>You have been matched with a new client: {{client_name}}.</p><p><strong>Client Age:</strong> {{client_age}}</p><p><strong>Service Type:</strong> {{service_type}}</p><p><strong>Match Score:</strong> {{match_score}}%</p><p><strong>Notes:</strong> {{notes}}</p><p><a href="{{dashboard_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">View Client Details</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['tc_name', 'client_name', 'client_age', 'service_type', 'match_score', 'notes', 'dashboard_url']
             ],
 
             'induction_invitation' => [
                 'subject' => 'Induction Session Invitation',
-                'body' => '<h1>Induction Invitation</h1><p>Hi {{tc_name}},</p><p>You have been invited to an induction session on {{induction_date}}.</p><p><strong>Location:</strong> {{location}}</p><p><strong>Notes:</strong> {{notes}}</p><p><a href="{{acceptance_url}}" style="padding:10px 20px;background-color:green;color:white;text-decoration:none;border-radius:5px;">Accept Invitation</a> <a href="{{decline_url}}" style="padding:10px 20px;background-color:red;color:white;text-decoration:none;border-radius:5px;">Decline</a></p>',
+                'body' => '<h1>Induction Invitation</h1><p>Hi {{tc_name}},</p><p>You have been invited to an induction session on {{induction_date}}.</p><p><strong>Location:</strong> {{location}}</p><p><strong>Notes:</strong> {{notes}}</p><p><a href="{{acceptance_url}}" style="padding:10px 20px;background-color:green;color:white;text-decoration:none;border-radius:5px;">Accept Invitation</a> <a href="{{decline_url}}" style="padding:10px 20px;background-color:red;color:white;text-decoration:none;border-radius:5px;">Decline</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['tc_name', 'induction_date', 'location', 'notes', 'acceptance_url', 'decline_url']
             ],
             'qualified_form' => [
                 'subject' => 'Action Required: Qualified Practitioner Form',
-                'body' => '<h1>Transition to Qualified Practitioner</h1><p>Hi {{tc_name}},</p><p>Congratulations on becoming a qualified practitioner! Please complete the mandatory form to update your status.</p><p><a href="{{form_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Complete Form</a></p>',
+                'body' => '<h1>Transition to Qualified Practitioner</h1><p>Hi {{tc_name}},</p><p>Congratulations on becoming a qualified practitioner! Please complete the mandatory form to update your status.</p><p><a href="{{form_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Complete Form</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['tc_name', 'form_url']
             ],
             'session_reminder' => [
                 'subject' => 'Upcoming Session Reminder',
-                'body' => '<h1>Session Reminder</h1><p>Hi {{client_name}},</p><p>This is a reminder for your upcoming session with {{counsellor_name}} on {{scheduled_at}}.</p>',
+                'body' => '<h1>Session Reminder</h1><p>Hi {{client_name}},</p><p>This is a reminder for your upcoming session with {{counsellor_name}} on {{scheduled_at}}.</p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'scheduled_at', 'counsellor_name']
             ],
             'booking_deadline_reminder' => [
                 'subject' => 'Action Required: Session Booking Deadline',
-                'body' => '<h1>Booking Deadline Reminder</h1><p>Hi {{client_name}},</p><p>Your next booking deadline is {{deadline_date}}. Please book your next block of sessions to avoid penalties.</p><p><a href="{{booking_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Book Now</a></p>',
+                'body' => '<h1>Booking Deadline Reminder</h1><p>Hi {{client_name}},</p><p>Your next booking deadline is {{deadline_date}}. Please book your next block of sessions to avoid penalties.</p><p><a href="{{booking_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">Book Now</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'deadline_date', 'booking_url']
             ],
             'generic_client_email' => [
@@ -225,171 +226,88 @@ class DynamicEmail extends Mailable
             ],
             'auto_deduction_applied' => [
                 'subject' => 'Booking Update - Auto-Deduction Applied',
-                'body' => '<h1>Important Update</h1><p>Hi {{client_name}},</p><p>Your booking deadline has passed. As per our policy, you have been automatically allocated 3 sessions instead of 4 (same price).</p><p>Your sessions have been scheduled. Please check your booking portal for details.</p><p><a href="{{booking_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">View Bookings</a></p>',
+                'body' => '<h1>Important Update</h1><p>Hi {{client_name}},</p><p>Your booking deadline has passed. As per our policy, you have been automatically allocated 3 sessions instead of 4 (same price).</p><p>Your sessions have been scheduled. Please check your booking portal for details.</p><p><a href="{{booking_url}}" style="display:inline-block;padding:10px 20px;background-color:#6f1d56;color:white;text-decoration:none;border-radius:5px;">View Bookings</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'booking_url']
             ],
             'booking_rescheduled' => [
                 'subject' => 'Booking Rescheduled - Vanquish Therapies',
-                'body' => '<h1>Your Booking has been Rescheduled</h1><p>Hi {{client_name}},</p><p>Your {{booking_type}} with {{counsellor_name}} has been rescheduled.</p><p><strong>New Date/Time:</strong> {{new_scheduled_at}}</p><p><strong>Notes:</strong> {{notes}}</p><p><strong>Link:</strong> <a href="{{consultation_link}}">Join Session</a></p>',
+                'body' => '<h1>Your Booking has been Rescheduled</h1><p>Hi {{client_name}},</p><p>Your {{booking_type}} with {{counsellor_name}} has been rescheduled.</p><p><strong>New Date/Time:</strong> {{new_scheduled_at}}</p><p><strong>Notes:</strong> {{notes}}</p><p><strong>Link:</strong> <a href="{{consultation_link}}">Join Session</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'booking_type', 'counsellor_name', 'new_scheduled_at', 'notes', 'consultation_link']
             ],
-            'trainee_application_received' => [
-                'subject' => 'Stage 1 Application Received – Vanquish Therapies Trainee Placement',
+            'trainee_initial_invite' => [
+                'subject' => 'Trainee Counsellor Placement Application',
                 'body' => '
-<div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #333;">
-
-  <div style="background: linear-gradient(135deg, #6f1d56 0%, #9b2c7e 100%); padding: 36px 32px; border-radius: 12px 12px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 24px; letter-spacing: 0.5px;">Application Received</h1>
-    <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Vanquish Therapies — Trainee Counsellor Placement</p>
-  </div>
-
-  <div style="background: #ffffff; padding: 32px; border: 1px solid #e8e8e8; border-top: none;">
-
-    <p style="font-size: 16px; margin-top: 0;">Dear <strong>{{first_name}} {{last_name}}</strong>,</p>
-
-    <p>Thank you for submitting your Stage 1 placement application to <strong>Vanquish Therapies</strong>. We are pleased to confirm that we have <strong>successfully received your application</strong>, including all personal information, course details, and any supporting documents you uploaded.</p>
-
-    <div style="background: #f9f4f8; border-left: 4px solid #6f1d56; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 24px 0;">
-      <p style="margin: 0; font-size: 14px; color: #555;"><strong>Submission Email:</strong> {{email}}</p>
-      <p style="margin: 6px 0 0; font-size: 14px; color: #555;">Please keep this email for your records. A copy of the submitted form is not separately provided.</p>
-    </div>
-
-    <h2 style="color: #6f1d56; font-size: 18px; border-bottom: 2px solid #f0e6ed; padding-bottom: 8px;">Review Process &amp; Timeline</h2>
-
-    <p>Our <strong>Compliance Team</strong> and clinical lead review every application carefully and personally. Here is what to expect:</p>
-
-    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 16px 0;">
-      <tr>
-        <td style="padding: 12px 16px; background: #f9f4f8; border-radius: 8px 0 0 0; font-weight: bold; color: #6f1d56; width: 30%; vertical-align: top; font-size: 14px;">⏱ 48–72 hours</td>
-        <td style="padding: 12px 16px; font-size: 14px; vertical-align: top;">Initial review of your application, documents, and course information by our clinical lead.</td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 16px; background: #f0e6ed; font-weight: bold; color: #6f1d56; font-size: 14px; vertical-align: top;">📧 Stage 2 Invitation</td>
-        <td style="padding: 12px 16px; font-size: 14px; vertical-align: top;">If your application meets our placement criteria, you will receive a <strong>Stage 2 Video Interview invitation</strong> within 48 hours of this email.</td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 16px; background: #f9f4f8; border-radius: 0 0 0 8px; font-weight: bold; color: #6f1d56; font-size: 14px; vertical-align: top;">🎥 Stage 2: Video</td>
-        <td style="padding: 12px 16px; font-size: 14px; vertical-align: top;">You will complete a structured asynchronous video interview (approx. 15–20 minutes) from the comfort of your home.</td>
-      </tr>
-      <tr>
-        <td style="padding: 12px 16px; background: #f0e6ed; border-radius: 0 0 8px 0; font-weight: bold; color: #6f1d56; font-size: 14px; vertical-align: top;">🤝 Stage 3: Interview</td>
-        <td style="padding: 12px 16px; font-size: 14px; vertical-align: top;">Successful Stage 2 candidates are invited to a final face-to-face (online) interview with a member of the Vanquish leadership team.</td>
-      </tr>
-    </table>
-
-    <h2 style="color: #6f1d56; font-size: 18px; border-bottom: 2px solid #f0e6ed; padding-bottom: 8px;">What Happens Next</h2>
-
-    <ul style="padding-left: 20px; line-height: 1.8; font-size: 14px; color: #444;">
-      <li>You do not need to take any action at this stage — we will contact you directly.</li>
-      <li>If you are progressed to Stage 2, you will receive a separate email with a personal video interview link.</li>
-      <li>Please ensure your emails from <strong>no-reply@vanquishtherapies.co.uk</strong> are not going to your spam folder.</li>
-      <li>Should you need to update any information in your application, please email <a href="mailto:compliance@vanquishtherapies.co.uk" style="color:#6f1d56;">compliance@vanquishtherapies.co.uk</a>.</li>
+<div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+    <p>Dear {{first_name}},</p>
+    <p>Thank you for your email.</p>
+    <p>We greatly appreciate your interest in our placement programme. To apply, please complete the Placement Application form provided below:</p>
+    <p><a href="{{trainee_application_url}}" style="color: #6f1d56; font-weight: bold; text-decoration: underline;">Vanquish Therapies │ Trainee Counsellor Placement Application</a></p>
+    <p><strong>We require the following mandatory documents to be uploaded to the application:</strong></p>
+    <ul>
+        <li>CV</li>
+        <li>Evidence of fitness to practice.</li>
+        <li>Prior Counselling Qualification Certificates (e.g., Level 3/Level 4)</li>
+        <li>Recent enhanced DBS certificate – Adult workforce (if you do not have a DBS, this can be arranged).</li>
+        <li>Valid ID (Driver’s license or Passport)</li>
     </ul>
-
-    <div style="background: #fffbf0; border: 1px solid #f0d080; border-radius: 8px; padding: 16px 20px; margin: 24px 0;">
-      <p style="margin: 0; font-size: 13px; color: #7a6000;"><strong>⚠️ Important:</strong> If you have not received a Stage 2 invitation within <strong>72 hours</strong>, please check your spam folder before contacting us. Due to high application volumes, we are unable to provide individual updates on the status of your application during the review period.</p>
-    </div>
-
-    <p style="font-size: 14px;">We appreciate your interest in joining our team and the commitment and effort you have put into this application. We look forward to reviewing your work.</p>
-
-    <p style="font-size: 14px;">Warm regards,</p>
-    <p style="font-size: 15px; font-weight: bold; color: #6f1d56; margin-top: 4px;">The Compliance Team<br>
-    <span style="font-weight: normal; color: #777; font-size: 13px;">Vanquish Therapies</span></p>
-
-  </div>
-
-  <div style="background: #f5f5f5; padding: 16px 32px; border-radius: 0 0 12px 12px; border: 1px solid #e8e8e8; border-top: none; text-align: center;">
-    <p style="font-size: 11px; color: #aaa; margin: 0;">This is an automated message. Please do not reply directly to this email.</p>
-    <p style="font-size: 11px; color: #aaa; margin: 4px 0 0;">© Vanquish Therapies Ltd. All rights reserved.</p>
-  </div>
-
+    <p>Thank you again for your interest in our placement programme. We look forward to receiving your application.</p>
+    <p>Kind regards,</p>
+    <p><strong>Nicole McLaren</strong><br>
+    SAR and Compliance Team | Vanquish Therapies<br>
+    Integrative Life Coaching & Counselling<br>
+    E: <a href="mailto:sar.compliance@vanquishtherapies.co.uk">sar.compliance@vanquishtherapies.co.uk</a><br>
+    W: <a href="http://www.vanquishtherapies.co.uk/">www.vanquishtherapies.co.uk</a></p>
 </div>',
-                'placeholders' => ['first_name', 'last_name', 'email']
+                'placeholders' => ['first_name', 'trainee_application_url']
             ],
+
+            'trainee_application_received' => [
+                'subject' => 'Placement Application',
+                'body' => '
+<div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+    <p>Dear {{first_name}},</p>
+    <p>We hope this email finds you well.</p>
+    <p>Thank you for expressing your interest in our placement programme. We greatly appreciate the time and effort you have put into your application.</p>
+    <p>We will review your application soon, and if we require any further information, we will let you know promptly. Should your application be successful, you will be invited to the second stage of the process, which is a short video interview answering 5 easy questions. We will notify you accordingly once our evaluations are complete.</p>
+    <p>Thank you again for your interest in our Placement Programme. We look forward to potentially working with you.</p>
+    <p>Kind regards,</p>
+    <p><strong>Nicole McLaren</strong><br>
+    SAR and Compliance Team | Vanquish Therapies<br>
+    Integrative Life Coaching & Counselling<br>
+    E: <a href="mailto:sar.compliance@vanquishtherapies.co.uk">sar.compliance@vanquishtherapies.co.uk</a><br>
+    W: <a href="http://www.vanquishtherapies.co.uk/">www.vanquishtherapies.co.uk</a></p>
+</div>',
+                'placeholders' => ['first_name']
+            ],
+
             'trainee_stage_two_invite' => [
                 'subject' => 'Congratulations! You Have Progressed to Stage 2 – Video Interview',
                 'body' => '
-<div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #333;">
-
-  <div style="background: linear-gradient(135deg, #6f1d56 0%, #9b2c7e 100%); padding: 36px 32px; border-radius: 12px 12px 0 0; text-align: center;">
-    <div style="font-size: 40px; margin-bottom: 8px;">🎉</div>
-    <h1 style="color: white; margin: 0; font-size: 24px;">Stage 2 — Video Interview</h1>
-    <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Vanquish Therapies — Trainee Counsellor Placement</p>
-  </div>
-
-  <div style="background: #ffffff; padding: 32px; border: 1px solid #e8e8e8; border-top: none;">
-
-    <p style="font-size: 16px; margin-top: 0;">Dear <strong>{{first_name}}</strong>,</p>
-
-    <p>We are delighted to inform you that, following our review of your Stage 1 application, you have been selected to progress to <strong>Stage 2</strong> of the Vanquish Therapies Trainee Counsellor Placement process.</p>
-
-    <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 18px 20px; margin: 24px 0; text-align: center;">
-      <p style="margin: 0 0 16px; font-size: 15px; font-weight: bold; color: #166534;">Complete your video interview by:</p>
-      <p style="margin: 0; font-size: 22px; font-weight: bold; color: #15803d;">{{deadline_date}}</p>
-      <p style="margin: 6px 0 0; font-size: 12px; color: #166534;">(3 working days from receipt of this email)</p>
-    </div>
-
-    <div style="text-align: center; margin: 28px 0;">
-      <a href="{{interview_url}}" style="display:inline-block;padding:16px 36px;background:linear-gradient(135deg,#6f1d56,#9b2c7e);color:white;text-decoration:none;border-radius:10px;font-weight:bold;font-size:16px;letter-spacing:0.3px;">🎬 Start My Video Interview</a>
-      <p style="margin: 10px 0 0; font-size: 12px; color: #888;">Powered by HireVire</p>
-    </div>
-
-    <h2 style="color: #6f1d56; font-size: 17px; border-bottom: 2px solid #f0e6ed; padding-bottom: 8px;">What to Expect</h2>
-
-    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin: 8px 0 20px;">
-      <tr>
-        <td style="padding: 10px 14px; background: #f9f4f8; border-radius: 8px 0 0 0; font-weight: bold; color: #6f1d56; width: 30%; vertical-align: top; font-size: 13px;">📋 Questions</td>
-        <td style="padding: 10px 14px; font-size: 14px; vertical-align: top;">5 structured questions relating to your counselling background, approach, and suitability for the placement.</td>
-      </tr>
-      <tr>
-        <td style="padding: 10px 14px; background: #f0e6ed; font-weight: bold; color: #6f1d56; font-size: 13px; vertical-align: top;">⏱ Duration</td>
-        <td style="padding: 10px 14px; font-size: 14px; vertical-align: top;">Approximately <strong>15–20 minutes</strong> to complete all 5 responses.</td>
-      </tr>
-      <tr>
-        <td style="padding: 10px 14px; background: #f9f4f8; font-weight: bold; color: #6f1d56; font-size: 13px; vertical-align: top;">📅 Deadline</td>
-        <td style="padding: 10px 14px; font-size: 14px; vertical-align: top;">You must submit your video interview within <strong>3 working days</strong> of receiving this email.</td>
-      </tr>
-      <tr>
-        <td style="padding: 10px 14px; background: #f0e6ed; font-weight: bold; color: #6f1d56; font-size: 13px; vertical-align: top;">🌍 Language</td>
-        <td style="padding: 10px 14px; font-size: 14px; vertical-align: top;">All responses must be given in <strong>English</strong>.</td>
-      </tr>
-    </table>
-
-    <h2 style="color: #6f1d56; font-size: 17px; border-bottom: 2px solid #f0e6ed; padding-bottom: 8px;">Technical Requirements</h2>
-
-    <p style="font-size: 14px; color: #555; margin-bottom: 12px;">Before starting, please ensure your setup meets the following requirements:</p>
-
-    <ul style="padding-left: 20px; line-height: 2; font-size: 14px; color: #444;">
-      <li>✅ A <strong>laptop or desktop computer</strong> (not a mobile phone or tablet)</li>
-      <li>✅ A <strong>working webcam</strong> with camera permissions enabled in your browser</li>
-      <li>✅ A <strong>working microphone</strong> with microphone permissions enabled</li>
-      <li>✅ A <strong>stable internet connection</strong> (wired or strong Wi-Fi recommended)</li>
-      <li>✅ A <strong>quiet, private environment</strong> with good lighting</li>
-      <li>✅ An up-to-date browser: <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> (recommended)</li>
+<div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+    <p>Dear {{first_name}},</p>
+    <p>We hope this email finds you well.</p>
+    <p>Congratulations on making it to the <strong>2nd stage out of 3</strong> of our vetting and interview process!</p>
+    <p>This video interview process will take approximately <strong>15-20 minutes</strong> to complete. Please ensure you are in a quiet, private environment, and free from distractions before beginning, as your full attention is important. We appreciate your time and thoughtful responses.</p>
+    <p><strong>We are inviting you to answer five simple questions - there are no trick questions. We are simply hoping to learn more about you and hear from your authentic, genuine self.</strong></p>
+    <p><strong>Please note the following below:</strong></p>
+    <ul>
+        <li>You will have <strong>3 working days</strong> to begin this interview. If you do not begin the interview within this time frame, the link will expire, and you will need to reapply for the placement.</li>
+        <li>Connect to the interview using your <strong>Computer/Laptop</strong>.</li>
+        <li>You should <strong>respond to all questions in English</strong></li>
+        <li>Please ensure that you <strong>grant permission to access your camera and microphone</strong>, as this is required to progress through the interview.</li>
+        <li>If you have any issues with recording your videos, try using your mobile data connection.</li>
+        <li>The recording will start automatically when you click on each question. Each question will have a time limit.</li>
     </ul>
-
-    <div style="background: #fefce8; border: 1px solid #fde047; border-radius: 8px; padding: 14px 18px; margin: 20px 0;">
-      <p style="margin: 0; font-size: 13px; color: #713f12;"><strong>💡 Tips before you begin:</strong> Run a quick webcam/mic test on your browser. Find a well-lit spot. You will be able to re-record each answer once before submission. Dress professionally and treat this as a formal interview.</p>
-    </div>
-
-    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 14px 18px; margin: 20px 0;">
-      <p style="margin: 0; font-size: 13px; color: #7f1d1d;"><strong>⚠️ Important:</strong> If you experience technical difficulties accessing HireVire, please contact us immediately at <a href="mailto:compliance@vanquishtherapies.co.uk" style="color:#6f1d56;">compliance@vanquishtherapies.co.uk</a> — do not let the deadline pass without notifying us.</p>
-    </div>
-
-    <p style="font-size: 14px;">We look forward to reviewing your responses. Good luck, {{first_name}}!</p>
-
-    <p style="font-size: 15px; font-weight: bold; color: #6f1d56; margin-top: 20px;">The Compliance Team<br>
-    <span style="font-weight: normal; color: #777; font-size: 13px;">Vanquish Therapies</span></p>
-
-  </div>
-
-  <div style="background: #f5f5f5; padding: 16px 32px; border-radius: 0 0 12px 12px; border: 1px solid #e8e8e8; border-top: none; text-align: center;">
-    <p style="font-size: 11px; color: #aaa; margin: 0;">This is an automated message. Please do not reply directly to this email.</p>
-    <p style="font-size: 11px; color: #aaa; margin: 4px 0 0;">© Vanquish Therapies Ltd. All rights reserved.</p>
-  </div>
-
+    <p><strong>To begin,</strong> please click here - <a href="{{interview_url}}" style="color: #6f1d56; font-weight: bold; text-decoration: underline;">Video Interview - Vanquish Therapies Placement</a></p>
+    <p>Best of luck! If you clear this stage, you will be invited for an online face-to-face interview.</p>
+    <p>Kind regards,</p>
+    <p><strong>Nicole McLaren</strong><br>
+    SAR and Compliance Team | Vanquish Therapies<br>
+    Integrative Life Coaching & Counselling<br>
+    E: <a href="mailto:sar.compliance@vanquishtherapies.co.uk">sar.compliance@vanquishtherapies.co.uk</a><br>
+    W: <a href="http://www.vanquishtherapies.co.uk/">www.vanquishtherapies.co.uk</a></p>
 </div>',
-                'placeholders' => ['first_name', 'full_name', 'interview_url', 'deadline_date']
+                'placeholders' => ['first_name', 'interview_url']
             ],
             'trainee_video_interview_received' => [
                 'subject' => 'Stage 2 Video Interview Received – Next Steps',
@@ -629,8 +547,8 @@ class DynamicEmail extends Mailable
 
       <div style="padding: 16px; background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 8px;">
         <p style="margin: 0; font-size: 14px;"><strong>2. Confirm Personal Therapy</strong></p>
-        <p style="margin: 4px 0 12px; font-size: 12px; color: #166534;">As per clinical standards, please confirm your therapy hours via the JotForm below.</p>
-        <a href="https://form.jotform.com/241002800146035" target="_blank" style="display:inline-block;padding:10px 20px;background:#16a34a;color:white;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px;">📝 Complete Therapy Form</a>
+        <p style="margin: 4px 0 12px; font-size: 12px; color: #166534;">As per clinical standards, please confirm your therapy hours via the form below.</p>
+        <a href="{{therapy_form_url}}" target="_blank" style="display:inline-block;padding:10px 20px;background:#16a34a;color:white;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px;">📝 Complete Therapy Form</a>
       </div>
     </div>
 
@@ -640,7 +558,7 @@ class DynamicEmail extends Mailable
     <p style="font-size: 11px; color: #94a3b8; margin: 0;">© Vanquish Therapies Ltd. All rights reserved.</p>
   </div>
 </div>',
-                'placeholders' => ['first_name', 'induction_date', 'induction_zoom_link', 'agreement_download_link']
+                'placeholders' => ['first_name', 'induction_date', 'induction_zoom_link', 'agreement_download_link', 'therapy_form_url']
             ],
             'trainee_portal_invite' => [
                 'subject' => '🔐 Access Granted: Vanquish Therapies Practitioner Portal (SuiteDash)',
