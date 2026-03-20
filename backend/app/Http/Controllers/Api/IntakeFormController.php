@@ -283,16 +283,58 @@ class IntakeFormController extends Controller
                 'topics_not_ready_for' => 'nullable|array',
                 'availability' => 'nullable|array',
                 'additional_info' => 'nullable|string',
+                // Personal information
+                'date_of_birth' => 'nullable|string|max:50',
+                'gender' => 'nullable|string|max:100',
+                'ethnicity' => 'nullable|string|max:100',
+                'sexual_orientation' => 'nullable|string|max:100',
+                'address' => 'nullable|string|max:500',
+                'beliefs' => 'nullable|string',
+                'beliefs_other' => 'nullable|string|max:255',
+                'disabilities' => 'nullable|string',
+                'medical_conditions' => 'nullable|string',
+                // Fitness to Practise
+                'has_insurance' => 'nullable|string|max:50',
+                'professional_body_member' => 'nullable|string|max:50',
+                'professional_body_details' => 'nullable|string',
+                'dbs_update_service' => 'nullable|string|max:50',
+                'dbs_update_details' => 'nullable|string',
+                'in_personal_therapy' => 'nullable|string|max:50',
+                'personal_therapy_reason' => 'nullable|string',
+                'has_clinical_supervisor' => 'nullable|string|max:50',
+                'supervisor_reason' => 'nullable|string',
+                'previous_online_counselling' => 'nullable|string|max:50',
+                'criminal_convictions' => 'nullable|string',
+                'availability_schedule' => 'nullable|string',
                 // Training provider details
                 'training_org_name' => 'nullable|string|max:255',
                 'training_org_address' => 'nullable|string|max:500',
+                'college_address' => 'nullable|string|max:500',
                 'course_title' => 'nullable|string|max:255',
+                'expected_qualification_date' => 'nullable|string|max:100',
+                'counselling_type' => 'nullable|string|max:255',
+                'face_to_face_requirement' => 'nullable|string',
+                'has_face_to_face_clients' => 'nullable|string|max:100',
+                'face_to_face_client_count' => 'nullable|string|max:50',
+                'face_to_face_hours_completed' => 'nullable|string|max:50',
+                'skills_practice_details' => 'nullable|string',
                 'tutor_name' => 'nullable|string|max:255',
                 'tutor_email' => 'nullable|email|max:255',
                 'tutor_phone' => 'nullable|string|max:255',
                 'placement_lead_name' => 'nullable|string|max:255',
                 'placement_lead_email' => 'nullable|email|max:255',
                 'placement_lead_phone' => 'nullable|string|max:255',
+                // Experience & Journey
+                'family_impact' => 'nullable|string',
+                'personal_journey' => 'nullable|string',
+                'self_awareness' => 'nullable|string',
+                'training_history' => 'nullable|string',
+                'areas_of_experience' => 'nullable|string',
+                'personal_development_areas' => 'nullable|string',
+                'theoretical_approach' => 'nullable|string',
+                // PSG
+                'psg_day_preference' => 'nullable|string|max:100',
+                'psg_reason' => 'nullable|string',
                 // Document validations
                 'fitnessTopractice' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
                 'qualifications' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
@@ -310,6 +352,14 @@ class IntakeFormController extends Controller
         }
 
         try {
+            // Decode 'beliefs' if it came through as a JSON-encoded array
+            if (!empty($validated['beliefs']) && is_string($validated['beliefs'])) {
+                $decoded = json_decode($validated['beliefs'], true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $validated['beliefs'] = implode(', ', $decoded);
+                }
+            }
+
             // Prepare training provider details as JSON
             $trainingProviderDetails = [];
             if (!empty($validated['training_org_name'])) $trainingProviderDetails['training_org_name'] = $validated['training_org_name'];
@@ -387,22 +437,81 @@ class IntakeFormController extends Controller
                 $application = TraineeApplication::updateOrCreate(
                     ['email' => $validated['email']],
                     [
-                        'first_name' => explode(' ', $validated['name'], 2)[0] ?? $validated['name'],
-                        'last_name'  => explode(' ', $validated['name'], 2)[1] ?? '',
-                        'email'      => $validated['email'],
-                        'phone'      => $validated['phone'] ?? null,
-                        'source'     => 'internal_form',
-                        'status'     => 'New Application',
-                        'institution' => $validated['training_org_name'] ?? $validated['institution'] ?? null,
-                        'course_name' => $validated['course_title'] ?? $validated['course'] ?? null,
-                        'availability_schedule' => json_encode($validated['availability'] ?? []),
-                        'experience_background' => $validated['additional_info'] ?? null,
-                        // Map documents
+                        'first_name'  => explode(' ', $validated['name'], 2)[0] ?? $validated['name'],
+                        'last_name'   => explode(' ', $validated['name'], 2)[1] ?? '',
+                        'email'       => $validated['email'],
+                        'phone'       => $validated['phone'] ?? null,
+                        'source'      => 'internal_form',
+                        'status'      => 'New Application',
+
+                        // Personal information
+                        'date_of_birth'       => $validated['date_of_birth'] ?? null,
+                        'gender'              => $validated['gender'] ?? null,
+                        'ethnicity'           => $validated['ethnicity'] ?? null,
+                        'sexual_orientation'  => $validated['sexual_orientation'] ?? null,
+                        'address'             => $validated['address'] ?? null,
+                        'beliefs'             => $validated['beliefs'] ?? null,
+                        'beliefs_other'       => $validated['beliefs_other'] ?? null,
+                        'disabilities'        => $validated['disabilities'] ?? null,
+                        'medical_conditions'  => $validated['medical_conditions'] ?? null,
+
+                        // Fitness to Practise
+                        'has_insurance'              => $validated['has_insurance'] ?? null,
+                        'professional_body_member'   => $validated['professional_body_member'] ?? null,
+                        'professional_body_details'  => $validated['professional_body_details'] ?? null,
+                        'dbs_update_service'         => $validated['dbs_update_service'] ?? null,
+                        'dbs_update_details'         => $validated['dbs_update_details'] ?? null,
+                        'in_personal_therapy'        => $validated['in_personal_therapy'] ?? null,
+                        'personal_therapy_reason'    => $validated['personal_therapy_reason'] ?? null,
+                        'has_clinical_supervisor'    => $validated['has_clinical_supervisor'] ?? null,
+                        'supervisor_reason'          => $validated['supervisor_reason'] ?? null,
+                        'previous_online_counselling'=> $validated['previous_online_counselling'] ?? null,
+                        'criminal_convictions'       => $validated['criminal_convictions'] ?? null,
+
+                        // Course information
+                        'institution'                  => $validated['training_org_name'] ?? $validated['institution'] ?? null,
+                        'college_address'              => $validated['college_address'] ?? $validated['training_org_address'] ?? null,
+                        'course_name'                  => $validated['course_title'] ?? $validated['course'] ?? null,
+                        'course_title'                 => $validated['course_title'] ?? null,
+                        'expected_qualification_date'  => $validated['expected_qualification_date'] ?? null,
+                        'counselling_type'             => $validated['counselling_type'] ?? null,
+                        'face_to_face_requirement'     => $validated['face_to_face_requirement'] ?? null,
+                        'has_face_to_face_clients'     => $validated['has_face_to_face_clients'] ?? null,
+                        'face_to_face_client_count'    => $validated['face_to_face_client_count'] ?? null,
+                        'face_to_face_hours_completed' => $validated['face_to_face_hours_completed'] ?? null,
+                        'skills_practice_details'      => $validated['skills_practice_details'] ?? null,
+                        'tutor_name'                   => $validated['tutor_name'] ?? null,
+                        'tutor_email'                  => $validated['tutor_email'] ?? null,
+                        'tutor_phone'                  => $validated['tutor_phone'] ?? null,
+                        'placement_lead_name'          => $validated['placement_lead_name'] ?? null,
+                        'placement_lead_email'         => $validated['placement_lead_email'] ?? null,
+                        'placement_lead_phone'         => $validated['placement_lead_phone'] ?? null,
+
+                        // Experience & Journey
+                        'experience_background'      => $validated['additional_info'] ?? null,
+                        'family_impact'              => $validated['family_impact'] ?? null,
+                        'personal_journey'           => $validated['personal_journey'] ?? null,
+                        'self_awareness'             => $validated['self_awareness'] ?? null,
+                        'training_history'           => $validated['training_history'] ?? null,
+                        'areas_of_experience'        => $validated['areas_of_experience'] ?? null,
+                        'personal_development_areas' => $validated['personal_development_areas'] ?? null,
+                        'theoretical_approach'       => $validated['theoretical_approach'] ?? null,
+
+                        // PSG preference
+                        'psg_day_preference' => $validated['psg_day_preference'] ?? null,
+                        'psg_reason'         => $validated['psg_reason'] ?? null,
+
+                        // Availability
+                        'availability_schedule' => isset($validated['availability'])
+                            ? json_encode($validated['availability'])
+                            : ($validated['availability_schedule'] ?? null),
+
+                        // Document uploads
                         'doc_fitness_to_practise' => $formData['fitness_to_practice'] ?? null,
-                        'doc_prior_qualifications' => $formData['qualifications'] ?? null,
-                        'doc_dbs_certificate' => $formData['dbs_certificate'] ?? null,
-                        'doc_cv' => $formData['cv'] ?? null,
-                        'doc_valid_id' => $formData['valid_id'] ?? null,
+                        'doc_prior_qualifications'=> $formData['qualifications'] ?? null,
+                        'doc_dbs_certificate'     => $formData['dbs_certificate'] ?? null,
+                        'doc_cv'                  => $formData['cv'] ?? null,
+                        'doc_valid_id'            => $formData['valid_id'] ?? null,
                         'doc_indemnity_insurance' => $formData['insurance_certificate'] ?? null,
                     ]
                 );

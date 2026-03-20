@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\TraineeApplication;
 use App\Models\TraineeApplicationSetting;
+use App\Models\TrainingCounsellor;
+use App\Models\User;
 use App\Models\ActivityLog;
 use App\Mail\DynamicEmail;
 use App\Jobs\SendTraineeStageTwoInvite;
 use App\Jobs\SendInterviewReminder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -66,7 +69,6 @@ class TraineeApplicationController extends Controller
             'course_name' => 'nullable|string|max:255',
             'course_duration' => 'nullable|string|max:255',
             'experience_background' => 'nullable|string',
-            'assessment_answers' => 'nullable|array',
         ]);
 
         $validated['source'] = 'internal_form';
@@ -155,15 +157,19 @@ class TraineeApplicationController extends Controller
             'induction_date' => $validated['induction_date'] ?? $traineeApplication->induction_date
         ]);
 
-        ActivityLog::create([
-            'user_id' => $request->user()->id,
-            'action' => 'trainee_application_status_updated',
-            'model_type' => TraineeApplication::class,
-            'model_id' => $traineeApplication->id,
-            'description' => "Application status updated from {$oldStatus} to {$validated['status']} for {$traineeApplication->name}",
-            'changes' => ['old_status' => $oldStatus, 'new_status' => $validated['status']],
-            'ip_address' => $request->ip(),
-        ]);
+        try {
+            ActivityLog::create([
+                'user_id' => optional($request->user())->id,
+                'action' => 'trainee_application_status_updated',
+                'model_type' => TraineeApplication::class,
+                'model_id' => $traineeApplication->id,
+                'description' => "Application status updated from {$oldStatus} to {$validated['status']} for " . ($traineeApplication->name ?? 'applicant'),
+                'changes' => ['old_status' => $oldStatus, 'new_status' => $validated['status']],
+                'ip_address' => $request->ip(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to log trainee status update: " . $e->getMessage());
+        }
  
         // If manually moved to Stage 3 Interview Booked and no data exists, set defaults
         if ($validated['status'] === 'Stage 3 Interview Booked' && empty($traineeApplication->interview_data)) {
@@ -426,15 +432,19 @@ class TraineeApplicationController extends Controller
             ]),
         ]);
 
-        ActivityLog::create([
-            'user_id'     => $request->user()->id,
-            'action'      => 'trainee_interview_attendance_recorded',
-            'model_type'  => TraineeApplication::class,
-            'model_id'    => $traineeApplication->id,
-            'description' => "Interview attendance recorded ({$status}) for {$traineeApplication->first_name} {$traineeApplication->last_name}",
-            'changes'     => ['status' => $status, 'attended' => $validated['attended']],
-            'ip_address'  => $request->ip(),
-        ]);
+        try {
+            ActivityLog::create([
+                'user_id'     => optional($request->user())->id,
+                'action'      => 'trainee_interview_attendance_recorded',
+                'model_type'  => TraineeApplication::class,
+                'model_id'    => $traineeApplication->id,
+                'description' => "Interview attendance recorded ({$status}) for " . ($traineeApplication->name ?? 'applicant'),
+                'changes'     => ['status' => $status, 'attended' => $validated['attended']],
+                'ip_address'  => $request->ip(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to log trainee interview attendance: " . $e->getMessage());
+        }
 
         return response()->json([
             'message'     => 'Attendance recorded',
@@ -474,15 +484,19 @@ class TraineeApplicationController extends Controller
             'interview_data' => $interviewData,
         ]);
 
-        ActivityLog::create([
-            'user_id'     => $request->user()->id,
-            'action'      => 'trainee_placement_decision',
-            'model_type'  => TraineeApplication::class,
-            'model_id'    => $traineeApplication->id,
-            'description' => "Placement decision '{$validated['decision']}' recorded for {$traineeApplication->first_name} {$traineeApplication->last_name}",
-            'changes'     => ['decision' => $validated['decision'], 'old_status' => $oldStatus, 'new_status' => $newStatus],
-            'ip_address'  => $request->ip(),
-        ]);
+        try {
+            ActivityLog::create([
+                'user_id'     => optional($request->user())->id,
+                'action'      => 'trainee_placement_decision',
+                'model_type'  => TraineeApplication::class,
+                'model_id'    => $traineeApplication->id,
+                'description' => "Placement decision '{$validated['decision']}' recorded for " . ($traineeApplication->name ?? 'applicant'),
+                'changes'     => ['decision' => $validated['decision'], 'old_status' => $oldStatus, 'new_status' => $newStatus],
+                'ip_address'  => $request->ip(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to log trainee placement decision: " . $e->getMessage());
+        }
 
         // Initialize onboarding data if accepted
         if ($validated['decision'] === 'Accepted') {
@@ -583,41 +597,108 @@ class TraineeApplicationController extends Controller
             'onboarding_data' => $onboarding
         ]);
 
-        ActivityLog::create([
-            'user_id'     => $request->user()->id,
-            'action'      => 'trainee_induction_attendance',
-            'model_type'  => TraineeApplication::class,
-            'model_id'    => $traineeApplication->id,
-            'description' => "Induction attendance recorded for {$traineeApplication->first_name}",
-            'ip_address'  => $request->ip(),
-        ]);
+        try {
+            ActivityLog::create([
+                'user_id'     => optional($request->user())->id,
+                'action'      => 'trainee_induction_attendance',
+                'model_type'  => TraineeApplication::class,
+                'model_id'    => $traineeApplication->id,
+                'description' => "Induction attendance recorded for " . ($traineeApplication->name ?? 'applicant'),
+                'ip_address'  => $request->ip(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to log trainee induction attendance: " . $e->getMessage());
+        }
 
         return response()->json(['message' => 'Induction status recorded', 'application' => $traineeApplication->fresh()]);
     }
 
     /**
      * Step 12 — Send Portal Invitation.
+     *
+     * Creates a TrainingCounsellor profile and a counsellor User account (if they
+     * don't already exist), then emails the trainee their login credentials for
+     * the internal Vanquish counsellor portal.
      */
     public function sendPortalInvite(Request $request, TraineeApplication $traineeApplication)
     {
         try {
+            $portalUrl = rtrim(config('app.frontend_url', 'https://vqtmanagement.com'), '/') . '/counsellor-login';
+
+            // ── 1. Find or create TrainingCounsellor record ──────────────────────
+            $tc = TrainingCounsellor::where('email', $traineeApplication->email)->first();
+
+            if (!$tc) {
+                $tc = TrainingCounsellor::create([
+                    'tc_id'       => 'TC' . str_pad(TrainingCounsellor::count() + 1, 3, '0', STR_PAD_LEFT),
+                    'name'        => trim($traineeApplication->first_name . ' ' . $traineeApplication->last_name),
+                    'email'       => $traineeApplication->email,
+                    'phone'       => $traineeApplication->phone ?? null,
+                    'institution' => $traineeApplication->institution ?? null,
+                    'course'      => $traineeApplication->course_name ?? null,
+                    'status'      => 'Active',
+                    'joined_date' => now(),
+                    'last_activity' => now(),
+                ]);
+            }
+
+            // ── 2. Find or create User account (role = counsellor) ──────────────
+            $existingUser = User::where('email', $traineeApplication->email)->first();
+            $temporaryPassword = null;
+
+            if (!$existingUser) {
+                $temporaryPassword = \Illuminate\Support\Str::random(10) . '!1Aa';
+                $existingUser = User::create([
+                    'name'                    => trim($traineeApplication->first_name . ' ' . $traineeApplication->last_name),
+                    'email'                   => strtolower(trim($traineeApplication->email)),
+                    'password'                => Hash::make($temporaryPassword),
+                    'role'                    => 'counsellor',
+                    'training_counsellor_id'  => $tc->id,
+                ]);
+            } elseif ($existingUser->role !== 'counsellor') {
+                // Existing user with a different role — update to counsellor and link TC
+                $existingUser->update([
+                    'role'                   => 'counsellor',
+                    'training_counsellor_id' => $tc->id,
+                ]);
+            }
+
+            // ── 3. Send portal invite email with internal URL ────────────────────
             Mail::to($traineeApplication->email)->send(new DynamicEmail('trainee_portal_invite', [
-                'first_name'  => $traineeApplication->first_name,
-                'portal_link' => 'https://vanquish.suitedash.com',
+                'first_name'         => $traineeApplication->first_name,
+                'portal_link'        => $portalUrl,
+                'email'              => $traineeApplication->email,
+                'temporary_password' => $temporaryPassword ?? '(use your existing password)',
             ]));
 
+            // ── 4. Update application status ─────────────────────────────────────
             $onboarding = $traineeApplication->onboarding_data ?? [];
             $onboarding['portal_invite_sent_at'] = now()->toIso8601String();
-            
+            $onboarding['checklist']['portal_setup'] = true;
+
             $traineeApplication->update([
-                'status' => 'Onboarding',
-                'onboarding_data' => $onboarding,
-                'portal_access_granted' => true
+                'status'                => 'Onboarding',
+                'onboarding_data'       => $onboarding,
+                'portal_access_granted' => true,
             ]);
 
-            return response()->json(['message' => 'Portal invitation sent']);
+            ActivityLog::create([
+                'user_id'     => optional($request->user())->id,
+                'action'      => 'trainee_portal_invite_sent',
+                'model_type'  => TraineeApplication::class,
+                'model_id'    => $traineeApplication->id,
+                'description' => "Portal invite sent and counsellor account created for {$traineeApplication->first_name} {$traineeApplication->last_name}",
+                'ip_address'  => $request->ip(),
+            ]);
+
+            return response()->json([
+                'message'            => 'Portal invitation sent and counsellor account created',
+                'tc_id'              => $tc->tc_id,
+                'account_created'    => $temporaryPassword !== null,
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to send invite'], 500);
+            Log::error('Failed to send portal invite: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to send invite: ' . $e->getMessage()], 500);
         }
     }
 
@@ -628,14 +709,18 @@ class TraineeApplicationController extends Controller
     {
         $traineeApplication->update(['status' => 'Active Placement']);
 
-        ActivityLog::create([
-            'user_id'     => $request->user()->id,
-            'action'      => 'trainee_active_placement',
-            'model_type'  => TraineeApplication::class,
-            'model_id'    => $traineeApplication->id,
-            'description' => "{$traineeApplication->first_name} is now an ACTIVE PLACEMENT",
-            'ip_address'  => $request->ip(),
-        ]);
+        try {
+            ActivityLog::create([
+                'user_id'     => optional($request->user())->id,
+                'action'      => 'trainee_active_placement',
+                'model_type'  => TraineeApplication::class,
+                'model_id'    => $traineeApplication->id,
+                'description' => ($traineeApplication->name ?? 'Trainee') . " is now an ACTIVE PLACEMENT",
+                'ip_address'  => $request->ip(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Failed to log trainee active placement: " . $e->getMessage());
+        }
 
         return response()->json(['message' => 'Trainee is now ACTIVE']);
     }

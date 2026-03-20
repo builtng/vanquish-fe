@@ -19,16 +19,18 @@
             <td style="padding: 40px 20px;">
                 <!-- Main Container -->
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                    @if(empty($hasOwnHeader))
                     <!-- Header with Gradient -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #7c2d6f 0%, #9b3d8a 50%, #6f1d56 100%); padding: 40px 40px; text-align: center;">
                             <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2;">Vanquish Therapies</h1>
                         </td>
                     </tr>
+                    @endif
 
                     <!-- Main Content -->
                     <tr>
-                        <td style="padding: 48px 40px;">
+                        <td style="padding: {{ empty($hasOwnHeader) ? '48px 40px' : '0' }};">
                             <div style="color: #4b5563; font-size: 16px; line-height: 1.7;">
                                 {!! $body !!}
                             </div>

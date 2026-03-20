@@ -19,31 +19,150 @@ class MessageController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = Message::with(['fromUser', 'toTrainingCounsellor', 'relatedClient', 'relatedConsultation']);
+        $query = Message::with(['fromUser', 'toTrainingCounsellor', 'toUser', 'relatedClient', 'relatedConsultation']);
 
-        if ($user->isCounsellor() && $user->training_counsellor_id) {
-            // Counsellors see messages sent to their TC profile
-            $query->where('to_tc_id', $user->training_counsellor_id)
-                ->orWhere('from_user_id', $user->id);
+        $folder = $request->get('folder', 'inbox');
+        $peerId = $request->get('peer_id');
+        $peerType = $request->get('peer_type', 'user'); // user or tc
+
+        if ($peerId) {
+            // Get history between user and peer
+            $query->where(function($q) use ($user, $peerId, $peerType) {
+                // If current user is originator
+                $q->where(function($inner) use ($user, $peerId, $peerType) {
+                    $inner->where('from_user_id', $user->id);
+                    if ($peerType === 'tc') {
+                        $inner->where('to_tc_id', $peerId);
+                    } else {
+                        $inner->where('to_user_id', $peerId);
+                    }
+                })
+                // OR if peer is originator
+                ->orWhere(function($inner) use ($user, $peerId, $peerType) {
+                    if ($user->isCounsellor() && $user->training_counsellor_id) {
+                        $inner->where('to_tc_id', $user->training_counsellor_id);
+                    } else {
+                        $inner->where('to_user_id', $user->id);
+                    }
+                    $inner->where('from_user_id', $peerId);
+                });
+            })->where('is_trashed', false);
+        } elseif ($user->isCounsellor() && $user->training_counsellor_id) {
+            if ($folder === 'trash') {
+                $query->where(function ($q) use ($user) {
+                    $q->where('to_tc_id', $user->training_counsellor_id)
+                      ->orWhere('from_user_id', $user->id);
+                })->where('is_trashed', true);
+            } elseif ($folder === 'sent') {
+                $query->where('from_user_id', $user->id)->where('is_trashed', false);
+            } else {
+                // Default: inbox
+                $query->where('to_tc_id', $user->training_counsellor_id)->where('is_trashed', false);
+            }
         } else {
-            // Staff/admin see messages sent to them or from them
-            $query->where(function ($q) use ($user) {
-                $q->where('to_user_id', $user->id)
-                    ->orWhere('from_user_id', $user->id);
-            });
+            // Staff/admin
+            if ($folder === 'trash') {
+                $query->where(function ($q) use ($user) {
+                    $q->where('to_user_id', $user->id)
+                      ->orWhere('from_user_id', $user->id);
+                })->where('is_trashed', true);
+            } elseif ($folder === 'sent') {
+                $query->where('from_user_id', $user->id)->where('is_trashed', false);
+            } else {
+                $query->where('to_user_id', $user->id)->where('is_trashed', false);
+            }
         }
 
         if ($request->has('unread_only') && $request->unread_only) {
             $query->where('is_read', false);
         }
 
-        $messages = $query->orderBy('id', 'desc')->paginate(20);
+        $messages = $query->orderBy('id', 'desc')->paginate(50);
 
         return response()->json($messages);
     }
 
     /**
-     * Send a message to a counsellor
+     * Get unique conversations for the chat sidebar
+     */
+    public function conversations(Request $request)
+    {
+        $user = $request->user();
+        
+        // Find all messages involving the user
+        $query = Message::with(['fromUser', 'toUser', 'toTrainingCounsellor'])
+            ->where(function($q) use ($user) {
+                if ($user->isCounsellor() && $user->training_counsellor_id) {
+                    $q->where('to_tc_id', $user->training_counsellor_id)
+                      ->orWhere('from_user_id', $user->id);
+                } else {
+                    $q->where('to_user_id', $user->id)
+                      ->orWhere('from_user_id', $user->id);
+                }
+            })
+            ->where('is_trashed', false)
+            ->orderBy('created_at', 'desc');
+
+        $allMessages = $query->get();
+        
+        $conversations = [];
+        $seen = [];
+
+        foreach ($allMessages as $msg) {
+            // Determine peer identifier
+            $peerId = null;
+            $peerType = null;
+            $peerName = null;
+
+            if ($user->isCounsellor()) {
+                // peer is either from_user (staff) or to_user (staff)
+                if ($msg->from_user_id !== $user->id) {
+                    $peerId = $msg->from_user_id;
+                    $peerType = 'user';
+                    $peerName = $msg->fromUser?->name;
+                } else {
+                    $peerId = $msg->to_user_id;
+                    $peerType = 'user';
+                    $peerName = $msg->toUser?->name;
+                }
+            } else {
+                // User is staff. Peer can be another staff (user) or a TC (tc)
+                if ($msg->from_user_id !== $user->id) {
+                    $peerId = $msg->from_user_id;
+                    $peerType = 'user';
+                    $peerName = $msg->fromUser?->name;
+                } else {
+                    if ($msg->to_tc_id) {
+                        $peerId = $msg->to_tc_id;
+                        $peerType = 'tc';
+                        $peerName = $msg->toTrainingCounsellor?->name;
+                    } else {
+                        $peerId = $msg->to_user_id;
+                        $peerType = 'user';
+                        $peerName = $msg->toUser?->name;
+                    }
+                }
+            }
+
+            if (!$peerId) continue;
+
+            $key = $peerType . '_' . $peerId;
+            if (!isset($seen[$key])) {
+                $seen[$key] = true;
+                $conversations[] = [
+                    'peer_id' => $peerId,
+                    'peer_type' => $peerType,
+                    'peer_name' => $peerName,
+                    'last_message' => $msg,
+                ];
+            }
+        }
+
+        return response()->json($conversations);
+    }
+
+    /**
+     * Send a message to counsellors
      */
     public function sendToCounsellor(Request $request)
     {
@@ -55,65 +174,101 @@ class MessageController extends Controller
         }
 
         $validated = $request->validate([
-            'tc_id' => 'required|exists:training_counsellors,id',
+            'tc_ids' => 'required|array',
+            'tc_ids.*' => 'exists:training_counsellors,id',
+            'cc_user_ids' => 'nullable|array',
+            'cc_user_ids.*' => 'exists:users,id',
             'subject' => 'required|string|max:255',
-            'message' => 'required|string|max:5000',
+            'message' => 'required|string|max:10000',
             'related_client_id' => 'nullable|exists:clients,id',
             'related_consultation_id' => 'nullable|exists:consultations,id',
             'send_email_notification' => 'boolean',
         ]);
 
-        $tc = TrainingCounsellor::findOrFail($validated['tc_id']);
+        $ccUsers = $validated['cc_user_ids'] ?? [];
+        $recipientTcIds = $validated['tc_ids'];
+        
+        $messages = [];
+        
+        // Combine all unique targeted user IDs for records
+        // For TCs, we need their user records if they have one
+        foreach ($recipientTcIds as $tcId) {
+            $tc = TrainingCounsellor::with('user')->findOrFail($tcId);
+            
+            $msg = Message::create([
+                'from_user_id' => $user->id,
+                'to_tc_id' => $tc->id,
+                'to_user_id' => $tc->user_id, // Link to user if exists
+                'subject' => $validated['subject'],
+                'message' => $validated['message'],
+                'type' => 'staff_to_counsellor',
+                'cc_users' => $ccUsers,
+                'related_client_id' => $validated['related_client_id'] ?? null,
+                'related_consultation_id' => $validated['related_consultation_id'] ?? null,
+            ]);
+            
+            $messages[] = $msg;
 
-        $message = Message::create([
-            'from_user_id' => $user->id,
-            'to_tc_id' => $tc->id,
-            'subject' => $validated['subject'],
-            'message' => $validated['message'],
-            'type' => 'staff_to_counsellor',
-            'related_client_id' => $validated['related_client_id'] ?? null,
-            'related_consultation_id' => $validated['related_consultation_id'] ?? null,
-        ]);
-
-        // Send email notification if requested and TC has email
-        if (($validated['send_email_notification'] ?? true) && $tc->email) {
-            try {
-                $emailMessage = $validated['message'];
-                if (isset($validated['related_client_id']) && $validated['related_client_id']) {
-                    $client = \App\Models\Client::find($validated['related_client_id']);
-                    if ($client) {
-                        $emailMessage .= "\n\nRelated to client: {$client->name}";
-                    }
+            // Email
+            if (($validated['send_email_notification'] ?? true) && $tc->email) {
+                try {
+                    Mail::to($tc->email)->send(new DynamicEmail(
+                        'generic_tc_email',
+                        [
+                            'tc_name' => $tc->name,
+                            'message' => $validated['message'],
+                            'subject' => "New Message: {$validated['subject']}"
+                        ]
+                    ));
+                } catch (\Exception $e) {
+                    Log::error('Failed to send message email notification to TC: ' . $e->getMessage());
                 }
-
-                Mail::to($tc->email)->send(new DynamicEmail(
-                    'generic_tc_email',
-                    [
-                        'tc_name' => $tc->name,
-                        'message' => $emailMessage,
-                        'subject' => "New Message: {$validated['subject']}"
-                    ]
-                ));
-            } catch (\Exception $e) {
-                // Log error but don't fail the request
-                Log::error('Failed to send message email notification: ' . $e->getMessage());
             }
         }
 
-        // Log activity
-        ActivityLog::create([
-            'user_id' => $user->id,
-            'action' => 'message_sent',
-            'model_type' => Message::class,
-            'model_id' => $message->id,
-            'description' => "Message sent to {$tc->name}: {$validated['subject']}",
-            'ip_address' => $request->ip(),
-        ]);
+        // Also create records for CC users so it shows in their inbox
+        foreach ($ccUsers as $ccUserId) {
+            $ccUser = \App\Models\User::find($ccUserId);
+            if ($ccUser && !in_array($ccUserId, array_column($messages, 'to_user_id'))) {
+                Message::create([
+                    'from_user_id' => $user->id,
+                    'to_user_id' => $ccUser->id,
+                    'subject' => $validated['subject'],
+                    'message' => $validated['message'],
+                    'type' => 'staff_to_staff',
+                    'cc_users' => $ccUsers,
+                    'related_client_id' => $validated['related_client_id'] ?? null,
+                    'related_consultation_id' => $validated['related_consultation_id'] ?? null,
+                ]);
+            }
+        }
 
         return response()->json([
-            'message' => 'Message sent successfully',
-            'data' => $message->load(['fromUser', 'toTrainingCounsellor', 'relatedClient']),
+            'message' => 'Messages sent successfully',
+            'count' => count($messages),
         ], 201);
+    }
+
+    /**
+     * Get list of staff users (for counsellors to select as recipients)
+     */
+    public function getStaffList(Request $request)
+    {
+        $user = $request->user();
+
+        // Staff and counsellors can use this endpoint
+        if (!$user->isCounsellor() && !$user->isStaff()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $staffRoles = ['super_admin', 'admin', 'staff', 'consultation_staff', 'compliance_officer'];
+
+        $staffUsers = \App\Models\User::select('id', 'name', 'email', 'role')
+            ->whereIn('role', $staffRoles)
+            ->orderBy('name')
+            ->get();
+
+        return response()->json($staffUsers);
     }
 
     /**
@@ -123,82 +278,69 @@ class MessageController extends Controller
     {
         $user = $request->user();
 
-        // Only counsellors can send messages to staff
-        if (!$user->isCounsellor()) {
+        // Counsellors and staff can send messages to staff
+        if (!$user->isCounsellor() && !$user->isStaff()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $validated = $request->validate([
-            'to_email' => 'required|email',
+            'to_user_ids' => 'required|array',
+            'to_user_ids.*' => 'exists:users,id',
+            'cc_user_ids' => 'nullable|array',
+            'cc_user_ids.*' => 'exists:users,id',
             'subject' => 'required|string|max:255',
-            'message' => 'required|string|max:5000',
+            'message' => 'required|string|max:10000',
             'related_client_id' => 'nullable|exists:clients,id',
             'related_consultation_id' => 'nullable|exists:consultations,id',
         ]);
 
-        // Find the specific user by email
-        $targetUser = \App\Models\User::where('email', $validated['to_email'])->first();
+        $ccUsers = $validated['cc_user_ids'] ?? [];
+        $allRecipients = array_merge($validated['to_user_ids'], $ccUsers);
+        
+        $sentCount = 0;
 
-        // Ensure the target user is staff/admin
-        if (!$targetUser || !$targetUser->isStaff()) {
-            // If user not found, we still send an email if possible, but we can't link it in the DB messaging system easily
-            // For now, let's assume valid staff email is required for in-portal messaging
-            // but we will send the email anyway to satisfy the "sent to different email admin" requirement
+        foreach ($allRecipients as $targetUserId) {
+            $targetUser = \App\Models\User::findOrFail($targetUserId);
+
+            // Counsellors and staff can only message Staff
+            if (!$targetUser->isStaff()) {
+                continue; // Skip non-staff recipients
+            }
+
+            $message = Message::create([
+                'from_user_id' => $user->id,
+                'to_user_id' => $targetUser->id,
+                'subject' => $validated['subject'],
+                'message' => $validated['message'],
+                'type' => $user->isCounsellor() ? 'counsellor_to_staff' : 'staff_to_staff',
+                'cc_users' => $ccUsers,
+                'related_client_id' => $validated['related_client_id'] ?? null,
+                'related_consultation_id' => $validated['related_consultation_id'] ?? null,
+            ]);
+            
+            $sentCount++;
+
+            // Email Notification
             try {
-                Mail::to($validated['to_email'])->send(new DynamicEmail(
+                Mail::to($targetUser->email)->send(new DynamicEmail(
                     'generic_tc_email',
                     [
-                        'tc_name' => 'Admin Team',
-                        'message' => "Message from Counsellor {$user->name}:\n\n" . $validated['message'],
-                        'subject' => "Counsellor Message: {$validated['subject']}"
+                        'tc_name' => $targetUser->name,
+                        'message' => "New message from {$user->name} (" . ($user->isCounsellor() ? "Counsellor" : "Staff") . "):\n\n" . $validated['message'],
+                        'subject' => "New Internal Message: {$validated['subject']}"
                     ]
                 ));
             } catch (\Exception $e) {
-                Log::error('Failed to send counsellor-to-admin email: ' . $e->getMessage());
+                Log::error('Failed to send staff notification email: ' . $e->getMessage());
             }
-
-            return response()->json([
-                'message' => 'Message sent via email',
-            ], 200);
         }
 
-        $message = Message::create([
-            'from_user_id' => $user->id,
-            'to_user_id' => $targetUser->id,
-            'subject' => $validated['subject'],
-            'message' => $validated['message'],
-            'type' => 'counsellor_to_staff',
-            'related_client_id' => $validated['related_client_id'] ?? null,
-            'related_consultation_id' => $validated['related_consultation_id'] ?? null,
-        ]);
-
-        // Also send email to the specific admin
-        try {
-            Mail::to($targetUser->email)->send(new DynamicEmail(
-                'generic_tc_email',
-                [
-                    'tc_name' => $targetUser->name,
-                    'message' => "New message from {$user->name}:\n\n" . $validated['message'],
-                    'subject' => "New Message from Counsellor: {$validated['subject']}"
-                ]
-            ));
-        } catch (\Exception $e) {
-            Log::error('Failed to send admin notification email: ' . $e->getMessage());
+        if ($sentCount === 0) {
+            return response()->json(['message' => 'No valid staff recipients found.'], 422);
         }
-
-        // Log activity
-        ActivityLog::create([
-            'user_id' => $user->id,
-            'action' => 'message_sent',
-            'model_type' => Message::class,
-            'model_id' => $message->id,
-            'description' => "Message sent from counsellor to {$targetUser->name}: {$validated['subject']}",
-            'ip_address' => $request->ip(),
-        ]);
 
         return response()->json([
-            'message' => 'Message sent successfully to ' . $targetUser->name,
-            'data' => $message,
+            'message' => 'Message sent successfully to ' . $sentCount . ' recipients',
         ], 201);
     }
 
@@ -236,7 +378,7 @@ class MessageController extends Controller
     public function unreadCount(Request $request)
     {
         $user = $request->user();
-        $query = Message::where('is_read', false);
+        $query = Message::where('is_read', false)->where('is_trashed', false);
 
         if ($user->isCounsellor() && $user->training_counsellor_id) {
             $query->where('to_tc_id', $user->training_counsellor_id);
@@ -247,6 +389,51 @@ class MessageController extends Controller
         $count = $query->count();
 
         return response()->json(['count' => $count]);
+    }
+
+    /**
+     * Trash a message
+     */
+    public function trash(Request $request, $id)
+    {
+        $user = $request->user();
+        $message = Message::findOrFail($id);
+
+        $message->update([
+            'is_trashed' => true,
+            'trashed_at' => now(),
+        ]);
+
+        return response()->json(['message' => 'Message moved to trash']);
+    }
+
+    /**
+     * Restore a message from trash
+     */
+    public function restore(Request $request, $id)
+    {
+        $user = $request->user();
+        $message = Message::findOrFail($id);
+
+        $message->update([
+            'is_trashed' => false,
+            'trashed_at' => null,
+        ]);
+
+        return response()->json(['message' => 'Message restored from trash']);
+    }
+
+    /**
+     * Permanently delete a message
+     */
+    public function destroy(Request $request, $id)
+    {
+        $user = $request->user();
+        $message = Message::findOrFail($id);
+
+        $message->delete();
+
+        return response()->json(['message' => 'Message permanently deleted']);
     }
 
     /**

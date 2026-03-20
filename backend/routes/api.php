@@ -267,9 +267,14 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
     // Messages (all authenticated users)
     Route::prefix('messages')->group(function () {
         Route::get('/', [MessageController::class, 'index']);
+        Route::get('/conversations', [MessageController::class, 'conversations']);
         Route::get('/unread-count', [MessageController::class, 'unreadCount']);
+        Route::get('/staff-list', [MessageController::class, 'getStaffList']);
         Route::get('/{id}', [MessageController::class, 'show']);
         Route::post('/{id}/mark-read', [MessageController::class, 'markAsRead']);
+        Route::post('/{id}/trash', [MessageController::class, 'trash']);
+        Route::post('/{id}/restore', [MessageController::class, 'restore']);
+        Route::delete('/{id}', [MessageController::class, 'destroy']);
 
         // Staff/admin can send to counsellors
         Route::middleware('staff')->group(function () {
@@ -282,11 +287,16 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         });
     });
 
-    // Shared Documents
+    // Shared Documents & Folders
     Route::get('/shared-documents', [SharedDocumentController::class, 'index']);
+    Route::get('/contacts/{type}/{id}/files', [SharedDocumentController::class, 'contactFiles']);
     Route::post('/shared-documents', [SharedDocumentController::class, 'store']);
     Route::get('/shared-documents/{document}/download', [SharedDocumentController::class, 'download']);
-    Route::middleware('admin')->group(function () {
+    
+    Route::middleware('staff')->group(function () {
+        Route::post('/folders', [SharedDocumentController::class, 'createFolder']);
+        Route::post('/folders/{folder}/share', [SharedDocumentController::class, 'shareFolder']);
+        Route::delete('/folders/{folder}', [SharedDocumentController::class, 'destroyFolder']);
         Route::delete('/shared-documents/{document}', [SharedDocumentController::class, 'destroy']);
     });
 
@@ -297,6 +307,7 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
     // Session Notes
     Route::get('/session-notes', [SessionNoteController::class, 'index']);
     Route::post('/session-notes', [SessionNoteController::class, 'store']);
+    Route::get('/session-notes/{id}', [SessionNoteController::class, 'show']);
 
     // Staff Notes
     Route::prefix('staff-notes')->group(function () {

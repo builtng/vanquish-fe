@@ -15,7 +15,7 @@ class EnsureUserIsStaff
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->user() || !in_array($request->user()->role, ['admin', 'staff'])) {
+        if (!$request->user() || !$request->user()->isStaff()) {
             return response()->json([
                 'message' => 'Unauthorized. Staff or admin access required.',
             ], 403);

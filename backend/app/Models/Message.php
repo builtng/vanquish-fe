@@ -18,11 +18,17 @@ class Message extends Model
         'read_at',
         'related_client_id',
         'related_consultation_id',
+        'is_trashed',
+        'trashed_at',
+        'cc_users',
     ];
 
     protected $casts = [
         'is_read' => 'boolean',
         'read_at' => 'datetime',
+        'is_trashed' => 'boolean',
+        'trashed_at' => 'datetime',
+        'cc_users' => 'array',
     ];
 
     public function fromUser(): BelongsTo

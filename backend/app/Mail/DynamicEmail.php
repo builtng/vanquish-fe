@@ -31,7 +31,7 @@ class DynamicEmail extends Mailable
         if (!$this->template) {
             $defaults = $this->getDefaults();
             if (isset($defaults[$type])) {
-                $this->template = (object) $defaults[$type];
+                $this->template = (object) array_merge(['type' => $type], $defaults[$type]);
             } else {
                 // Last resort fallback
                 $this->template = (object) [
@@ -106,15 +106,33 @@ class DynamicEmail extends Mailable
     }
 
     /**
+     * Email types that include their own styled header in the body HTML.
+     * These should not show the outer layout header to avoid duplicates.
+     */
+    private array $selfHeaderedTypes = [
+        'trainee_video_interview_received',
+        'admin_video_review_notification',
+        'trainee_stage_three_invite',
+        'trainee_interview_confirmed',
+        'trainee_interview_reminder',
+        'trainee_placement_acceptance',
+        'trainee_portal_invite',
+    ];
+
+    /**
      * Get the message content definition.
      */
     public function content(): Content
     {
+        $type = $this->template->type ?? null;
+        $hasOwnHeader = $type && in_array($type, $this->selfHeaderedTypes);
+
         // We use a base email layout and inject the rendered body
         return new Content(
             view: 'emails.dynamic-layout',
             with: [
-                'body' => $this->renderString($this->template->body)
+                'body'         => $this->renderString($this->template->body),
+                'hasOwnHeader' => $hasOwnHeader,
             ],
         );
     }
@@ -372,9 +390,9 @@ class DynamicEmail extends Mailable
                 'subject' => '🎬 Action Required: Stage 2 Video Ready for Review – {{applicant_name}}',
                 'body' => '
 <div style="font-family: Arial, sans-serif; max-width: 580px; margin: 0 auto; color: #333;">
-  <div style="background: #1e293b; padding: 24px 28px; border-radius: 10px 10px 0 0;">
+  <div style="background: linear-gradient(135deg, #6f1d56 0%, #9b2c7e 100%); padding: 24px 28px; border-radius: 10px 10px 0 0;">
     <h1 style="color: white; margin: 0; font-size: 18px;">🎬 Stage 2 Video Submission Ready</h1>
-    <p style="color: #94a3b8; margin: 6px 0 0; font-size: 13px;">Vanquish Therapies — Admin Notification</p>
+    <p style="color: rgba(255,255,255,0.8); margin: 6px 0 0; font-size: 13px;">Vanquish Therapies — Admin Notification</p>
   </div>
   <div style="background: #fff; padding: 28px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px;">
     <p style="margin-top: 0; font-size: 14px;">A trainee applicant has completed their <strong>Stage 2 HireVire video interview</strong> and their responses are now ready for your review.</p>
@@ -451,7 +469,7 @@ class DynamicEmail extends Mailable
         <tr><td style="padding: 8px 0; font-size: 13px; color: #888;">MEETING ID</td><td style="padding: 8px 0; font-size: 14px; color: #333; font-family: monospace;">{{meeting_id}}</td></tr>
       </table>
       <div style="text-align: center; margin-top: 20px;">
-        <a href="{{zoom_link}}" style="display:inline-block;padding:14px 32px;background:#2d8cff;color:white;text-decoration:none;border-radius:10px;font-weight:bold;font-size:15px;">📦 Join via Zoom</a>
+        <a href="{{zoom_link}}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#6f1d56,#9b2c7e);color:white;text-decoration:none;border-radius:10px;font-weight:bold;font-size:15px;">🔗 Join via Zoom</a>
       </div>
     </div>
     <h2 style="color: #6f1d56; font-size: 17px; border-bottom: 2px solid #f0e6ed; padding-bottom: 8px;">Before Your Interview</h2>
@@ -491,7 +509,7 @@ class DynamicEmail extends Mailable
       <p style="margin: 0; font-size: 22px; font-weight: bold; color: #4a0d3a;">{{scheduled_at}}</p>
     </div>
     <div style="text-align: center; margin: 24px 0;">
-      <a href="{{zoom_link}}" style="display:inline-block;padding:14px 32px;background:#2d8cff;color:white;text-decoration:none;border-radius:10px;font-weight:bold;font-size:15px;">📦 Join via Zoom</a>
+      <a href="{{zoom_link}}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#6f1d56,#9b2c7e);color:white;text-decoration:none;border-radius:10px;font-weight:bold;font-size:15px;">🔗 Join via Zoom</a>
       <p style="margin: 8px 0 0; font-size: 12px; color: #888;">Click this link at the time of your interview</p>
     </div>
     <h2 style="color: #6f1d56; font-size: 17px; border-bottom: 2px solid #f0e6ed; padding-bottom: 8px;">Last-Minute Checklist</h2>
@@ -519,7 +537,7 @@ class DynamicEmail extends Mailable
                 'subject' => '🎉 Congratulations! You’ve been accepted for Placement at Vanquish Therapies',
                 'body' => '
 <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #333;">
-  <div style="background: linear-gradient(135deg, #0f172a 0%, #334155 100%); padding: 40px 32px; border-radius: 12px 12px 0 0; text-align: center;">
+  <div style="background: linear-gradient(135deg, #6f1d56 0%, #9b2c7e 100%); padding: 40px 32px; border-radius: 12px 12px 0 0; text-align: center;">
     <div style="font-size: 48px; margin-bottom: 12px;">🎊</div>
     <h1 style="color: white; margin: 0; font-size: 26px;">Welcome to the Team!</h1>
     <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 15px;">Official Placement Offer — Vanquish Therapies</p>
@@ -529,13 +547,13 @@ class DynamicEmail extends Mailable
     <p>Following your interview, our clinical team was highly impressed with your approach and potential. We are delighted to officially offer you a <strong>Trainee Counsellor Placement</strong> at Vanquish Therapies.</p>
     
     <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin: 28px 0; border: 1px solid #e2e8f0;">
-      <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px;">Induction Details</h2>
+      <h2 style="color: #6f1d56; margin: 0 0 16px; font-size: 18px;">Induction Details</h2>
       <p style="margin: 0; font-size: 14px; color: #64748b;">Your mandatory online induction is scheduled for:</p>
-      <p style="margin: 8px 0 0; font-size: 18px; font-weight: bold; color: #0f172a;">{{induction_date}}</p>
-      <p style="margin: 12px 0 0; font-size: 13px; color: #475569;"><strong>Zoom Link:</strong> <a href="{{induction_zoom_link}}" style="color:#2563eb;text-decoration:none;">Join Induction Meeting ➡️</a></p>
+      <p style="margin: 8px 0 0; font-size: 18px; font-weight: bold; color: #6f1d56;">{{induction_date}}</p>
+      <p style="margin: 12px 0 0; font-size: 13px; color: #475569;"><strong>Zoom Link:</strong> <a href="{{induction_zoom_link}}" style="color:#6f1d56;text-decoration:none;">Join Induction Meeting ➡️</a></p>
     </div>
 
-    <h2 style="color: #0f172a; font-size: 17px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">Action Required: Onboarding Paperwork</h2>
+    <h2 style="color: #6f1d56; font-size: 17px; border-bottom: 2px solid #f0e6ed; padding-bottom: 8px;">Action Required: Onboarding Paperwork</h2>
     <p style="font-size: 14px; color: #475569;">To finalize your placement, please complete the two items below <strong>before</strong> your induction date:</p>
     
     <div style="margin: 20px 0;">
@@ -545,14 +563,14 @@ class DynamicEmail extends Mailable
         <a href="{{agreement_download_link}}" style="font-size:13px; font-weight:bold; color:#b45309; text-decoration:underline;">📥 Download 4-Way Agreement (.docx)</a>
       </div>
 
-      <div style="padding: 16px; background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 8px;">
+      <div style="padding: 16px; background: #fdf2f8; border: 1px solid #e8d5e4; border-radius: 8px;">
         <p style="margin: 0; font-size: 14px;"><strong>2. Confirm Personal Therapy</strong></p>
-        <p style="margin: 4px 0 12px; font-size: 12px; color: #166534;">As per clinical standards, please confirm your therapy hours via the form below.</p>
-        <a href="{{therapy_form_url}}" target="_blank" style="display:inline-block;padding:10px 20px;background:#16a34a;color:white;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px;">📝 Complete Therapy Form</a>
+        <p style="margin: 4px 0 12px; font-size: 12px; color: #6f1d56;">As per clinical standards, please confirm your therapy hours via the form below.</p>
+        <a href="{{therapy_form_url}}" target="_blank" style="display:inline-block;padding:10px 20px;background:#6f1d56;color:white;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px;">📝 Complete Therapy Form</a>
       </div>
     </div>
 
-    <p style="font-size: 15px; font-weight: bold; color: #0f172a; margin-top: 32px;">Welcome to the Vanquish family!<br><span style="font-weight: normal; color: #64748b; font-size: 13px;">Compliance & Clinical Lead</span></p>
+    <p style="font-size: 15px; font-weight: bold; color: #6f1d56; margin-top: 32px;">Welcome to the Vanquish family!<br><span style="font-weight: normal; color: #777; font-size: 13px;">Compliance & Clinical Lead</span></p>
   </div>
   <div style="background: #f8fafc; padding: 16px 32px; border-radius: 0 0 12px 12px; border: 1px solid #e2e8f0; border-top: none; text-align: center;">
     <p style="font-size: 11px; color: #94a3b8; margin: 0;">© Vanquish Therapies Ltd. All rights reserved.</p>
@@ -561,40 +579,53 @@ class DynamicEmail extends Mailable
                 'placeholders' => ['first_name', 'induction_date', 'induction_zoom_link', 'agreement_download_link', 'therapy_form_url']
             ],
             'trainee_portal_invite' => [
-                'subject' => '🔐 Access Granted: Vanquish Therapies Practitioner Portal (SuiteDash)',
+                'subject' => '🔐 Your Vanquish Therapies Practitioner Portal Access',
                 'body' => '
 <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #333;">
-  <div style="background: #6f1d56; padding: 40px 32px; border-radius: 12px 12px 0 0; text-align: center;">
+  <div style="background: linear-gradient(135deg, #6f1d56 0%, #9b2c7e 100%); padding: 40px 32px; border-radius: 12px 12px 0 0; text-align: center;">
     <div style="font-size: 48px; margin-bottom: 12px;">🔐</div>
-    <h1 style="color: white; margin: 0; font-size: 24px;">Portal Access & Policies</h1>
-    <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 15px;">Practitioner Onboarding — SuiteDash</p>
+    <h1 style="color: white; margin: 0; font-size: 24px;">Portal Access Granted</h1>
+    <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 15px;">Practitioner Onboarding — Vanquish Therapies</p>
   </div>
   <div style="background: #ffffff; padding: 32px; border: 1px solid #e2e8f0; border-top: none;">
     <p style="font-size: 16px; margin-top: 0;">Hello <strong>{{first_name}}</strong>,</p>
-    <p>We are excited to grant you access to the <strong>Vanquish Practitioner Portal</strong>. This will be your hub for all client matching, policy documents, and clinical oversight.</p>
-    
+    <p>We are excited to grant you access to the <strong>Vanquish Practitioner Portal</strong>. This will be your hub for client matching, session notes, policy documents, and clinical oversight.</p>
+
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px 24px; margin: 24px 0;">
+      <h2 style="color: #6f1d56; margin: 0 0 14px; font-size: 16px;">🔑 Your Login Credentials</h2>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding: 6px 0; font-size: 13px; color: #64748b; width: 130px;">Login Email</td><td style="padding: 6px 0; font-size: 14px; font-weight: bold; color: #6f1d56; font-family: monospace;">{{email}}</td></tr>
+        <tr><td style="padding: 6px 0; font-size: 13px; color: #64748b;">Temporary Password</td><td style="padding: 6px 0; font-size: 14px; font-weight: bold; color: #6f1d56; font-family: monospace;">{{temporary_password}}</td></tr>
+      </table>
+      <p style="margin: 12px 0 0; font-size: 12px; color: #94a3b8;">⚠️ Please change your password after your first login for security.</p>
+    </div>
+
     <div style="text-align: center; margin: 28px 0;">
       <a href="{{portal_link}}" style="display:inline-block;padding:16px 36px;background:#6f1d56;color:white;text-decoration:none;border-radius:10px;font-weight:bold;font-size:16px;">🚀 Access My Portal Now</a>
-      <p style="margin: 10px 0 0; font-size: 12px; color: #888;">Follow the instructions to set your password and profile</p>
+      <p style="margin: 10px 0 0; font-size: 12px; color: #888;">Sign in with the credentials above</p>
     </div>
 
     <h2 style="color: #6f1d56; font-size: 17px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">Onboarding Checklist</h2>
     <p style="font-size: 14px; color: #475569;">Once inside your portal, please complete these induction steps:</p>
     <ul style="padding-left: 20px; line-height: 2; font-size: 14px; color: #333;">
-      <li>📖 Read the <strong>Welcome Guide & Practitioner Handbook</strong></li>
+      <li>📖 Read the <strong>Welcome Guide &amp; Practitioner Handbook</strong></li>
       <li>✍️ Sign the <strong>Induction Disclosure Form</strong></li>
-      <li>📂 Upload your <strong>Professional Certificates</strong> & <strong>Insurance</strong></li>
+      <li>📂 Upload your <strong>Professional Certificates</strong> &amp; <strong>Insurance</strong></li>
+      <li>🔒 Change your <strong>temporary password</strong> immediately</li>
       <li>📞 Confirm the <strong>Emergency WhatsApp line: +44 0800 008 6556</strong></li>
     </ul>
 
     <div style="background: #fdf2f8; border: 1px solid #fce7f3; border-radius: 8px; padding: 14px 18px; margin: 24px 0;">
-      <p style="margin: 0; font-size: 13px; color: #9d174d;"><strong>💡 Need Help?</strong> Coordinators <strong>Jae & Rooshan</strong> have been added to your portal contacts. You can message them directly for any support.</p>
+      <p style="margin: 0; font-size: 13px; color: #9d174d;"><strong>💡 Need Help?</strong> Contact our team at <a href="mailto:compliance@vanquishtherapies.co.uk" style="color:#6f1d56;">compliance@vanquishtherapies.co.uk</a> and we will be happy to assist you.</p>
     </div>
 
     <p style="font-size: 15px; font-weight: bold; color: #6f1d56; margin-top: 20px;">The Compliance Team<br><span style="font-weight: normal; color: #777; font-size: 13px;">Vanquish Therapies</span></p>
   </div>
+  <div style="background: #f8fafc; padding: 16px 32px; border-radius: 0 0 12px 12px; border: 1px solid #e2e8f0; border-top: none; text-align: center;">
+    <p style="font-size: 11px; color: #94a3b8; margin: 0;">© Vanquish Therapies Ltd. All rights reserved.</p>
+  </div>
 </div>',
-                'placeholders' => ['first_name', 'portal_link']
+                'placeholders' => ['first_name', 'portal_link', 'email', 'temporary_password']
             ],
             'trainee_placement_rejection' => [
                 'subject' => 'Update on your application',

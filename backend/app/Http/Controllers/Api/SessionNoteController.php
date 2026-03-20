@@ -17,6 +17,10 @@ class SessionNoteController extends Controller
             $query->where('training_counsellor_id', '=', $user->training_counsellor_id);
         }
 
+        if ($request->has('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
         return response()->json($query->orderBy('created_at', 'desc')->get());
     }
 
@@ -42,5 +46,17 @@ class SessionNoteController extends Controller
         ]);
 
         return response()->json($note, 201);
+    }
+
+    public function show(Request $request, $id)
+    {
+        $user = $request->user();
+        $note = SessionNote::with(['client:id,name', 'counsellor:id,name'])->findOrFail($id);
+
+        if ($user->role === 'counsellor' && $note->training_counsellor_id !== $user->training_counsellor_id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        return response()->json($note);
     }
 }

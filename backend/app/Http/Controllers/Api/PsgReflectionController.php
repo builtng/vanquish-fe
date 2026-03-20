@@ -10,14 +10,16 @@ class PsgReflectionController extends Controller
 {
     public function index(Request $request)
     {
-        // Admin or staff can see all
-        if ($request->user()->role !== 'admin' && $request->user()->role !== 'staff') {
+        $user = $request->user();
+        $query = PsgReflection::with('counsellor:id,name');
+
+        if ($user->role === 'counsellor' && $user->training_counsellor_id) {
+            $query->where('training_counsellor_id', $user->training_counsellor_id);
+        } elseif ($user->role !== 'admin' && $user->role !== 'staff') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $reflections = PsgReflection::with('counsellor:id,name')
-            ->orderBy('attendance_date', 'desc')
-            ->get();
+        $reflections = $query->orderBy('attendance_date', 'desc')->get();
             
         return response()->json($reflections);
     }
