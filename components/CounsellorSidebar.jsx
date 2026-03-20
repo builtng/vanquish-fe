@@ -54,23 +54,7 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
       icon: MessageSquare,
       label: "Messages",
       badge: unreadCount,
-      isExpandable: true,
-      expanded: expandedItems.messages,
-      onToggle: () => toggleExpanded("messages"),
-      subItems: [
-        {
-          id: "inbox",
-          label: "Inbox",
-          icon: Inbox,
-          href: "/counsellor-portal/messages/inbox",
-        },
-        {
-          id: "sent",
-          label: "Sent",
-          icon: Send,
-          href: "/counsellor-portal/messages/sent",
-        },
-      ],
+      href: "/counsellor-portal/messages",
     },
     {
       id: "clients",

@@ -20,6 +20,7 @@ import InternalPSGForm from "@/components/InternalPSGForm";
 function PSGFormPageContent() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [settings, setSettings] = useState(null);
+  const [reflections, setReflections] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,12 +30,14 @@ function PSGFormPageContent() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [unreadRes, settingsRes] = await Promise.all([
+      const [unreadRes, settingsRes, reflectionsRes] = await Promise.all([
         apiService.getUnreadMessageCount(),
         apiService.getCompanySettings(),
+        apiService.getPsgReflections(),
       ]);
       setUnreadCount(unreadRes.count || 0);
       setSettings(settingsRes);
+      setReflections(reflectionsRes || []);
     } catch (err) {
       console.error("Error loading PSG data:", err);
     } finally {
@@ -91,7 +94,7 @@ function PSGFormPageContent() {
 
             {settings?.use_internal_psg_form === "1" ? (
               <div className="max-w-2xl mx-auto text-left">
-                <InternalPSGForm />
+                <InternalPSGForm onSuccess={loadData} />
               </div>
             ) : (
               <a
@@ -103,6 +106,39 @@ function PSGFormPageContent() {
                 Submit PSG Form <ExternalLink className="w-5 h-5" />
               </a>
             )}
+          </div>
+
+          {/* Submission History */}
+          <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] overflow-hidden shadow-sm">
+             <div className="px-5 py-4 border-b border-gray-100 dark:border-[var(--card-border)] bg-gray-50/50 dark:bg-gray-800/20">
+               <h3 className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-sm flex items-center gap-2">
+                 <Calendar className="w-4 h-4 text-[#6f1d56]" />
+                 Submission History
+               </h3>
+             </div>
+             <div className="divide-y divide-gray-100 dark:divide-gray-800">
+               {!reflections?.length ? (
+                 <div className="p-12 text-center text-gray-400 italic text-sm">
+                   No reflections submitted yet.
+                 </div>
+               ) : (
+                 reflections.map((ref) => (
+                   <div key={ref.id} className="p-5 hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors">
+                      <div className="flex items-center justify-between mb-2">
+                         <span className="text-[10px] font-black uppercase text-pink-600 px-2 py-0.5 bg-pink-50 dark:bg-pink-900/20 rounded">
+                           PSG Reflection
+                         </span>
+                         <span className="text-[10px] text-gray-400">
+                            {new Date(ref.attendance_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                         </span>
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                        {ref.reflection}
+                      </p>
+                   </div>
+                 ))
+               )}
+             </div>
           </div>
 
           <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-xl p-5 border border-indigo-100 dark:border-indigo-800/30 flex items-start gap-4">

@@ -27,6 +27,7 @@ export function ModalProvider({ children }) {
     cancelText: "Cancel",
     type: "info",
     inputType: "text",
+    options: [], // Add this for select type
     onConfirm: () => {},
     onClose: () => {},
   });
@@ -69,6 +70,7 @@ export function ModalProvider({ children }) {
         cancelText: config.cancelText || "Cancel",
         type: config.type || "info",
         inputType: config.inputType || "text",
+        options: config.options || [], // Support select options
         confirmButtonColor: config.confirmButtonColor,
         onConfirm: (value) => {
           setPromptConfig((prev) => ({ ...prev, isOpen: false }));
@@ -108,6 +110,7 @@ export function ModalProvider({ children }) {
         cancelText={promptConfig.cancelText}
         type={promptConfig.type}
         inputType={promptConfig.inputType}
+        options={promptConfig.options}
         confirmButtonColor={promptConfig.confirmButtonColor}
       />
     </ModalContext.Provider>

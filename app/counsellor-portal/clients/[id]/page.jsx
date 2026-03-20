@@ -22,8 +22,10 @@ import {
   CheckCircle2,
   ExternalLink,
   RefreshCw,
+  ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
+import SessionNoteDetailsModal from "@/components/SessionNoteDetailsModal";
 
 function ClientDetailsContent() {
   const router = useRouter();
@@ -34,6 +36,8 @@ function ClientDetailsContent() {
   const [client, setClient] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [clientNotes, setClientNotes] = useState([]);
+  const [selectedNoteId, setSelectedNoteId] = useState(null);
 
   useEffect(() => {
     if (!authUser || !id) return;
@@ -43,12 +47,14 @@ function ClientDetailsContent() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [clientData, unreadRes] = await Promise.all([
+      const [clientData, unreadRes, notesRes] = await Promise.all([
         apiService.getClientDetails(id),
         apiService.getUnreadMessageCount(),
+        apiService.getSessionNotes({ client_id: id }),
       ]);
       setClient(clientData);
       setUnreadCount(unreadRes.count || 0);
+      setClientNotes(notesRes || []);
     } catch (err) {
       console.error("Error loading client details:", err);
       showError(err.message || "Failed to load client details");
@@ -267,6 +273,59 @@ function ClientDetailsContent() {
                 </div>
               </div>
             </div>
+
+            {/* Session Notes History Card */}
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-2xl border border-gray-200 dark:border-[var(--card-border)] overflow-hidden shadow-sm">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-[var(--card-border)] bg-gray-50/50 dark:bg-[var(--bg-secondary)] flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900 dark:text-[var(--text-primary)] flex items-center gap-2 text-sm md:text-base">
+                    <FileText className="w-4 h-4 text-[#6f1d56]" />
+                    Clinical Documentation History
+                  </h3>
+                  <Link 
+                    href="/counsellor-portal/pages/session-notes"
+                    className="text-xs font-bold text-[#6f1d56] hover:underline"
+                  >
+                    View All
+                  </Link>
+                </div>
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {clientNotes.length === 0 ? (
+                    <div className="p-12 text-center">
+                       <FileText className="w-8 h-8 text-gray-200 mx-auto mb-3" />
+                       <p className="text-sm text-gray-400 italic">No notes recorded for this client yet.</p>
+                    </div>
+                  ) : (
+                    clientNotes.map((note) => (
+                      <div 
+                        key={note.id} 
+                        onClick={() => setSelectedNoteId(note.id)}
+                        className="p-5 hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors cursor-pointer group"
+                      >
+                         <div className="flex items-center justify-between mb-2">
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                               note.type === 'risk_update' 
+                                 ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' 
+                                 : 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
+                            }`}>
+                               {note.type.replace('_', ' ')}
+                            </span>
+                            <span className="text-[10px] text-gray-400">
+                               {new Date(note.created_at).toLocaleDateString()}
+                            </span>
+                         </div>
+                         <div className="flex items-center justify-between">
+                            <div className="min-w-0 pr-4">
+                              <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                                {note.content?.summary}
+                              </p>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#6f1d56] transition-all transform group-hover:translate-x-1 flex-shrink-0" />
+                         </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+            </div>
           </div>
 
           {/* Side Column */}
@@ -362,6 +421,14 @@ function ClientDetailsContent() {
           </div>
         </div>
       </div>
+
+      {/* Details Modal */}
+      {selectedNoteId && (
+        <SessionNoteDetailsModal
+          noteId={selectedNoteId}
+          onClose={() => setSelectedNoteId(null)}
+        />
+      )}
     </CounsellorLayout>
   );
 }

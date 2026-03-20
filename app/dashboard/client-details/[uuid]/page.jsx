@@ -56,6 +56,7 @@ import {
   CalendarDays,
   RefreshCw,
   ClipboardList,
+  Files
 } from "lucide-react";
 
 const core34Questions = [
@@ -1344,6 +1345,30 @@ export default function IndividualClientDetailPage() {
                         Send Feedback Form
                       </button>
                     )}
+
+                    <Link
+                      href={`/dashboard/contacts/client/${uuid}/inbox`}
+                      className="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 font-medium flex items-center gap-2"
+                    >
+                      <Mail className="w-4 h-4" />
+                      Inbox
+                    </Link>
+
+                    <Link
+                      href={`/dashboard/contacts/client/${uuid}/files`}
+                      className="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 font-medium flex items-center gap-2"
+                    >
+                      <Files className="w-4 h-4" />
+                      Contact Files
+                    </Link>
+
+                    <Link
+                      href={`/dashboard/contacts/client/${uuid}/internal-form`}
+                      className="px-4 py-2 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 font-medium flex items-center gap-2"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Internal Form
+                    </Link>
 
                     <Link
                       href={`/dashboard/clients/edit?id=${uuid}`}

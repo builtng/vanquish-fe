@@ -9,6 +9,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import PageGuard from "@/components/PageGuard";
 import { useModal } from "@/contexts/ModalContext";
+import { StatusBadge, SearchableStatusSelect } from "@/components/StatusBadge";
 
 function TraineeApplicationsDashboardContent() {
   const searchParams = useSearchParams();
@@ -113,23 +114,6 @@ function TraineeApplicationsDashboardContent() {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const common = "px-2 py-1 rounded-full text-[10px] font-bold uppercase border";
-    switch (status) {
-      case 'New Application':          return `${common} bg-blue-50 text-blue-700 border-blue-100`;
-      case 'Stage 1 Complete':         return `${common} bg-purple-50 text-purple-700 border-purple-100`;
-      case 'Stage 2 Invited':          return `${common} bg-amber-50 text-amber-700 border-amber-100`;
-      case 'Stage 2 Video Submitted':  return `${common} bg-orange-50 text-orange-700 border-orange-100 animate-pulse`;
-      case 'Stage 2 Approved':         return `${common} bg-indigo-50 text-indigo-700 border-indigo-100`;
-      case 'Stage 3 Interview Booked': return `${common} bg-green-50 text-green-700 border-green-100`;
-      case 'Interview Attended':       return `${common} bg-teal-50 text-teal-700 border-teal-100`;
-      case 'Interview No Show':        return `${common} bg-rose-50 text-rose-700 border-rose-100`;
-      case 'Accepted':                 return `${common} bg-emerald-100 text-emerald-800 border-emerald-200 shadow-sm`;
-      case 'Rejected':                 return `${common} bg-red-50 text-red-700 border-red-100`;
-      case 'Hold':                     return `${common} bg-slate-50 text-slate-700 border-slate-100`;
-      default:                         return `${common} bg-gray-50 text-gray-700 border-gray-100`;
-    }
-  };
 
   return (
     <PageGuard menuId="trainee-applications">
@@ -181,26 +165,21 @@ function TraineeApplicationsDashboardContent() {
             </div>
           </div>
           
-          <div className="w-full md:w-48">
+          <div className="w-full md:w-56">
             <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Status</label>
-            <select 
-              value={status} 
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="all">All Statuses</option>
-              <option value="New Application">New Application</option>
-              <option value="Stage 1 Complete">Stage 1 Complete</option>
-              <option value="Stage 2 Invited">Stage 2 Invited</option>
-              <option value="Stage 2 Video Submitted">Stage 2 Video Submitted</option>
-              <option value="Stage 2 Approved">Stage 2 Approved</option>
-              <option value="Stage 3 Interview Booked">Stage 3 Interview Booked</option>
-              <option value="Interview Attended">Interview Attended</option>
-              <option value="Interview No Show">Interview No Show</option>
-              <option value="Accepted">Accepted</option>
-              <option value="Rejected">Rejected</option>
-              <option value="Hold">Hold</option>
-            </select>
+            <SearchableStatusSelect
+              options={[
+                'New Application','Stage 1 Complete','Stage 2 Invited',
+                'Stage 2 Video Submitted','Stage 2 Approved','Stage 3 Interview Booked',
+                'Interview Attended','Interview No Show','Accepted',
+                'Induction Attended','Induction No-Show','Onboarding',
+                'Active Placement','Rejected','Hold'
+              ]}
+              value={status}
+              onChange={(v) => { setStatus(v); setPage(1); }}
+              includeAll
+              size="sm"
+            />
           </div>
 
           <div className="w-full md:w-48">
@@ -331,31 +310,19 @@ function TraineeApplicationsDashboardContent() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-2">
-                        <select 
+                        <SearchableStatusSelect
+                          options={[
+                            'New Application','Stage 1 Complete','Stage 2 Invited',
+                            'Stage 2 Video Submitted','Stage 2 Approved','Stage 3 Interview Booked',
+                            'Interview Attended','Interview No Show','Accepted',
+                            'Induction Attended','Induction No-Show','Onboarding',
+                            'Active Placement','Rejected','Hold'
+                          ]}
                           value={app.status}
+                          onChange={(v) => handleStatusChangeAction(app.id, v)}
                           disabled={updatingId === app.id}
-                          onChange={(e) => handleStatusChangeAction(app.id, e.target.value)}
-                          className={`text-[10px] font-black uppercase tracking-widest py-1.5 px-3 rounded-xl border-2 outline-none cursor-pointer transition-all shadow-sm ${
-                            updatingId === app.id ? 'opacity-50 grayscale' : ''
-                          } ${
-                            app.status === 'Accepted' ? 'bg-emerald-600 text-white border-emerald-400' :
-                            app.status === 'Rejected' ? 'bg-red-50 text-red-600 border-red-100' :
-                            app.status === 'Hold' ? 'bg-slate-100 text-slate-600 border-slate-200' :
-                            'bg-white text-gray-700 border-gray-100 hover:border-purple-300'
-                          }`}
-                        >
-                          <option value="New Application">New Application</option>
-                          <option value="Stage 1 Complete">S1 Complete</option>
-                          <option value="Stage 2 Invited">S2 Invited</option>
-                          <option value="Stage 2 Video Submitted">S2 Video</option>
-                          <option value="Stage 2 Approved">S2 Approved</option>
-                          <option value="Stage 3 Interview Booked">S3 Booked</option>
-                          <option value="Interview Attended">Attended</option>
-                          <option value="Interview No Show">No Show</option>
-                          <option value="Accepted">Accepted</option>
-                          <option value="Rejected">Rejected</option>
-                          <option value="Hold">Hold</option>
-                        </select>
+                          size="sm"
+                        />
                         {app.status === 'Accepted' && app.induction_date && (
                           <div className="text-[9px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1 ml-1 animate-in fade-in slide-in-from-left-2">
                             <CheckCircle className="w-2.5 h-2.5" /> Starts: {app.induction_date}

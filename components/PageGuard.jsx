@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/lib/api";
 
@@ -22,6 +22,7 @@ import apiService from "@/lib/api";
 export default function PageGuard({ menuId, children }) {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [status, setStatus] = useState("checking"); // "checking" | "allowed" | "denied"
 
   useEffect(() => {
@@ -34,6 +35,15 @@ export default function PageGuard({ menuId, children }) {
 
     const checkAccess = async () => {
       const isAdminRole = user.role === "admin" || user.role === "super_admin";
+      
+      const denyAccess = () => {
+        setStatus("denied");
+        // Only redirect if NOT already on the dashboard to avoid loops
+        if (pathname !== "/dashboard" && pathname !== "/dashboard/") {
+          router.replace("/dashboard");
+        }
+      };
+
       try {
         if (isAdminRole) {
           // Admins / Super-admins: fetch full list and check if role is allowed
@@ -44,8 +54,7 @@ export default function PageGuard({ menuId, children }) {
             !priv.roles.includes("admin") &&
             !priv.roles.includes("super_admin")
           ) {
-            setStatus("denied");
-            router.replace("/dashboard");
+            denyAccess();
           } else {
             setStatus("allowed");
           }
@@ -57,23 +66,22 @@ export default function PageGuard({ menuId, children }) {
           if (Array.isArray(allowedIds) && allowedIds.includes(menuId)) {
             setStatus("allowed");
           } else {
-            setStatus("denied");
-            router.replace("/dashboard");
+            denyAccess();
           }
         }
-      } catch {
+      } catch (error) {
+        console.error("Access check error:", error);
         // On error (network, auth) fall back to denying if not admin
         if (isAdminRole) {
           setStatus("allowed"); // admins get benefit of the doubt on error
         } else {
-          setStatus("denied");
-          router.replace("/dashboard");
+          denyAccess();
         }
       }
     };
 
     checkAccess();
-  }, [user, authLoading, menuId, router]);
+  }, [user, authLoading, menuId, router, pathname]);
 
   if (authLoading || status === "checking") {
     return (
@@ -89,7 +97,38 @@ export default function PageGuard({ menuId, children }) {
   }
 
   if (status === "denied") {
-    return null; // router.replace already fired
+    // If we're already on /dashboard, don't show blank, show a message
+    if (pathname === "/dashboard" || pathname === "/dashboard/") {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-[var(--background)]">
+          <div className="bg-white dark:bg-[var(--card-bg)] p-8 rounded-xl shadow-lg border border-red-100 max-w-md text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-red-600 text-3xl">⚠️</span>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)] mb-2">Access Denied</h2>
+            <p className="text-gray-600 dark:text-[var(--text-secondary)] mb-6 text-sm">
+              You do not have permission to view the dashboard overview. 
+              Please contact your administrator if you believe this is an error.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => window.location.reload()}
+                className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors"
+              >
+                Retry
+              </button>
+              <button 
+                onClick={() => apiService.clearToken() || (window.location.href = "/login")}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-[var(--text-secondary)] rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null; // router.replace already fired for other pages
   }
 
   return children;

@@ -8,6 +8,7 @@ import apiService from "@/lib/api";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import InternalSessionNoteForm from "@/components/InternalSessionNoteForm";
+import SessionNoteDetailsModal from "@/components/SessionNoteDetailsModal";
 import {
   FileText,
   ExternalLink,
@@ -25,6 +26,7 @@ function SessionNotesPageContent() {
   const [loading, setLoading] = useState(true);
   const [activeForm, setActiveForm] = useState(null); // { type, title }
   const [recentNotes, setRecentNotes] = useState([]);
+  const [selectedNoteId, setSelectedNoteId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -147,22 +149,38 @@ function SessionNotesPageContent() {
                         </div>
                       ) : (
                         recentNotes.map((note) => (
-                           <div key={note.id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors">
-                              <div className="flex items-center justify-between mb-1">
-                                 <span className="text-[10px] uppercase font-black text-purple-600 dark:text-purple-400 px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 rounded">
-                                    {note.type.replace('_', ' ')}
-                                 </span>
-                                 <span className="text-[10px] text-gray-400">
-                                    {new Date(note.created_at).toLocaleDateString()}
-                                 </span>
-                              </div>
-                              <h4 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                                 {note.client?.name || "Unspecified Client"}
-                              </h4>
-                              <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                                 {note.content?.summary}
-                              </p>
-                           </div>
+                           <div 
+                              key={note.id} 
+                              onClick={() => setSelectedNoteId(note.id)}
+                              className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors cursor-pointer group"
+                            >
+                               <div className="flex items-center justify-between mb-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded ${
+                                      note.type === 'risk_update' 
+                                        ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400' 
+                                        : 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
+                                    }`}>
+                                       {note.type.replace('_', ' ')}
+                                    </span>
+                                    {note.type === 'risk_update' && <AlertCircle className="w-3.5 h-3.5 text-red-500 animate-pulse" />}
+                                  </div>
+                                  <span className="text-[10px] text-gray-400">
+                                     {new Date(note.created_at).toLocaleDateString()}
+                                  </span>
+                               </div>
+                               <div className="flex items-center justify-between">
+                                 <div>
+                                   <h4 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)] group-hover:text-[#6f1d56] transition-colors">
+                                      {note.client?.name || "Unspecified Client"}
+                                   </h4>
+                                   <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                                      {note.content?.summary}
+                                   </p>
+                                 </div>
+                                 <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#6f1d56] transition-all transform group-hover:translate-x-1" />
+                               </div>
+                            </div>
                         ))
                       )}
                    </div>
@@ -212,6 +230,13 @@ function SessionNotesPageContent() {
             />
           </div>
         </div>
+      )}
+      {/* Details Modal */}
+      {selectedNoteId && (
+        <SessionNoteDetailsModal
+          noteId={selectedNoteId}
+          onClose={() => setSelectedNoteId(null)}
+        />
       )}
     </CounsellorLayout>
   );

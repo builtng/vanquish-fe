@@ -21,6 +21,7 @@ import {
   Bell,
   RefreshCw,
   ArrowRight,
+  FileText,
 } from "lucide-react";
 
 function StatCard({ icon: Icon, label, value, color, href }) {
@@ -46,7 +47,7 @@ function StatCard({ icon: Icon, label, value, color, href }) {
   return href ? <Link href={href}>{content}</Link> : content;
 }
 
-function OverviewContent({ counsellorData, unreadCount }) {
+function OverviewContent({ counsellorData, unreadCount, recentNotes }) {
   const now = new Date();
   const hour = now.getHours();
   const greeting =
@@ -184,6 +185,59 @@ function OverviewContent({ counsellorData, unreadCount }) {
           Go to Messages
         </Link>
       </div>
+
+      {/* Recent Notes */}
+      <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--card-border)] overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-[var(--card-border)] flex items-center justify-between">
+           <div className="flex items-center gap-3">
+             <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
+               <FileText className="w-5 h-5 text-[#6f1d56] dark:text-purple-400" />
+             </div>
+             <div>
+               <h2 className="text-lg font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                 Recent Session Notes
+               </h2>
+               <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
+                 Your most recent documentation submissions
+               </p>
+             </div>
+           </div>
+           <Link
+             href="/counsellor-portal/pages/session-notes"
+             className="text-sm font-medium flex items-center gap-1 hover:opacity-70 transition-opacity"
+             style={{ color: "#6f1d56" }}
+           >
+             View all <ChevronRight className="w-4 h-4" />
+           </Link>
+        </div>
+        
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+           {!recentNotes?.length ? (
+             <div className="p-8 text-center text-gray-400 italic text-sm">
+               No recent session notes found.
+             </div>
+           ) : (
+             recentNotes.slice(0, 3).map((note) => (
+               <div key={note.id} className="p-5 hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                     <span className="text-[10px] font-black uppercase text-purple-600 px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 rounded">
+                        {note.type.replace('_', ' ')}
+                     </span>
+                     <span className="text-[10px] text-gray-400">
+                        {new Date(note.created_at).toLocaleDateString()}
+                     </span>
+                  </div>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                    {note.client?.name || "Client"}
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+                    {note.content?.summary}
+                  </p>
+               </div>
+             ))
+           )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -195,6 +249,7 @@ function PortalOverviewPage() {
 
   const [counsellorData, setCounsellorData] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [recentNotes, setRecentNotes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -211,13 +266,15 @@ function PortalOverviewPage() {
 
   const loadData = async () => {
     try {
-      const [dataRes, countRes] = await Promise.allSettled([
+      const [dataRes, countRes, notesRes] = await Promise.allSettled([
         apiService.getCounsellorOwnData(),
         apiService.getUnreadMessageCount(),
+        apiService.getSessionNotes(),
       ]);
       if (dataRes.status === "fulfilled") setCounsellorData(dataRes.value);
       if (countRes.status === "fulfilled")
         setUnreadCount(countRes.value?.count || 0);
+      if (notesRes.status === "fulfilled") setRecentNotes(notesRes.value || []);
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
@@ -251,6 +308,7 @@ function PortalOverviewPage() {
             <OverviewContent
               counsellorData={counsellorData}
               unreadCount={unreadCount}
+              recentNotes={recentNotes}
             />
           )}
         </div>

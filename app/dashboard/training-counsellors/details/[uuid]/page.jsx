@@ -43,6 +43,7 @@ import {
   ChevronLeft,
   CreditCard,
   Package,
+  Files,
   AlertCircle,
   Check,
   XCircle,
@@ -548,6 +549,30 @@ export default function IndividualTCDetailPage() {
                     <Clock className="w-4 h-4" />
                     Change Status
                   </button>
+
+                  <Link
+                    href={`/dashboard/contacts/tc/${id}/files`}
+                    className="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 font-medium flex items-center gap-2"
+                  >
+                    <Files className="w-4 h-4" />
+                    Practitioner Files
+                  </Link>
+
+                  <Link
+                    href={`/dashboard/contacts/tc/${id}/inbox`}
+                    className="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 font-medium flex items-center gap-2"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Inbox
+                  </Link>
+
+                  <Link
+                    href={`/dashboard/contacts/tc/${id}/internal-form`}
+                    className="px-4 py-2 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 font-medium flex items-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Internal Form
+                  </Link>
                   <button
                     onClick={() => setShowAssignModal(true)}
                     className="px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg font-medium flex items-center gap-2"

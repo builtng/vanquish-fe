@@ -343,6 +343,12 @@ export default function DashboardSidebar() {
       onToggle: () => setCommExpanded(!commExpanded),
       subItems: [
         {
+          id: "messages",
+          label: "Messages",
+          icon: Mail,
+          href: "/dashboard/messages",
+        },
+        {
           id: "staff-notes",
           label: "Staff Notes",
           icon: MessageSquare,
@@ -456,7 +462,8 @@ export default function DashboardSidebar() {
         "consultation-slots",
         "clients",
         "trainee-applications",
-        "staff-notes"
+        "staff-notes",
+        "messages"
       ];
       return consultationStaffAllowed.includes(item.id);
     }

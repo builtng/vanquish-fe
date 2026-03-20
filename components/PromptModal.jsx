@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { X, AlertTriangle } from "lucide-react";
+import { SearchableStatusSelect } from "@/components/StatusBadge";
 
+// ── Main Modal ─────────────────────────────────────────────────────────────────
 export default function PromptModal({
   isOpen,
   onClose,
@@ -15,7 +17,8 @@ export default function PromptModal({
   type = "info", // 'danger', 'warning', 'info'
   loading = false,
   confirmButtonColor = "#6f1d56",
-  inputType = "text", // 'text', 'textarea', 'number', 'email', etc.
+  inputType = "text", // 'text', 'textarea', 'number', 'email', 'select'
+  options = [], // for select type
   required = true,
 }) {
   const [inputValue, setInputValue] = useState(defaultValue);
@@ -60,14 +63,12 @@ export default function PromptModal({
   const styles = getTypeStyles();
 
   const handleConfirm = () => {
-    if (required && !inputValue.trim()) {
-      return;
-    }
+    if (required && !inputValue?.toString().trim()) return;
     onConfirm(inputValue);
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey && inputType !== "textarea") {
+    if (e.key === "Enter" && !e.shiftKey && inputType !== "textarea" && inputType !== "select") {
       e.preventDefault();
       handleConfirm();
     }
@@ -77,13 +78,19 @@ export default function PromptModal({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity"
         onClick={!loading ? onClose : undefined}
       />
 
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-2xl max-w-md w-full pointer-events-auto animate-scale-in">
+        <div
+          className={`
+            bg-white dark:bg-slate-800 rounded-2xl shadow-2xl
+            w-full pointer-events-auto animate-scale-in
+            ${inputType === "select" ? "max-w-lg" : "max-w-md"}
+          `}
+        >
           {/* Header */}
           <div className={`px-6 py-4 border-b ${styles.borderColor} flex items-center justify-between`}>
             <div className="flex items-center gap-3">
@@ -105,7 +112,7 @@ export default function PromptModal({
 
           {/* Content */}
           <div className="p-6">
-            {message && <p className="text-gray-700 dark:text-gray-300 mb-4">{message}</p>}
+            {message && <p className="text-gray-700 dark:text-gray-300 mb-4 text-sm">{message}</p>}
 
             {/* Input */}
             {inputType === "textarea" ? (
@@ -115,9 +122,16 @@ export default function PromptModal({
                 onKeyPress={handleKeyPress}
                 placeholder={placeholder}
                 disabled={loading}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+                className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none outline-none"
                 rows={4}
                 autoFocus
+              />
+            ) : inputType === "select" ? (
+              <SearchableStatusSelect
+                options={options}
+                value={inputValue}
+                onChange={setInputValue}
+                disabled={loading}
               />
             ) : (
               <input
@@ -127,7 +141,7 @@ export default function PromptModal({
                 onKeyPress={handleKeyPress}
                 placeholder={placeholder}
                 disabled={loading}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed outline-none"
                 autoFocus
               />
             )}
@@ -137,20 +151,20 @@ export default function PromptModal({
               <button
                 onClick={onClose}
                 disabled={loading}
-                className="px-6 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {cancelText}
               </button>
               <button
                 onClick={handleConfirm}
-                disabled={loading || (required && !inputValue.trim())}
-                className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                disabled={loading || (required && !inputValue?.toString().trim())}
+                className="px-6 py-2.5 text-white rounded-xl hover:opacity-90 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm shadow-md hover:scale-[1.02] active:scale-95"
                 style={{ backgroundColor: confirmButtonColor }}
               >
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Processing...</span>
+                    <span>Processing…</span>
                   </>
                 ) : (
                   confirmText
@@ -163,20 +177,11 @@ export default function PromptModal({
 
       <style jsx>{`
         @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
+          from { opacity: 0; transform: scale(0.95) translateY(4px); }
+          to   { opacity: 1; transform: scale(1)   translateY(0);    }
         }
-        .animate-scale-in {
-          animation: scale-in 0.2s ease-out;
-        }
+        .animate-scale-in { animation: scale-in 0.18s cubic-bezier(.22,.68,0,1.2); }
       `}</style>
     </>
   );
 }
-

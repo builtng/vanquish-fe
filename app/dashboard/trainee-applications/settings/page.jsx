@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Star, Save, AlertTriangle, ArrowLeft, RotateCcw, HelpCircle, Video, Key, Lock, Eye, EyeOff, Layout, ExternalLink } from "lucide-react";
+import { Save, AlertTriangle, ArrowLeft, RotateCcw, HelpCircle, Video, Key, Lock, Eye, EyeOff, Layout, ExternalLink, Star } from "lucide-react";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -10,7 +10,6 @@ import apiService from "@/lib/api";
 import { useModal } from "@/contexts/ModalContext";
 
 export default function TraineeAssessmentSettings() {
-  const [priorityIndices, setPriorityIndices] = useState([]);
   const [zoomLink, setZoomLink] = useState("");
   const [inductionDate, setInductionDate] = useState("");
   const [zoomSdkKey, setZoomSdkKey] = useState("");
@@ -21,48 +20,10 @@ export default function TraineeAssessmentSettings() {
   const [saving, setSaving] = useState(false);
   const { confirm } = useModal();
 
-  const core34Questions = [
-    "I have felt terribly alone and isolated",
-    "I have felt tense, anxious or nervous",
-    "I have felt I have someone to turn to for support when needed",
-    "I have felt O.K about myself",
-    "I have felt totally lacking in energy and enthusiasm",
-    "I have been physically violent to others",
-    "I have felt able to cope when things go wrong",
-    "I have been troubled by aches, pains or other physical problems",
-    "I have thought of hurting myself",
-    "Talking to people has felt too much for me",
-    "Tension and anxiety have prevented me from doing important things",
-    "I have been happy with the things I have done",
-    "I have been disturbed by unwanted thoughts and feelings",
-    "I have felt like crying",
-    "I have felt panic or terror",
-    "I made plans to end my life",
-    "I have felt overwhelmed by my problems",
-    "I have had difficulty getting to sleep or staying asleep",
-    "I have felt warmth or affection for someone",
-    "My problems have been impossible to put to one side",
-    "I have been able to do most things I needed to",
-    "I have threatened or intimidated another person",
-    "I have felt despairing or hopeless",
-    "I have thought it would be better if I were dead",
-    "I have felt criticised by other people",
-    "I have thought I have no friends",
-    "I have felt unhappy",
-    "Unwanted images or memories have been distressing me",
-    "I have been irritable when with other people",
-    "I have thought I am to blame for my problems and difficulties",
-    "I have felt optimistic about my future",
-    "I have achieved the things I wanted to",
-    "I have felt humiliated or shamed by other people",
-    "I have hurt myself physically or taken dangerous risks with my health",
-  ];
-
   const fetchSettings = async () => {
     setLoading(true);
     try {
       const data = await apiService.getTraineeSettings();
-      setPriorityIndices(data.priority_questions || []);
       setZoomLink(data.default_zoom_link || "");
       setInductionDate(data.next_induction_date || "");
       setZoomSdkKey(data.zoom_sdk_key || "");
@@ -79,19 +40,11 @@ export default function TraineeAssessmentSettings() {
     fetchSettings();
   }, []);
 
-  const togglePriority = (index) => {
-    setPriorityIndices(prev => 
-      prev.includes(index) 
-        ? prev.filter(i => i !== index) 
-        : [...prev, index]
-    );
-  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await apiService.updateTraineeSettings({ 
-        priority_questions: priorityIndices,
+      await apiService.updateTraineeSettings({
         default_zoom_link: zoomLink,
         next_induction_date: inductionDate,
         zoom_mode: zoomMode,
@@ -109,12 +62,13 @@ export default function TraineeAssessmentSettings() {
   const resetToDefault = async () => {
     const ok = await confirm({
       title: "Reset Settings",
-      message: "Are you sure you want to reset priority questions to default? This will clear your current selections.",
+      message: "Are you sure you want to reset settings to default? This will clear the Zoom link field.",
       confirmText: "Reset",
       type: "warning"
     });
     if (ok) {
-      setPriorityIndices([5, 8, 15, 21, 23, 33]); // 6, 9, 16, 22, 24, 34 (0-indexed)
+      setZoomLink("");
+      setInductionDate("");
     }
   };
 
@@ -149,7 +103,7 @@ export default function TraineeAssessmentSettings() {
               </Link>
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">Trainee Application Settings</h1>
-                <p className="text-sm text-gray-500 dark:text-[var(--text-secondary)]">Configure assessment priorities and interview defaults</p>
+                <p className="text-sm text-gray-500 dark:text-[var(--text-secondary)]">Configure interview defaults and Zoom integration</p>
               </div>
             </div>
           </DashboardHeader>
@@ -162,7 +116,6 @@ export default function TraineeAssessmentSettings() {
         <div>
           <h3 className="font-bold text-blue-900 mb-1">How it works</h3>
           <p className="text-blue-800 text-sm leading-relaxed opacity-90 text-justify">
-            Selected priority questions will be displayed at the <strong>top</strong> of the "Initial Assessment" section. 
             The <strong>Default Zoom Link</strong> is used for manual and automated interview bookings if no other link is provided.
             The <strong>Next Induction Date</strong> is shared with candidates in their portal.
           </p>
@@ -292,49 +245,7 @@ export default function TraineeAssessmentSettings() {
         </div>
       </div>
 
-      {/* Questions List */}
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Question Text</span>
-          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Priority</span>
-        </div>
-        
-        <div className="divide-y divide-gray-100">
-          {loading ? (
-            <div className="px-6 py-12 text-center text-gray-400">Loading questions...</div>
-          ) : (
-            core34Questions.map((q, idx) => (
-              <div 
-                key={idx} 
-                className={`group flex items-center justify-between px-6 py-4 transition-all ${
-                  priorityIndices.includes(idx) ? 'bg-purple-50/40 border-l-4 border-purple-500' : 'hover:bg-gray-50 border-l-4 border-transparent'
-                }`}
-              >
-                <div className="flex items-start gap-4 flex-1">
-                  <span className={`text-sm font-bold w-6 text-right ${priorityIndices.includes(idx) ? 'text-purple-600' : 'text-gray-300'}`}>
-                    {idx + 1}.
-                  </span>
-                  <p className={`text-sm font-medium ${priorityIndices.includes(idx) ? 'text-purple-900' : 'text-gray-700'}`}>
-                    {q}
-                  </p>
-                </div>
-                
-                <button 
-                  onClick={() => togglePriority(idx)}
-                  className={`p-2 rounded-lg transition-all ml-4 ${
-                    priorityIndices.includes(idx) 
-                      ? 'bg-purple-600 text-white shadow-md' 
-                      : 'bg-white border border-gray-200 text-gray-300 group-hover:border-purple-300 group-hover:text-purple-400'
-                  }`}
-                  title={priorityIndices.includes(idx) ? "Remove Priority" : "Make Priority"}
-                >
-                  <Star className={`w-5 h-5 ${priorityIndices.includes(idx) ? 'fill-current' : ''}`} />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+
           </div>
         </div>
       </DashboardLayout>

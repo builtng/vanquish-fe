@@ -595,25 +595,77 @@ export default function VanquishTCApplication() {
       // Create FormData for multipart/form-data submission
       const formDataToSubmit = new FormData();
       
-      // Add text fields
+      // ── Core identity ──────────────────────────────────────────────
       formDataToSubmit.append('name', `${formData.firstName} ${formData.lastName}`);
       formDataToSubmit.append('email', formData.email);
       formDataToSubmit.append('phone', formData.phone || '');
+
+      // ── Personal information ────────────────────────────────────────
+      formDataToSubmit.append('date_of_birth', formData.dateOfBirth || '');
+      formDataToSubmit.append('gender', formData.gender || '');
+      formDataToSubmit.append('ethnicity', formData.ethnicity || '');
+      formDataToSubmit.append('sexual_orientation', formData.sexualOrientation || '');
+      const fullAddress = [formData.address, formData.city, formData.postcode].filter(Boolean).join(', ');
+      formDataToSubmit.append('address', fullAddress);
+      if (formData.beliefs && formData.beliefs.length > 0) {
+        formDataToSubmit.append('beliefs', JSON.stringify(formData.beliefs));
+      }
+      formDataToSubmit.append('beliefs_other', formData.otherBeliefs || '');
+      formDataToSubmit.append('disabilities', formData.disabilities || '');
+      formDataToSubmit.append('medical_conditions', formData.medicalConditions || '');
+
+      // ── Fitness to Practise ─────────────────────────────────────────
+      formDataToSubmit.append('has_insurance', formData.hasIndemnityInsurance || '');
+      formDataToSubmit.append('professional_body_member', formData.professionalBodyMember || '');
+      formDataToSubmit.append('professional_body_details', formData.professionalBodyDetails || '');
+      formDataToSubmit.append('dbs_update_service', formData.dbsRegistered || '');
+      formDataToSubmit.append('in_personal_therapy', formData.inPersonalTherapy || '');
+      formDataToSubmit.append('personal_therapy_reason', formData.personalTherapyReason || '');
+      formDataToSubmit.append('has_clinical_supervisor', formData.hasClinicalSupervisor || '');
+      formDataToSubmit.append('supervisor_reason', formData.supervisorReason || '');
+      formDataToSubmit.append('previous_online_counselling', formData.previousOnlineCounselling || '');
+      formDataToSubmit.append('criminal_convictions', formData.criminalConviction || '');
+
+      // ── Training provider / course info ────────────────────────────
       formDataToSubmit.append('modality', formData.modality || '');
       formDataToSubmit.append('course', formData.courseTitle || '');
       formDataToSubmit.append('institution', formData.trainingOrgName || '');
-      // Add training provider details
       formDataToSubmit.append('training_org_name', formData.trainingOrgName || '');
       formDataToSubmit.append('training_org_address', formData.trainingOrgAddress || '');
+      formDataToSubmit.append('college_address', formData.trainingOrgAddress || '');
       formDataToSubmit.append('course_title', formData.courseTitle || '');
+      formDataToSubmit.append('expected_qualification_date', formData.expectedQualification || '');
+      formDataToSubmit.append('counselling_type', formData.courseFocus || '');
+      formDataToSubmit.append('face_to_face_requirement', formData.faceToFaceRequired || '');
+      formDataToSubmit.append('has_face_to_face_clients', formData.currentClients || '');
+      formDataToSubmit.append('face_to_face_client_count', formData.clientCount || '');
+      formDataToSubmit.append('face_to_face_hours_completed', formData.completedHours || '');
+      formDataToSubmit.append('skills_practice_details', formData.skillsPractice || '');
       formDataToSubmit.append('tutor_name', formData.tutorName || '');
       formDataToSubmit.append('tutor_email', formData.tutorEmail || '');
       formDataToSubmit.append('tutor_phone', formData.tutorPhone || '');
       formDataToSubmit.append('placement_lead_name', formData.placementLeadName || '');
       formDataToSubmit.append('placement_lead_email', formData.placementLeadEmail || '');
       formDataToSubmit.append('placement_lead_phone', formData.placementLeadPhone || '');
-      
-      // Add array fields as JSON strings
+
+      // ── Experience & Journey ────────────────────────────────────────
+      formDataToSubmit.append('family_impact', formData.familyDifficulties || '');
+      formDataToSubmit.append('personal_journey', formData.personalJourney || '');
+      formDataToSubmit.append('self_awareness', formData.selfAwareness || '');
+      formDataToSubmit.append('training_history', formData.counsellorTraining || '');
+      formDataToSubmit.append('areas_of_experience', formData.experienceAreas || '');
+      formDataToSubmit.append('personal_development_areas', formData.developmentAreas || '');
+      if (formData.theoreticalApproach && formData.theoreticalApproach.length > 0) {
+        const approachStr = formData.theoreticalApproach.join(', ') +
+          (formData.theoreticalApproachOther ? ` (${formData.theoreticalApproachOther})` : '');
+        formDataToSubmit.append('theoretical_approach', approachStr);
+      }
+
+      // ── PSG Preference ──────────────────────────────────────────────
+      formDataToSubmit.append('psg_day_preference', formData.psgDay || '');
+      formDataToSubmit.append('psg_reason', formData.psgDayOther || '');
+
+      // ── Array / JSON fields ─────────────────────────────────────────
       if (formData.topicsExperienceWith && formData.topicsExperienceWith.length > 0) {
         formDataToSubmit.append('topics_with_experience', JSON.stringify(formData.topicsExperienceWith));
       }
@@ -622,9 +674,10 @@ export default function VanquishTCApplication() {
       }
       if (formData.availability) {
         formDataToSubmit.append('availability', JSON.stringify(formData.availability));
+        formDataToSubmit.append('availability_schedule', JSON.stringify(formData.availability));
       }
       
-      // Add document files
+      // ── Document files ──────────────────────────────────────────────
       if (formData.fitnessTopractice) {
         formDataToSubmit.append('fitnessTopractice', formData.fitnessTopractice);
       }

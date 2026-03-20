@@ -16,6 +16,7 @@ import PageGuard from "@/components/PageGuard";
 import apiService from "@/lib/api";
 import { useModal } from "@/contexts/ModalContext";
 import EmbeddedZoomMeeting from "@/components/EmbeddedZoomMeeting";
+import { StatusBadge, SearchableStatusSelect } from "@/components/StatusBadge";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -159,100 +160,6 @@ function AvailabilitySchedule({ value }) {
   );
 }
 
-function AssessmentResults({ answers }) {
-  if (!answers) return <div className="text-sm text-gray-300 italic">Not provided</div>;
-  
-  let data = answers;
-  if (typeof answers === 'string') {
-    try {
-      data = JSON.parse(answers);
-    } catch (e) {
-      return <div className="text-sm text-gray-800 dark:text-gray-200">{answers}</div>;
-    }
-  }
-
-  if (!data || typeof data !== 'object') {
-    return <div className="text-sm text-gray-800 dark:text-gray-200">{String(answers)}</div>;
-  }
-
-  const core34Questions = [
-    "I have felt terribly alone and isolated",
-    "I have felt tense, anxious or nervous",
-    "I have felt I have someone to turn to for support when needed",
-    "I have felt O.K about myself",
-    "I have felt totally lacking in energy and enthusiasm",
-    "I have been physically violent to others",
-    "I have felt able to cope when things go wrong",
-    "I have been troubled by aches, pains or other physical problems",
-    "I have thought of hurting myself",
-    "Talking to people has felt too much for me",
-    "Tension and anxiety have prevented me from doing important things",
-    "I have been happy with the things I have done",
-    "I have been disturbed by unwanted thoughts and feelings",
-    "I have felt like crying",
-    "I have felt panic or terror",
-    "I made plans to end my life",
-    "I have felt overwhelmed by my problems",
-    "I have had difficulty getting to sleep or staying asleep",
-    "I have felt warmth or affection for someone",
-    "My problems have been impossible to put to one side",
-    "I have been able to do most things I needed to",
-    "I have threatened or intimidated another person",
-    "I have felt despairing or hopeless",
-    "I have thought it would be better if I were dead",
-    "I have felt criticised by other people",
-    "I have thought I have no friends",
-    "I have felt unhappy",
-    "Unwanted images or memories have been distressing me",
-    "I have been irritable when with other people",
-    "I have thought I am to blame for my problems and difficulties",
-    "I have felt optimistic about my future",
-    "I have achieved the things I wanted to",
-    "I have felt humiliated or shamed by other people",
-    "I have hurt myself physically or taken dangerous risks with my health",
-  ];
-
-  const categories = [
-    { name: "Risk Assessment", indices: [5, 8, 15, 21, 23, 33], icon: AlertCircle, color: "text-red-500" },
-    { name: "Emotional Wellbeing", indices: [0, 1, 4, 12, 13, 14, 16, 22, 26, 27], icon: Heart, color: "text-purple-500" },
-    { name: "Functioning & Social", indices: [2, 6, 9, 10, 18, 20, 24, 25, 28, 30, 31, 32], icon: Users, color: "text-blue-500" },
-    { name: "Physical & Other", indices: [3, 7, 11, 17, 19, 29], icon: BookOpen, color: "text-gray-500" },
-  ];
-
-  return (
-    <div className="space-y-6">
-      {categories.map((cat) => (
-        <div key={cat.name} className="space-y-3">
-          <div className="flex items-center gap-2 mb-2">
-            <cat.icon className={`w-4 h-4 ${cat.color}`} />
-            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest">{cat.name}</h4>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {cat.indices.map(idx => {
-              const q = core34Questions[idx];
-              const answer = data[idx] || data[String(idx)];
-              if (!answer) return null;
-
-              const isPriority = ["Often", "Most or all the time"].includes(answer);
-              const isHighRisk = isPriority && cat.name === "Risk Assessment";
-
-              return (
-                <div key={idx} className={`p-4 rounded-xl border transition-all ${isHighRisk ? 'bg-red-50 border-red-200 shadow-md ring-1 ring-red-500/20' : isPriority ? 'bg-amber-50 border-amber-100' : 'bg-gray-50/50 border-gray-100 hover:bg-white hover:shadow-sm'}`}>
-                  <div className="flex justify-between items-start gap-3">
-                    <span className={`text-sm font-medium ${isHighRisk ? 'text-red-900' : 'text-gray-700'}`}>{idx + 1}. {q}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${isHighRisk ? 'bg-red-600 text-white shadow-sm ring-2 ring-white' : isPriority ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'}`}>
-                      {answer}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
@@ -443,27 +350,6 @@ export default function TraineeApplicationDetail() {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const base = "px-3 py-1 rounded-full text-xs font-bold uppercase border";
-    const map = {
-      'New Application':          `${base} bg-blue-50 text-blue-700 border-blue-100`,
-      'Stage 1 Complete':         `${base} bg-purple-50 text-purple-700 border-purple-100`,
-      'Stage 2 Invited':          `${base} bg-amber-50 text-amber-700 border-amber-100`,
-      'Stage 2 Video Submitted':  `${base} bg-orange-50 text-orange-700 border-orange-100 animate-pulse`,
-      'Stage 2 Approved':         `${base} bg-indigo-50 text-indigo-700 border-indigo-100`,
-      'Stage 3 Interview Booked': `${base} bg-green-50 text-green-700 border-green-100 animate-pulse`,
-      'Interview Attended':       `${base} bg-teal-50 text-teal-700 border-teal-100`,
-      'Interview No Show':        `${base} bg-rose-50 text-rose-700 border-rose-100`,
-      'Accepted':                 `${base} bg-emerald-100 text-emerald-800 border-emerald-200 shadow-sm`,
-      'Induction Attended':       `${base} bg-blue-100 text-blue-800 border-blue-200`,
-      'Induction No-Show':        `${base} bg-pink-50 text-pink-700 border-pink-100`,
-      'Onboarding':               `${base} bg-violet-50 text-violet-700 border-violet-100 animate-pulse`,
-      'Active Placement':         `${base} bg-green-600 text-white border-green-700 shadow-lg`,
-      'Rejected':                 `${base} bg-red-50 text-red-700 border-red-100`,
-      'Hold':                     `${base} bg-slate-50 text-slate-700 border-slate-100`,
-    };
-    return map[status] || `${base} bg-gray-50 text-gray-700 border-gray-100`;
-  };
 
   const statusWorkflow = [
     'New Application', 'Stage 1 Complete', 'Stage 2 Invited', 'Stage 2 Video Submitted',
@@ -490,6 +376,22 @@ export default function TraineeApplicationDetail() {
     </PageGuard>
   );
 
+  const getNextStage = (currentStatus) => {
+    const sequence = [
+      'New Application', 'Stage 1 Complete', 'Stage 2 Invited', 
+      'Stage 2 Video Submitted', 'Stage 2 Approved', 'Stage 3 Interview Booked', 
+      'Interview Attended', 'Accepted', 'Induction Attended', 
+      'Onboarding', 'Active Placement'
+    ];
+    const currentIndex = sequence.indexOf(currentStatus);
+    if (currentIndex !== -1 && currentIndex < sequence.length - 1) {
+      return sequence[currentIndex + 1];
+    }
+    return null;
+  };
+
+  const nextStage = getNextStage(application?.status);
+
   return (
     <PageGuard menuId="trainee-applications">
       <DashboardLayout>
@@ -497,6 +399,32 @@ export default function TraineeApplicationDetail() {
           <DashboardHeader
             actions={
               <div className="flex items-center gap-3">
+                {nextStage && (
+                  <button
+                    onClick={() => handleStatusChange(nextStage)}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all font-bold text-sm shadow-md hover:scale-[1.02] active:scale-95"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Next Stage: {nextStage}
+                  </button>
+                )}
+                <button
+                  onClick={async () => {
+                    const newStatus = await prompt({
+                      title: "Force Override Status",
+                      message: "Select new status (use with caution):",
+                      inputType: "select",
+                      options: typeof statusWorkflow !== 'undefined' ? statusWorkflow : [
+                        'New Application', 'Stage 1 Complete', 'Stage 2 Invited', 'Stage 2 Video Submitted',
+                        'Stage 2 Approved', 'Stage 3 Interview Booked', 'Interview Attended', 'Interview No Show', 
+                        'Accepted', 'Induction Attended', 'Induction No-Show', 'Onboarding', 'Active Placement', 'Rejected', 'Hold'
+                      ]
+                    });
+                    if (newStatus) updateStatus(newStatus);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-200 transition-all font-medium text-sm"
+                >
+                  <AlertCircle className="w-4 h-4" /> Force Reset
+                </button>
                 {(application.status === 'New Application' || application.status === 'Stage 1 Complete') && (
                   <button
                     onClick={sendInviteManual}
@@ -531,7 +459,7 @@ export default function TraineeApplicationDetail() {
                   {application.first_name} {application.last_name}
                 </h1>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className={getStatusBadge(application.status)}>{application.status}</span>
+                  <StatusBadge status={application.status} pulse />
                   {application.source === 'jotform' && (
                     <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold uppercase">JotForm</span>
                   )}
@@ -549,14 +477,15 @@ export default function TraineeApplicationDetail() {
 
             {/* Status Change Row */}
             <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-100 dark:border-[var(--card-border)] p-4 mb-6 flex flex-wrap items-center gap-3 shadow-sm">
-              <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Update Status:</span>
-              <select
-                value={application.status}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-bold text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                {statusWorkflow.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+              <span className="text-sm font-semibold text-gray-600 dark:text-gray-400 shrink-0">Update Status:</span>
+              <div className="w-full sm:w-72">
+                <SearchableStatusSelect
+                  options={statusWorkflow}
+                  value={application.status}
+                  onChange={handleStatusChange}
+                  size="sm"
+                />
+              </div>
               <div className="ml-auto flex items-center gap-2 text-xs text-gray-400">
                 <Clock className="w-3.5 h-3.5" />
                 Submitted: {new Date(application.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -1044,10 +973,7 @@ export default function TraineeApplicationDetail() {
                 </Section>
               )}
 
-              {/* ── Initial Assessment Answers ───────────────────────────────── */}
-              <Section icon={AlertCircle} title="Initial Assessment (CORE-34)" iconClass="text-red-500">
-                <AssessmentResults answers={application.assessment_answers} />
-              </Section>
+
 
             </div>
           </div>

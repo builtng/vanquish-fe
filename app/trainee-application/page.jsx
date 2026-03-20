@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { User, Briefcase, BookOpen, AlertTriangle, CheckCircle, Save, ChevronRight, ChevronLeft } from "lucide-react";
+import { User, Briefcase, BookOpen, CheckCircle, Save, ChevronRight, ChevronLeft } from "lucide-react";
 import { toast } from "react-toastify";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 
@@ -15,87 +15,14 @@ export default function TraineeApplicationPage() {
     courseName: "",
     courseDuration: "",
     experienceBackground: "",
-    assessmentAnswers: {},
   });
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
-  const [priorityQuestionIndices, setPriorityQuestionIndices] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const core34Questions = [
-    "I have felt terribly alone and isolated",
-    "I have felt tense, anxious or nervous",
-    "I have felt I have someone to turn to for support when needed",
-    "I have felt O.K about myself",
-    "I have felt totally lacking in energy and enthusiasm",
-    "I have been physically violent to others",
-    "I have felt able to cope when things go wrong",
-    "I have been troubled by aches, pains or other physical problems",
-    "I have thought of hurting myself",
-    "Talking to people has felt too much for me",
-    "Tension and anxiety have prevented me from doing important things",
-    "I have been happy with the things I have done",
-    "I have been disturbed by unwanted thoughts and feelings",
-    "I have felt like crying",
-    "I have felt panic or terror",
-    "I made plans to end my life",
-    "I have felt overwhelmed by my problems",
-    "I have had difficulty getting to sleep or staying asleep",
-    "I have felt warmth or affection for someone",
-    "My problems have been impossible to put to one side",
-    "I have been able to do most things I needed to",
-    "I have threatened or intimidated another person",
-    "I have felt despairing or hopeless",
-    "I have thought it would be better if I were dead",
-    "I have felt criticised by other people",
-    "I have thought I have no friends",
-    "I have felt unhappy",
-    "Unwanted images or memories have been distressing me",
-    "I have been irritable when with other people",
-    "I have thought I am to blame for my problems and difficulties",
-    "I have felt optimistic about my future",
-    "I have achieved the things I wanted to",
-    "I have felt humiliated or shamed by other people",
-    "I have hurt myself physically or taken dangerous risks with my health",
-  ];
-
-  const assessmentOptions = [
-    "Not at all",
-    "Only occasionally",
-    "Sometimes",
-    "Often",
-    "Most or all the time",
-  ];
-
-  useEffect(() => {
-    // Fetch priority questions settings
-    const fetchSettings = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/trainee-applications/settings`);
-        if (res.ok) {
-          const data = await res.json();
-          setPriorityQuestionIndices(data.priority_questions || []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch assessment settings:", err);
-      }
-    };
-    fetchSettings();
-  }, []);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleAssessmentChange = (index, value) => {
-    setFormData(prev => ({
-      ...prev,
-      assessmentAnswers: {
-        ...prev.assessmentAnswers,
-        [index]: value,
-      }
-    }));
   };
 
   const validateStep = (step) => {
@@ -106,8 +33,6 @@ export default function TraineeApplicationPage() {
         return formData.institution && formData.courseName && formData.courseDuration;
       case 3:
         return formData.experienceBackground;
-      case 4:
-        return Object.keys(formData.assessmentAnswers).length === core34Questions.length;
       default:
         return true;
     }
@@ -128,8 +53,8 @@ export default function TraineeApplicationPage() {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(4)) {
-      toast.warning("Please answer all assessment questions.");
+    if (!validateStep(3)) {
+      toast.warning("Please fill in all required fields.");
       return;
     }
 
@@ -148,7 +73,6 @@ export default function TraineeApplicationPage() {
           course_name: formData.courseName,
           course_duration: formData.courseDuration,
           experience_background: formData.experienceBackground,
-          assessment_answers: formData.assessmentAnswers,
         }),
       });
 
@@ -189,20 +113,10 @@ export default function TraineeApplicationPage() {
     );
   }
 
-  // Group questions into priority and others
-  const priorityQuestions = core34Questions
-    .map((q, i) => ({ text: q, index: i }))
-    .filter(q => priorityQuestionIndices.includes(q.index));
-  
-  const otherQuestions = core34Questions
-    .map((q, i) => ({ text: q, index: i }))
-    .filter(q => !priorityQuestionIndices.includes(q.index));
-
   const steps = [
     { n: 1, title: "Personal", icon: User },
     { n: 2, title: "Course", icon: BookOpen },
     { n: 3, title: "Experience", icon: Briefcase },
-    { n: 4, title: "Assessment", icon: AlertTriangle },
   ];
 
   return (
@@ -211,7 +125,7 @@ export default function TraineeApplicationPage() {
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-white mb-2">Trainee Application</h1>
-          <p className="text-purple-100 opacity-80">Stage 1: Basic Information & Initial Assessment</p>
+          <p className="text-purple-100 opacity-80">Stage 1: Basic Information</p>
         </div>
 
         {/* Progress Bar */}
@@ -372,70 +286,6 @@ export default function TraineeApplicationPage() {
             </div>
           )}
 
-          {currentStep === 4 && (
-            <div className="space-y-8">
-              <div className="flex items-center gap-3 mb-4 text-purple-700">
-                <AlertTriangle className="w-6 h-6" />
-                <h2 className="text-2xl font-bold">Initial Assessment</h2>
-              </div>
-              <p className="text-gray-600 bg-purple-50 p-4 rounded-xl border border-purple-100">
-                Please answer the following questions based on how you have felt over the <strong>last week</strong>.
-              </p>
-
-              {/* Priority Questions Section */}
-              {priorityQuestions.length > 0 && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-bold text-gray-900 border-l-4 border-purple-600 pl-4 py-1 bg-gray-50 uppercase tracking-widest text-xs">Priority Questions</h3>
-                  {priorityQuestions.map((q) => (
-                    <div key={q.index} className="space-y-3 pb-6 border-b border-gray-100 last:border-0">
-                      <p className="font-medium text-gray-800">{q.index + 1}. {q.text}</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-                        {assessmentOptions.map((opt, optIdx) => (
-                          <button
-                            key={optIdx}
-                            onClick={() => handleAssessmentChange(q.index, opt)}
-                            className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all ${
-                              formData.assessmentAnswers[q.index] === opt 
-                                ? 'bg-purple-600 text-white border-purple-600 shadow-md' 
-                                : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300'
-                            }`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Remaining Questions Section */}
-              <div className="space-y-6 pt-4">
-                <h3 className="text-lg font-bold text-gray-900 border-l-4 border-gray-400 pl-4 py-1 bg-gray-50 uppercase tracking-widest text-xs">Remaining Questions</h3>
-                {otherQuestions.map((q) => (
-                  <div key={q.index} className="space-y-3 pb-6 border-b border-gray-100 last:border-0">
-                    <p className="font-medium text-gray-800">{q.index + 1}. {q.text}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-                      {assessmentOptions.map((opt, optIdx) => (
-                        <button
-                          key={optIdx}
-                          onClick={() => handleAssessmentChange(q.index, opt)}
-                          className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all ${
-                            formData.assessmentAnswers[q.index] === opt 
-                              ? 'bg-purple-600 text-white border-purple-600 shadow-md' 
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300'
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Navigation */}
           <div className="mt-12 flex items-center justify-between pt-8 border-t border-gray-100">
             {currentStep > 1 ? (
@@ -450,7 +300,7 @@ export default function TraineeApplicationPage() {
               <div></div>
             )}
 
-            {currentStep < 4 ? (
+            {currentStep < 3 ? (
               <button 
                 onClick={handleNext}
                 className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-lg hover:shadow-xl active:scale-95"
