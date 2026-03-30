@@ -38,6 +38,7 @@ import {
   Shuffle,
   Info,
   Files,
+  FileText,
 } from "lucide-react";
 
 export default function DashboardSidebar() {
