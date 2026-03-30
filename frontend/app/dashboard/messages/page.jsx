@@ -223,13 +223,21 @@ export default function DashboardChatPage() {
       setMessages(msgs);
 
       // Check for unread messages in the thread and mark them as read
-      const unreadFromPeer = msgs.filter(m => !m.is_read && String(m.from_user_id) === String(peerId)).length;
-      if (unreadFromPeer > 0) {
+      // We check for any unread message addressed to us
+      const unreadCount = msgs.filter(m => !m.is_read && String(m.to_user_id) === String(authUser?.id)).length;
+      
+      if (unreadCount > 0) {
         apiService.markConversationAsRead(peerType, peerId)
           .then(() => {
             window.dispatchEvent(new CustomEvent("refresh-sidebar-data"));
-            // Optionally update state to show items as read immediately
-            setMessages(prev => prev.map(m => (!m.is_read && String(m.from_user_id) === String(peerId)) ? { ...m, is_read: true } : m));
+            // Update local state to show items as read immediately
+            setMessages(prev => prev.map(m => (!m.is_read && String(m.to_user_id) === String(authUser?.id)) ? { ...m, is_read: true } : m));
+            // Update conversation list item to clear its unread status
+            setConversations(prev => prev.map(conv => 
+              (conv.peer_id === peerId && conv.peer_type === peerType) 
+              ? { ...conv, unread_for_user: false, last_message: { ...conv.last_message, is_read: true } } 
+              : conv
+            ));
           })
           .catch(() => {});
       }
@@ -439,7 +447,7 @@ export default function DashboardChatPage() {
                 ) : (
                   filteredConversations.filter(c => c).map((conv) => {
                     const isActive = activeChat?.id === conv.peer_id && activeChat?.type === conv.peer_type;
-                    const isUnread = !conv.last_message.is_read && String(conv.last_message.from_user_id) !== String(authUser?.id);
+                    const isUnread = !!conv.unread_for_user || (!conv.last_message.is_read && String(conv.last_message.to_user_id) === String(authUser?.id));
 
                     return (
                       <div
