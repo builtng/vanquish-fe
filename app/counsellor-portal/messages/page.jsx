@@ -84,14 +84,16 @@ export default function CounsellorChatPage() {
       setMessages(msgs);
 
       // Check for unread messages in the thread and mark them as read
-      const unreadFromPeer = msgs.filter(m => !m.is_read && String(m.from_user_id) === String(peerId)).length;
-      if (unreadFromPeer > 0) {
+      const myTcId = authUser?.training_counsellor_id;
+      const unreadCount = msgs.filter(m => !m.is_read && (String(m.to_user_id) === String(authUser?.id) || (myTcId && String(m.to_tc_id) === String(myTcId)))).length;
+      
+      if (unreadCount > 0) {
         apiService.markConversationAsRead(peerType, peerId)
           .then(() => {
             loadUnreadCount();
             loadConversations();
             // Show as read immediately in UI
-            setMessages(prev => prev.map(m => (!m.is_read && String(m.from_user_id) === String(peerId)) ? { ...m, is_read: true } : m));
+            setMessages(prev => prev.map(m => (!m.is_read && (String(m.to_user_id) === String(authUser?.id) || (myTcId && String(m.to_tc_id) === String(myTcId)))) ? { ...m, is_read: true } : m));
           })
           .catch(() => {});
       }
@@ -335,7 +337,8 @@ export default function CounsellorChatPage() {
               ) : (
                 filteredConversations.map((conv) => {
                   const isActive = activeChat?.id === conv.peer_id && activeChat?.type === conv.peer_type;
-                  const isUnread = !conv.last_message.is_read && conv.last_message.from_user_id !== authUser.id;
+                  const myTcId = authUser?.training_counsellor_id;
+                const isUnread = !!conv.unread_for_user || (!conv.last_message.is_read && (String(conv.last_message.to_user_id) === String(authUser?.id) || (myTcId && String(conv.last_message.to_tc_id) === String(myTcId))));
                   
                   return (
                     <div

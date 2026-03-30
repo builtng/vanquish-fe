@@ -226,15 +226,43 @@ export default function TraineeApplicationDetail() {
   };
 
   const handleStatusChange = async (newStatus) => {
-    if (newStatus === 'Accepted') {
-      const date = await prompt({
-        title: "Induction Date",
-        message: "Enter Induction Date:",
-        defaultValue: "Monday, April 6th, 2026"
-      });
-      if (date) updateStatus(newStatus, date);
-    } else {
-      updateStatus(newStatus);
+    // Dispatch to specialized functions if they exist for the status
+    switch (newStatus) {
+      case 'Stage 2 Invited':
+        return sendInviteManual();
+      
+      case 'Stage 3 Interview Booked':
+        return sendStageThreeInvite();
+
+      case 'Interview Attended':
+        return handleAttendance(true);
+      
+      case 'Interview No Show':
+        return handleAttendance(false);
+
+      case 'Accepted':
+        return handleDecision('Accepted');
+
+      case 'Rejected':
+        // For Rejection, we use handleDecision to capture notes
+        return handleDecision('Rejected');
+
+      case 'Hold':
+        // Capture notes for hold decision
+        return handleDecision('Hold');
+
+      case 'Induction Attended':
+        return handleInductionAttendance(true);
+      
+      case 'Induction No-Show':
+        return handleInductionAttendance(false);
+
+      case 'Active Placement':
+        return handleFinalizePlacement();
+
+      default:
+        // Regular status update for all other stages
+        updateStatus(newStatus);
     }
   };
 
@@ -507,12 +535,12 @@ export default function TraineeApplicationDetail() {
                     <video src={application.video_url} controls className="w-full h-full object-contain" />
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={() => updateStatus('Stage 2 Approved')}
+                    <button onClick={() => handleStatusChange('Stage 2 Approved')}
                       disabled={application.status === 'Stage 2 Approved'}
                       className="flex-1 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 disabled:bg-gray-300 transition-all flex items-center justify-center gap-2">
                       <CheckCircle className="w-4 h-4" /> Approve Video & Invite to S3
                     </button>
-                    <button onClick={() => updateStatus('Rejected')}
+                    <button onClick={() => handleStatusChange('Rejected')}
                       className="flex-1 py-2.5 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition-all">
                       Reject Candidate
                     </button>
@@ -636,15 +664,15 @@ export default function TraineeApplicationDetail() {
                     <div className="space-y-6">
                       <p className="text-sm text-gray-500">The interview stage is complete. Please record the final placement decision for this candidate.</p>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <button onClick={() => handleDecision('Accepted')}
+                        <button onClick={() => handleStatusChange('Accepted')}
                           className="py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg hover:shadow-emerald-200">
                           Accept Placement
                         </button>
-                        <button onClick={() => handleDecision('Pending')}
+                        <button onClick={() => handleStatusChange('Hold')}
                           className="py-4 bg-slate-700 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all">
                           Place on Hold
                         </button>
-                        <button onClick={() => handleDecision('Rejected')}
+                        <button onClick={() => handleStatusChange('Rejected')}
                           className="py-4 bg-white border-2 border-rose-100 text-rose-600 rounded-2xl font-bold hover:bg-rose-50 transition-all">
                           Reject
                         </button>
@@ -675,12 +703,12 @@ export default function TraineeApplicationDetail() {
                           </div>
                        </div>
 
-                       {application.status !== 'Accepted' && application.status !== 'Rejected' && application.status !== 'Active Placement' && (
-                         <div className="mt-6 pt-6 border-t border-purple-100 flex gap-3">
-                            <button onClick={() => handleDecision('Accepted')} className="px-6 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold">Rescind & Accept</button>
-                            <button onClick={() => handleDecision('Rejected')} className="px-6 py-2 bg-rose-600 text-white rounded-lg text-xs font-bold">Rescind & Reject</button>
-                         </div>
-                       )}
+                        {application.status !== 'Accepted' && application.status !== 'Rejected' && application.status !== 'Active Placement' && (
+                          <div className="mt-6 pt-6 border-t border-purple-100 flex gap-3">
+                             <button onClick={() => handleStatusChange('Accepted')} className="px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold">Rescind & Accept</button>
+                             <button onClick={() => handleStatusChange('Rejected')} className="px-6 py-2 bg-rose-600 text-white rounded-lg text-sm font-bold">Rescind & Reject</button>
+                          </div>
+                        )}
                     </div>
                   )}
                 </Section>
