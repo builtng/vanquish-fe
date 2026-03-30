@@ -167,9 +167,17 @@ class MessageController extends Controller
                 }
             } else if ($msg->to_tc_id) {
                 // Peer is the TC recipient
-                $peerId = $msg->to_tc_id;
-                $peerType = 'tc';
-                $peerName = $msg->toTrainingCounsellor?->name;
+                if ($user->isCounsellor() && $user->training_counsellor_id == $msg->to_tc_id) {
+                    // Current user is the TC recipient; identify sender (peer)
+                    $peerId = $msg->from_user_id;
+                    $peerType = 'user';
+                    $peerName = $msg->fromUser?->name;
+                } else {
+                    // Staff/Other person viewing TC thread; identify TC as peer
+                    $peerId = $msg->to_tc_id;
+                    $peerType = 'tc';
+                    $peerName = $msg->toTrainingCounsellor?->name;
+                }
             } else if ($msg->to_user_id && $msg->to_user_id !== $user->id) {
                 // Peer is the user recipient
                 if ($msg->toUser && $msg->toUser->training_counsellor_id) {
@@ -181,6 +189,11 @@ class MessageController extends Controller
                     $peerType = 'user';
                     $peerName = $msg->toUser?->name;
                 }
+            } else if ($msg->fromUser && $msg->fromUser->training_counsellor_id && $user->isStaff()) {
+                // Special case for staff: message FROM a TC (not necessarily TO me, but in a thread I see)
+                $peerId = $msg->fromUser->training_counsellor_id;
+                $peerType = 'tc';
+                $peerName = $msg->fromUser->name;
             }
 
             if (!$peerId) continue;
@@ -200,12 +213,41 @@ class MessageController extends Controller
                     }
                 }
 
+                // Correct unread status calculation: any unread message addressed TO me in THIS conversation
+                $hasUnread = Message::where('is_read', false)
+                    ->where('is_trashed', false)
+                    ->where(function($q) use ($user, $peerId, $peerType) {
+                        // Identified as belonging to this conversation
+                        if ($peerType === 'tc') {
+                            $tcUserId = \App\Models\User::where('training_counsellor_id', $peerId)->value('id');
+                            $q->where(function($inner) use ($peerId, $tcUserId) {
+                                // To TC
+                                $inner->where('to_tc_id', $peerId);
+                                // Or From TC
+                                if ($tcUserId) $inner->orWhere('from_user_id', $tcUserId);
+                            });
+                        } else {
+                            // Direct User Peer - only messages from peer to me
+                            $q->where('from_user_id', (int)$peerId);
+                        }
+                        
+                        // AND addressed TO the current user
+                        $q->where(function($inner) use ($user) {
+                            if ($user->isCounsellor() && $user->training_counsellor_id) {
+                                $inner->where('to_tc_id', $user->training_counsellor_id);
+                            } else {
+                                $inner->where('to_user_id', $user->id);
+                            }
+                        });
+                    })->exists();
+
                 $conversations[] = [
                     'peer_id' => $peerId,
                     'peer_uuid' => $peerUuid,
                     'peer_type' => $peerType,
                     'peer_name' => $peerName ?: 'Unknown User',
                     'last_message' => $msg,
+                    'unread_for_user' => $hasUnread, // Specific unread status for current user
                 ];
             }
         }
@@ -305,7 +347,9 @@ class MessageController extends Controller
                     Log::error('Failed to broadcast message sent event: ' . $e->getMessage());
                 }
 
-                // Email
+                // External email notifications for messages are disabled for security/sensitivity.
+                // Messages should only be accessed on the platform.
+                /*
                 if (($validated['send_email_notification'] ?? true) && $tc->email) {
                     try {
                         Mail::to($tc->email)->send(new DynamicEmail(
@@ -320,6 +364,7 @@ class MessageController extends Controller
                         Log::error('Failed to send message email notification to TC: ' . $e->getMessage());
                     }
                 }
+                */
             }
 
             // Also create records for CC users so it shows in their inbox
@@ -329,8 +374,9 @@ class MessageController extends Controller
                     Message::create([
                         'from_user_id' => $user->id,
                         'to_user_id' => $ccUser->id,
+                        'to_tc_id' => count($recipientTcIds) === 1 ? $recipientTcIds[0] : null, // Link to TC if sent to a single TC thread
                         'subject' => $validated['subject'],
-                        'message' => $validated['message'],
+                        'message' => $validated['message'] ?? null,
                         'type' => 'staff_to_staff',
                         'cc_users' => $ccUsers,
                         'related_client_id' => $validated['related_client_id'] ?? null,
@@ -460,7 +506,9 @@ class MessageController extends Controller
                 Log::error('Failed to broadcast staff message sent event: ' . $e->getMessage());
             }
 
-            // Email Notification
+            // External email notifications for messages are disabled for security/sensitivity.
+            // Messages should only be accessed on the platform.
+            /*
             try {
                 Mail::to($targetUser->email)->send(new DynamicEmail(
                     'generic_tc_email',
@@ -473,6 +521,7 @@ class MessageController extends Controller
             } catch (\Exception $e) {
                 Log::error('Failed to send staff notification email: ' . $e->getMessage());
             }
+            */
         }
 
         if ($sentCount === 0) {
@@ -609,14 +658,21 @@ class MessageController extends Controller
         $query = Message::where('is_read', false)
             ->where('is_trashed', false)
             ->where(function($q) use ($user, $peerId, $peerType) {
-                // Incoming messages to the user from the peer
+                // Incoming messages to the user in the context of this peer
                 if ($peerType === 'tc') {
                     $tcUserId = \App\Models\User::where('training_counsellor_id', $peerId)->value('id');
-                    $q->where('from_user_id', $tcUserId ?: -1);
+                    
+                    $q->where(function($inner) use ($peerId, $tcUserId) {
+                        // From the TC
+                        if ($tcUserId) $inner->where('from_user_id', $tcUserId);
+                        // OR part of this TC thread (sent to TC by others but me being the recipient/CC)
+                        $inner->orWhere('to_tc_id', $peerId);
+                    });
                 } else {
                     $q->where('from_user_id', (int)$peerId);
                 }
                 
+                // Identify the current user as the recipient
                 if ($user->isCounsellor() && $user->training_counsellor_id) {
                     $q->where('to_tc_id', $user->training_counsellor_id);
                 } else {

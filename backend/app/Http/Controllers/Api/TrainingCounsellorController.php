@@ -591,6 +591,7 @@ class TrainingCounsellorController extends Controller
 
         // Send email
         try {
+            /*
             Mail::to($tc->email)->send(new DynamicEmail(
                 'generic_tc_email',
                 [
@@ -599,26 +600,28 @@ class TrainingCounsellorController extends Controller
                     'subject' => $validated['subject']
                 ]
             ));
+            */
 
+            // Log activity but inform that email send was skipped/disabled
             ActivityLog::create([
                 'user_id' => $request->user()->id,
-                'action' => 'email_sent',
+                'action' => 'email_skipped',
                 'model_type' => TrainingCounsellor::class,
                 'model_id' => $tc->id,
-                'description' => "Email sent to {$tc->name} ({$tc->email}): {$validated['subject']}",
-                'changes' => ['subject' => $validated['subject']],
+                'description' => "External email message to {$tc->name} was blocked - MESSAGES MUST STAY ON PLATFORM: {$validated['subject']}",
+                'changes' => ['subject' => $validated['subject'], 'message' => '[REDACTED - STAY ON PLATFORM]'],
                 'ip_address' => $request->ip(),
             ]);
 
             return response()->json([
-                'message' => 'Email sent successfully to ' . $tc->email,
+                'message' => 'Manual external emails are disabled. Please use the on-platform messaging system to communicate with ' . $tc->name,
                 'to' => $tc->email,
                 'subject' => $validated['subject'],
                 'tc_uuid' => $tc->uuid,
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to send email: ' . $e->getMessage(),
+                'message' => 'Failed to process request: ' . $e->getMessage(),
             ], 500);
         }
     }
