@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('messages', function (Blueprint $table) {
-            $table->boolean('is_trashed')->default(false);
-            $table->timestamp('trashed_at')->nullable();
+            if (!Schema::hasColumn('messages', 'is_trashed')) {
+                $table->boolean('is_trashed')->default(false);
+            }
+            if (!Schema::hasColumn('messages', 'trashed_at')) {
+                $table->timestamp('trashed_at')->nullable();
+            }
         });
     }
 
@@ -23,7 +27,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('messages', function (Blueprint $table) {
-            $table->dropColumn(['is_trashed', 'trashed_at']);
+            if (Schema::hasColumn('messages', 'is_trashed')) {
+                $table->dropColumn('is_trashed');
+            }
+            if (Schema::hasColumn('messages', 'trashed_at')) {
+                $table->dropColumn('trashed_at');
+            }
         });
     }
 };

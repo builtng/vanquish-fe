@@ -5,11 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class TrainingCounsellor extends Model
 {
     use SoftDeletes;
+
+    protected $with = ['user'];
+
+    /**
+     * Get the user associated with this training counsellor
+     */
+    public function user(): HasOne
+    {
+        return $this->hasOne(User::class, 'training_counsellor_id');
+    }
 
     protected $fillable = [
         'uuid',

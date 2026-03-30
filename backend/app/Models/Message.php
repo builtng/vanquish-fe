@@ -21,6 +21,10 @@ class Message extends Model
         'is_trashed',
         'trashed_at',
         'cc_users',
+        'attachment_path',
+        'attachment_name',
+        'attachment_type',
+        'reply_to_id',
     ];
 
     protected $casts = [
@@ -54,6 +58,16 @@ class Message extends Model
     public function relatedConsultation(): BelongsTo
     {
         return $this->belongsTo(Consultation::class, 'related_consultation_id');
+    }
+
+    public function parentMessage(): BelongsTo
+    {
+        return $this->belongsTo(Message::class, 'reply_to_id');
+    }
+
+    public function replies()
+    {
+        return $this->hasMany(Message::class, 'reply_to_id');
     }
 }
 

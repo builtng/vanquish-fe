@@ -63,13 +63,13 @@ class SharedDocumentController extends Controller
             }
         }
 
-        $folders = $folderQuery->with('creator:id,name')->orderBy('name')->get();
+        $folders = $folderQuery->with(['creator:id,name', 'shares'])->orderBy('name')->get();
         $documents = $documentQuery->with('uploader:id,name')->orderBy('is_pinned', 'desc')->orderBy('created_at', 'desc')->get();
             
         return response()->json([
             'folders' => $folders,
             'files' => $documents,
-            'current_folder' => $folderId ? Folder::with('parent')->find($folderId) : null
+            'current_folder' => $folderId ? Folder::with(['parent', 'shares'])->find($folderId) : null
         ]);
     }
 
@@ -314,11 +314,86 @@ class SharedDocumentController extends Controller
         return response()->json([
             'folders' => $folders,
             'files' => $documents,
-            'current_folder' => Folder::find($folderId)
+            'current_folder' => Folder::with('shares')->find($folderId)
+        ]);
+    }
+
+    /**
+     * Show a single document.
+     */
+    public function showDocument(SharedDocument $document)
+    {
+        return response()->json($document->load('uploader:id,name', 'folder', 'client', 'tc'));
+    }
+
+    /**
+     * Update a folder.
+     */
+    public function updateFolder(Request $request, Folder $folder)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'nullable|in:internal,shared',
+            'is_active' => 'nullable|boolean'
+        ]);
+
+        $folder->update($request->only(['name', 'type', 'is_active']));
+
+        return response()->json($folder);
+    }
+
+    /**
+     * Update a document.
+     */
+    public function update(Request $request, SharedDocument $document)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'is_pinned' => 'nullable|boolean',
+            'is_active' => 'nullable|boolean'
+        ]);
+
+        $document->update($request->only(['name', 'description', 'is_pinned', 'is_active']));
+
+        return response()->json($document);
+    }
+
+    /**
+     * Show subfolders and files in a specific folder.
+     */
+    public function show(Request $request, Folder $folder)
+    {
+        $user = $request->user();
+        $isStaff = in_array($user->role, ['super_admin', 'admin', 'staff', 'consultation_staff', 'compliance_officer']);
+        
+        // Basic permission check
+        if (!$isStaff && $folder->type === 'internal') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+        
+        $folders = Folder::where('parent_id', $folder->id)
+            ->where('is_active', true)
+            ->with(['creator:id,name', 'shares'])
+            ->orderBy('name')
+            ->get();
+            
+        $documents = SharedDocument::where('folder_id', $folder->id)
+            ->where('is_active', true)
+            ->with('uploader:id,name')
+            ->orderBy('is_pinned', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        return response()->json([
+            'folders' => $folders,
+            'files' => $documents,
+            'current_folder' => $folder->load(['parent', 'shares'])
         ]);
     }
 
     private function formatBytes($bytes, $precision = 2)
+
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         $bytes = max($bytes, 0);

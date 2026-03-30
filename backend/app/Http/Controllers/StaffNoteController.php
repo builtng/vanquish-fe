@@ -34,7 +34,11 @@ class StaffNoteController extends Controller
         ]);
 
         // Dispatch Event for Real-time Notification
-        broadcast(new StaffNoteSent($note))->toOthers();
+        try {
+            broadcast(new StaffNoteSent($note))->toOthers();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('StaffNoteSent broadcast failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,

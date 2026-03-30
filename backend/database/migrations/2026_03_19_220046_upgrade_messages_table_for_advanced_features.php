@@ -12,8 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('messages', function (Blueprint $table) {
-            $table->json('cc_users')->nullable()->after('message');
-            $table->softDeletes();
+            if (!Schema::hasColumn('messages', 'cc_users')) {
+                $table->json('cc_users')->nullable()->after('message');
+            }
+            // For softDeletes, it's also good to guard
+            if (!Schema::hasColumn('messages', 'deleted_at')) {
+                $table->softDeletes();
+            }
         });
     }
 
@@ -23,8 +28,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('messages', function (Blueprint $table) {
-            $table->dropColumn('cc_users');
-            $table->dropSoftDeletes();
+            if (Schema::hasColumn('messages', 'cc_users')) {
+                $table->dropColumn('cc_users');
+            }
+            if (Schema::hasColumn('messages', 'deleted_at')) {
+                $table->dropSoftDeletes();
+            }
         });
     }
 };

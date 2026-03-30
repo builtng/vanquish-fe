@@ -285,18 +285,28 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/send-to-staff', [MessageController::class, 'sendToStaff']);
         });
+
+        Route::post('/conversations/{type}/{id}/mark-read', [MessageController::class, 'markConversationAsRead']);
+        Route::delete('/conversations/{type}/{id}', [MessageController::class, 'deleteConversation']);
     });
 
     // Shared Documents & Folders
     Route::get('/shared-documents', [SharedDocumentController::class, 'index']);
+    Route::get('/shared-documents/{document}', [SharedDocumentController::class, 'showDocument']);
+    Route::get('/folders', [SharedDocumentController::class, 'index']);
+    Route::get('/folders/{folder}', [SharedDocumentController::class, 'show']);
+
     Route::get('/contacts/{type}/{id}/files', [SharedDocumentController::class, 'contactFiles']);
     Route::post('/shared-documents', [SharedDocumentController::class, 'store']);
     Route::get('/shared-documents/{document}/download', [SharedDocumentController::class, 'download']);
     
     Route::middleware('staff')->group(function () {
         Route::post('/folders', [SharedDocumentController::class, 'createFolder']);
+        Route::patch('/folders/{folder}', [SharedDocumentController::class, 'updateFolder']);
         Route::post('/folders/{folder}/share', [SharedDocumentController::class, 'shareFolder']);
         Route::delete('/folders/{folder}', [SharedDocumentController::class, 'destroyFolder']);
+        
+        Route::patch('/shared-documents/{document}', [SharedDocumentController::class, 'update']);
         Route::delete('/shared-documents/{document}', [SharedDocumentController::class, 'destroy']);
     });
 
