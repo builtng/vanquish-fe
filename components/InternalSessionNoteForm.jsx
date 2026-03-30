@@ -32,16 +32,24 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
 
   // Derived attendance record calculation
   const getAttendanceRecord = () => {
-    if (!formData.client_id) return "0/0";
+    if (!formData.client_id) return { attended: 0, total: 0, display: "0/0" };
     
-    // Count past attended
+    // Count past records
     const pastAttended = pastSessions.filter(s => s.content?.attended === "1" || s.content?.attended === 1).length;
     const currentAttended = formData.attended === "1" ? 1 : 0;
-    const totalAttended = pastAttended + currentAttended;
-    const totalRecorded = formData.session_number || (pastSessions.length + 1);
     
-    return `${totalAttended}/${totalRecorded}`;
+    const totalAttended = pastAttended + currentAttended;
+    // Total is past sessions + the current one being recorded
+    const totalRecorded = pastSessions.length + 1;
+    
+    return {
+      attended: totalAttended,
+      total: totalRecorded,
+      display: `${totalAttended}/${totalRecorded}`
+    };
   };
+
+  const attendanceStats = getAttendanceRecord();
 
   useEffect(() => {
     fetchClients();
@@ -72,12 +80,11 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
     setFetchingStats(true);
     try {
       const notes = await apiService.request(`/session-notes?client_id=${clientId}`);
-      setPastSessions(notes || []);
+      const sessionsOnly = notes.filter(n => n.type === 'weekly' || n.content?.session_number);
+      setPastSessions(sessionsOnly || []);
       
-      // Auto-set session number if not already set (default to next sequential)
-      if (!formData.session_number) {
-        setFormData(prev => ({ ...prev, session_number: String(notes.length + 1) }));
-      }
+      // Auto-set session number to total count (past + current)
+      setFormData(prev => ({ ...prev, session_number: String(sessionsOnly.length + 1) }));
     } catch (err) {
       console.error("Error fetching stats:", err);
     } finally {
@@ -94,8 +101,6 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
 
     setLoading(true);
     try {
-      const attendanceRecord = getAttendanceRecord();
-      
       await apiService.submitSessionNote({
         client_id: formData.client_id,
         type: type, // 'weekly', 'block_summary', 'risk_update'
@@ -103,7 +108,7 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
           session_date: formData.session_date,
           session_number: formData.session_number,
           attended: formData.attended,
-          attendance_record: attendanceRecord,
+          attendance_record: attendanceStats.display,
           tc_initials: formData.tc_initials,
           summary: formData.summary,
           risk_assessment: formData.risk_assessment,
@@ -224,19 +229,26 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
             />
           </div>
 
-          {/* Session Number - Searchable Select */}
+          {/* Session Number - Now more integrated with the sum logic */}
           <div className="col-span-full md:col-span-1">
             <label className="block text-sm font-bold text-gray-700 dark:text-[var(--text-primary)] mb-2">
               Session Number *
             </label>
-            <SearchableSelect
-              required
-              options={sessionOptions}
-              value={formData.session_number}
-              onChange={(e) => setFormData({ ...formData, session_number: e.target.value })}
-              placeholder="Session #..."
-              isDisabled={!formData.client_id || fetchingStats}
-            />
+            <div className="relative">
+              <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+              <input
+                type="number"
+                required
+                value={formData.session_number}
+                onChange={(e) => setFormData({ ...formData, session_number: e.target.value })}
+                placeholder="e.g. 5"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-[#6f1d56] outline-none text-sm font-bold"
+                disabled={!formData.client_id || fetchingStats}
+              />
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1 italic">
+              Automatically calculated based on past records.
+            </p>
           </div>
 
           {/* Attendance Selection */}
@@ -272,14 +284,34 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
           
           {/* Visual attendance tracker info */}
           {formData.client_id && (
-            <div className="col-span-full bg-purple-50 dark:bg-purple-900/10 p-3 rounded-xl border border-purple-100 dark:border-purple-800/30 flex items-center justify-between">
-               <div className="flex items-center gap-2">
-                 <Hash className="w-4 h-4 text-[#6f1d56]" />
-                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Recorded Attendance Score</span>
+            <div className="col-span-full bg-purple-50 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-800/30">
+               <div className="flex items-center justify-between mb-2">
+                 <div className="flex items-center gap-2">
+                   <CheckCircle className="w-4 h-4 text-[#6f1d56]" />
+                   <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Live Attendance Tracking</span>
+                 </div>
+                 <span className="text-sm font-black text-[#6f1d56] bg-white dark:bg-gray-900 px-3 py-1 rounded-full shadow-sm border border-purple-100 dark:border-purple-800">
+                   {attendanceStats.display}
+                 </span>
                </div>
-               <span className="text-sm font-bold text-[#6f1d56]">
-                 {getAttendanceRecord()} sessions
-               </span>
+               <div className="flex gap-1.5 overflow-hidden rounded-full h-2 bg-gray-200 dark:bg-gray-700">
+                  <div 
+                    className="bg-green-500 transition-all duration-500" 
+                    style={{ width: `${attendanceStats.total > 0 ? (attendanceStats.attended / attendanceStats.total) * 100 : 0}%` }}
+                  />
+                  <div 
+                    className="bg-red-500 transition-all duration-500" 
+                    style={{ width: `${attendanceStats.total > 0 ? ((attendanceStats.total - attendanceStats.attended) / attendanceStats.total) * 100 : 0}%` }}
+                  />
+               </div>
+               <div className="flex justify-between mt-2">
+                  <span className="text-[10px] font-medium text-green-600 dark:text-green-500 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> {attendanceStats.attended} Attended
+                  </span>
+                  <span className="text-[10px] font-medium text-red-600 dark:text-red-500 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" /> {attendanceStats.total - attendanceStats.attended} Not Attended
+                  </span>
+               </div>
             </div>
           )}
         </div>
