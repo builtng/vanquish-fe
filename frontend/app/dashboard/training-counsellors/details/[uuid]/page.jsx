@@ -513,29 +513,6 @@ export default function IndividualTCDetailPage() {
                     Change Status
                   </button>
 
-                  <Link
-                    href={`/dashboard/contacts/tc/${uuid}/files`}
-                    className="h-10 px-4 bg-white border border-purple-200 text-purple-700 rounded-xl hover:bg-purple-50 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm active:scale-95"
-                  >
-                    <Files className="w-3.5 h-3.5" />
-                    Practitioner Files
-                  </Link>
-
-                  <Link
-                    href={`/dashboard/contacts/tc/${uuid}/inbox`}
-                    className="h-10 px-4 bg-white border border-blue-200 text-blue-700 rounded-xl hover:bg-blue-50 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm active:scale-95"
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    Inbox
-                  </Link>
-
-                  <Link
-                    href={`/dashboard/contacts/tc/${uuid}/internal-form`}
-                    className="h-10 px-4 bg-white border border-amber-200 text-amber-700 rounded-xl hover:bg-amber-50 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm active:scale-95"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    Internal Form
-                  </Link>
                   <button
                     onClick={() => setShowAssignModal(true)}
                     className="h-10 px-4 bg-slate-900 text-white rounded-xl hover:bg-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-md active:scale-95"
@@ -552,7 +529,7 @@ export default function IndividualTCDetailPage() {
                   </button>
                   <Link
                     href={`/dashboard/training-counsellors/edit?id=${uuid}`}
-                    className="h-10 px-4 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95"
+                    className="h-10 px-4 bg-slate-100 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-200 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95"
                   >
                     <Edit className="w-3.5 h-3.5" />
                     Edit
