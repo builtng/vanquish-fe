@@ -11,6 +11,7 @@ export default function PhotoUpload({
   photoUrl,
   onUpload,
   onDelete,
+  initials,
   entityId,
   entityType = "client", // 'client' or 'tc'
   size = "large", // 'small', 'medium', 'large'
@@ -33,6 +34,12 @@ export default function PhotoUpload({
     small: "w-16 h-16",
     medium: "w-24 h-24",
     large: "w-32 h-32",
+  };
+
+  const initialsFontSizes = {
+    small: "text-xl",
+    medium: "text-3xl",
+    large: "text-4xl",
   };
 
   const handleFileSelect = (e) => {
@@ -125,7 +132,7 @@ export default function PhotoUpload({
   return (
     <div className="flex flex-col items-center gap-3">
       <div
-        className={`relative ${sizeClasses[size]} rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100 flex items-center justify-center group`}
+        className={`relative ${sizeClasses[size]} rounded-full overflow-hidden border-2 border-gray-200 bg-gradient-to-br from-gray-50 to-gray-200 flex items-center justify-center group shadow-inner`}
       >
         {displayPhoto ? (
           <>
@@ -138,14 +145,14 @@ export default function PhotoUpload({
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2 bg-black/50">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2 bg-white rounded-full hover:bg-gray-100 transition-all"
+                  className="p-2 bg-white rounded-full hover:bg-gray-100 transition-all shadow-md transform scale-90 group-hover:scale-100 duration-200"
                   title="Change photo"
                 >
                   <Camera className="w-4 h-4 text-gray-700" />
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="p-2 bg-white rounded-full hover:bg-red-100 transition-all"
+                  className="p-2 bg-white rounded-full hover:bg-red-100 transition-all shadow-md transform scale-90 group-hover:scale-100 duration-200"
                   title="Delete photo"
                 >
                   <X className="w-4 h-4 text-red-600" />
@@ -154,13 +161,20 @@ export default function PhotoUpload({
             )}
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center">
+          <div className="w-full h-full flex flex-col items-center justify-center relative cursor-pointer group" onClick={() => fileInputRef.current?.click()}>
             {uploading ? (
               <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+            ) : initials ? (
+              <div className={`w-full h-full flex items-center justify-center bg-purple-600 text-white font-bold tracking-tight ${initialsFontSizes[size]}`}>
+                {initials}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex flex-col items-center justify-center transition-all">
+                   <Camera className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
             ) : (
               <>
                 <Camera className="w-6 h-6 text-gray-400 mb-1" />
-                <span className="text-xs text-gray-400">No photo</span>
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">No photo</span>
               </>
             )}
           </div>
