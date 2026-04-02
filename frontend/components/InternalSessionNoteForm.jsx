@@ -83,14 +83,28 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
       const sessionsOnly = notes.filter(n => n.type === 'weekly' || n.content?.session_number);
       setPastSessions(sessionsOnly || []);
       
-      // Auto-set session number to total count (past + current)
-      setFormData(prev => ({ ...prev, session_number: String(sessionsOnly.length + 1) }));
+      // Auto-set session number string (attended/total)
+      const pastAttended = sessionsOnly.filter(s => s.content?.attended === "1" || s.content?.attended === 1).length;
+      const currentAttended = formData.attended === "1" ? 1 : 0;
+      const totalAttended = pastAttended + currentAttended;
+      const totalRecorded = sessionsOnly.length + 1;
+      setFormData(prev => ({ ...prev, session_number: `${totalAttended}/${totalRecorded}` }));
     } catch (err) {
       console.error("Error fetching stats:", err);
     } finally {
       setFetchingStats(false);
     }
   };
+
+  // Update session number string when attendance stats or attendance choice changes
+  useEffect(() => {
+    if (formData.client_id && attendanceStats.total > 0) {
+      setFormData(prev => ({ 
+        ...prev, 
+        session_number: attendanceStats.display 
+      }));
+    }
+  }, [attendanceStats.display, formData.client_id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -237,11 +251,11 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
             <div className="relative">
               <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
               <input
-                type="number"
+                type="text"
                 required
                 value={formData.session_number}
                 onChange={(e) => setFormData({ ...formData, session_number: e.target.value })}
-                placeholder="e.g. 5"
+                placeholder="e.g. 3/5"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-[#6f1d56] outline-none text-sm font-bold"
                 disabled={!formData.client_id || fetchingStats}
               />
@@ -277,7 +291,7 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
                     : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
                 }`}
               >
-                <AlertTriangle className="w-3.5 h-3.5" /> Not Attended
+                <AlertTriangle className="w-3.5 h-3.5" /> Did Not Attended
               </button>
             </div>
           </div>
@@ -309,7 +323,7 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
                     <Check className="w-3 h-3" /> {attendanceStats.attended} Attended
                   </span>
                   <span className="text-[10px] font-medium text-red-600 dark:text-red-500 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" /> {attendanceStats.total - attendanceStats.attended} Not Attended
+                    <AlertTriangle className="w-3 h-3" /> {attendanceStats.total - attendanceStats.attended} Did Not Attended
                   </span>
                </div>
             </div>
@@ -338,39 +352,7 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
             Wait, user said "Brief Summary field" as if that's the main thing.
             I'll keep them to maintain functionality but maybe group them. */}
         
-        <details className="group border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
-          <summary className="flex items-center justify-between p-3 cursor-pointer bg-gray-50/50 dark:bg-gray-800/30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            <span className="text-xs font-bold text-gray-500 group-open:text-[#6f1d56]">Additional Clinical Details (Risk & Steps)</span>
-            <AlertTriangle className="w-3.5 h-3.5 text-gray-400 group-open:rotate-180 transition-transform" />
-          </summary>
-          <div className="p-4 space-y-4 bg-white dark:bg-transparent">
-            <div>
-              <label className="block text-xs font-bold text-gray-600 dark:text-[var(--text-primary)] mb-2 flex items-center gap-2">
-                Risk Assessment {type === 'risk_update' && <AlertTriangle className="w-3 h-3 text-amber-500" />}
-              </label>
-              <textarea
-                rows={2}
-                value={formData.risk_assessment}
-                onChange={(e) => setFormData({ ...formData, risk_assessment: e.target.value })}
-                placeholder="Assess current risk levels..."
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-[#6f1d56] outline-none text-xs resize-none"
-              />
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-600 dark:text-[var(--text-primary)] mb-2">
-                Next Steps / Homework
-              </label>
-              <input
-                type="text"
-                value={formData.next_steps}
-                onChange={(e) => setFormData({ ...formData, next_steps: e.target.value })}
-                placeholder="Plans for next session..."
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-[#6f1d56] outline-none text-xs"
-              />
-            </div>
-          </div>
-        </details>
 
         <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-800">
            <input
@@ -382,7 +364,7 @@ export default function InternalSessionNoteForm({ type, title, onClose, onSucces
              className="w-4 h-4 text-[#6f1d56] rounded border-gray-300 focus:ring-[#6f1d56] cursor-pointer"
            />
            <label htmlFor="confirm" className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 cursor-pointer select-none">
-             I confirm this clinical documentation is accurate and recorded by {formData.tc_initials}.
+             I confirm this session note is accurate and recorded by {formData.tc_initials}.
            </label>
         </div>
 

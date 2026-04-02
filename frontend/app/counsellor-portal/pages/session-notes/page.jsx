@@ -116,6 +116,7 @@ function SessionNotesPageContent() {
                   >
                     Submit In-Portal <Plus className="w-3.5 h-3.5" />
                   </button>
+                  {/* 
                   <a
                     href={form.url}
                     target="_blank"
@@ -124,6 +125,7 @@ function SessionNotesPageContent() {
                   >
                     Use JotForm <ExternalLink className="w-3.5 h-3.5" />
                   </a>
+                  */}
                 </div>
               </div>
             ))}

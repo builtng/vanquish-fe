@@ -85,7 +85,7 @@ export default function SessionNotesPage() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <DashboardHeader>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Clinical Documentation</h1>
+              <h1 className="text-2xl font-bold text-foreground">Session Notes</h1>
               <p className="text-sm text-muted-foreground mt-1">Review weekly session notes and risk updates from practitioners</p>
             </div>
           </DashboardHeader>
@@ -124,12 +124,12 @@ export default function SessionNotesPage() {
             {loading ? (
               <div className="flex flex-col items-center justify-center h-64 text-gray-400">
                 <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4" />
-                <p>Loading clinical notes...</p>
+                <p>Loading session notes...</p>
               </div>
             ) : filteredNotes.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 bg-card rounded-xl border-2 border-dashed border-border p-12 text-center text-gray-400">
                 <FileText className="w-16 h-16 mb-4 opacity-20" />
-                <p className="text-lg font-medium">No clinical notes found</p>
+                <p className="text-lg font-medium">No session notes found</p>
                 <p className="text-sm">Try adjusting your filters or search terms</p>
               </div>
             ) : (
