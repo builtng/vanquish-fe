@@ -279,7 +279,7 @@ function ClientDetailsContent() {
                 <div className="px-6 py-4 border-b border-gray-100 dark:border-[var(--card-border)] bg-gray-50/50 dark:bg-[var(--bg-secondary)] flex items-center justify-between">
                   <h3 className="font-bold text-gray-900 dark:text-[var(--text-primary)] flex items-center gap-2 text-sm md:text-base">
                     <FileText className="w-4 h-4 text-[#6f1d56]" />
-                    Clinical Documentation History
+                    Session Notes History
                   </h3>
                   <Link 
                     href="/counsellor-portal/pages/session-notes"

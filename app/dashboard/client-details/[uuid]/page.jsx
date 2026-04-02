@@ -1041,31 +1041,31 @@ export default function IndividualClientDetailPage() {
   const getStageBadgeColor = (stage) => {
     switch (stage) {
       case "Application & Assessment form Submitted":
-        return "bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200";
+        return "bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 border border-sky-100 dark:border-sky-800";
 
       case "Consultation Booked":
-        return "bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200";
+        return "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800";
 
       case "Consultation Completed":
-        return "bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200";
+        return "bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border border-violet-100 dark:border-violet-800";
 
       case "Matched with TC":
-        return "bg-[var(--success-bg)] text-[var(--success-primary)] border border-[var(--success-border)]";
+        return "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800";
 
       case "Agreement Sent":
-        return "bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-200";
+        return "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-800";
 
       case "Agreement Signed":
-        return "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200";
+        return "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border border-orange-100 dark:border-orange-800";
 
       case "Sessions Bookable":
-        return "bg-indigo-100 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200";
+        return "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800";
 
       case "Active Therapy":
-        return "bg-[var(--success-bg)] text-[var(--success-primary)] border border-[var(--success-border)]";
+        return "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-700";
 
       default:
-        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200";
+        return "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-700";
     }
   };
 
@@ -1170,256 +1170,212 @@ export default function IndividualClientDetailPage() {
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Header */}
 
-            <div className="bg-[var(--card-bg)] border-b border-[var(--border-color)]">
-              {/* Breadcrumb */}
-
-              <div className="px-6 py-3 border-b border-[var(--border-color)]">
-                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                  <Link
-                    href="/dashboard/clients"
-                    className="hover:text-purple-600"
-                  >
-                    All Clients
-                  </Link>
-
-                  <ChevronRight className="w-4 h-4" />
-
-                  <span className="text-[var(--text-primary)] font-medium">
-                    {client.name}
-                  </span>
+              <div className="bg-[var(--card-bg)] border-b border-[var(--border-color)]">
+                {/* Breadcrumb */}
+                <div className="px-8 py-4 border-b border-[var(--border-color)] bg-white/50 backdrop-blur-sm">
+                  <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                    <Link
+                      href="/dashboard/clients"
+                      className="hover:text-[var(--accent-color)] transition-colors"
+                    >
+                      All Clients
+                    </Link>
+                    <ChevronRight className="w-4 h-4 opacity-40" />
+                    <span className="text-[var(--text-primary)] font-semibold">
+                      {client.name}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Client Header */}
+                {/* Client Header Content */}
+                <div className="px-8 py-8 lg:py-10 bg-gradient-to-br from-white via-transparent to-transparent">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                    <div className="flex items-start gap-6">
+                      {/* Avatar Section */}
+                      <div className="relative group">
+                        {clientPhoto ? (
+                          <div className="ring-4 ring-white shadow-xl rounded-full overflow-hidden transition-transform duration-300 group-hover:scale-105">
+                            <PhotoUpload
+                              photoUrl={clientPhoto}
+                              entityId={client.uuid || client.id}
+                              entityType="client"
+                              onUpload={async (id, file) => {
+                                const response = await apiService.uploadClientPhoto(id, file);
+                                setClientPhoto(response.photo_url || response.photo);
+                                const data = await apiService.getClientDetails(uuid);
+                                const transformedData = transformClientData(data);
+                                setClient(transformedData);
+                                return response;
+                              }}
+                              onDelete={async (id) => {
+                                await apiService.deleteClientPhoto(id);
+                                setClientPhoto(null);
+                                const data = await apiService.getClientDetails(uuid);
+                                const transformedData = transformClientData(data);
+                                setClient(transformedData);
+                              }}
+                              size="large"
+                            />
+                          </div>
+                        ) : (
+                          <div className="relative group">
+                            <div
+                              className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-extrabold shadow-2xl transition-all duration-300 group-hover:scale-105"
+                              style={{ 
+                                background: "linear-gradient(135deg, #6f1d56 0%, #a21b5e 100%)",
+                                boxShadow: '0 8px 16px -4px rgba(111, 29, 86, 0.3)'
+                              }}
+                            >
+                              {client.name
+                                ? client.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .toUpperCase()
+                                : "??"}
+                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 group-hover:bg-black/20 transition-all">
+                              <PhotoUpload
+                                photoUrl={null}
+                                entityId={client.uuid || client.id}
+                                entityType="client"
+                                onUpload={async (id, file) => {
+                                  const response = await apiService.uploadClientPhoto(id, file);
+                                  setClientPhoto(response.photo_url || response.photo);
+                                  const data = await apiService.getClientDetails(uuid);
+                                  const transformedData = transformClientData(data);
+                                  setClient(transformedData);
+                                  return response;
+                                }}
+                                onDelete={async (id) => {
+                                  await apiService.deleteClientPhoto(id);
+                                  setClientPhoto(null);
+                                  const data = await apiService.getClientDetails(uuid);
+                                  const transformedData = transformClientData(data);
+                                  setClient(transformedData);
+                                }}
+                                size="large"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
-              <div className="px-6 py-4">
-                <div className="flex items-start justify-between">
-                  <div
-                    className={`flex items-start gap-4 ${client.status === "archived" ? "pointer-events-none" : ""}`}
-                  >
-                    {clientPhoto ? (
-                      <PhotoUpload
-                        photoUrl={clientPhoto}
-                        entityId={client.uuid || client.id}
-                        entityType="client"
-                        onUpload={async (id, file) => {
-                          const response = await apiService.uploadClientPhoto(
-                            id,
-                            file,
-                          );
-                          setClientPhoto(response.photo_url || response.photo);
-                          // Refresh client data
-                          const data = await apiService.getClientDetails(uuid);
-                          const transformedData = transformClientData(data);
-                          setClient(transformedData);
-                          return response;
-                        }}
-                        onDelete={async (id) => {
-                          await apiService.deleteClientPhoto(id);
-                          setClientPhoto(null);
-                          // Refresh client data
-                          const data = await apiService.getClientDetails(uuid);
-                          const transformedData = transformClientData(data);
-                          setClient(transformedData);
-                        }}
-                        size="medium"
-                      />
-                    ) : (
-                      <div className="relative">
-                        <div
-                          className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold"
-                          style={{ backgroundColor: "#6f1d56" }}
-                        >
-                          {client.name
-                            ? client.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .toUpperCase()
-                            : "??"}
+                      {/* Header Main Info */}
+                      <div className="space-y-3 pt-1">
+                        <div className="flex flex-wrap items-end gap-3">
+                          <h1 className="text-4xl font-black tracking-tight text-[var(--text-primary)]">
+                            {client.name}
+                          </h1>
+                          <div className="flex items-center gap-2 mb-1.5 px-3 py-1 bg-white border border-[var(--border-color)] rounded-full text-sm font-medium text-[var(--text-secondary)] shadow-sm">
+                            <span>{client.age} yrs</span>
+                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                            <span className="text-xs font-mono opacity-60">ID: {client.id?.substring(0, 8)}...</span>
+                          </div>
                         </div>
-                        <PhotoUpload
-                          photoUrl={null}
-                          entityId={client.uuid || client.id}
-                          entityType="client"
-                          onUpload={async (id, file) => {
-                            const response = await apiService.uploadClientPhoto(
-                              id,
-                              file,
-                            );
-                            setClientPhoto(
-                              response.photo_url || response.photo,
-                            );
-                            // Refresh client data
-                            const data =
-                              await apiService.getClientDetails(uuid);
-                            const transformedData = transformClientData(data);
-                            setClient(transformedData);
-                            return response;
-                          }}
-                          onDelete={async (id) => {
-                            await apiService.deleteClientPhoto(id);
-                            setClientPhoto(null);
-                            // Refresh client data
-                            const data =
-                              await apiService.getClientDetails(uuid);
-                            const transformedData = transformClientData(data);
-                            setClient(transformedData);
-                          }}
-                          size="medium"
-                        />
+
+                        <div className="flex flex-wrap items-center gap-4">
+                          <div className="flex items-center gap-2 pr-4 border-r border-[var(--border-color)]">
+                            <span className={`w-3 h-3 rounded-full animate-pulse ${getStatusColor(client.status)}`}></span>
+                            <span className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase ${getStageBadgeColor(client.stage)} shadow-sm`}>
+                              {client.stage}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
+                            <Clock className="w-4 h-4 opacity-50" />
+                            <span>Last active:</span>
+                            <span className="text-[var(--text-primary)]">
+                              {client.updatedAt
+                                ? (() => {
+                                    const diff = new Date() - new Date(client.updatedAt);
+                                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                                    const days = Math.floor(hours / 24);
+                                    if (days > 0) return `${days}d ago`;
+                                    if (hours > 0) return `${hours}h ago`;
+                                    return "Just now";
+                                  })()
+                                : "N/A"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    </div>
 
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-                          {client.name}
-                        </h1>
-
-                        <span className="text-gray-600">•</span>
-
-                        <span className="text-lg text-[var(--text-secondary)]">
-                          {client.age} years old
-                        </span>
-
-                        <span className="text-gray-600">•</span>
-
-                        <span className="text-sm text-[var(--text-tertiary)]">
-                          ID: {client.id}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-3 h-3 rounded-full ${getStatusColor(client.status)}`}
-                        ></div>
-
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-medium ${getStageBadgeColor(client.stage)}`}
+                    {/* Quick Actions Restructured */}
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row xl:items-center gap-3">
+                      {/* Contact Group */}
+                      <div className="flex items-center gap-2 bg-indigo-50/50 p-1.5 rounded-xl border border-indigo-100">
+                        <button
+                          onClick={handleSendEmail}
+                          disabled={actionLoading || client.status === "archived"}
+                          className="p-2.5 bg-white text-indigo-600 rounded-lg hover:bg-white/80 shadow-sm border border-indigo-100/50 transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                          title="Send Email"
                         >
-                          {client.stage}
-                        </span>
+                          <Mail className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={handleCall}
+                          disabled={client.status === "archived"}
+                          className="p-2.5 bg-white text-indigo-600 rounded-lg hover:bg-white/80 shadow-sm border border-indigo-100/50 transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                          title="Call Client"
+                        >
+                          <Phone className="w-5 h-5" />
+                        </button>
+                        <Link
+                          href={`/dashboard/contacts/client/${uuid}/inbox`}
+                          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md transition-all hover:-translate-y-0.5"
+                        >
+                          <Mail className="w-5 h-5" />
+                          <span className="font-semibold text-sm">Inbox</span>
+                        </Link>
+                      </div>
 
-                        <span className="text-sm text-[var(--text-secondary)]">
-                          Last activity:{" "}
-                          {client.updatedAt
-                            ? (() => {
-                                const diff =
-                                  new Date() - new Date(client.updatedAt);
-                                const hours = Math.floor(
-                                  diff / (1000 * 60 * 60),
-                                );
-                                const days = Math.floor(hours / 24);
-                                if (days > 0)
-                                  return `${days} day${days > 1 ? "s" : ""} ago`;
-                                if (hours > 0)
-                                  return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-                                return "Just now";
-                              })()
-                            : "N/A"}
-                        </span>
+                      {/* Resources Group */}
+                      <div className="flex items-center gap-2 bg-purple-50/50 p-1.5 rounded-xl border border-purple-100">
+                        <Link
+                          href={`/dashboard/contacts/client/${uuid}/files`}
+                          className="flex items-center gap-2 px-4 py-2.5 bg-white text-purple-700 rounded-lg hover:bg-purple-50 shadow-sm border border-purple-200 transition-all font-semibold text-sm hover:-translate-y-0.5"
+                        >
+                          <Files className="w-5 h-5" />
+                          <span>Files</span>
+                        </Link>
+                        <Link
+                          href={`/dashboard/contacts/client/${uuid}/internal-form`}
+                          className="flex items-center gap-2 px-4 py-2.5 bg-white text-amber-700 rounded-lg hover:bg-amber-50 shadow-sm border border-amber-200 transition-all font-semibold text-sm hover:-translate-y-0.5"
+                        >
+                          <FileText className="w-5 h-5" />
+                          <span>Internal Form</span>
+                        </Link>
+                      </div>
+
+                      {/* Management Group */}
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/dashboard/clients/edit?id=${uuid}`}
+                          className={`p-2.5 bg-white text-slate-600 rounded-xl hover:bg-slate-50 border border-slate-200 shadow-sm transition-all hover:-translate-y-0.5 ${client.status === "archived" ? "opacity-50 pointer-events-none" : ""}`}
+                          title="Edit Profile"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </Link>
+                        <button
+                          onClick={client.status === "archived" ? handleUnarchive : handleArchive}
+                          disabled={actionLoading || (client.status === "archived" && user?.role !== "admin")}
+                          className={`p-2.5 rounded-xl border shadow-sm transition-all hover:-translate-y-0.5 disabled:opacity-50 ${
+                            client.status === "archived"
+                              ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                              : "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
+                          }`}
+                          title={client.status === "archived" ? "Unarchive" : "Archive"}
+                        >
+                          <Archive className="w-5 h-5" />
+                        </button>
                       </div>
                     </div>
                   </div>
-
-                  {/* Quick Actions */}
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleSendEmail}
-                      disabled={actionLoading || client.status === "archived"}
-                      className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Mail className="w-4 h-4" />
-                      Send Email
-                    </button>
-
-                    <button
-                      onClick={handleCall}
-                      disabled={client.status === "archived"}
-                      className="px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Phone className="w-4 h-4" />
-                      Call
-                    </button>
-
-                    {(client.stage === "Active Therapy" ||
-                      client.stage === "Completed") && (
-                      <button
-                        onClick={handleSendFeedbackForm}
-                        disabled={
-                          actionLoading ||
-                          (client.lastFeedbackSentAt &&
-                            new Date(client.lastFeedbackSentAt) >
-                              new Date(
-                                Date.now() - 90 * 24 * 60 * 60 * 1000,
-                              )) ||
-                          client.status === "archived"
-                        }
-                        className="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Send className="w-4 h-4" />
-                        Send Feedback Form
-                      </button>
-                    )}
-
-                    <Link
-                      href={`/dashboard/contacts/client/${uuid}/inbox`}
-                      className="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 font-medium flex items-center gap-2"
-                    >
-                      <Mail className="w-4 h-4" />
-                      Inbox
-                    </Link>
-
-                    <Link
-                      href={`/dashboard/contacts/client/${uuid}/files`}
-                      className="px-4 py-2 border border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 font-medium flex items-center gap-2"
-                    >
-                      <Files className="w-4 h-4" />
-                      Contact Files
-                    </Link>
-
-                    <Link
-                      href={`/dashboard/contacts/client/${uuid}/internal-form`}
-                      className="px-4 py-2 border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 font-medium flex items-center gap-2"
-                    >
-                      <FileText className="w-4 h-4" />
-                      Internal Form
-                    </Link>
-
-                    <Link
-                      href={`/dashboard/clients/edit?id=${uuid}`}
-                      className={`px-4 py-2 border border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:bg-[var(--hover-bg)] font-medium flex items-center gap-2 ${client.status === "archived" ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}`}
-                    >
-                      <Edit className="w-4 h-4" />
-                      Edit
-                    </Link>
-
-                    <button
-                      onClick={
-                        client.status === "archived"
-                          ? handleUnarchive
-                          : handleArchive
-                      }
-                      disabled={
-                        actionLoading ||
-                        (client.status === "archived" && user?.role !== "admin")
-                      }
-                      className={`px-4 py-2 border rounded-lg font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                        client.status === "archived"
-                          ? "border-green-300 text-green-700 hover:bg-green-50"
-                          : "border-red-300 text-red-700 hover:bg-red-50"
-                      }`}
-                    >
-                      <Archive className="w-4 h-4" />
-
-                      {client.status === "archived" ? "Unarchive" : "Archive"}
-                    </button>
-                  </div>
                 </div>
               </div>
-            </div>
+
 
             {/* Content Area - Scrollable */}
 
@@ -1427,161 +1383,154 @@ export default function IndividualClientDetailPage() {
               <div className="p-6 space-y-6">
                 {/* Overview Cards */}
 
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="bg-[var(--purple-bg)] rounded-lg p-4 border border-[var(--purple-border)]">
-                    <p className="text-sm text-[var(--purple-primary)] mb-1">
-                      Service Type
-                    </p>
-
-                    <p className="text-xl font-bold text-[var(--purple-primary)]">
-                      {client.serviceType}
-                    </p>
-                  </div>
-
-                  <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
-                    <p className="text-sm text-blue-600 dark:text-blue-300 mb-1">
-                      Days in System
-                    </p>
-
-                    <p className="text-xl font-bold text-blue-900 dark:text-blue-100">
-                      {client.daysInSystem} days
-                    </p>
-                  </div>
-
-                  <div className="bg-[var(--success-bg)] rounded-lg p-4 border border-[var(--success-border)]">
-                    <p className="text-sm text-[var(--success-primary)] mb-1">
-                      Sessions Completed
-                    </p>
-
-                    <p className="text-xl font-bold text-[var(--success-primary)]">
-                      {client.packageDetails?.sessionsCompleted || 0}/
-                      {client.packageDetails?.totalSessions || 0}
-                    </p>
-                  </div>
-
-                  {(client.satisfactionScore !== null ||
-                    client.feedbackCount > 0) && (
-                    <div className="bg-yellow-50 dark:bg-yellow-900/10 rounded-lg p-4 border border-yellow-100 dark:border-yellow-800">
-                      <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-1">
-                        Client Satisfaction
-                      </p>
-
-                      <div className="flex items-center gap-2">
-                        <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                        <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">
-                          {client.satisfactionScore
-                            ? Number(client.satisfactionScore).toFixed(1)
-                            : "N/A"}
-                          {client.satisfactionScore && (
-                            <span className="text-sm text-yellow-700 dark:text-yellow-400">
-                              /5.0
-                            </span>
-                          )}
-                        </p>
-                        {client.feedbackCount > 0 && (
-                          <span className="text-xs text-yellow-700 dark:text-yellow-400">
-                            ({client.feedbackCount})
-                          </span>
-                        )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="bg-white rounded-2xl p-5 border border-[var(--border-color)] shadow-sm hover:shadow-md transition-all group">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                        <Activity className="w-5 h-5" />
                       </div>
+                      <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                        Service Type
+                      </p>
                     </div>
-                  )}
-
-                  <div className="bg-orange-50 dark:bg-orange-900/10 rounded-lg p-4 border border-orange-100 dark:border-orange-800">
-                    <p className="text-sm text-orange-600 dark:text-orange-300 mb-1">
-                      Next Session
+                    <p className="text-lg font-black text-[var(--text-primary)] truncate">
+                      {client.serviceType || "Not Set"}
                     </p>
+                  </div>
 
-                    <p className="text-sm font-bold text-orange-900 dark:text-orange-100">
+                  <div className="bg-white rounded-2xl p-5 border border-[var(--border-color)] shadow-sm hover:shadow-md transition-all group">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-blue-50 rounded-lg text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <Calendar className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                        Days in System
+                      </p>
+                    </div>
+                    <p className="text-lg font-black text-[var(--text-primary)]">
+                      {client.daysInSystem} <span className="text-sm font-normal text-[var(--text-secondary)]">days</span>
+                    </p>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-5 border border-[var(--border-color)] shadow-sm hover:shadow-md transition-all group">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                        <CheckCircle className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                        Sessions
+                      </p>
+                    </div>
+                    <p className="text-lg font-black text-[var(--text-primary)]">
+                      {client.packageDetails?.sessionsCompleted || 0}/
+                      <span className="text-[var(--text-secondary)]">{client.packageDetails?.totalSessions || 0}</span>
+                    </p>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-5 border border-[var(--border-color)] shadow-sm hover:shadow-md transition-all group">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-amber-50 rounded-lg text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                        <Star className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                        Satisfaction
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-lg font-black text-[var(--text-primary)]">
+                        {client.satisfactionScore ? Number(client.satisfactionScore).toFixed(1) : "N/A"}
+                      </p>
+                      {client.feedbackCount > 0 && (
+                        <span className="text-xs text-[var(--text-tertiary)] font-medium">({client.feedbackCount})</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-5 border border-[var(--border-color)] shadow-sm hover:shadow-md transition-all group">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="p-2 bg-rose-50 rounded-lg text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors">
+                        <Clock className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                        Next Session
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-[var(--text-primary)] truncate">
                       {client.sessions &&
                       client.sessions.filter((s) => s.status === "scheduled")
                         .length > 0
                         ? (() => {
                             const next = client.sessions
                               .filter((s) => s.status === "scheduled")
-                              .sort(
-                                (a, b) => new Date(a.date) - new Date(b.date),
-                              )[0];
-                            return `${new Date(next.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}, ${next.time}`;
+                              .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+                            return `${new Date(next.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
                           })()
-                        : "No session scheduled"}
+                        : "None Scheduled"}
                     </p>
                   </div>
                 </div>
 
                 {/* Journey Timeline */}
 
-                <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
-                  <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
-                    Client Journey
-                  </h2>
+                <div className="bg-white rounded-2xl border border-[var(--border-color)] p-8 shadow-sm">
+                  <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight">
+                      Client Journey
+                    </h2>
+                    <div className="flex items-center gap-2 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">
+                      <span className="w-2 h-2 bg-[var(--accent-color)] rounded-full animate-pulse"></span>
+                      Current Phase: {client.stage}
+                    </div>
+                  </div>
 
-                  <div className="relative">
+                  <div className="relative pt-4 pb-12">
                     {/* Timeline Line */}
-
-                    <div className="absolute top-6 left-0 right-0 h-0.5 bg-[var(--border-color)]"></div>
-
+                    <div className="absolute top-12 left-0 right-0 h-1.5 bg-slate-100 rounded-full"></div>
                     <div
-                      className="absolute top-6 left-0 h-0.5 bg-[var(--purple-primary)] transition-all duration-500"
+                      className="absolute top-12 left-0 h-1.5 bg-[var(--accent-color)] transition-all duration-1000 ease-out rounded-full shadow-[0_0_15px_rgba(111,29,86,0.3)]"
                       style={{
                         width: `${
                           client.journey && client.journey.length > 0
-                            ? ((client.journey.findIndex((j) => j.current) !==
-                              -1
-                                ? client.journey.findIndex((j) => j.current) + 1
-                                : client.journey.filter((j) => j.completed)
-                                    .length) /
-                                client.journey.length) *
-                              100
+                            ? ((client.journey.findIndex((j) => j.current) !== -1
+                                ? client.journey.findIndex((j) => j.current) + 0.5
+                                : client.journey.filter((j) => j.completed).length) /
+                                (client.journey.length - 1)) * 100
                             : 0
                         }%`,
                       }}
                     ></div>
 
                     {/* Timeline Stages */}
-
                     <div className="relative flex justify-between">
                       {(client.journey || []).map((stage, index) => (
-                        <div
-                          key={index}
-                          className="flex flex-col items-center"
-                          style={{ flex: 1 }}
-                        >
-                          {/* Circle */}
-
+                        <div key={index} className="flex flex-col items-center" style={{ width: '120px' }}>
                           <div
-                            className={`w-12 h-12 rounded-full border-4 flex items-center justify-center relative z-10 ${
+                            className={`w-16 h-16 rounded-2xl border-4 flex items-center justify-center relative z-10 transition-all duration-500 shadow-xl ${
                               stage.completed
-                                ? "bg-[var(--purple-primary)] border-[var(--purple-primary)]"
+                                ? "bg-[var(--accent-color)] border-white text-white rotate-0"
                                 : stage.current
-                                  ? "bg-[var(--card-bg)] border-[var(--purple-primary)]"
-                                  : "bg-[var(--card-bg)] border-[var(--border-color)]"
+                                  ? "bg-white border-[var(--accent-color)] text-[var(--accent-color)] scale-110 -rotate-3"
+                                  : "bg-white border-slate-100 text-slate-300"
                             }`}
                           >
                             {stage.completed ? (
-                              <Check className="w-6 h-6 text-white" />
+                              <Check className="w-8 h-8 font-black" />
                             ) : stage.current ? (
-                              <Clock className="w-6 h-6 text-[var(--purple-primary)]" />
+                              <Clock className="w-8 h-8 animate-pulse" />
                             ) : (
-                              <div className="w-3 h-3 rounded-full bg-[var(--text-tertiary)] opacity-30"></div>
+                              <div className="w-4 h-4 rounded-full bg-slate-200"></div>
                             )}
                           </div>
 
-                          {/* Label */}
-
-                          <div className="mt-3 text-center">
-                            <p
-                              className={`text-xs font-medium ${
-                                stage.completed || stage.current
-                                  ? "text-[var(--text-primary)]"
-                                  : "text-[var(--text-tertiary)]"
+                          <div className="mt-6 text-center">
+                            <p className={`text-sm font-black leading-tight ${
+                                stage.completed || stage.current ? "text-[var(--text-primary)]" : "text-slate-400"
                               }`}
                             >
                               {stage.stage}
                             </p>
-
                             {stage.date && (
-                              <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                              <p className="text-xs font-bold text-[var(--accent-color)] mt-1.5 opacity-80 bg-[var(--accent-color)]/5 px-2 py-0.5 rounded-full inline-block">
                                 {stage.date}
                               </p>
                             )}
@@ -1600,118 +1549,108 @@ export default function IndividualClientDetailPage() {
                   <div className="col-span-2 space-y-6">
                     {/* Personal Information */}
 
-                    <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                    <div className="bg-white rounded-2xl border border-[var(--border-color)] p-8 shadow-sm">
+                      <div className="flex items-center justify-between mb-8">
+                        <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight">
                           Personal Information
                         </h2>
 
                         <Link
                           href={`/dashboard/clients/edit?id=${uuid}`}
-                          className="text-[var(--purple-primary)] hover:opacity-80 text-sm font-medium flex items-center gap-1"
+                          className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all text-sm font-bold flex items-center gap-2"
                         >
                           <Edit className="w-4 h-4" />
-                          Edit
+                          Edit Details
                         </Link>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
                             Full Name
                           </p>
-
-                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                          <p className="text-base font-bold text-[var(--text-primary)]">
                             {client.name}
                           </p>
                         </div>
 
-                        <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
                             Age
                           </p>
-
-                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                          <p className="text-base font-bold text-[var(--text-primary)]">
                             {client.age} years old
                           </p>
                         </div>
 
-                        <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-1">
-                            Email
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                            Email Address
                           </p>
-
-                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                          <p className="text-base font-bold text-[var(--text-primary)]">
                             {client.email}
                           </p>
                         </div>
 
-                        <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-1">
-                            Phone
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                            Phone Number
                           </p>
-
-                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                          <p className="text-base font-bold text-[var(--text-primary)]">
                             {client.phone}
                           </p>
                         </div>
 
-                        <div className="col-span-2">
-                          <p className="text-sm text-[var(--text-secondary)] mb-1">
-                            Address
+                        <div className="col-span-1 md:col-span-2 space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                            Residential Address
                           </p>
-
-                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                          <p className="text-base font-bold text-[var(--text-primary)]">
                             {client.address}, {client.postcode}
                           </p>
                         </div>
 
-                        <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
                             Gender
                           </p>
-
-                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                          <p className="text-base font-bold text-[var(--text-primary)]">
                             {client.gender}
                           </p>
                         </div>
 
-                        <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
                             Ethnicity
                           </p>
-
-                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                          <p className="text-base font-bold text-[var(--text-primary)]">
                             {client.ethnicity}
                           </p>
                         </div>
 
-                        <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-1">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
                             Sexual Orientation
                           </p>
-
-                          <p className="text-sm font-medium text-[var(--text-primary)]">
+                          <p className="text-base font-bold text-[var(--text-primary)]">
                             {client.sexualOrientation}
                           </p>
                         </div>
 
-                        <div>
-                          <p className="text-sm text-gray-600 mb-1">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
                             Voicemail Permission
                           </p>
-
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-base font-bold text-[var(--text-primary)]">
                             {client.voicemailPermission}
                           </p>
                         </div>
 
-                        <div className="col-span-2">
-                          <p className="text-sm text-gray-600 mb-1">
-                            How They Heard About Us
+                        <div className="col-span-1 md:col-span-2 space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                            Source
                           </p>
-
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-base font-bold text-slate-800">
                             {client.howHeardAbout}
                           </p>
                         </div>
@@ -1720,22 +1659,21 @@ export default function IndividualClientDetailPage() {
 
                     {/* Clinical Information */}
 
-                    <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] p-6">
-                      <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">
+                    <div className="bg-white rounded-2xl border border-[var(--border-color)] p-8 shadow-sm">
+                      <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight mb-8">
                         Clinical Information
                       </h2>
 
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-2">
+                      <div className="space-y-8">
+                        <div className="bg-rose-50/50 p-6 rounded-2xl border border-rose-100">
+                          <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest leading-none mb-4">
                             Primary Issues / Concerns
                           </p>
-
                           <div className="flex flex-wrap gap-2">
                             {client.primaryIssues.map((issue) => (
                               <span
                                 key={issue}
-                                className="px-3 py-1 bg-red-100 text-red-800 text-sm rounded-full"
+                                className="px-4 py-1.5 bg-white text-rose-600 text-xs font-black rounded-full border border-rose-200 shadow-sm uppercase tracking-wide"
                               >
                                 {issue}
                               </span>
@@ -1744,53 +1682,48 @@ export default function IndividualClientDetailPage() {
                         </div>
 
                         <div>
-                          <p className="text-sm text-[var(--text-secondary)] mb-2">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-3 px-1">
                             Additional Details
                           </p>
-
-                          <p className="text-sm text-[var(--text-primary)] bg-[var(--bg-secondary)] p-3 rounded-lg">
-                            {client.additionalDetails}
+                          <p className="text-sm font-medium text-slate-700 bg-slate-50 p-6 rounded-2xl border border-slate-100 leading-relaxed italic">
+                            "{client.additionalDetails || "No additional details provided."}"
                           </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-[var(--text-secondary)] mb-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="p-5 rounded-2xl border border-slate-100 group transition-colors hover:border-indigo-200">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
                               Medication
                             </p>
-
-                            <p className="text-sm text-[var(--text-primary)]">
-                              {client.medication}
+                            <p className="text-sm font-bold text-slate-800">
+                              {client.medication || "None recorded"}
                             </p>
                           </div>
 
-                          <div>
-                            <p className="text-sm text-[var(--text-secondary)] mb-2">
+                          <div className="p-5 rounded-2xl border border-slate-100 group transition-colors hover:border-indigo-200">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
                               Disabilities / Impairments
                             </p>
-
-                            <p className="text-sm text-[var(--text-primary)]">
-                              {client.disabilities}
+                            <p className="text-sm font-bold text-slate-800">
+                              {client.disabilities || "None recorded"}
                             </p>
                           </div>
 
-                          <div>
-                            <p className="text-sm text-[var(--text-secondary)] mb-2">
+                          <div className="p-5 rounded-2xl border border-rose-100 group transition-colors hover:bg-rose-50/30">
+                            <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest leading-none mb-2">
                               Risk Flags
                             </p>
-
-                            <p className="text-sm text-[var(--text-primary)]">
-                              {client.riskFlags}
+                            <p className="text-sm font-bold text-rose-700">
+                              {client.riskFlags || "No risks identified"}
                             </p>
                           </div>
 
-                          <div>
-                            <p className="text-sm text-[var(--text-secondary)] mb-2">
+                          <div className="p-5 rounded-2xl border border-slate-100 group transition-colors hover:border-indigo-200">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
                               Substance Misuse
                             </p>
-
-                            <p className="text-sm text-[var(--text-primary)]">
-                              {client.substanceMisuse}
+                            <p className="text-sm font-bold text-slate-800">
+                              {client.substanceMisuse || "None recorded"}
                             </p>
                           </div>
                         </div>

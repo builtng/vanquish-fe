@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Calendar, User, FileText, AlertTriangle, ChevronRight } from "lucide-react";
+import { X, Calendar, User, FileText, AlertTriangle, ChevronRight, Hash } from "lucide-react";
 import apiService from "@/lib/api";
 
 export default function SessionNoteDetailsModal({ noteId, onClose }) {
@@ -85,6 +85,17 @@ export default function SessionNoteDetailsModal({ noteId, onClose }) {
                     {note.content?.session_date ? new Date(note.content.session_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : "Not specified"}
                   </p>
                 </div>
+                {note.content?.session_number && (
+                  <div className="p-4 rounded-xl bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-800/30">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Hash className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Session Number</span>
+                    </div>
+                    <p className="text-sm font-black text-[#6f1d56] dark:text-purple-400">
+                      {note.content.session_number}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Sections */}
