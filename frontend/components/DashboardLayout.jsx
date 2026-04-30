@@ -6,6 +6,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import ThemeToggle from "./ThemeToggle";
 import StaffNoteNotifier from "./StaffNoteNotifier";
 import MessageReadNotifier from "./MessageReadNotifier";
+import NewMessageNotifier from "./NewMessageNotifier";
 
 export default function DashboardLayout({ children }) {
   const { sidebarOpen } = useSidebar();
@@ -14,6 +15,7 @@ export default function DashboardLayout({ children }) {
     <div className="min-h-screen bg-gray-50 dark:bg-[var(--background)] flex transition-colors duration-200">
       <StaffNoteNotifier />
       <MessageReadNotifier />
+      <NewMessageNotifier />
       {/* Sidebar */}
       <DashboardSidebar />
 

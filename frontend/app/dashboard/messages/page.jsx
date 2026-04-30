@@ -147,12 +147,9 @@ export default function DashboardChatPage() {
       // Determine if this message is from the currently active peer
       let isFromActivePeer = false;
       if (activeChat.type === 'tc') {
-        // Handled by staffGroupChannel or this one if it's direct.
-        // Actually, for TC chat, staffGroupChannel is more reliable for "group" feel.
         isFromActivePeer = String(newMsg.to_tc_id) === String(activeChat.id) || 
                            String(newMsg.fromUser?.training_counsellor_id) === String(activeChat.id);
       } else {
-        // Standard user-to-user check
         isFromActivePeer = String(newMsg.from_user_id) === String(activeChat.id) || 
                            (String(newMsg.to_user_id) === String(activeChat.id) && String(newMsg.from_user_id) === String(authUser.id));
       }
@@ -168,6 +165,24 @@ export default function DashboardChatPage() {
           .catch(() => {});
       }
       loadConversations();
+    });
+
+    channel.listen(".message.read", (e) => {
+      const readMsg = e.message;
+      // If we sent this message and the recipient just read it, show a notification
+      if (String(readMsg.from_user_id) === String(authUser.id)) {
+        // Update local message state to show double ticks
+        setMessages(prev => prev.map(m => m.id === readMsg.id ? { ...m, is_read: true, read_at: readMsg.read_at } : m));
+        
+        // Show a discrete success toast if it's the active chat
+        if (activeChat && (
+          (activeChat.type === 'tc' && String(readMsg.to_tc_id) === String(activeChat.id)) ||
+          (activeChat.type === 'user' && String(readMsg.to_user_id) === String(activeChat.id))
+        )) {
+          // We only notify for the LATEST message being read to avoid spam
+          success(`Message read by ${activeChat.name}`);
+        }
+      }
     });
 
     return () => {
