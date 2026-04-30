@@ -382,7 +382,7 @@ function EditClientPageContent() {
     }
 
     // Check if at least one availability slot is selected
-    const isIshServices = formData.serviceType === "Ish's Services";
+    const isIshServices = formData.serviceType === "Counselling & Coaching Services";
 
     if (!isIshServices) {
       const hasAvailability = Object.values(formData.availability || {}).some(
@@ -1146,8 +1146,8 @@ function EditClientPageContent() {
                         (starting from £40+)
                       </option>
 
-                      <option value="Ish's Services">
-                        Ish's Services (Coaching/Counselling)
+                      <option value="Counselling & Coaching Services">
+                        Counselling & Coaching Services
                       </option>
                     </select>
                   </div>
@@ -1166,7 +1166,7 @@ function EditClientPageContent() {
                 {expandedSections.clinical && (
                   <fieldset
                     className="p-6 space-y-4"
-                    disabled={formData.serviceType === "Ish's Services"}
+                    disabled={formData.serviceType === "Counselling & Coaching Services"}
                   >
                     {/* Medication */}
 
@@ -1326,7 +1326,7 @@ function EditClientPageContent() {
                 {expandedSections.availability && (
                   <fieldset
                     className="p-6"
-                    disabled={formData.serviceType === "Ish's Services"}
+                    disabled={formData.serviceType === "Counselling & Coaching Services"}
                   >
                     <p className="text-sm text-[var(--text-secondary)] mb-4">
                       Select the accurate days and times the client is available
@@ -1419,7 +1419,7 @@ function EditClientPageContent() {
                 {expandedSections.referral && (
                   <fieldset
                     className="p-6 space-y-4"
-                    disabled={formData.serviceType === "Ish's Services"}
+                    disabled={formData.serviceType === "Counselling & Coaching Services"}
                   >
                     <div>
                       <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
@@ -1444,8 +1444,8 @@ function EditClientPageContent() {
 
                         <option value="Referral">Referral</option>
 
-                        <option value="Referred through an organization">
-                          Referred through an organization
+                        <option value="Referred through an organisation">
+                          Referred through an organisation
                         </option>
 
                         <option value="Referred through an individual">
@@ -1522,7 +1522,7 @@ function EditClientPageContent() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                          Organization Name (if applicable)
+                          Organisation Name (if applicable)
                         </label>
 
                         <input
@@ -1535,13 +1535,13 @@ function EditClientPageContent() {
                             )
                           }
                           className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
-                          placeholder="Enter organization name or N/A"
+                          placeholder="Enter organisation name or N/A"
                         />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                          Organization Email
+                          Organisation Email
                         </label>
 
                         <input
@@ -1553,8 +1553,8 @@ function EditClientPageContent() {
                               e.target.value,
                             )
                           }
-                          className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
-                          placeholder="Enter organization email or N/A"
+                          className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:border-transparent"
+                          placeholder="Enter organisation email or N/A"
                         />
                       </div>
                     </div>
@@ -1573,7 +1573,7 @@ function EditClientPageContent() {
                 {expandedSections.adminNotes && (
                   <fieldset
                     className="p-6 space-y-4"
-                    disabled={formData.serviceType === "Ish's Services"}
+                    disabled={formData.serviceType === "Counselling & Coaching Services"}
                   >
                     <div>
                       <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">

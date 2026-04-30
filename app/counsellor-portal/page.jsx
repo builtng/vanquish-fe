@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import apiService from "@/lib/api";
+import { getInitials, abbreviateLastName } from "@/lib/utils";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import {
@@ -64,13 +65,13 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes }) {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard
+        {/* <StatCard
           icon={Users}
           label="Assigned Clients"
           value={counsellorData?.total_clients ?? 0}
           color="#6f1d56"
           href="/counsellor-portal/clients"
-        />
+        /> */}
         <StatCard
           icon={Calendar}
           label="Upcoming Sessions"
@@ -131,11 +132,11 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes }) {
                     className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
                     style={{ backgroundColor: "#6366f1" }}
                   >
-                    {c.client?.name?.charAt(0)?.toUpperCase() || "C"}
+                    {getInitials(c.client?.name) || "C"}
                   </div>
                   <div>
                     <p className="font-medium text-gray-900 dark:text-[var(--text-primary)] text-sm">
-                      {c.client?.name || "Client"}
+                      {abbreviateLastName(c.client?.name) || "Client"}
                     </p>
                     <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-500 dark:text-[var(--text-secondary)]">
                       <Clock className="w-3 h-3" />
@@ -228,7 +229,7 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes }) {
                      </span>
                   </div>
                   <h4 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                    {note.client?.name || "Client"}
+                    {abbreviateLastName(note.client?.name) || "Client"}
                   </h4>
                   <p className="text-xs text-gray-500 mt-1 line-clamp-1">
                     {note.content?.summary}

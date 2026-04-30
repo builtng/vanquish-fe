@@ -647,7 +647,7 @@ export default function SharedDocumentsPage() {
                     )}
                  </div>
                  <p className="text-[10px] text-gray-400 italic text-center">
-                    Shared folders appear in the respective user's portal under "Shared Files".
+                    Shared folders appear in the respective user's portal under "Resources".
                  </p>
               </div>
 

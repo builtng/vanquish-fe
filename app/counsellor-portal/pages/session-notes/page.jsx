@@ -5,6 +5,7 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import apiService from "@/lib/api";
+import { getInitials, abbreviateLastName } from "@/lib/utils";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import InternalSessionNoteForm from "@/components/InternalSessionNoteForm";
@@ -177,7 +178,7 @@ function SessionNotesPageContent() {
                                <div className="flex items-center justify-between">
                                  <div>
                                    <h4 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)] group-hover:text-[#6f1d56] transition-colors">
-                                      {note.client?.name || "Unspecified Client"}
+                                      {abbreviateLastName(note.client?.name) || "Unspecified Client"}
                                    </h4>
                                    <p className="text-xs text-gray-500 mt-1 line-clamp-1">
                                       {note.content?.summary}

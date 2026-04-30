@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { X, Calendar, User, FileText, AlertTriangle, ChevronRight, Hash } from "lucide-react";
+import { getInitials, abbreviateLastName } from "@/lib/utils";
 import apiService from "@/lib/api";
 
 export default function SessionNoteDetailsModal({ noteId, onClose }) {
@@ -74,7 +75,7 @@ export default function SessionNoteDetailsModal({ noteId, onClose }) {
                     <User className="w-3.5 h-3.5 text-gray-400" />
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Client</span>
                   </div>
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">{note.client?.name || "N/A"}</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{abbreviateLastName(note.client?.name) || "N/A"}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
                   <div className="flex items-center gap-2 mb-1.5">
@@ -110,15 +111,7 @@ export default function SessionNoteDetailsModal({ noteId, onClose }) {
                   </div>
                 </div>
 
-                <div>
-                  <h4 className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest mb-3 flex items-center gap-2 text-amber-600 dark:text-amber-500">
-                    <AlertTriangle className="w-3 h-3" />
-                    Risk Assessment
-                  </h4>
-                  <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 whitespace-pre-wrap">
-                    {note.content?.risk_assessment || "No risk assessment provided."}
-                  </div>
-                </div>
+
 
                 {note.content?.next_steps && (
                   <div>

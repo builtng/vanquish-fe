@@ -16,7 +16,7 @@ import {
   Check,
 } from "lucide-react";
 import SearchableSelect from "./SearchableSelect";
-import { getInitials } from "@/lib/utils";
+import { getInitials, abbreviateLastName } from "@/lib/utils";
 
 export default function InternalSessionNoteForm({
   type,
@@ -40,7 +40,6 @@ export default function InternalSessionNoteForm({
     attended: "1", // Default to attended
     tc_initials: "",
     summary: "",
-    risk_assessment: "",
     next_steps: "",
     confirmed: false,
   });
@@ -151,7 +150,6 @@ export default function InternalSessionNoteForm({
           attendance_record: attendanceStats.display,
           tc_initials: formData.tc_initials,
           summary: formData.summary,
-          risk_assessment: formData.risk_assessment,
           next_steps: formData.next_steps,
         },
       });
@@ -196,7 +194,7 @@ export default function InternalSessionNoteForm({
   // Options for clients
   const clientOptions = clients.map((c) => ({
     value: String(c.id),
-    label: `${c.name} (${getInitials(c.name)})`,
+    label: abbreviateLastName(c.name),
   }));
 
   return (
@@ -263,10 +261,9 @@ export default function InternalSessionNoteForm({
             </div>
           </div>
 
-          {/* Client Initials - Searchable Select */}
           <div className="col-span-full">
             <label className="block text-sm font-bold text-gray-700 dark:text-[var(--text-primary)] mb-2">
-              Client initials *
+              Client Name *
             </label>
             <SearchableSelect
               required
@@ -335,7 +332,7 @@ export default function InternalSessionNoteForm({
                     : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
                 }`}
               >
-                <AlertTriangle className="w-3.5 h-3.5" /> Did Not Attended
+                <AlertTriangle className="w-3.5 h-3.5" /> Did Not Attend
               </button>
             </div>
           </div>

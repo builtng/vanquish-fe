@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import apiService from "@/lib/api";
+import { getInitials, abbreviateLastName } from "@/lib/utils";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import Link from "next/link";
@@ -81,9 +82,9 @@ function ClientsPageContent() {
           </div>
         }
       >
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+        {/* <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
           My Clients
-        </h1>
+        </h1> */}
         <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">
           Managing your {clients.length} assigned clients
         </p>
@@ -122,11 +123,11 @@ function ClientsPageContent() {
                             className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold shadow-sm"
                             style={{ backgroundColor: "#6f1d56" }}
                           >
-                            {client.name?.charAt(0)?.toUpperCase()}
+                            {getInitials(client.name)}
                           </div>
                           <div>
                             <h3 className="font-bold text-gray-900 dark:text-[var(--text-primary)] group-hover:text-[#6f1d56] transition-colors">
-                              {client.name}
+                              {abbreviateLastName(client.name)}
                             </h3>
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">

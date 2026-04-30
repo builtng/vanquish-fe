@@ -1105,7 +1105,7 @@ export default function IshClientIntake() {
                 <div className="p-6 border-2 border-purple-200 rounded-xl bg-purple-50 flex justify-between items-center">
                   <div>
                     <h3 className="font-bold text-purple-900">
-                      Ish's Initial Consultation
+                      Counselling & Coaching Initial Consultation
                     </h3>
                     <p className="text-sm text-purple-700">Non-refundable</p>
                   </div>

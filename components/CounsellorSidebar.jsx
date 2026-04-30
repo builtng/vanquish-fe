@@ -35,7 +35,6 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
 
   const [expandedItems, setExpandedItems] = useState({
     messages: pathname?.startsWith("/counsellor-portal/messages"),
-    pages: pathname?.startsWith("/counsellor-portal/pages"),
   });
 
   const toggleExpanded = (id) => {
@@ -56,12 +55,12 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
       badge: unreadCount,
       href: "/counsellor-portal/messages",
     },
-    {
+    /* {
       id: "clients",
       icon: Users,
       label: "My Clients",
       href: "/counsellor-portal/clients",
-    },
+    }, */
     {
       id: "sessions",
       icon: Calendar,
@@ -69,32 +68,22 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
       href: "/counsellor-portal/sessions",
     },
     {
-      id: "pages",
-      icon: Layout,
-      label: "My Pages",
-      isExpandable: true,
-      expanded: expandedItems.pages,
-      onToggle: () => toggleExpanded("pages"),
-      subItems: [
-        {
-          id: "notes",
-          label: "Session Notes",
-          icon: FileText,
-          href: "/counsellor-portal/pages/session-notes",
-        },
-        {
-          id: "psg",
-          label: "PSG Form",
-          icon: FileText,
-          href: "/counsellor-portal/pages/psg-form",
-        },
-        {
-          id: "files",
-          label: "Shared Files",
-          icon: Files,
-          href: "/counsellor-portal/files",
-        },
-      ],
+      id: "notes",
+      label: "Session Notes",
+      icon: FileText,
+      href: "/counsellor-portal/pages/session-notes",
+    },
+    {
+      id: "psg",
+      label: "PSG Form",
+      icon: FileText,
+      href: "/counsellor-portal/pages/psg-form",
+    },
+    {
+      id: "files",
+      label: "Resources",
+      icon: Files,
+      href: "/counsellor-portal/files",
     },
   ];
 
@@ -178,6 +167,10 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
                 pathname?.startsWith("/counsellor-portal/sessions")) ||
               (item.id === "files" &&
                 pathname?.startsWith("/counsellor-portal/files")) ||
+              (item.id === "notes" &&
+                pathname?.startsWith("/counsellor-portal/pages/session-notes")) ||
+              (item.id === "psg" &&
+                pathname?.startsWith("/counsellor-portal/pages/psg-form")) ||
               (item.id === "overview" && pathname === "/counsellor-portal"));
 
           const isAnySubActive =
