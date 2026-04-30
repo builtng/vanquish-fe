@@ -916,7 +916,7 @@ export default function VanquishClientIntake() {
                 >
                   VT
                 </div>
-                <div>
+                <div className="text-center flex-1">
                   <h1
                     className="text-lg md:text-2xl font-bold"
                     style={{ color: "var(--text-primary)" }}
@@ -1054,7 +1054,7 @@ export default function VanquishClientIntake() {
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
-                    className="text-2xl md:text-3xl font-bold mb-4"
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
                     Personal Information - (Please be advised that all required
@@ -1435,7 +1435,7 @@ export default function VanquishClientIntake() {
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
-                    className="text-2xl md:text-3xl font-bold mb-4"
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
                     About You
@@ -1577,7 +1577,7 @@ export default function VanquishClientIntake() {
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
-                    className="text-2xl md:text-3xl font-bold mb-4"
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
                     Service Information
@@ -1746,7 +1746,7 @@ export default function VanquishClientIntake() {
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
-                    className="text-2xl md:text-3xl font-bold mb-4"
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
                     Your Support
@@ -1893,7 +1893,7 @@ export default function VanquishClientIntake() {
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
-                    className="text-2xl md:text-3xl font-bold mb-4"
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
                     Your Availability To Attend Weekly Sessions
@@ -2060,7 +2060,7 @@ export default function VanquishClientIntake() {
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
-                    className="text-2xl md:text-3xl font-bold mb-4"
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
                     Counsellor Preferences
@@ -2198,7 +2198,7 @@ export default function VanquishClientIntake() {
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
-                    className="text-2xl md:text-3xl font-bold mb-4"
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
                     Referral Information - (For any fields that do not apply to
@@ -2405,29 +2405,27 @@ export default function VanquishClientIntake() {
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
-                    className="text-2xl md:text-3xl font-bold mb-4"
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
                     Assessment (CORE 34)
                   </h2>
                   <div
-                    className="text-base md:text-lg mb-4 space-y-2"
-                    style={{ color: "var(--text-secondary)" }}
+                    className="text-base md:text-lg mb-4 p-6 bg-red-50 border-2 border-red-200 rounded-xl space-y-3"
                   >
-                    <p className="font-bold text-red-600">
-                      Important - Please read this information before you start
-                      completing the below section:
+                    <p className="font-bold text-red-700 text-lg uppercase tracking-wide">
+                      Important - Please read this information before you start:
                     </p>
-                    <p>
+                    <p className="text-red-900 font-medium">
                       This section has 34 statements about how you have been
                       over the last week.
                     </p>
-                    <p>
+                    <p className="text-red-900">
                       Please ensure you read each statement and think about how
                       often you have felt that way over the last week. Then tick
                       the box that relates closest to how you have felt.
                     </p>
-                    <p className="text-base italic">
+                    <p className="text-red-600 text-xs italic mt-2 border-t border-red-100 pt-2">
                       This core 34 has been taken from The CORE System Trust:
                       http://www.coresystemtrust.org.uk/copyright.pdf
                     </p>
@@ -2546,7 +2544,7 @@ export default function VanquishClientIntake() {
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
-                    className="text-2xl md:text-3xl font-bold mb-4"
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
                     Select a Consultation Slot
@@ -2803,7 +2801,7 @@ export default function VanquishClientIntake() {
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
-                    className="text-2xl md:text-3xl font-bold mb-4"
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
                     Consultation Payment
