@@ -326,13 +326,13 @@
         <div class="info-grid">
             @if($tc->institution || $tc->training_org_name)
             <div class="info-row">
-                <div class="info-label">Training Organization:</div>
+                <div class="info-label">Training Organisation:</div>
                 <div class="info-value">{{ $tc->training_org_name ?? $tc->institution }}</div>
             </div>
             @endif
             @if($tc->training_org_address)
             <div class="info-row">
-                <div class="info-label">Organization Address:</div>
+                <div class="info-label">Organisation Address:</div>
                 <div class="info-value">{{ $tc->training_org_address }}</div>
             </div>
             @endif

@@ -81,6 +81,8 @@ class ClientController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:clients,email',
             'age' => 'nullable|integer|min:1|max:120',
             'phone' => 'nullable|string|max:20',
@@ -89,7 +91,7 @@ class ClientController extends Controller
             'gender' => 'nullable|string|max:50',
             'ethnicity' => 'nullable|string|max:100',
             'sexual_orientation' => 'nullable|string|max:100',
-            'service_type' => 'nullable|in:Low Cost,Mid Range,High Range,Low Cost Counselling,Mid Range Counselling',
+            'service_type' => 'nullable|string|max:255',
             'primary_issues' => 'nullable|array|max:40',
             'primary_issues.*' => 'string|max:255',
             'availability' => 'nullable|array|max:7',
@@ -165,11 +167,13 @@ class ClientController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
             'email' => 'sometimes|email|unique:clients,email,' . $client->id,
             'gender' => 'nullable|string|max:50',
             'ethnicity' => 'nullable|string|max:100',
             'sexual_orientation' => 'nullable|string|max:100',
-            'service_type' => 'nullable|string', // Relaxed for update
+            'service_type' => 'nullable|string',
             'primary_issues' => 'nullable|array|max:40',
             'primary_issues.*' => 'string|max:255',
             'availability' => 'nullable|array|max:7',

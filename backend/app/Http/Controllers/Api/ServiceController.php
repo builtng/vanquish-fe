@@ -19,7 +19,7 @@ class ServiceController extends Controller
             $companySettings = \Illuminate\Support\Facades\DB::table('company_settings')->pluck('value', 'key')->toArray();
             $useInternalIntake = ($companySettings['use_internal_intake_form'] ?? '0') === '1';
 
-            $defaultMessage = "This service is at capacity at this time. If you would like to work with Ish, you can click here to proceed with our Partner service VQT COACHING & THERAPY";
+            $defaultMessage = "This service is at capacity at this time. If you would like to work with us, you can click here to proceed with our Partner service VQT COACHING & THERAPY";
             
             if ($useInternalIntake) {
                 $defaultUrl = rtrim(config('app.frontend_url'), '/') . "/clform";
@@ -40,7 +40,7 @@ class ServiceController extends Controller
             Log::error('Error checking Ish capacity: ' . $e->getMessage());
             return response()->json([
                 'capacity_full' => false,
-                'message' => "This service is at capacity at this time. If you would like to work with Ish, you can click here to proceed with our Partner service VQT COACHING & THERAPY",
+                'message' => "This service is at capacity at this time. If you would like to work with us, you can click here to proceed with our Partner service VQT COACHING & THERAPY",
                 'alternative_url' => "https://pci.jotform.com/form/243161740962456",
             ], 200);
         }

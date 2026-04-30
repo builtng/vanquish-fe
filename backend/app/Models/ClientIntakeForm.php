@@ -56,6 +56,10 @@ class ClientIntakeForm extends Model
         'payment_amount',
         'payment_method',
         'paid_at',
+        'address',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'emergency_contact_relationship',
     ];
 
     protected $casts = [

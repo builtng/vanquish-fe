@@ -1015,7 +1015,7 @@ function ServiceSettingsSection() {
         capacity_message: ishCapacity.capacity_message || null,
         alternative_url: ishCapacity.alternative_url || null,
       });
-      success("Ish service capacity updated successfully!");
+      success("Counselling & Coaching service capacity updated successfully!");
     } catch (err) {
       showError(err.message || "Failed to update service capacity");
     } finally {
@@ -1039,7 +1039,7 @@ function ServiceSettingsSection() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-[var(--text-primary)]">
-              Ish's Service Capacity
+              Counselling & Coaching Service Capacity
             </h3>
             <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">
               Toggle capacity status and customize the message shown to clients
@@ -1077,7 +1077,7 @@ function ServiceSettingsSection() {
                 }
                 className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 rows={3}
-                placeholder="This service is at capacity at this time. If you would like to work with Ish, you can proceed with our Partner service VQT COACHING & THERAPY."
+                placeholder="This service is at capacity at this time. If you would like to work with us, you can proceed with our Partner service VQT COACHING & THERAPY."
               />
             </div>
             <div>

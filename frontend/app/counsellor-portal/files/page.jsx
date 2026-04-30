@@ -156,7 +156,7 @@ function FilesPageContent() {
           ))}
         </div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-          Shared Files
+          Resources
         </h1>
       </DashboardHeader>
 

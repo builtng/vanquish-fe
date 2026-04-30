@@ -26,7 +26,11 @@ export default function VanquishClientIntake() {
     lastName: "",
     email: "",
     phone: "",
+    address: "",
     age: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    emergencyContactRelationship: "",
     voicemailOk: "",
     currentlyInTherapy: "",
 
@@ -312,8 +316,17 @@ export default function VanquishClientIntake() {
         }
         if (!formData.phone.trim())
           stepErrors.phone = "Phone number is required";
+        if (!formData.address.trim())
+          stepErrors.address = "Address is required";
         if (!formData.age || parseInt(formData.age) < 18)
           stepErrors.age = "Age (18+) is required";
+        if (!formData.emergencyContactName.trim())
+          stepErrors.emergencyContactName = "Emergency contact name is required";
+        if (!formData.emergencyContactPhone.trim())
+          stepErrors.emergencyContactPhone =
+            "Emergency contact phone is required";
+        if (!formData.emergencyContactRelationship.trim())
+          stepErrors.emergencyContactRelationship = "Relationship is required";
         if (!formData.voicemailOk)
           stepErrors.voicemailOk = "This field is required";
         if (!formData.currentlyInTherapy)
@@ -363,8 +376,22 @@ export default function VanquishClientIntake() {
         break;
 
       case 7: // Referral
-        if (!formData.hearAboutUs)
+        if (!formData.hearAboutUs) {
           stepErrors.hearAboutUs = "This field is required";
+        } else if (
+          formData.hearAboutUs === "Referral" ||
+          formData.hearAboutUs === "Organisation" ||
+          formData.hearAboutUs === "Individual"
+        ) {
+          if (!formData.referrerName.trim())
+            stepErrors.referrerName = "Referrer's name is required";
+          if (!formData.referrerPhone.trim())
+            stepErrors.referrerPhone = "Referrer's phone is required";
+          if (!formData.referrerEmail.trim())
+            stepErrors.referrerEmail = "Referrer's email is required";
+          if (!formData.referralReason.trim())
+            stepErrors.referralReason = "Reasons for referral is required";
+        }
         break;
 
       case 8: // Assessment (CORE 34)
@@ -577,7 +604,12 @@ export default function VanquishClientIntake() {
             last_name: formData.lastName,
             email: formData.email,
             phone: formData.phone || null,
+            address: formData.address || null,
             age: formData.age ? parseInt(formData.age) : null,
+            emergency_contact_name: formData.emergencyContactName || null,
+            emergency_contact_phone: formData.emergencyContactPhone || null,
+            emergency_contact_relationship:
+              formData.emergencyContactRelationship || null,
             voicemail_ok: formData.voicemailOk === "Yes",
             currently_in_therapy: formData.currentlyInTherapy === "Yes",
             gender: formData.gender || null,
@@ -774,8 +806,8 @@ export default function VanquishClientIntake() {
   const steps = [
     { number: 1, title: "Personal", icon: User },
     { number: 2, title: "About", icon: Heart },
-    { number: 3, title: "Medical", icon: Briefcase },
-    { number: 4, title: "Concerns", icon: MessageCircle },
+    { number: 3, title: "Service", icon: Briefcase },
+    { number: 4, title: "Support", icon: MessageCircle },
     { number: 5, title: "Availability", icon: Calendar },
     { number: 6, title: "Preferences", icon: Heart },
     { number: 7, title: "Referral", icon: User },
@@ -1166,6 +1198,32 @@ export default function VanquishClientIntake() {
                       </p>
                     )}
                   </div>
+                  <div className="md:col-span-2">
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Address <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="address"
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) =>
+                        handleInputChange("address", e.target.value)
+                      }
+                      rows={2}
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.address ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="123 Example Street, London"
+                    />
+                    {errors.address && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.address}
+                      </p>
+                    )}
+                  </div>
 
                   <div>
                     <label
@@ -1179,8 +1237,13 @@ export default function VanquishClientIntake() {
                       name="age"
                       id="age"
                       min="18"
+                      max="99"
                       value={formData.age}
                       onChange={(e) => handleInputChange("age", e.target.value)}
+                      onInput={(e) => {
+                        if (e.target.value.length > 2)
+                          e.target.value = e.target.value.slice(0, 2);
+                      }}
                       className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
                         errors.age ? "border-red-500" : "border-gray-300"
                       }`}
@@ -1253,6 +1316,115 @@ export default function VanquishClientIntake() {
                         {errors.currentlyInTherapy}
                       </p>
                     )}
+                  </div>
+
+                  <div className="md:col-span-2 pt-4 border-t border-gray-100">
+                    <h3
+                      className="text-xl font-bold mb-4"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Emergency Contact Details
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                      <div>
+                        <label
+                          className="block text-lg font-medium mb-2"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Emergency Contact Name{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="emergencyContactName"
+                          id="emergencyContactName"
+                          value={formData.emergencyContactName}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "emergencyContactName",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                            errors.emergencyContactName
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          placeholder="Jane Smith"
+                        />
+                        {errors.emergencyContactName && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.emergencyContactName}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label
+                          className="block text-lg font-medium mb-2"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Emergency Contact Phone{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          name="emergencyContactPhone"
+                          id="emergencyContactPhone"
+                          value={formData.emergencyContactPhone}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "emergencyContactPhone",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                            errors.emergencyContactPhone
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          placeholder="+44 7700 900000"
+                        />
+                        {errors.emergencyContactPhone && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.emergencyContactPhone}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label
+                          className="block text-lg font-medium mb-2"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Relationship to You{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="emergencyContactRelationship"
+                          id="emergencyContactRelationship"
+                          value={formData.emergencyContactRelationship}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "emergencyContactRelationship",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                            errors.emergencyContactRelationship
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          placeholder="e.g. Mother, Spouse, Friend"
+                        />
+                        {errors.emergencyContactRelationship && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.emergencyContactRelationship}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1408,27 +1580,23 @@ export default function VanquishClientIntake() {
                     className="text-2xl md:text-3xl font-bold mb-4"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Medical & Service Information
+                    Service Information
                   </h2>
                   <p
                     className="text-base md:text-lg "
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    Help us understand your needs and ensure your safety.
                   </p>
 
                   <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
                     <p className="text-purple-900 font-medium mb-1">
-                      Looking for Ish's Coaching or Counselling?
-                    </p>
-                    <p className="text-sm text-purple-800 mb-2">
-                      Ish's services now have a dedicated registration page.
+                      Looking for our Counselling & Coaching service?
                     </p>
                     <Link
                       href="/ish"
                       className="inline-flex items-center gap-2 text-[#6f1d56] font-bold hover:underline"
                     >
-                      Go to Ish's Services Page{" "}
+                      Please click here to access our Counselling & Coaching service’s consultation form.{" "}
                       <ChevronRight className="w-4 h-4" />
                     </Link>
                   </div>
@@ -1581,7 +1749,7 @@ export default function VanquishClientIntake() {
                     className="text-2xl md:text-3xl font-bold mb-4"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Your Concerns
+                    Your Support
                   </h2>
                   <p
                     className="text-base md:text-lg "
@@ -1661,7 +1829,7 @@ export default function VanquishClientIntake() {
                       className="block text-lg font-medium  mb-2"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Please provide more details about your concerns{" "}
+                      Please provide more details about your support needs{" "}
                       <span className="text-red-500">*</span>
                     </label>
                     <textarea
@@ -2085,29 +2253,39 @@ export default function VanquishClientIntake() {
                     )}
                   </div>
 
-                  <div>
-                    <label
-                      className="block text-lg font-medium  mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Reasons for Referral
-                    </label>
-                    <textarea
-                      value={formData.referralReason}
-                      onChange={(e) =>
-                        handleInputChange("referralReason", e.target.value)
-                      }
-                      rows="3"
-                      className="w-full px-4 py-3 text-base border  rounded-lg focus:ring-2 focus:border-transparent"
-                      style={{ borderColor: "var(--input-border)" }}
-                      placeholder="Please provide any additional context about your referral"
-                    />
-                  </div>
-
                   {(formData.hearAboutUs === "Referral" ||
-                    formData.hearAboutUs === "Organization" ||
+                    formData.hearAboutUs === "Organisation" ||
                     formData.hearAboutUs === "Individual") && (
                     <>
+                      <div>
+                        <label
+                          className="block text-lg font-medium  mb-2"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Reasons for Referral{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          value={formData.referralReason}
+                          onChange={(e) =>
+                            handleInputChange("referralReason", e.target.value)
+                          }
+                          rows="3"
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                            errors.referralReason
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          style={{ borderColor: errors.referralReason ? "" : "var(--input-border)" }}
+                          placeholder="Please provide any additional context about your referral"
+                        />
+                        {errors.referralReason && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.referralReason}
+                          </p>
+                        )}
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <div>
                           <label
@@ -2115,7 +2293,8 @@ export default function VanquishClientIntake() {
                             style={{ color: "var(--text-primary)" }}
                           >
                             Referrer's Name (Provide your details so we can
-                            reach you if submitting for someone else)
+                            reach you if submitting for someone else){" "}
+                            <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="text"
@@ -2123,10 +2302,19 @@ export default function VanquishClientIntake() {
                             onChange={(e) =>
                               handleInputChange("referrerName", e.target.value)
                             }
-                            className="w-full px-4 py-3 text-base border  rounded-lg focus:ring-2 focus:border-transparent"
-                            style={{ borderColor: "var(--input-border)" }}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                              errors.referrerName
+                                ? "border-red-500"
+                                : "border-gray-300"
+                            }`}
+                            style={{ borderColor: errors.referrerName ? "" : "var(--input-border)" }}
                             placeholder="Full name"
                           />
+                          {errors.referrerName && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.referrerName}
+                            </p>
+                          )}
                         </div>
 
                         <div>
@@ -2134,7 +2322,8 @@ export default function VanquishClientIntake() {
                             className="block text-lg font-medium mb-2"
                             style={{ color: "var(--text-primary)" }}
                           >
-                            Referrer's Phone
+                            Referrer's Phone{" "}
+                            <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="tel"
@@ -2142,10 +2331,19 @@ export default function VanquishClientIntake() {
                             onChange={(e) =>
                               handleInputChange("referrerPhone", e.target.value)
                             }
-                            className="w-full px-4 py-3 text-base border  rounded-lg focus:ring-2 focus:border-transparent"
-                            style={{ borderColor: "var(--input-border)" }}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                              errors.referrerPhone
+                                ? "border-red-500"
+                                : "border-gray-300"
+                            }`}
+                            style={{ borderColor: errors.referrerPhone ? "" : "var(--input-border)" }}
                             placeholder="+44 7700 900000"
                           />
+                          {errors.referrerPhone && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.referrerPhone}
+                            </p>
+                          )}
                         </div>
 
                         <div>
@@ -2153,7 +2351,7 @@ export default function VanquishClientIntake() {
                             className="block text-lg font-medium  mb-2"
                             style={{ color: "var(--text-primary)" }}
                           >
-                            Organization Name (if applicable)
+                            Organisation Name (if applicable)
                           </label>
                           <input
                             type="text"
@@ -2163,7 +2361,7 @@ export default function VanquishClientIntake() {
                             }
                             className="w-full px-4 py-3 text-base border  rounded-lg focus:ring-2 focus:border-transparent"
                             style={{ borderColor: "var(--input-border)" }}
-                            placeholder="Organization name"
+                            placeholder="Organisation name"
                           />
                         </div>
 
@@ -2172,7 +2370,8 @@ export default function VanquishClientIntake() {
                             className="block text-lg font-medium  mb-2"
                             style={{ color: "var(--text-primary)" }}
                           >
-                            Referrer's Email
+                            Referrer's Email{" "}
+                            <span className="text-red-500">*</span>
                           </label>
                           <input
                             type="email"
@@ -2180,10 +2379,19 @@ export default function VanquishClientIntake() {
                             onChange={(e) =>
                               handleInputChange("referrerEmail", e.target.value)
                             }
-                            className="w-full px-4 py-3 text-base border  rounded-lg focus:ring-2 focus:border-transparent"
-                            style={{ borderColor: "var(--input-border)" }}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                              errors.referrerEmail
+                                ? "border-red-500"
+                                : "border-gray-300"
+                            }`}
+                            style={{ borderColor: errors.referrerEmail ? "" : "var(--input-border)" }}
                             placeholder="email@example.com"
                           />
+                          {errors.referrerEmail && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.referrerEmail}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </>
@@ -2206,7 +2414,7 @@ export default function VanquishClientIntake() {
                     className="text-base md:text-lg mb-4 space-y-2"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    <p className="font-bold">
+                    <p className="font-bold text-red-600">
                       Important - Please read this information before you start
                       completing the below section:
                     </p>
@@ -2941,6 +3149,7 @@ export default function VanquishClientIntake() {
                     setShowPaymentModal(false);
                   }}
                   onError={paymentProps.onError}
+                  onCancel={() => setShowPaymentModal(false)}
                 />
               </div>
             </div>

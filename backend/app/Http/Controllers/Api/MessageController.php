@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\DynamicEmail;
 use App\Events\MessageSent;
+use App\Events\MessageRead;
 
 class MessageController extends Controller
 {
@@ -558,6 +559,13 @@ class MessageController extends Controller
             'read_at' => now(),
         ]);
 
+        // Broadcast read receipt to sender
+        try {
+            broadcast(new MessageRead($message));
+        } catch (\Exception $e) {
+            Log::error('Failed to broadcast message read event: ' . $e->getMessage());
+        }
+
         return response()->json(['message' => 'Message marked as read']);
     }
 
@@ -681,10 +689,20 @@ class MessageController extends Controller
             });
 
         $count = $query->count();
+        $messages = $query->get();
         $query->update([
             'is_read' => true,
             'read_at' => now(),
         ]);
+
+        // Broadcast read receipts for each message
+        foreach ($messages as $msg) {
+            try {
+                broadcast(new MessageRead($msg));
+            } catch (\Exception $e) {
+                // silent error
+            }
+        }
 
         return response()->json([
             'message' => 'Conversation marked as read.',

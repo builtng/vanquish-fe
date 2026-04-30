@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import apiService from "@/lib/api";
+import { getInitials, abbreviateLastName } from "@/lib/utils";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import {
@@ -100,7 +101,7 @@ function ClientDetailsContent() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-              {client.name}
+               {abbreviateLastName(client.name)}
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <span

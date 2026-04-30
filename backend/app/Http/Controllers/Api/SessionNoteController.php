@@ -54,11 +54,11 @@ class SessionNoteController extends Controller
             'training_counsellor_id' => $user->training_counsellor_id,
             'client_id' => $request->client_id,
             'type' => $request->type,
-            'content' => $request->content,
+            'content' => $request->input('content'),
             'status' => 'submitted',
         ]);
 
-        // Log clinical documentation activity
+        // Log session notes activity
         $client = Client::find($request->client_id);
         $typeLabel = str_replace('_', ' ', $request->type);
         
@@ -68,7 +68,7 @@ class SessionNoteController extends Controller
             'model_type' => SessionNote::class,
             'model_id' => $note->id,
             'client_id' => $client->id,
-            'description' => "{$user->name} submitted clinical documentation ({$typeLabel}) for client {$client->name}",
+            'description' => "{$user->name} submitted session notes ({$typeLabel}) for client {$client->name}",
             'ip_address' => $request->ip(),
         ]);
 

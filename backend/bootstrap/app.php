@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
+            \App\Http\Middleware\DebugApiMiddleware::class,
             \App\Http\Middleware\SecurityHeaders::class,
             \Illuminate\Http\Middleware\HandleCors::class,
             \App\Http\Middleware\UpdateLastActive::class,
@@ -66,11 +67,33 @@ return Application::configure(basePath: dirname(__DIR__))
                         ? 'An error occurred. Please try again later.'
                         : $e->getMessage();
 
+                    // Log the actual error
+                    if ($statusCode === 500) {
+                        \Illuminate\Support\Facades\Log::error('API 500 Error: ' . $e->getMessage(), [
+                            'exception' => $e,
+                            'url' => $request->fullUrl(),
+                            'method' => $request->method(),
+                            'user_id' => $request->user()?->id,
+                        ]);
+                    }
+
                     return response()->json([
                         'message' => $message,
-                        'error' => config('app.debug') ? $e->getMessage() : null,
+                        'error' => $e->getMessage(), // Always show error message for now
+                        'file' => $e->getFile(),     // Show file
+                        'line' => $e->getLine(),     // Show line
                     ], $statusCode);
                 }
             });
         }
+
+        // Also add logic outside of production to log errors
+        $exceptions->render(function (Throwable $e, $request) {
+            if ($request->is('api/*') && !config('app.debug')) {
+                 \Illuminate\Support\Facades\Log::error('API Error: ' . $e->getMessage(), [
+                     'exception' => $e,
+                     'url' => $request->fullUrl(),
+                 ]);
+            }
+        });
     })->create();

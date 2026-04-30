@@ -25,9 +25,11 @@ export default function VanquishTCApplication() {
     dateOfBirth: "",
     gender: "",
     ethnicity: "",
+    ethnicityOther: "",
     email: "",
     phone: "",
     sexualOrientation: "",
+    sexualOrientationOther: "",
     address: "",
     city: "",
     postcode: "",
@@ -126,6 +128,7 @@ export default function VanquishTCApplication() {
     "Sikhism",
     "Spiritual",
     "Taoism",
+    "Other",
   ];
 
   // Comprehensive list of therapy topics/issues
@@ -312,8 +315,16 @@ export default function VanquishTCApplication() {
           stepErrors.dateOfBirth = "Date of birth is required";
         if (!formData.gender) stepErrors.gender = "Gender is required";
         if (!formData.ethnicity) stepErrors.ethnicity = "Ethnicity is required";
+        if (formData.ethnicity === "Other" && !formData.ethnicityOther.trim())
+          stepErrors.ethnicityOther = "Please specify your ethnicity";
         if (!formData.sexualOrientation)
           stepErrors.sexualOrientation = "Sexual orientation is required";
+        if (
+          formData.sexualOrientation === "Other" &&
+          !formData.sexualOrientationOther.trim()
+        )
+          stepErrors.sexualOrientationOther =
+            "Please specify your sexual orientation";
         if (
           !formData.email.trim() ||
           !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
@@ -372,10 +383,10 @@ export default function VanquishTCApplication() {
 
       case 3: // Course Information
         if (!formData.trainingOrgName.trim())
-          stepErrors.trainingOrgName = "Training organization name is required";
+          stepErrors.trainingOrgName = "Training organisation name is required";
         if (!formData.trainingOrgAddress.trim())
           stepErrors.trainingOrgAddress =
-            "Training organization address is required";
+            "Training organisation address is required";
         if (!formData.tutorName.trim())
           stepErrors.tutorName = "Tutor name is required";
         if (
@@ -460,6 +471,9 @@ export default function VanquishTCApplication() {
         break;
 
       case 6: // Documents
+        if (!formData.docsConfirmed)
+          stepErrors.docsConfirmed =
+            "Please confirm you have read the document requirements";
         if (!formData.fitnessTopractice)
           stepErrors.fitnessTopractice =
             "Fitness to Practise document is required";
@@ -604,7 +618,9 @@ export default function VanquishTCApplication() {
       formDataToSubmit.append('date_of_birth', formData.dateOfBirth || '');
       formDataToSubmit.append('gender', formData.gender || '');
       formDataToSubmit.append('ethnicity', formData.ethnicity || '');
+      formDataToSubmit.append('ethnicity_other', formData.ethnicityOther || '');
       formDataToSubmit.append('sexual_orientation', formData.sexualOrientation || '');
+      formDataToSubmit.append('sexual_orientation_other', formData.sexualOrientationOther || '');
       const fullAddress = [formData.address, formData.city, formData.postcode].filter(Boolean).join(', ');
       formDataToSubmit.append('address', fullAddress);
       if (formData.beliefs && formData.beliefs.length > 0) {
@@ -757,7 +773,7 @@ export default function VanquishTCApplication() {
               <p className="text-xs text-left" style={{ color: 'var(--text-secondary)' }}>
                 • Stage 1: Application review (you are here)
                 <br />
-                • Stage 2: Short virtual video interview (5 questions)
+                • Stage 2: Short virtual video interview (Few questions)
                 <br />• Stage 3: Face-to-face virtual interview
               </p>
             </div>
@@ -984,13 +1000,21 @@ export default function VanquishTCApplication() {
                     Date of Birth <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="date"
+                    type="text"
                     value={formData.dateOfBirth}
                     onChange={(e) =>
                       handleInputChange("dateOfBirth", e.target.value)
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
+                      errors.dateOfBirth ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="DD/MM/YYYY"
                   />
+                  {errors.dateOfBirth && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.dateOfBirth}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -1022,16 +1046,42 @@ export default function VanquishTCApplication() {
                       handleInputChange("ethnicity", e.target.value)
                     }
                     options={[
-                      { value: 'Asian', label: 'Asian' },
-                      { value: 'Black', label: 'Black' },
-                      { value: 'White', label: 'White' },
-                      { value: 'Mixed', label: 'Mixed' },
-                      { value: 'Hispanic/Latino', label: 'Hispanic/Latino' },
-                      { value: 'Middle Eastern', label: 'Middle Eastern' },
-                      { value: 'Other', label: 'Other' }
+                      { value: "Asian", label: "Asian" },
+                      { value: "Black", label: "Black" },
+                      { value: "White", label: "White" },
+                      { value: "Mixed", label: "Mixed" },
+                      { value: "Hispanic/Latino", label: "Hispanic/Latino" },
+                      { value: "Middle Eastern", label: "Middle Eastern" },
+                      { value: "Other", label: "Other" },
                     ]}
                     placeholder="Please select"
                   />
+                  {formData.ethnicity === "Other" && (
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Please specify ethnicity{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.ethnicityOther}
+                        onChange={(e) =>
+                          handleInputChange("ethnicityOther", e.target.value)
+                        }
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.ethnicityOther
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        placeholder="Please specify"
+                      />
+                      {errors.ethnicityOther && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.ethnicityOther}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1044,14 +1094,43 @@ export default function VanquishTCApplication() {
                       handleInputChange("sexualOrientation", e.target.value)
                     }
                     options={[
-                      { value: 'Heterosexual', label: 'Heterosexual' },
-                      { value: 'Gay', label: 'Gay' },
-                      { value: 'Lesbian', label: 'Lesbian' },
-                      { value: 'Bisexual', label: 'Bisexual' },
-                      { value: 'Other', label: 'Other' }
+                      { value: "Heterosexual", label: "Heterosexual" },
+                      { value: "Gay", label: "Gay" },
+                      { value: "Lesbian", label: "Lesbian" },
+                      { value: "Bisexual", label: "Bisexual" },
+                      { value: "Other", label: "Other" },
                     ]}
                     placeholder="Please select"
                   />
+                  {formData.sexualOrientation === "Other" && (
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Please specify sexual orientation{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.sexualOrientationOther}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "sexualOrientationOther",
+                            e.target.value,
+                          )
+                        }
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.sexualOrientationOther
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        placeholder="Please specify"
+                      />
+                      {errors.sexualOrientationOther && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.sexualOrientationOther}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <p className="text-xs text-gray-500 mt-1">
                     This helps us match counsellors with clients who may feel
                     more comfortable with certain perspectives
@@ -1137,8 +1216,8 @@ export default function VanquishTCApplication() {
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Please select your beliefs{" "}
-                    <span className="text-red-500">*</span>
+                    Please select your beliefs (If not listed, select 'Other' and
+                    specify below) <span className="text-red-500">*</span>
                   </label>
                   <div
                     data-field="beliefs"
@@ -1316,7 +1395,7 @@ export default function VanquishTCApplication() {
                     ]}
                     placeholder="Please select"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-700 mt-1 font-medium">
                     We will be carrying out a status check
                   </p>
                 </div>
@@ -1337,7 +1416,7 @@ export default function VanquishTCApplication() {
                     ]}
                     placeholder="Please select"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-700 mt-1 font-medium">
                     This is a requirement for our placement
                   </p>
                 </div>
@@ -1436,14 +1515,14 @@ export default function VanquishTCApplication() {
                   Current Course Information
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
-                  Details about your training and current practice.
+                  Details about your course and training provider.
                 </p>
               </div>
 
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Training Organization/College Name{" "}
+                    Training Organisation/College Name{" "}
                     <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -1459,7 +1538,7 @@ export default function VanquishTCApplication() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Training Organization Address & Postcode{" "}
+                    Training Organisation Address & Postcode{" "}
                     <span className="text-red-500">*</span>
                   </label>
                   <textarea
@@ -1625,14 +1704,16 @@ export default function VanquishTCApplication() {
                     face-to-face hours before commencing online counselling?{" "}
                     <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <SearchableSelect
                     value={formData.faceToFaceRequired}
                     onChange={(e) =>
                       handleInputChange("faceToFaceRequired", e.target.value)
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    placeholder="e.g., Yes, 40 hours required OR No"
+                    options={[
+                      { value: "Yes", label: "Yes" },
+                      { value: "No", label: "No" },
+                    ]}
+                    placeholder="Please select"
                   />
                 </div>
 
@@ -2229,11 +2310,12 @@ export default function VanquishTCApplication() {
                 </p>
               </div>
 
-              <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-                <p className="text-sm text-red-900 font-medium mb-2">
-                  Important:
+              <div className="bg-red-50 border-2 border-red-400 p-5 mb-6 rounded-lg shadow-sm">
+                <p className="text-sm text-red-900 font-bold mb-3 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  IMPORTANT - PLEASE READ CAREFULLY:
                 </p>
-                <ul className="text-xs text-red-800 space-y-1 list-disc list-inside">
+                <ul className="text-sm text-red-800 space-y-2 list-disc list-inside mb-4">
                   <li>
                     All mandatory documents must be uploaded with your
                     application
@@ -2250,6 +2332,24 @@ export default function VanquishTCApplication() {
                     more than 2 years old
                   </li>
                 </ul>
+                <label className="flex items-center gap-3 p-3 bg-white border border-red-200 rounded cursor-pointer hover:bg-red-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={formData.docsConfirmed || false}
+                    onChange={(e) =>
+                      handleInputChange("docsConfirmed", e.target.checked)
+                    }
+                    className="w-5 h-5 rounded border-gray-300 accent-red-600"
+                  />
+                  <span className="text-sm font-bold text-red-900">
+                    I confirm that I have read and understand these requirements
+                  </span>
+                </label>
+                {errors.docsConfirmed && (
+                  <p className="text-red-600 text-xs mt-2 font-bold">
+                    {errors.docsConfirmed}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-4 md:space-y-6">
@@ -2264,10 +2364,11 @@ export default function VanquishTCApplication() {
                       handleFileUpload("fitnessTopractice", e.target.files)
                     }
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,.doc,.docx"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    ONLY APPLY IF YOU HAVE RECEIVED THIS
+                    Accepted formats: PDF, Word (.doc, .docx). ONLY APPLY IF YOU
+                    HAVE RECEIVED THIS
                   </p>
                   {formData.fitnessTopractice && (
                     <p className="text-xs text-green-600 mt-1">
@@ -2287,8 +2388,11 @@ export default function VanquishTCApplication() {
                       handleFileUpload("qualifications", e.target.files)
                     }
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted formats: PDF, Image (JPG, PNG), Word
+                  </p>
                   {formData.qualifications && (
                     <p className="text-xs text-green-600 mt-1">
                       ✓ {formData.qualifications.name}
@@ -2305,8 +2409,11 @@ export default function VanquishTCApplication() {
                     type="file"
                     onChange={(e) => handleFileUpload("dbs", e.target.files)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted formats: PDF, Image (JPG, PNG), Word
+                  </p>
                   {formData.dbs && (
                     <p className="text-xs text-green-600 mt-1">
                       ✓ {formData.dbs.name}
@@ -2324,6 +2431,9 @@ export default function VanquishTCApplication() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     accept=".pdf,.doc,.docx"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted formats: PDF, Word (.doc, .docx)
+                  </p>
                   {formData.cv && (
                     <p className="text-xs text-green-600 mt-1">
                       ✓ {formData.cv.name}
@@ -2344,6 +2454,9 @@ export default function VanquishTCApplication() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     accept=".pdf,.jpg,.jpeg,.png"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted formats: PDF, Image (JPG, PNG)
+                  </p>
                   <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-3">
                     <p className="text-sm text-red-900 font-bold">
                       For insurance purposes, we may need to verify your Right
@@ -2368,8 +2481,11 @@ export default function VanquishTCApplication() {
                       handleFileUpload("insurance", e.target.files)
                     }
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted formats: PDF, Image (JPG, PNG), Word
+                  </p>
                   {formData.insurance && (
                     <p className="text-xs text-green-600 mt-1">
                       ✓ {formData.insurance.name}
