@@ -110,6 +110,7 @@ export default function IndividualTCDetailPage() {
   const [noteToDelete, setNoteToDelete] = useState(null);
   const [addingNote, setAddingNote] = useState(false);
   const [downloadingReport, setDownloadingReport] = useState(false);
+  const [sendingPortalInvite, setSendingPortalInvite] = useState(false);
 
   // Fetch TC data from API
   useEffect(() => {
@@ -526,6 +527,29 @@ export default function IndividualTCDetailPage() {
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
                     Send Message
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (sendingPortalInvite) return;
+                      try {
+                        setSendingPortalInvite(true);
+                        await apiService.sendTcPortalInvite(uuid);
+                        showToast.success("Portal invitation sent successfully!");
+                      } catch (err) {
+                        showToast.error(err.message || "Failed to send portal invitation.");
+                      } finally {
+                        setSendingPortalInvite(false);
+                      }
+                    }}
+                    disabled={sendingPortalInvite}
+                    className="h-10 px-4 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-md active:scale-95 disabled:opacity-50"
+                  >
+                    {sendingPortalInvite ? (
+                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
+                    ) : (
+                      <Shield className="w-3.5 h-3.5" />
+                    )}
+                    Invite to Portal
                   </button>
                   <Link
                     href={`/dashboard/training-counsellors/edit?id=${uuid}`}

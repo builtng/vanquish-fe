@@ -375,6 +375,12 @@ class ApiService {
     });
   }
 
+  async sendTcPortalInvite(id) {
+    return this.request(`/training-counsellors/${id}/portal-invite`, {
+      method: "POST",
+    });
+  }
+
   async downloadTrainingCounsellorReport(id) {
     const token = this.getToken();
     const url = `${this.baseURL}/training-counsellors/${id}/download-report`;

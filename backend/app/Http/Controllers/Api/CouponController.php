@@ -83,7 +83,7 @@ class CouponController extends Controller
         ]);
 
         $code = strtoupper($request->code);
-        $coupon = \App\Models\Coupon::where('code', $code)->first();
+        $coupon = \App\Models\Coupon::whereRaw('UPPER(code) = ?', [$code])->first();
 
         if (!$coupon) {
             return response()->json(['message' => 'Invalid discount code'], 404);

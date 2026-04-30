@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\TrainingCounsellor;
 use App\Models\ActivityLog;
 use App\Mail\DynamicEmail;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class TrainingCounsellorController extends Controller
@@ -931,5 +934,58 @@ class TrainingCounsellorController extends Controller
         // Return PDF download
         $sanitizedName = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '_', $tc->name));
         return $pdf->download("TC_{$sanitizedName}_REPORT.pdf");
+    }
+
+    public function sendPortalInvite(Request $request, $id)
+    {
+        try {
+            $tc = TrainingCounsellor::where('uuid', $id)->orWhere('tc_id', $id)->firstOrFail();
+            $portalUrl = rtrim(config('app.frontend_url', 'https://vqtmanagement.com'), '/') . '/counsellor-login';
+
+            // 1. Find or create User account (role = counsellor)
+            $existingUser = User::where('email', $tc->email)->first();
+            $temporaryPassword = null;
+
+            if (!$existingUser) {
+                $temporaryPassword = \Illuminate\Support\Str::random(10) . '!1Aa';
+                $existingUser = User::create([
+                    'name'                    => $tc->name,
+                    'email'                   => strtolower(trim($tc->email)),
+                    'password'                => Hash::make($temporaryPassword),
+                    'role'                    => 'counsellor',
+                    'training_counsellor_id'  => $tc->id,
+                ]);
+            } elseif ($existingUser->role !== 'counsellor') {
+                $existingUser->update([
+                    'role'                   => 'counsellor',
+                    'training_counsellor_id' => $tc->id,
+                ]);
+            }
+
+            // 2. Send portal invite email
+            Mail::to($tc->email)->send(new DynamicEmail('trainee_portal_invite', [
+                'first_name'         => explode(' ', $tc->name)[0] ?? $tc->name,
+                'portal_link'        => $portalUrl,
+                'email'              => $tc->email,
+                'temporary_password' => $temporaryPassword ?? '(use your existing password)',
+            ]));
+
+            ActivityLog::create([
+                'user_id'     => optional($request->user())->id,
+                'action'      => 'tc_portal_invite_sent',
+                'model_type'  => TrainingCounsellor::class,
+                'model_id'    => $tc->id,
+                'description' => "Portal invite sent and counsellor account created for {$tc->name}",
+                'ip_address'  => $request->ip(),
+            ]);
+
+            return response()->json([
+                'message'            => 'Portal invitation sent and counsellor account created',
+                'account_created'    => $temporaryPassword !== null,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send TC portal invite: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to send invite: ' . $e->getMessage()], 500);
+        }
     }
 }

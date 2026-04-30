@@ -14,7 +14,7 @@ import { StripePaymentWrapper } from "@/components/StripePayment";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { toast } from "react-toastify";
 
-export default function IshClientIntake() {
+export default function CoachingIntake() {
   const [formData, setFormData] = useState({
     // Personal Info
     firstName: "",
@@ -54,8 +54,8 @@ export default function IshClientIntake() {
   const [currentStep, setCurrentStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [clientId, setClientId] = useState(null);
-  const [ishCapacityFull, setIshCapacityFull] = useState(false);
-  const [ishCapacityData, setIshCapacityData] = useState({
+  const [isCapacityFull, setIsCapacityFull] = useState(false);
+  const [capacityData, setCapacityData] = useState({
     message: null,
     alternative_url: null,
   });
@@ -127,25 +127,25 @@ export default function IshClientIntake() {
     fetch(
       `${
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
-      }/services/ish-capacity`,
+      }/services/coaching-capacity`,
     )
       .then((res) => res.json())
       .then((data) => {
-        setIshCapacityFull(data.capacity_full || false);
-        setIshCapacityData({
+        setIsCapacityFull(data.capacity_full || false);
+        setCapacityData({
           message:
             data.message ||
-            "This service is at capacity at this time. If you would like to work with Ish, you can click here to proceed with our Partner service VQT COACHING & THERAPY",
+            "This service is at capacity at this time. If you would like to work with our Counselling & Coaching service, you can click here to proceed with our Partner service VQT COACHING & THERAPY",
           alternative_url:
             data.alternative_url ||
             "https://pci.jotform.com/form/243161740962456",
         });
       })
       .catch(() => {
-        setIshCapacityFull(false);
-        setIshCapacityData({
+        setIsCapacityFull(false);
+        setCapacityData({
           message:
-            "This service is at capacity at this time. If you would like to work with Ish, you can click here to proceed with our Partner service VQT COACHING & THERAPY",
+            "This service is at capacity at this time. If you would like to work with our Counselling & Coaching service, you can click here to proceed with our Partner service VQT COACHING & THERAPY",
           alternative_url: "https://pci.jotform.com/form/243161740962456",
         });
       });
@@ -418,7 +418,7 @@ export default function IshClientIntake() {
               formData.workingWithAnotherReason || null,
             location_of_residence: formData.locationOfResidence,
 
-            service_type: "Ish",
+            service_type: "Counselling & Coaching",
             support_areas: formData.supportAreas || [],
             concerns_details: formData.concernsDetails || null,
             availability: formData.availability || {},
@@ -555,9 +555,9 @@ export default function IshClientIntake() {
                 >
                   VT
                 </div>
-                <div>
+                <div className="flex-1 text-center">
                   <h1 className="text-lg md:text-2xl font-bold text-primary">
-                    Consultation Sheet
+                    Counselling & Coaching Consultation Form
                   </h1>
                   <p className="text-sm mt-0.5 md:mt-1 text-secondary">
                     By completing this form, you (client) are giving permission
@@ -640,7 +640,7 @@ export default function IshClientIntake() {
           >
             {currentStep === 1 && (
               <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
+                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary text-center">
                   Personal Information
                 </h2>
                 <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
@@ -652,16 +652,16 @@ export default function IshClientIntake() {
                   "N/A.")
                 </div>
 
-                {ishCapacityFull && (
+                {isCapacityFull && (
                   <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-5 mb-6">
                     <p className="text-orange-900 font-bold mb-3">
                       Service at Capacity
                     </p>
                     <p className="text-orange-800 mb-4">
-                      {ishCapacityData.message}
+                      {capacityData.message}
                     </p>
                     <a
-                      href={ishCapacityData.alternative_url}
+                      href={capacityData.alternative_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-block px-6 py-3 bg-orange-600 text-white rounded-lg font-medium"
@@ -671,7 +671,7 @@ export default function IshClientIntake() {
                   </div>
                 )}
 
-                {!ishCapacityFull && (
+                {!isCapacityFull && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
                       <label className="block text-base font-medium mb-2 text-primary">
@@ -912,8 +912,8 @@ export default function IshClientIntake() {
 
             {currentStep === 2 && (
               <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
-                  Availability
+                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary text-center">
+                  Your Availability
                 </h2>
                 {["monday", "tuesday", "wednesday", "thursday", "friday"].map(
                   (day) => (
@@ -955,7 +955,7 @@ export default function IshClientIntake() {
 
             {currentStep === 3 && (
               <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
+                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary text-center">
                   Referral Information
                 </h2>
                 <div>
@@ -1019,7 +1019,7 @@ export default function IshClientIntake() {
 
             {currentStep === 4 && (
               <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
+                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary text-center">
                   Areas You Require Support With
                 </h2>
                 <p className="text-sm text-gray-700">
@@ -1070,8 +1070,8 @@ export default function IshClientIntake() {
 
             {currentStep === 5 && (
               <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary">
-                  Payment & Acknowledgement
+                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary text-center">
+                  Payment & Terms
                 </h2>
 
                 <div className="bg-gray-50 p-6 rounded-lg mb-6">
@@ -1136,8 +1136,7 @@ export default function IshClientIntake() {
                   Thank you for completing this form and for taking the first
                   step towards healing. I understand that starting Counselling
                   or Coaching can feel daunting but please know, Vanquish
-                  Therapies is here to support you on your journey, and I am
-                  committed to providing a supportive environment for you.
+                  Therapies is here to support you every step of the way.
                   Please note – this is not a crisis or emergency service. If
                   you need to speak to someone immediately, please contact your
                   GP, NHS (111),or the Samaritans (116 123).
@@ -1145,7 +1144,7 @@ export default function IshClientIntake() {
               </div>
             )}
 
-            {!(formData.serviceType === "Ish" && ishCapacityFull) && (
+            {!(isCapacityFull) && (
               <div className="flex justify-between mt-10 pt-6 border-t">
                 <button
                   onClick={handlePrevious}

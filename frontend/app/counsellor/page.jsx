@@ -759,7 +759,7 @@ export default function VanquishTCApplication() {
             <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'var(--success-bg)', border: '2px solid var(--success-border)' }}>
               <CheckCircle className="w-12 h-12" style={{ color: 'var(--success-primary)' }} />
             </div>
-            <h2 className="text-2xl font-bold mb-3" style={{ color: 'var(--text-primary)' }}>
+            <h2 className="text-2xl font-bold mb-3 text-center" style={{ color: 'var(--text-primary)' }}>
               Application Submitted!
             </h2>
             <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
@@ -801,14 +801,14 @@ export default function VanquishTCApplication() {
               >
                 VT
               </div>
-              <div>
-                <h1 className="text-lg md:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                  Vanquish Therapies
-                </h1>
-                <p className="text-sm md:text-base mt-0.5 md:mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  Trainee Counsellor Application (Stage 1)
-                </p>
-              </div>
+            <div className="flex-1 text-center">
+              <h1 className="text-lg md:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+                Vanquish Therapies
+              </h1>
+              <p className="text-sm md:text-base mt-0.5 md:mt-1" style={{ color: 'var(--text-secondary)' }}>
+                Trainee Counsellor Application (Stage 1)
+              </p>
+            </div>
             </div>
           </div>
 
@@ -944,7 +944,7 @@ export default function VanquishTCApplication() {
           {currentStep === 1 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
                   Candidate Information
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
@@ -1309,7 +1309,7 @@ export default function VanquishTCApplication() {
           {currentStep === 2 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
                   Professional Status
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
@@ -1334,6 +1334,22 @@ export default function VanquishTCApplication() {
                     ]}
                     placeholder="Please select"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Professional Indemnity Insurance <span className="text-red-500">*</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2 font-medium">Accepted formats: PDF, DOC, DOCX, JPG, PNG</p>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      onChange={(e) => handleFileChange("insurance", e.target.files[0])}
+                      className="hidden"
+                      id="insurance"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -1511,7 +1527,7 @@ export default function VanquishTCApplication() {
           {currentStep === 3 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
                   Current Course Information
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
@@ -1704,17 +1720,21 @@ export default function VanquishTCApplication() {
                     face-to-face hours before commencing online counselling?{" "}
                     <span className="text-red-500">*</span>
                   </label>
-                  <SearchableSelect
+                  <select
                     value={formData.faceToFaceRequired}
                     onChange={(e) =>
                       handleInputChange("faceToFaceRequired", e.target.value)
                     }
-                    options={[
-                      { value: "Yes", label: "Yes" },
-                      { value: "No", label: "No" },
-                    ]}
-                    placeholder="Please select"
-                  />
+                    className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                      errors.faceToFaceRequired
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    <option value="">Please select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
                 </div>
 
                 <div>
@@ -1795,7 +1815,7 @@ export default function VanquishTCApplication() {
           {currentStep === 4 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
                   Your Journey & Experience
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
@@ -2135,7 +2155,7 @@ export default function VanquishTCApplication() {
           {currentStep === 5 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
                   Your Availability
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
@@ -2301,10 +2321,10 @@ export default function VanquishTCApplication() {
           {currentStep === 6 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
                   Required Documents
                 </h2>
-                <p className="text-sm md:text-base text-gray-600">
+                <p className="text-sm md:text-base text-gray-600 text-center">
                   Please upload all mandatory documents. Incomplete applications
                   will need to be re-submitted.
                 </p>
@@ -2500,7 +2520,7 @@ export default function VanquishTCApplication() {
           {currentStep === 7 && (
             <div className="space-y-4 md:space-y-6">
               <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
                   Review & Submit
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">

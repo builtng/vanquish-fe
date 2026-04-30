@@ -35,7 +35,7 @@ Route::middleware('throttle:5,1')->group(function () {
 });
 
 // Service routes (public)
-Route::get('/services/ish-capacity', [\App\Http\Controllers\Api\ServiceController::class, 'checkIshCapacity']);
+Route::get('/services/coaching-capacity', [\App\Http\Controllers\Api\ServiceController::class, 'checkCoachingCapacity']);
 Route::get('/maintenance', [\App\Http\Controllers\Api\ServiceController::class, 'checkMaintenance']);
 Route::post('/coupons/verify', [\App\Http\Controllers\Api\CouponController::class, 'verify']);
 
@@ -140,6 +140,7 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::get('/training-counsellors/{tc}/download-report', [TrainingCounsellorController::class, 'downloadReport']);
         Route::post('/training-counsellors/{tc}/transition-to-qualified', [TrainingCounsellorController::class, 'transitionToQualified']);
         Route::post('/training-counsellors/{tc}/send-email', [TrainingCounsellorController::class, 'sendEmail']);
+        Route::post('/training-counsellors/{tc}/portal-invite', [TrainingCounsellorController::class, 'sendPortalInvite']);
     });
 
     // Counsellor portal endpoints (counsellors can access their own data)

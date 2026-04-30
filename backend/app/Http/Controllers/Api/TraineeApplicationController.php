@@ -189,6 +189,18 @@ class TraineeApplicationController extends Controller
             ]);
         }
  
+        // TRIGGER EMAIL: Stage 2 Invitation (HireVire link)
+        if ($validated['status'] === 'Stage 2 Invited') {
+            try {
+                Mail::to($traineeApplication->email)->send(new DynamicEmail('trainee_stage_two_invite', [
+                    'first_name' => $traineeApplication->first_name,
+                    'interview_link' => config('services.hirevire.interview_url', 'https://hirevire.com/v/vanquish-therapies-trainee/'),
+                ]));
+            } catch (\Exception $e) {
+                Log::error("Failed to send stage 2 invite: " . $e->getMessage());
+            }
+        }
+
         // TRIGGER EMAIL: If Stage 2 is approved, send Stage 3 Invitation (Trafft booking link)
         if ($validated['status'] === 'Stage 2 Approved') {
             try {
@@ -215,8 +227,8 @@ class TraineeApplicationController extends Controller
             }
         }
 
-        // TRIGGER EMAIL: If Rejected (from ANY stage after Stage 1)
-        $postStage1Statuses = ['Stage 2 Invited', 'Stage 2 Video Submitted', 'Stage 2 Approved', 'Stage 3 Interview Booked', 'Interview Attended'];
+        // TRIGGER EMAIL: If Rejected (from ANY stage)
+        $postStage1Statuses = ['New Application', 'Stage 2 Invited', 'Stage 2 Video Submitted', 'Stage 2 Approved', 'Stage 3 Interview Booked', 'Interview Attended'];
         if ($validated['status'] === 'Rejected' && in_array($oldStatus, $postStage1Statuses)) {
             try {
                 Mail::to($traineeApplication->email)->send(new DynamicEmail('trainee_placement_rejection', [

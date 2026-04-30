@@ -9,13 +9,10 @@ use Illuminate\Support\Facades\Log;
 
 class ServiceController extends Controller
 {
-    /**
-     * Check Ish's service capacity
-     */
-    public function checkIshCapacity()
+    public function checkCoachingCapacity()
     {
         try {
-            $setting = ServiceSetting::where('service_name', 'Ish')->first();
+            $setting = ServiceSetting::where('service_name', 'Counselling & Coaching')->first();
             $companySettings = \Illuminate\Support\Facades\DB::table('company_settings')->pluck('value', 'key')->toArray();
             $useInternalIntake = ($companySettings['use_internal_intake_form'] ?? '0') === '1';
 
