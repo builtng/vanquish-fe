@@ -962,6 +962,26 @@ class ApiService {
     return this.requestPublic("/services/all", { noRedirect: true });
   }
 
+  async checkMaintenance() {
+    return this.requestPublic("/maintenance");
+  }
+
+  // Intake Form submissions (Public)
+  async submitClientIntake(data) {
+    return this.requestPublic("/client-intake", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async submitTCIntake(data) {
+    // If data is FormData (for file uploads), requestPublic handles it
+    return this.requestPublic("/tc-intake", {
+      method: "POST",
+      body: data instanceof FormData ? data : JSON.stringify(data),
+    });
+  }
+
   // Coupon endpoints
   async getCoupons() {
     return this.request("/coupons");
