@@ -993,7 +993,7 @@ function ServiceSettingsSection() {
   const loadIshCapacity = async () => {
     try {
       setLoading(true);
-      const data = await apiService.checkIshCapacity();
+      const data = await apiService.checkCoachingCapacity();
       setIshCapacity({
         capacity_full: data.capacity_full || false,
         capacity_message: data.message || "",

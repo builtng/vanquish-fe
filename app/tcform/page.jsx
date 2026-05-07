@@ -10,15 +10,20 @@ import {
   Settings,
 } from "lucide-react";
 
+import apiService from "@/lib/api";
+import { toast } from "react-toastify";
+
 export default function TCProfileForm() {
   const [formData, setFormData] = useState({
     // Basic Info
-    fullName: "",
+    name: "",
     email: "",
     phone: "",
+    address: "",
 
     // Demographics
     age: "",
+    date_of_birth: "",
     gender: "",
     ethnicity: "",
     sexualOrientation: "",
@@ -28,6 +33,8 @@ export default function TCProfileForm() {
     modalities: [],
     experienceYears: "",
     qualifications: "",
+    course_title: "",
+    training_org_name: "",
 
     // Availability
     availability: {
@@ -40,12 +47,14 @@ export default function TCProfileForm() {
       sunday: [],
     },
 
-    // Topics not ready for
-    notReadyFor: [],
+    // Topics
+    topics_with_experience: [],
+    topics_not_ready_for: [],
   });
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [maintenanceStatus, setMaintenanceStatus] = useState({
     active: false,
     message: "",
@@ -54,10 +63,7 @@ export default function TCProfileForm() {
   useEffect(() => {
     const checkMaintenance = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/maintenance`,
-        );
-        const data = await response.json();
+        const data = await apiService.checkMaintenance();
         setMaintenanceStatus({
           active: data.maintenance_mode,
           message: data.message,
@@ -130,9 +136,9 @@ export default function TCProfileForm() {
   const handleTopicToggle = (topic) => {
     setFormData((prev) => ({
       ...prev,
-      notReadyFor: prev.notReadyFor.includes(topic)
-        ? prev.notReadyFor.filter((t) => t !== topic)
-        : [...prev.notReadyFor, topic],
+      topics_not_ready_for: prev.topics_not_ready_for.includes(topic)
+        ? prev.topics_not_ready_for.filter((t) => t !== topic)
+        : [...prev.topics_not_ready_for, topic],
     }));
   };
 
@@ -148,9 +154,38 @@ export default function TCProfileForm() {
     }));
   };
 
-  const handleSubmit = () => {
-    console.log("Form submitted:", formData);
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        gender: formData.gender,
+        ethnicity: formData.ethnicity,
+        sexual_orientation: formData.sexualOrientation,
+        date_of_birth: formData.date_of_birth,
+        modality: formData.modalities.join(", "),
+        course_title: formData.course_title,
+        training_org_name: formData.training_org_name,
+        topics_not_ready_for: formData.topics_not_ready_for,
+        availability: formData.availability,
+        create_tc: true,
+      };
+
+      const res = await apiService.submitTCIntake(payload);
+      
+      if (res.message) {
+        setSubmitted(true);
+        toast.success("Profile submitted successfully!");
+      }
+    } catch (err) {
+      console.error("Error submitting TC profile:", err);
+      toast.error(err.message || "Failed to submit profile.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const steps = [
@@ -306,9 +341,9 @@ export default function TCProfileForm() {
                     </label>
                     <input
                       type="text"
-                      value={formData.fullName}
+                      value={formData.name}
                       onChange={(e) =>
-                        handleInputChange("fullName", e.target.value)
+                        handleInputChange("name", e.target.value)
                       }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                       placeholder="Dr. Jane Smith"
@@ -345,18 +380,28 @@ export default function TCProfileForm() {
                     />
                   </div>
 
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Residential Address <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      value={formData.address}
+                      onChange={(e) => handleInputChange("address", e.target.value)}
+                      rows="2"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      placeholder="Street name, City, Postcode"
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Age <span className="text-red-500">*</span>
+                      Date of Birth <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="number"
-                      min="18"
-                      max="100"
-                      value={formData.age}
-                      onChange={(e) => handleInputChange("age", e.target.value)}
+                      type="date"
+                      value={formData.date_of_birth}
+                      onChange={(e) => handleInputChange("date_of_birth", e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                      placeholder="35"
                     />
                   </div>
 
@@ -460,20 +505,52 @@ export default function TCProfileForm() {
                   Professional Information
                 </h2>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Years of Experience <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.experienceYears}
-                    onChange={(e) =>
-                      handleInputChange("experienceYears", e.target.value)
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    placeholder="5"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Training Institution <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.training_org_name}
+                      onChange={(e) =>
+                        handleInputChange("training_org_name", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      placeholder="University of..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Course Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.course_title}
+                      onChange={(e) =>
+                        handleInputChange("course_title", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      placeholder="MSc Counselling & Psychotherapy"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Years of Experience <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.experienceYears}
+                      onChange={(e) =>
+                        handleInputChange("experienceYears", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                      placeholder="5"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -627,7 +704,7 @@ export default function TCProfileForm() {
                       >
                         <input
                           type="checkbox"
-                          checked={formData.notReadyFor.includes(topic)}
+                          checked={formData.topics_not_ready_for.includes(topic)}
                           onChange={() => handleTopicToggle(topic)}
                           className="mt-1 w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-600"
                         />
@@ -637,11 +714,11 @@ export default function TCProfileForm() {
                   </div>
                 </div>
 
-                {formData.notReadyFor.length > 0 && (
+                {formData.topics_not_ready_for.length > 0 && (
                   <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                     <p className="text-sm text-orange-800">
                       You've marked{" "}
-                      <strong>{formData.notReadyFor.length} topic(s)</strong> as
+                      <strong>{formData.topics_not_ready_for.length} topic(s)</strong> as
                       areas you're not ready to handle. The system will flag any
                       clients with these issues for admin review.
                     </p>
@@ -661,9 +738,9 @@ export default function TCProfileForm() {
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
               <button
                 onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
-                disabled={currentStep === 1}
+                disabled={currentStep === 1 || loading}
                 className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                  currentStep === 1
+                  currentStep === 1 || loading
                     ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                     : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                 }`}
@@ -680,6 +757,7 @@ export default function TCProfileForm() {
                   onClick={() =>
                     setCurrentStep((prev) => Math.min(4, prev + 1))
                   }
+                  disabled={loading}
                   className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
                 >
                   Next
@@ -687,10 +765,22 @@ export default function TCProfileForm() {
               ) : (
                 <button
                   onClick={handleSubmit}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
+                  disabled={loading}
+                  className={`px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2 ${
+                    loading ? "opacity-70 cursor-not-allowed" : ""
+                  }`}
                 >
-                  <Save className="w-4 h-4" />
-                  Submit Profile
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Submit Profile
+                    </>
+                  )}
                 </button>
               )}
             </div>

@@ -28,6 +28,10 @@ export default function CoachingIntake() {
     currentlyInTherapy: "",
     workingWithAnotherReason: "",
     locationOfResidence: "",
+    address: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    emergencyContactRelationship: "",
 
     // Availability
     availability: {
@@ -239,6 +243,14 @@ export default function CoachingIntake() {
         }
         if (!formData.locationOfResidence.trim())
           stepErrors.locationOfResidence = "Location is required";
+        if (!formData.address.trim())
+          stepErrors.address = "Address is required";
+        if (!formData.emergencyContactName.trim())
+          stepErrors.emergencyContactName = "Emergency contact name is required";
+        if (!formData.emergencyContactPhone.trim())
+          stepErrors.emergencyContactPhone = "Emergency contact phone is required";
+        if (!formData.emergencyContactRelationship.trim())
+          stepErrors.emergencyContactRelationship = "Relationship is required";
         break;
 
       case 2: // Availability
@@ -417,6 +429,10 @@ export default function CoachingIntake() {
             working_with_another_reason:
               formData.workingWithAnotherReason || null,
             location_of_residence: formData.locationOfResidence,
+            address: formData.address,
+            emergency_contact_name: formData.emergencyContactName,
+            emergency_contact_phone: formData.emergencyContactPhone,
+            emergency_contact_relationship: formData.emergencyContactRelationship,
 
             service_type: "Counselling & Coaching",
             support_areas: formData.supportAreas || [],
@@ -882,6 +898,25 @@ export default function CoachingIntake() {
                     )}
                     <div className="md:col-span-2">
                       <label className="block text-base font-medium mb-2 text-primary">
+                        Address <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={formData.address}
+                        onChange={(e) =>
+                          handleInputChange("address", e.target.value)
+                        }
+                        rows={2}
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.address ? "border-red-500" : "border-gray-300"}`}
+                        placeholder="123 Example Street, London"
+                      />
+                      {errors.address && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.address}
+                        </p>
+                      )}
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-base font-medium mb-2 text-primary">
                         Please state where you reside in the world. Please note,
                         our Practice is based in the UK. Therefore, the
                         Consultations and Session times are scheduled in UK
@@ -904,6 +939,85 @@ export default function CoachingIntake() {
                           {errors.locationOfResidence}
                         </p>
                       )}
+                    </div>
+
+                    <div className="md:col-span-2 pt-4 border-t border-gray-100">
+                      <h3 className="text-xl font-bold mb-4 text-primary">
+                        Emergency Contact Details
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <div>
+                          <label className="block text-base font-medium mb-2 text-primary">
+                            Emergency Contact Name{" "}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.emergencyContactName}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "emergencyContactName",
+                                e.target.value,
+                              )
+                            }
+                            className={`w-full px-4 py-3 border rounded-lg ${errors.emergencyContactName ? "border-red-500" : "border-gray-300"}`}
+                            placeholder="Jane Smith"
+                          />
+                          {errors.emergencyContactName && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.emergencyContactName}
+                            </p>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-base font-medium mb-2 text-primary">
+                            Emergency Contact Phone{" "}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            value={formData.emergencyContactPhone}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "emergencyContactPhone",
+                                e.target.value,
+                              )
+                            }
+                            className={`w-full px-4 py-3 border rounded-lg ${errors.emergencyContactPhone ? "border-red-500" : "border-gray-300"}`}
+                            placeholder="+44 7700 900000"
+                          />
+                          {errors.emergencyContactPhone && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.emergencyContactPhone}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="block text-base font-medium mb-2 text-primary">
+                            Relationship to You{" "}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.emergencyContactRelationship}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "emergencyContactRelationship",
+                                e.target.value,
+                              )
+                            }
+                            className={`w-full px-4 py-3 border rounded-lg ${errors.emergencyContactRelationship ? "border-red-500" : "border-gray-300"}`}
+                            placeholder="e.g. Mother, Spouse, Friend"
+                          />
+                          {errors.emergencyContactRelationship && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.emergencyContactRelationship}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
