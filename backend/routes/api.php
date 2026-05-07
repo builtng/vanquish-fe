@@ -42,6 +42,9 @@ Route::post('/coupons/verify', [\App\Http\Controllers\Api\CouponController::clas
 // Company settings (public read)
 Route::get('/company-settings', [CompanySettingsController::class, 'index']);
 
+// Service routes (public)
+Route::get('/services/all', [ServiceController::class, 'getAllServices']);
+
 // Client booking routes (public - clients book without auth)
 Route::prefix('client-booking')->group(function () {
     Route::post('/authenticate', [ClientBookingController::class, 'authenticate']);
@@ -191,7 +194,6 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::post('/services/update-capacity', [ServiceController::class, 'updateCapacity']);
         Route::post('/services/update-price', [ServiceController::class, 'updatePrice']);
         Route::post('/services/update-maintenance', [ServiceController::class, 'updateMaintenance']);
-        Route::get('/services/all', [ServiceController::class, 'getAllServices']);
 
         // Coupons
         Route::apiResource('coupons', \App\Http\Controllers\Api\CouponController::class);

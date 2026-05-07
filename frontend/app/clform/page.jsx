@@ -7,14 +7,24 @@ import {
   Settings,
   CreditCard,
   CheckCircle,
+  AlertTriangle,
 } from "lucide-react";
+import apiService from "@/lib/api";
+import { toast } from "react-toastify";
 
 export default function ClientIntakeForm() {
   const [formData, setFormData] = useState({
     // Basic Info
-    fullName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
+    address: "",
+
+    // Emergency Contact
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    emergencyContactRelationship: "",
 
     // Demographics
     age: "",
@@ -60,24 +70,20 @@ export default function ClientIntakeForm() {
     message: "",
   });
 
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     const checkStatus = async () => {
       try {
         // Check Maintenance Status
-        const maintenanceResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/maintenance`,
-        );
-        const maintenanceData = await maintenanceResponse.json();
+        const maintenanceData = await apiService.checkMaintenance();
         setMaintenanceStatus({
           active: maintenanceData.maintenance_mode,
           message: maintenanceData.message,
         });
 
         // Check Capacity Status
-        const capacityResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/services/ish-capacity`,
-        );
-        const capacityData = await capacityResponse.json();
+        const capacityData = await apiService.checkCoachingCapacity();
         setCapacityStatus({
           full: capacityData.capacity_full,
           message: capacityData.message,
@@ -150,9 +156,47 @@ export default function ClientIntakeForm() {
     }));
   };
 
-  const handleSubmit = () => {
-    console.log("Form submitted:", formData);
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const payload = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        age: formData.age,
+        gender: formData.gender,
+        ethnicity: formData.ethnicity,
+        sexual_orientation: formData.sexualOrientation,
+        service_type: "Partner Service Intake",
+        support_areas: formData.issues,
+        modality: formData.modality,
+        availability: {
+          [formData.selectedDay]: [formData.selectedTimeBlock],
+        },
+        emergency_contact_name: formData.emergencyContactName,
+        emergency_contact_phone: formData.emergencyContactPhone,
+        emergency_contact_relationship: formData.emergencyContactRelationship,
+        gender_preference: formData.genderPreference,
+        age_preference: formData.agePreference,
+        ethnicity_preference: formData.ethnicityPreference,
+        orientation_preference: formData.orientationPreference,
+        discount_code: formData.couponCode,
+        create_client: true,
+      };
+
+      const res = await apiService.submitClientIntake(payload);
+      if (res.message) {
+        setSubmitted(true);
+        toast.success("Registration submitted successfully!");
+      }
+    } catch (err) {
+      console.error("Error submitting intake:", err);
+      toast.error(err.message || "Failed to submit registration.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const steps = [
@@ -291,22 +335,37 @@ export default function ClientIntakeForm() {
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name <span className="text-red-500">*</span>
+                    First Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    value={formData.fullName}
+                    value={formData.firstName}
                     onChange={(e) =>
-                      handleInputChange("fullName", e.target.value)
+                      handleInputChange("firstName", e.target.value)
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    placeholder="John Smith"
+                    placeholder="John"
                   />
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) =>
+                      handleInputChange("lastName", e.target.value)
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="Smith"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Email Address <span className="text-red-500">*</span>
                   </label>
@@ -345,9 +404,69 @@ export default function ClientIntakeForm() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                     placeholder="28"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Must be 18 or older
-                  </p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Residential Address <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={formData.address}
+                    onChange={(e) => handleInputChange("address", e.target.value)}
+                    rows="2"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="Street name, City, Postcode"
+                  />
+                </div>
+
+                <div className="md:col-span-2 border-t border-gray-100 pt-4 mt-2">
+                  <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-500" />
+                    Emergency Contact Information
+                  </h3>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Emergency Contact Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.emergencyContactName}
+                    onChange={(e) => handleInputChange("emergencyContactName", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="Full Name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Emergency Contact Phone <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.emergencyContactPhone}
+                    onChange={(e) => handleInputChange("emergencyContactPhone", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="+44..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Relationship to You <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.emergencyContactRelationship}
+                    onChange={(e) => handleInputChange("emergencyContactRelationship", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="e.g. Spouse, Parent, Friend"
+                  />
+                </div>
+
+                <div className="md:col-span-2 border-t border-gray-100 pt-4 mt-2">
+                  <h3 className="text-sm font-bold text-gray-800 mb-4">Demographics</h3>
                 </div>
 
                 <div>
@@ -393,7 +512,7 @@ export default function ClientIntakeForm() {
                   </select>
                 </div>
 
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Sexual Orientation <span className="text-red-500">*</span>
                   </label>

@@ -80,8 +80,8 @@ class ApiService {
         config.body = JSON.stringify(options.body);
       }
 
-      if (process.env.NODE_ENV !== 'production' || options.verbose) {
-        console.log(`[ApiService] ${config.method || 'GET'} ${url}`);
+      if (process.env.NODE_ENV !== "production" || options.verbose) {
+        console.log(`[ApiService] ${config.method || "GET"} ${url}`);
       }
 
       const response = await fetch(url, config);
@@ -763,9 +763,12 @@ class ApiService {
   }
 
   async markConversationAsRead(peerType, peerId) {
-    return this.request(`/messages/conversations/${peerType}/${peerId}/mark-read`, {
-      method: "POST",
-    });
+    return this.request(
+      `/messages/conversations/${peerType}/${peerId}/mark-read`,
+      {
+        method: "POST",
+      },
+    );
   }
 
   async restoreMessage(id) {
@@ -814,17 +817,17 @@ class ApiService {
   }
 
   async getSharedDocuments(folderId = null) {
-    const query = folderId ? `?folder_id=${folderId}` : '';
+    const query = folderId ? `?folder_id=${folderId}` : "";
     return this.request(`/shared-documents${query}`);
   }
 
   async getContactFiles(type, id, folderId = null) {
-    const query = folderId ? `?folder_id=${folderId}` : '';
+    const query = folderId ? `?folder_id=${folderId}` : "";
     return this.request(`/contacts/${type}/${id}/files${query}`);
   }
 
   async createFolder(data) {
-    return this.request('/folders', {
+    return this.request("/folders", {
       method: "POST",
       body: data,
     });
@@ -870,7 +873,7 @@ class ApiService {
 
     return { success: true };
   }
-  
+
   async uploadSharedDocument(formData) {
     return this.request("/shared-documents", {
       method: "POST",
@@ -897,7 +900,9 @@ class ApiService {
 
   async getSessionNotes(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.request(`/session-notes${queryString ? `?${queryString}` : ""}`);
+    return this.request(
+      `/session-notes${queryString ? `?${queryString}` : ""}`,
+    );
   }
 
   async getSessionNote(id) {
@@ -942,8 +947,8 @@ class ApiService {
   }
 
   // Service settings endpoints
-  async checkIshCapacity() {
-    return this.requestPublic("/services/ish-capacity");
+  async checkCoachingCapacity() {
+    return this.requestPublic("/services/coaching-capacity");
   }
 
   async updateServiceCapacity(data) {
@@ -954,7 +959,7 @@ class ApiService {
   }
 
   async getAllServices() {
-    return this.request("/services/all", { noRedirect: true });
+    return this.requestPublic("/services/all", { noRedirect: true });
   }
 
   // Coupon endpoints
@@ -1118,7 +1123,9 @@ class ApiService {
   // Trainee Application endpoints
   async getTraineeApplications(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.request(`/trainee-applications${queryString ? `?${queryString}` : ""}`);
+    return this.request(
+      `/trainee-applications${queryString ? `?${queryString}` : ""}`,
+    );
   }
 
   async getTraineeApplicationsCount() {
