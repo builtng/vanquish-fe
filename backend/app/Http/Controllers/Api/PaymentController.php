@@ -59,7 +59,7 @@ class PaymentController extends Controller
     public function createPaymentIntent(Request $request)
     {
         if ($request->has('coupon_code')) {
-            $request->merge(['coupon_code' => strtoupper($request->coupon_code)]);
+            $request->merge(['coupon_code' => strtoupper(trim($request->coupon_code))]);
         }
 
         $validated = $request->validate([

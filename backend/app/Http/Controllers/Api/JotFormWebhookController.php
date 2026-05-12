@@ -11,9 +11,16 @@ use App\Jobs\SendTraineeStageTwoInvite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use App\Services\EmailService;
 
 class JotFormWebhookController extends Controller
 {
+    protected $emailService;
+
+    public function __construct(EmailService $emailService)
+    {
+        $this->emailService = $emailService;
+    }
     /**
      * Handle agreement submission from JotForm
      * Webhook URL: https://form.jotform.com/231635798225060
@@ -788,15 +795,11 @@ class JotFormWebhookController extends Controller
             ]);
 
             // Send Email #1 Immediately
-            try {
-                Mail::to($application->email)->send(new DynamicEmail('trainee_application_received', [
-                    'first_name' => $application->first_name,
-                    'last_name'  => $application->last_name,
-                    'email'      => $application->email,
-                ]));
-            } catch (\Exception $e) {
-                Log::error("JotForm Stage-1: Failed to send received email: " . $e->getMessage());
-            }
+            $this->emailService->sendAndLog($application->email, 'trainee_application_received', [
+                'first_name' => $application->first_name,
+                'last_name'  => $application->last_name,
+                'email'      => $application->email,
+            ], $application);
 
             // QUEUE JOB: Send Email #2 after 48 hours (Stage 2 invite)
             SendTraineeStageTwoInvite::dispatch($application)->delay(now()->addHours(48));

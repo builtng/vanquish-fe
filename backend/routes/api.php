@@ -144,6 +144,7 @@ Route::middleware(['auth:sanctum', 'throttle:200,1'])->group(function () {
         Route::post('/training-counsellors/{tc}/transition-to-qualified', [TrainingCounsellorController::class, 'transitionToQualified']);
         Route::post('/training-counsellors/{tc}/send-email', [TrainingCounsellorController::class, 'sendEmail']);
         Route::post('/training-counsellors/{tc}/portal-invite', [TrainingCounsellorController::class, 'sendPortalInvite']);
+        Route::post('/training-counsellors/bulk-portal-invite', [TrainingCounsellorController::class, 'bulkPortalInvite']);
     });
 
     // Counsellor portal endpoints (counsellors can access their own data)

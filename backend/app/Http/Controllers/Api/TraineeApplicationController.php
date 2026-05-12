@@ -15,9 +15,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use App\Services\EmailService;
 
 class TraineeApplicationController extends Controller
 {
+    protected $emailService;
+
+    public function __construct(EmailService $emailService)
+    {
+        $this->emailService = $emailService;
+    }
     /**
      * Display a listing of applications.
      */
@@ -91,15 +98,11 @@ class TraineeApplicationController extends Controller
         ]);
 
         // Send Email #1 Immediately
-        try {
-            Mail::to($application->email)->send(new DynamicEmail('trainee_application_received', [
-                'first_name' => $application->first_name,
-                'last_name' => $application->last_name,
-                'email' => $application->email,
-            ]));
-        } catch (\Exception $e) {
-            Log::error("Failed to send trainee application received email: " . $e->getMessage());
-        }
+        $this->emailService->sendAndLog($application->email, 'trainee_application_received', [
+            'first_name' => $application->first_name,
+            'last_name' => $application->last_name,
+            'email' => $application->email,
+        ], $application);
 
         // QUEUE JOB: Send Email #2 after 48 hours
         try {
@@ -191,28 +194,25 @@ class TraineeApplicationController extends Controller
  
         // TRIGGER EMAIL: Stage 2 Invitation (HireVire link)
         if ($validated['status'] === 'Stage 2 Invited') {
-            try {
-                Mail::to($traineeApplication->email)->send(new DynamicEmail('trainee_stage_two_invite', [
-                    'first_name' => $traineeApplication->first_name,
-                    'interview_link' => config('services.hirevire.interview_url', 'https://hirevire.com/v/vanquish-therapies-trainee/'),
-                ]));
-            } catch (\Exception $e) {
-                Log::error("Failed to send stage 2 invite: " . $e->getMessage());
-            }
+            $hirevireUrl = config('services.hirevire.interview_url', 'https://app.hirevire.com/applications/091820fa-6fef-45e0-97e8-d714fc0b27cf');
+            $this->emailService->sendAndLog($traineeApplication->email, 'trainee_stage_two_invite', [
+                'first_name' => $traineeApplication->first_name,
+                'full_name' => $traineeApplication->first_name . ' ' . $traineeApplication->last_name,
+                'interview_url' => $hirevireUrl,
+                'interview_link' => $hirevireUrl, // Keep both for template compatibility
+                'deadline_date' => now()->addDays(3)->format('l, j F Y'),
+            ], $traineeApplication);
         }
 
         // TRIGGER EMAIL: If Stage 2 is approved, send Stage 3 Invitation (Trafft booking link)
-        if ($validated['status'] === 'Stage 2 Approved') {
-            try {
-                Mail::to($traineeApplication->email)->send(new DynamicEmail('trainee_stage_three_invite', [
-                    'first_name'   => $traineeApplication->first_name,
-                    'full_name'    => $traineeApplication->first_name . ' ' . $traineeApplication->last_name,
-                    'booking_link' => config('services.trafft.booking_url', 'https://vanquishtherapies.co.uk/placement-interview/'),
-                    'induction_date' => config('services.trafft.next_induction_date', 'Monday, 19th January, 10:00am'),
-                ]));
-            } catch (\Exception $e) {
-                Log::error("Failed to send stage 3 invite: " . $e->getMessage());
-            }
+        if ($validated['status'] === 'Stage 2 Approved' || $validated['status'] === 'Stage 3 Invited') {
+            $trafftUrl = config('services.trafft.booking_url', 'https://vanquishtherapies.co.uk/placement-interview/');
+            $this->emailService->sendAndLog($traineeApplication->email, 'trainee_stage_three_invite', [
+                'first_name'   => $traineeApplication->first_name,
+                'full_name'    => $traineeApplication->first_name . ' ' . $traineeApplication->last_name,
+                'booking_url' => $trafftUrl,
+                'induction_date' => config('services.trafft.next_induction_date', 'Monday, 19th January, 10:00am'),
+            ], $traineeApplication);
         }
 
         // TRIGGER EMAIL: If Accepted

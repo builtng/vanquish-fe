@@ -13,18 +13,23 @@ class EmailService
     /**
      * Send email and log the result
      */
-    public function sendAndLog(Client $client, string $templateName, array $placeholders): bool
+    public function sendAndLog(string $email, string $templateName, array $placeholders, $model = null): bool
     {
-        $log = EmailLog::create([
-            'client_id' => $client->id,
-            'email' => $client->email,
+        $logData = [
+            'email' => $email,
             'template_name' => $templateName,
             'payload' => $placeholders,
             'status' => 'pending',
-        ]);
+        ];
+
+        if ($model instanceof \App\Models\Client) {
+            $logData['client_id'] = $model->id;
+        }
+
+        $log = EmailLog::create($logData);
 
         try {
-            Mail::to($client->email)->send(new DynamicEmail($templateName, $placeholders));
+            Mail::to($email)->send(new DynamicEmail($templateName, $placeholders));
 
             $log->update([
                 'status' => 'sent',
@@ -33,7 +38,7 @@ class EmailService
 
             return true;
         } catch (\Exception $e) {
-            Log::error("Failed to send email to {$client->email}: " . $e->getMessage());
+            Log::error("Failed to send email to {$email}: " . $e->getMessage());
 
             $log->update([
                 'status' => 'failed',

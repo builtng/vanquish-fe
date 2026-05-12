@@ -91,6 +91,10 @@ export default function ViewAllTrainingCounsellorsPage() {
     sendNotification: true,
   });
 
+  // Bulk Selection states
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isBulkInviting, setIsBulkInviting] = useState(false);
+
   // Fetch training counsellors from API
   const fetchTrainingCounsellors = async () => {
     try {
@@ -140,6 +144,47 @@ export default function ViewAllTrainingCounsellorsPage() {
       setError("Failed to load practitioners. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBulkPortalInvite = async () => {
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to send portal invitations to ${selectedIds.length} practitioners?`)) {
+        return;
+    }
+
+    try {
+      setIsBulkInviting(true);
+      const response = await apiService.bulkPortalInvite(selectedIds);
+      
+      if (response.success) {
+        toast.success(response.message || `Successfully sent ${response.invited_count} invitations`);
+        setSelectedIds([]);
+        fetchTrainingCounsellors();
+      } else {
+        toast.warning(response.message || "Some invitations may have failed");
+      }
+    } catch (err) {
+      console.error("Bulk invite error:", err);
+      toast.error(err.message || "Failed to send bulk invitations");
+    } finally {
+      setIsBulkInviting(false);
+    }
+  };
+
+  const handleToggleSelect = (id, e) => {
+    e.stopPropagation();
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.length === filteredTCs.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredTCs.map(tc => tc.id));
     }
   };
 
@@ -613,6 +658,37 @@ export default function ViewAllTrainingCounsellorsPage() {
               <option value="clients">Sort: Client Count</option>
             </select>
           </div>
+
+          {filteredTCs.length > 0 && (
+            <div className="mt-4 flex items-center justify-between bg-card/50 p-2 rounded-lg border border-border/50">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.length === filteredTCs.length && filteredTCs.length > 0}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 rounded border-input text-[var(--purple-primary)] focus:ring-[var(--purple-primary)]"
+                />
+                <span className="text-sm font-medium text-foreground">
+                  {selectedIds.length} selected of {filteredTCs.length} practitioners
+                </span>
+              </div>
+              
+              {selectedIds.length > 0 && (
+                <button
+                  onClick={handleBulkPortalInvite}
+                  disabled={isBulkInviting}
+                  className="px-4 py-1.5 bg-[var(--purple-primary)] hover:opacity-90 text-white rounded-md text-sm font-semibold flex items-center gap-2 disabled:opacity-50 transition-all"
+                >
+                  {isBulkInviting ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  Bulk Portal Invite
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* TC Cards Grid */}
@@ -666,12 +742,23 @@ export default function ViewAllTrainingCounsellorsPage() {
             {filteredTCs.map((tc) => (
               <div
                 key={tc.id}
-                className="bg-card rounded-lg border border-border p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                 className="bg-card rounded-lg border border-border p-6 hover:shadow-lg transition-shadow cursor-pointer relative"
                 onClick={() => {
                   setSelectedTC(tc);
                   setShowDetailPanel(true);
                 }}
               >
+                {/* Selection Checkbox */}
+                <div className="absolute top-4 right-4 z-10">
+                   <input
+                    type="checkbox"
+                    checked={selectedIds.includes(tc.id)}
+                    onChange={(e) => handleToggleSelect(tc.id, e)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-5 h-5 rounded border-input text-[var(--purple-primary)] focus:ring-[var(--purple-primary)] cursor-pointer"
+                  />
+                </div>
+
                 {/* Header */}
 
                 <div className="flex items-start gap-4 mb-4">

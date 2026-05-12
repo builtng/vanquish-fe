@@ -86,7 +86,8 @@ class DynamicEmail extends Mailable
             'trainee_interview_reminder',
             'trainee_placement_acceptance',
             'trainee_placement_rejection',
-            'trainee_portal_invite'
+            'trainee_portal_invite',
+            'counsellor_portal_invite'
         ];
 
         $generalTypes = [
@@ -117,6 +118,7 @@ class DynamicEmail extends Mailable
         'trainee_interview_reminder',
         'trainee_placement_acceptance',
         'trainee_portal_invite',
+        'counsellor_portal_invite',
     ];
 
     /**
@@ -249,7 +251,7 @@ class DynamicEmail extends Mailable
             ],
             'booking_rescheduled' => [
                 'subject' => 'Booking Rescheduled - Vanquish Therapies',
-                'body' => '<h1>Your Booking has been Rescheduled</h1><p>Hi {{client_name}},</p><p>Your {{booking_type}} with {{counsellor_name}} has been rescheduled.</p><p><strong>New Date/Time:</strong> {{new_scheduled_at}}</p><p><strong>Notes:</strong> {{notes}}</p><p><strong>Link:</strong> <a href="{{consultation_link}}">Join Session</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
+                'body' => '<h1>Your Booking has been Rescheduled</h1><p>Hi {{client_name}},</p><p>Your {{booking_type}} with {{counsellor_name}} has been scheduled.</p><p><strong>New Date/Time:</strong> {{new_scheduled_at}}</p><p><strong>Notes:</strong> {{notes}}</p><p><strong>Link:</strong> <a href="{{consultation_link}}">Join Session</a></p><p>Warm regards,<br>The Vanquish Therapies Team</p>',
                 'placeholders' => ['client_name', 'booking_type', 'counsellor_name', 'new_scheduled_at', 'notes', 'consultation_link']
             ],
             'trainee_initial_invite' => [
@@ -545,7 +547,7 @@ class DynamicEmail extends Mailable
   <div style="background: #ffffff; padding: 32px; border: 1px solid #e2e8f0; border-top: none;">
     <p style="font-size: 16px; margin-top: 0;">Dear <strong>{{first_name}}</strong>,</p>
     <p>Following your interview, our clinical team was highly impressed with your approach and potential. We are delighted to officially offer you a <strong>Trainee Counsellor Placement</strong> at Vanquish Therapies.</p>
-    
+
     <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin: 28px 0; border: 1px solid #e2e8f0;">
       <h2 style="color: #6f1d56; margin: 0 0 16px; font-size: 18px;">Induction Details</h2>
       <p style="margin: 0; font-size: 14px; color: #64748b;">Your mandatory online induction is scheduled for:</p>
@@ -555,7 +557,7 @@ class DynamicEmail extends Mailable
 
     <h2 style="color: #6f1d56; font-size: 17px; border-bottom: 2px solid #f0e6ed; padding-bottom: 8px;">Action Required: Onboarding Paperwork</h2>
     <p style="font-size: 14px; color: #475569;">To finalize your placement, please complete the two items below <strong>before</strong> your induction date:</p>
-    
+
     <div style="margin: 20px 0;">
       <div style="padding: 16px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; margin-bottom: 12px;">
         <p style="margin: 0; font-size: 14px;"><strong>1. Sign the 4-Way Agreement</strong></p>
@@ -617,6 +619,54 @@ class DynamicEmail extends Mailable
 
     <div style="background: #fdf2f8; border: 1px solid #fce7f3; border-radius: 8px; padding: 14px 18px; margin: 24px 0;">
       <p style="margin: 0; font-size: 13px; color: #9d174d;"><strong>💡 Need Help?</strong> Contact our team at <a href="mailto:compliance@vanquishtherapies.co.uk" style="color:#6f1d56;">compliance@vanquishtherapies.co.uk</a> and we will be happy to assist you.</p>
+    </div>
+
+    <p style="font-size: 15px; font-weight: bold; color: #6f1d56; margin-top: 20px;">The Compliance Team<br><span style="font-weight: normal; color: #777; font-size: 13px;">Vanquish Therapies</span></p>
+  </div>
+  <div style="background: #f8fafc; padding: 16px 32px; border-radius: 0 0 12px 12px; border: 1px solid #e2e8f0; border-top: none; text-align: center;">
+    <p style="font-size: 11px; color: #94a3b8; margin: 0;">© Vanquish Therapies Ltd. All rights reserved.</p>
+  </div>
+</div>',
+                'placeholders' => ['first_name', 'portal_link', 'email', 'temporary_password']
+            ],
+            'counsellor_portal_invite' => [
+                'subject' => '🔐 Your Vanquish Therapies Practitioner Portal Access',
+                'body' => '
+<div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #333;">
+  <div style="background: linear-gradient(135deg, #6f1d56 0%, #9b2c7e 100%); padding: 40px 32px; border-radius: 12px 12px 0 0; text-align: center;">
+    <div style="font-size: 48px; margin-bottom: 12px;">🔐</div>
+    <h1 style="color: white; margin: 0; font-size: 24px;">Portal Access Granted</h1>
+    <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 15px;">Practitioner Portal Access — Vanquish Therapies</p>
+  </div>
+  <div style="background: #ffffff; padding: 32px; border: 1px solid #e2e8f0; border-top: none;">
+    <p style="font-size: 16px; margin-top: 0;">Hello <strong>{{first_name}}</strong>,</p>
+    <p>We are pleased to invite you to the <strong>Vanquish Practitioner Portal</strong>. This portal will serve as your primary platform for managing your client roster, submitting session notes, and accessing important clinical documents.</p>
+
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px 24px; margin: 24px 0;">
+      <h2 style="color: #6f1d56; margin: 0 0 14px; font-size: 16px;">🔑 Your Login Credentials</h2>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding: 6px 0; font-size: 13px; color: #64748b; width: 130px;">Login Email</td><td style="padding: 6px 0; font-size: 14px; font-weight: bold; color: #6f1d56; font-family: monospace;">{{email}}</td></tr>
+        <tr><td style="padding: 6px 0; font-size: 13px; color: #64748b;">Temporary Password</td><td style="padding: 6px 0; font-size: 14px; font-weight: bold; color: #6f1d56; font-family: monospace;">{{temporary_password}}</td></tr>
+      </table>
+      <p style="margin: 12px 0 0; font-size: 12px; color: #94a3b8;">⚠️ For security, you will be prompted to change your password upon your first login.</p>
+    </div>
+
+    <div style="text-align: center; margin: 28px 0;">
+      <a href="{{portal_link}}" style="display:inline-block;padding:16px 36px;background:#6f1d56;color:white;text-decoration:none;border-radius:10px;font-weight:bold;font-size:16px;">🚀 Access Practitioner Portal</a>
+      <p style="margin: 10px 0 0; font-size: 12px; color: #888;">Log in with the credentials provided above</p>
+    </div>
+
+    <h2 style="color: #6f1d56; font-size: 17px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">Getting Started</h2>
+    <p style="font-size: 14px; color: #475569;">To ensure a smooth transition to the portal, please complete the following steps:</p>
+    <ul style="padding-left: 20px; line-height: 2; font-size: 14px; color: #333;">
+      <li>🔐 Update your <strong>temporary password</strong> to a secure personal one</li>
+      <li>📂 Review your <strong>Active Clients</strong> list for accuracy</li>
+      <li>📖 Access the <strong>Practitioner Handbook</strong> in the shared documents section</li>
+      <li>📞 Save the <strong>Emergency Clinical Support Line</strong> to your contacts</li>
+    </ul>
+
+    <div style="background: #fdf2f8; border: 1px solid #fce7f3; border-radius: 8px; padding: 14px 18px; margin: 24px 0;">
+      <p style="margin: 0; font-size: 13px; color: #9d174d;"><strong>💡 Support Needed?</strong> If you encounter any technical issues, please contact <a href="mailto:compliance@vanquishtherapies.co.uk" style="color:#6f1d56;">compliance@vanquishtherapies.co.uk</a>.</p>
     </div>
 
     <p style="font-size: 15px; font-weight: bold; color: #6f1d56; margin-top: 20px;">The Compliance Team<br><span style="font-weight: normal; color: #777; font-size: 13px;">Vanquish Therapies</span></p>

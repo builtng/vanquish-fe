@@ -31,7 +31,7 @@ class CouponController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        $validated['code'] = strtoupper($validated['code']); // Force uppercase
+        $validated['code'] = strtoupper(trim($validated['code'])); // Force uppercase and trim
 
         $coupon = \App\Models\Coupon::create($validated);
 
@@ -55,7 +55,7 @@ class CouponController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        $validated['code'] = strtoupper($validated['code']);
+        $validated['code'] = strtoupper(trim($validated['code'])); // Force uppercase and trim
 
         $coupon->update($validated);
 
@@ -82,7 +82,7 @@ class CouponController extends Controller
             'code' => 'required|string',
         ]);
 
-        $code = strtoupper($request->code);
+        $code = strtoupper(trim($request->code));
         $coupon = \App\Models\Coupon::whereRaw('UPPER(code) = ?', [$code])->first();
 
         if (!$coupon) {

@@ -250,6 +250,50 @@ class EmailTemplateController extends Controller
                 'body' => '<h1>Application Update</h1><p>Hello {{first_name}},</p><p>Thank you for your interest in joining Vanquish Therapies. After careful consideration, we regret to inform you that we will not be moving forward with your placement at this time.</p><p>We wish you the very best in your future clinical career.</p>',
                 'placeholders' => ['first_name']
             ],
+            'counsellor_portal_invite' => [
+                'subject' => '🔐 Your Vanquish Therapies Practitioner Portal Access',
+                'body' => '
+<div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #333;">
+  <div style="background: linear-gradient(135deg, #6f1d56 0%, #9b2c7e 100%); padding: 40px 32px; border-radius: 12px 12px 0 0; text-align: center;">
+    <div style="font-size: 48px; margin-bottom: 12px;">🔐</div>
+    <h1 style="color: white; margin: 0; font-size: 24px;">Portal Access Granted</h1>
+    <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 15px;">Practitioner Portal Access — Vanquish Therapies</p>
+  </div>
+  <div style="background: #ffffff; padding: 32px; border: 1px solid #e2e8f0; border-top: none;">
+    <p style="font-size: 16px; margin-top: 0;">Hello <strong>{{first_name}}</strong>,</p>
+    <p>We are pleased to invite you to the <strong>Vanquish Practitioner Portal</strong>. This portal will serve as your primary platform for managing your client roster, submitting session notes, and accessing important clinical documents.</p>
+
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px 24px; margin: 24px 0;">
+      <h2 style="color: #6f1d56; margin: 0 0 14px; font-size: 16px;">🔑 Your Login Credentials</h2>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding: 6px 0; font-size: 13px; color: #64748b; width: 130px;">Login Email</td><td style="padding: 6px 0; font-size: 14px; font-weight: bold; color: #6f1d56; font-family: monospace;">{{email}}</td></tr>
+        <tr><td style="padding: 6px 0; font-size: 13px; color: #64748b;">Temporary Password</td><td style="padding: 6px 0; font-size: 14px; font-weight: bold; color: #6f1d56; font-family: monospace;">{{temporary_password}}</td></tr>
+      </table>
+      <p style="margin: 12px 0 0; font-size: 12px; color: #94a3b8;">⚠️ For security, you will be prompted to change your password upon your first login.</p>
+    </div>
+
+    <div style="text-align: center; margin: 28px 0;">
+      <a href="{{portal_link}}" style="display:inline-block;padding:16px 36px;background:#6f1d56;color:white;text-decoration:none;border-radius:10px;font-weight:bold;font-size:16px;">🚀 Access Practitioner Portal</a>
+      <p style="margin: 10px 0 0; font-size: 12px; color: #888;">Log in with the credentials provided above</p>
+    </div>
+
+    <h2 style="color: #6f1d56; font-size: 17px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">Getting Started</h2>
+    <ul style="padding-left: 20px; line-height: 2; font-size: 14px; color: #333;">
+      <li>🔐 Update your <strong>temporary password</strong> to a secure personal one</li>
+      <li>📂 Review your <strong>Active Clients</strong> list for accuracy</li>
+      <li>📖 Access the <strong>Practitioner Handbook</strong> in the shared documents section</li>
+      <li>📞 Save the <strong>Emergency Clinical Support Line</strong> to your contacts</li>
+    </ul>
+
+    <div style="background: #fdf2f8; border: 1px solid #fce7f3; border-radius: 8px; padding: 14px 18px; margin: 24px 0;">
+      <p style="margin: 0; font-size: 13px; color: #9d174d;"><strong>💡 Support Needed?</strong> If you encounter any technical issues, please contact <a href="mailto:compliance@vanquishtherapies.co.uk" style="color:#6f1d56;">compliance@vanquishtherapies.co.uk</a>.</p>
+    </div>
+
+    <p style="font-size: 15px; font-weight: bold; color: #6f1d56; margin-top: 20px;">The Compliance Team<br><span style="font-weight: normal; color: #777; font-size: 13px;">Vanquish Therapies</span></p>
+  </div>
+</div>',
+                'placeholders' => ['first_name', 'portal_link', 'email', 'temporary_password']
+            ],
         ];
     }
 }

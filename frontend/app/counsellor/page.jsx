@@ -106,8 +106,12 @@ export default function VanquishTCApplication() {
 
     // Terms
     criminalConviction: "",
+    faceToFaceBeforeOnline: "",
     termsAccepted: false,
   });
+
+  const [showDocModal, setShowDocModal] = useState(false);
+  const [hasConfirmedDocs, setHasConfirmedDocs] = useState(false);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
@@ -128,7 +132,7 @@ export default function VanquishTCApplication() {
     "Sikhism",
     "Spiritual",
     "Taoism",
-    "Other",
+    "Other (Please specify)",
   ];
 
   // Comprehensive list of therapy topics/issues
@@ -430,6 +434,8 @@ export default function VanquishTCApplication() {
           stepErrors.completedHours = "Completed hours is required";
         if (!formData.skillsPractice.trim())
           stepErrors.skillsPractice = "Skills practice information is required";
+        if (!formData.faceToFaceBeforeOnline)
+          stepErrors.faceToFaceBeforeOnline = "This field is required";
         break;
 
       case 4: // Your Journey
@@ -572,6 +578,9 @@ export default function VanquishTCApplication() {
 
   // Handle next button click
   const handleNext = () => {
+    if (currentStep === 5 && !hasConfirmedDocs) {
+      setShowDocModal(true);
+    }
     handleStepChange(currentStep + 1);
   };
 
@@ -653,6 +662,7 @@ export default function VanquishTCApplication() {
       formDataToSubmit.append('expected_qualification_date', formData.expectedQualification || '');
       formDataToSubmit.append('counselling_type', formData.courseFocus || '');
       formDataToSubmit.append('face_to_face_requirement', formData.faceToFaceRequired || '');
+      formDataToSubmit.append('face_to_face_before_online', formData.faceToFaceBeforeOnline || '');
       formDataToSubmit.append('has_face_to_face_clients', formData.currentClients || '');
       formDataToSubmit.append('face_to_face_client_count', formData.clientCount || '');
       formDataToSubmit.append('face_to_face_hours_completed', formData.completedHours || '');
@@ -1000,7 +1010,7 @@ export default function VanquishTCApplication() {
                     Date of Birth <span className="text-red-500">*</span>
                   </label>
                   <input
-                    type="text"
+                    type="date"
                     value={formData.dateOfBirth}
                     onChange={(e) =>
                       handleInputChange("dateOfBirth", e.target.value)
@@ -1008,7 +1018,6 @@ export default function VanquishTCApplication() {
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
                       errors.dateOfBirth ? "border-red-500" : "border-gray-300"
                     }`}
-                    placeholder="DD/MM/YYYY"
                   />
                   {errors.dateOfBirth && (
                     <p className="text-red-500 text-xs mt-1">
@@ -1216,8 +1225,10 @@ export default function VanquishTCApplication() {
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Please select your beliefs (If not listed, select 'Other' and
-                    specify below) <span className="text-red-500">*</span>
+                    Please select your beliefs (If your religion is not listed,
+                    select 'Other' and specify below. If your religion is listed
+                    but you have specific beliefs, please list them in the 'list
+                    if not mentioned' box below) <span className="text-red-500">*</span>
                   </label>
                   <div
                     data-field="beliefs"
@@ -1252,10 +1263,9 @@ export default function VanquishTCApplication() {
                   )}
                 </div>
 
-                {formData.beliefs.length > 0 && (
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Other (If not listed above, please specify)
+                      List if not mentioned above / Specific beliefs
                     </label>
                     <input
                       type="text"
@@ -1264,10 +1274,9 @@ export default function VanquishTCApplication() {
                         handleInputChange("otherBeliefs", e.target.value)
                       }
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                      placeholder="Specify other beliefs"
+                      placeholder="Specify other beliefs or additional details"
                     />
                   </div>
-                )}
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1411,7 +1420,7 @@ export default function VanquishTCApplication() {
                     ]}
                     placeholder="Please select"
                   />
-                  <p className="text-xs text-gray-700 mt-1 font-medium">
+                  <p className="text-xs text-black mt-1 font-bold">
                     We will be carrying out a status check
                   </p>
                 </div>
@@ -1432,7 +1441,7 @@ export default function VanquishTCApplication() {
                     ]}
                     placeholder="Please select"
                   />
-                  <p className="text-xs text-gray-700 mt-1 font-medium">
+                  <p className="text-xs text-black mt-1 font-bold">
                     This is a requirement for our placement
                   </p>
                 </div>
@@ -1518,6 +1527,32 @@ export default function VanquishTCApplication() {
                     </option>
                     <option value="No">No</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Does your Training Organisation require you to complete
+                    face-to-face hours before commencing online counselling?{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.faceToFaceBeforeOnline}
+                    onChange={(e) =>
+                      handleInputChange("faceToFaceBeforeOnline", e.target.value)
+                    }
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
+                      errors.faceToFaceBeforeOnline ? "border-red-500" : "border-gray-300"
+                    }`}
+                  >
+                    <option value="">Please select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                  {errors.faceToFaceBeforeOnline && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.faceToFaceBeforeOnline}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -2330,47 +2365,68 @@ export default function VanquishTCApplication() {
                 </p>
               </div>
 
-              <div className="bg-red-50 border-2 border-red-400 p-5 mb-6 rounded-lg shadow-sm">
-                <p className="text-sm text-red-900 font-bold mb-3 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                  IMPORTANT - PLEASE READ CAREFULLY:
-                </p>
-                <ul className="text-sm text-red-800 space-y-2 list-disc list-inside mb-4">
-                  <li>
-                    All mandatory documents must be uploaded with your
-                    application
-                  </li>
-                  <li>
-                    We cannot accept documents submitted via email separately
-                  </li>
-                  <li>
-                    Qualification certificates or documents addressed to
-                    nicknames/aliases will not be accepted
-                  </li>
-                  <li>
-                    DBS certificate must be Enhanced (Adult Workforce) and no
-                    more than 2 years old
-                  </li>
-                </ul>
-                <label className="flex items-center gap-3 p-3 bg-white border border-red-200 rounded cursor-pointer hover:bg-red-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.docsConfirmed || false}
-                    onChange={(e) =>
-                      handleInputChange("docsConfirmed", e.target.checked)
-                    }
-                    className="w-5 h-5 rounded border-gray-300 accent-red-600"
-                  />
-                  <span className="text-sm font-bold text-red-900">
-                    I confirm that I have read and understand these requirements
-                  </span>
-                </label>
-                {errors.docsConfirmed && (
-                  <p className="text-red-600 text-xs mt-2 font-bold">
-                    {errors.docsConfirmed}
+              {showDocModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                  <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden animate-in fade-in zoom-in duration-300">
+                    <div className="bg-red-600 p-6 text-white text-center">
+                      <AlertTriangle className="w-12 h-12 mx-auto mb-3" />
+                      <h2 className="text-2xl font-bold">Important Document Requirements</h2>
+                    </div>
+                    <div className="p-8">
+                      <div className="space-y-4 mb-8">
+                        <p className="text-gray-700 font-medium">Please review these mandatory requirements before proceeding with your document uploads:</p>
+                        <ul className="space-y-3">
+                          {[
+                            "All mandatory documents must be uploaded with your application",
+                            "We cannot accept documents submitted via email separately",
+                            "Qualification certificates or documents addressed to nicknames/aliases will not be accepted",
+                            "DBS certificate must be Enhanced (Adult Workforce) and no more than 2 years old",
+                            "Fitness to Practise must be signed by your course tutor and/or training provider"
+                          ].map((item, i) => (
+                            <li key={i} className="flex items-start gap-3 text-gray-700">
+                              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">{i + 1}</span>
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <button
+                          onClick={() => {
+                            setHasConfirmedDocs(true);
+                            setShowDocModal(false);
+                            handleInputChange("docsConfirmed", true);
+                          }}
+                          className="flex-1 py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg text-lg"
+                        >
+                          I Understand and Confirm
+                        </button>
+                        <button
+                          onClick={() => setCurrentStep(currentStep - 1)}
+                          className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all text-lg"
+                        >
+                          Go Back
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!hasConfirmedDocs && (
+                <div className="bg-red-50 border-2 border-red-400 p-5 mb-6 rounded-lg shadow-sm text-center">
+                  <p className="text-sm text-red-900 font-bold mb-4 flex items-center justify-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                    You must confirm document requirements before uploading
                   </p>
-                )}
-              </div>
+                  <button
+                    onClick={() => setShowDocModal(true)}
+                    className="px-8 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-all shadow-md"
+                  >
+                    View & Confirm Requirements
+                  </button>
+                </div>
+              )}
 
               <div className="space-y-4 md:space-y-6">
                 <div>
@@ -2410,8 +2466,8 @@ export default function VanquishTCApplication() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Accepted formats: PDF, Image (JPG, PNG), Word
+                  <p className="text-xs text-black mt-1 font-bold">
+                    Accepted formats: PDF, Image (JPG, PNG), Word (.doc, .docx)
                   </p>
                   {formData.qualifications && (
                     <p className="text-xs text-green-600 mt-1">
@@ -2431,8 +2487,8 @@ export default function VanquishTCApplication() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Accepted formats: PDF, Image (JPG, PNG), Word
+                  <p className="text-xs text-black mt-1 font-bold">
+                    Accepted formats: PDF, Image (JPG, PNG), Word (.doc, .docx)
                   </p>
                   {formData.dbs && (
                     <p className="text-xs text-green-600 mt-1">
@@ -2451,7 +2507,7 @@ export default function VanquishTCApplication() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     accept=".pdf,.doc,.docx"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-black mt-1 font-bold">
                     Accepted formats: PDF, Word (.doc, .docx)
                   </p>
                   {formData.cv && (
@@ -2474,7 +2530,7 @@ export default function VanquishTCApplication() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     accept=".pdf,.jpg,.jpeg,.png"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-black mt-1 font-bold">
                     Accepted formats: PDF, Image (JPG, PNG)
                   </p>
                   <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-3">
@@ -2503,8 +2559,8 @@ export default function VanquishTCApplication() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Accepted formats: PDF, Image (JPG, PNG), Word
+                  <p className="text-xs text-black mt-1 font-bold">
+                    Accepted formats: PDF, Image (JPG, PNG), Word (.doc, .docx)
                   </p>
                   {formData.insurance && (
                     <p className="text-xs text-green-600 mt-1">

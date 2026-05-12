@@ -27,9 +27,14 @@ export default function VanquishClientIntake() {
     email: "",
     phone: "",
     address: "",
+    street: "",
+    city: "",
+    postcode: "",
+    country: "",
     age: "",
     emergencyContactName: "",
     emergencyContactPhone: "",
+    emergencyContactEmail: "",
     emergencyContactRelationship: "",
     voicemailOk: "",
     currentlyInTherapy: "",
@@ -316,15 +321,22 @@ export default function VanquishClientIntake() {
         }
         if (!formData.phone.trim())
           stepErrors.phone = "Phone number is required";
-        if (!formData.address.trim())
-          stepErrors.address = "Address is required";
-        if (!formData.age || parseInt(formData.age) < 18)
-          stepErrors.age = "Age (18+) is required";
+        
+        // Address validation
+        if (!formData.street.trim()) stepErrors.street = "Street address is required";
+        if (!formData.city.trim()) stepErrors.city = "City is required";
+        if (!formData.postcode.trim()) stepErrors.postcode = "Postcode is required";
+        if (!formData.country.trim()) stepErrors.country = "Country is required";
+
+        if (!formData.age || parseInt(formData.age) < 18 || formData.age.length > 2)
+          stepErrors.age = "Valid age (18-99) is required";
+        
         if (!formData.emergencyContactName.trim())
           stepErrors.emergencyContactName = "Emergency contact name is required";
         if (!formData.emergencyContactPhone.trim())
-          stepErrors.emergencyContactPhone =
-            "Emergency contact phone is required";
+          stepErrors.emergencyContactPhone = "Emergency contact phone is required";
+        if (!formData.emergencyContactEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emergencyContactEmail))
+          stepErrors.emergencyContactEmail = "Valid emergency contact email is required";
         if (!formData.emergencyContactRelationship.trim())
           stepErrors.emergencyContactRelationship = "Relationship is required";
         if (!formData.voicemailOk)
@@ -378,11 +390,7 @@ export default function VanquishClientIntake() {
       case 7: // Referral
         if (!formData.hearAboutUs) {
           stepErrors.hearAboutUs = "This field is required";
-        } else if (
-          formData.hearAboutUs === "Referral" ||
-          formData.hearAboutUs === "Organisation" ||
-          formData.hearAboutUs === "Individual"
-        ) {
+        } else if (formData.hearAboutUs === "Referral") {
           if (!formData.referrerName.trim())
             stepErrors.referrerName = "Referrer's name is required";
           if (!formData.referrerPhone.trim())
@@ -604,10 +612,15 @@ export default function VanquishClientIntake() {
             last_name: formData.lastName,
             email: formData.email,
             phone: formData.phone || null,
-            address: formData.address || null,
+            street: formData.street || null,
+            city: formData.city || null,
+            postcode: formData.postcode || null,
+            country: formData.country || null,
+            address: `${formData.street}, ${formData.city}, ${formData.postcode}, ${formData.country}`,
             age: formData.age ? parseInt(formData.age) : null,
             emergency_contact_name: formData.emergencyContactName || null,
             emergency_contact_phone: formData.emergencyContactPhone || null,
+            emergency_contact_email: formData.emergencyContactEmail || null,
             emergency_contact_relationship:
               formData.emergencyContactRelationship || null,
             voicemail_ok: formData.voicemailOk === "Yes",
@@ -805,7 +818,7 @@ export default function VanquishClientIntake() {
 
   const steps = [
     { number: 1, title: "Personal", icon: User },
-    { number: 2, title: "About", icon: Heart },
+    { number: 2, title: "About You", icon: Heart },
     { number: 3, title: "Service", icon: Briefcase },
     { number: 4, title: "Support", icon: MessageCircle },
     { number: 5, title: "Availability", icon: Calendar },
@@ -1198,31 +1211,103 @@ export default function VanquishClientIntake() {
                       </p>
                     )}
                   </div>
-                  <div className="md:col-span-2">
-                    <label
-                      className="block text-lg font-medium mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Address <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      name="address"
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) =>
-                        handleInputChange("address", e.target.value)
-                      }
-                      rows={2}
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.address ? "border-red-500" : "border-gray-300"
-                      }`}
-                      placeholder="123 Example Street, London"
-                    />
-                    {errors.address && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.address}
-                      </p>
-                    )}
+                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Street Address <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="street"
+                        id="street"
+                        value={formData.street}
+                        onChange={(e) =>
+                          handleInputChange("street", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.street ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="123 Example Street"
+                      />
+                      {errors.street && (
+                        <p className="text-red-500 text-sm mt-1">{errors.street}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        City <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        id="city"
+                        value={formData.city}
+                        onChange={(e) =>
+                          handleInputChange("city", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.city ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="London"
+                      />
+                      {errors.city && (
+                        <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Postcode <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="postcode"
+                        id="postcode"
+                        value={formData.postcode}
+                        onChange={(e) =>
+                          handleInputChange("postcode", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.postcode ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="SW1A 1AA"
+                      />
+                      {errors.postcode && (
+                        <p className="text-red-500 text-sm mt-1">{errors.postcode}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Country <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="country"
+                        id="country"
+                        value={formData.country}
+                        onChange={(e) =>
+                          handleInputChange("country", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.country ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="United Kingdom"
+                      />
+                      {errors.country && (
+                        <p className="text-red-500 text-sm mt-1">{errors.country}</p>
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -1392,7 +1477,7 @@ export default function VanquishClientIntake() {
                         )}
                       </div>
 
-                      <div className="md:col-span-2">
+                      <div>
                         <label
                           className="block text-lg font-medium mb-2"
                           style={{ color: "var(--text-primary)" }}
@@ -1421,6 +1506,39 @@ export default function VanquishClientIntake() {
                         {errors.emergencyContactRelationship && (
                           <p className="text-red-500 text-sm mt-1">
                             {errors.emergencyContactRelationship}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label
+                          className="block text-lg font-medium mb-2"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Emergency Contact Email{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          name="emergencyContactEmail"
+                          id="emergencyContactEmail"
+                          value={formData.emergencyContactEmail}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "emergencyContactEmail",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                            errors.emergencyContactEmail
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          placeholder="emergency@example.com"
+                        />
+                        {errors.emergencyContactEmail && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.emergencyContactEmail}
                           </p>
                         )}
                       </div>
@@ -1588,17 +1706,22 @@ export default function VanquishClientIntake() {
                   >
                   </p>
 
-                  <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                    <p className="text-purple-900 font-medium mb-1">
+                  <div className="mt-4 p-6 bg-purple-50 border-2 border-purple-200 rounded-xl shadow-sm">
+                    <p className="text-purple-900 font-bold mb-3 text-center text-lg">
                       Looking for our Counselling & Coaching service?
                     </p>
-                    <Link
-                      href="/ish"
-                      className="inline-flex items-center gap-2 text-[#6f1d56] font-bold hover:underline"
-                    >
-                      Please click here to access our Counselling & Coaching service’s consultation form.{" "}
-                      <ChevronRight className="w-4 h-4" />
-                    </Link>
+                    <p className="text-purple-800 text-sm mb-4 text-center">
+                      Our Counselling & Coaching services now have a dedicated registration page.
+                    </p>
+                    <div className="flex justify-center">
+                      <Link
+                        href="/ish"
+                        className="inline-flex items-center gap-2 px-8 py-3 bg-[#6f1d56] text-white rounded-lg font-bold hover:bg-[#5a1745] transition-all shadow-md"
+                      >
+                        Access Counselling & Coaching Form
+                        <ChevronRight className="w-5 h-5" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
 
@@ -2240,6 +2363,7 @@ export default function VanquishClientIntake() {
                         Social Media (Facebook, Instagram)
                       </option>
                       <option value="Referral">Referral</option>
+                      <option value="Organisation">Organisation</option>
                       <option value="It's just Project">
                         It's just Project
                       </option>
@@ -2253,9 +2377,7 @@ export default function VanquishClientIntake() {
                     )}
                   </div>
 
-                  {(formData.hearAboutUs === "Referral" ||
-                    formData.hearAboutUs === "Organisation" ||
-                    formData.hearAboutUs === "Individual") && (
+                  {formData.hearAboutUs === "Referral" && (
                     <>
                       <div>
                         <label
@@ -2411,21 +2533,21 @@ export default function VanquishClientIntake() {
                     Assessment (CORE 34)
                   </h2>
                   <div
-                    className="text-base md:text-lg mb-4 p-6 bg-red-50 border-2 border-red-200 rounded-xl space-y-3"
+                    className="text-base md:text-lg mb-4 p-6 bg-red-600 border-2 border-red-700 rounded-xl space-y-3"
                   >
-                    <p className="font-bold text-red-700 text-lg uppercase tracking-wide">
+                    <p className="font-bold text-white text-lg uppercase tracking-wide">
                       Important - Please read this information before you start:
                     </p>
-                    <p className="text-red-900 font-medium">
+                    <p className="text-white font-medium">
                       This section has 34 statements about how you have been
                       over the last week.
                     </p>
-                    <p className="text-red-900">
+                    <p className="text-white">
                       Please ensure you read each statement and think about how
                       often you have felt that way over the last week. Then tick
                       the box that relates closest to how you have felt.
                     </p>
-                    <p className="text-red-600 text-xs italic mt-2 border-t border-red-100 pt-2">
+                    <p className="text-red-100 text-xs italic mt-2 border-t border-red-500 pt-2">
                       This core 34 has been taken from The CORE System Trust:
                       http://www.coresystemtrust.org.uk/copyright.pdf
                     </p>
@@ -2649,8 +2771,18 @@ export default function VanquishClientIntake() {
                             const startingDay =
                               firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Mon = 0, Sun = 6
 
-                            const groupedSlots = {};
+                            const uniqueSlots = [];
+                            const slotTimes = new Set();
+                            
                             availableSlots.forEach((slot) => {
+                              if (!slotTimes.has(slot.consultation_datetime)) {
+                                slotTimes.add(slot.consultation_datetime);
+                                uniqueSlots.push(slot);
+                              }
+                            });
+
+                            const groupedSlots = {};
+                            uniqueSlots.forEach((slot) => {
                               const slotDate = new Date(
                                 slot.consultation_datetime,
                               );
@@ -3136,19 +3268,26 @@ export default function VanquishClientIntake() {
                     Coupon <strong>{paymentProps.couponCode}</strong> applied
                   </div>
                 )}
-
-                <StripePaymentWrapper
-                  clientId={paymentProps.clientId}
-                  amount={paymentProps.amount}
-                  paymentType="consultation"
-                  couponCode={paymentProps.couponCode}
-                  onSuccess={() => {
-                    paymentProps.onSuccess();
-                    setShowPaymentModal(false);
-                  }}
-                  onError={paymentProps.onError}
-                  onCancel={() => setShowPaymentModal(false)}
-                />
+                <div className="flex flex-col gap-4">
+                  <StripePaymentWrapper
+                    clientId={paymentProps.clientId}
+                    amount={paymentProps.amount}
+                    paymentType="consultation"
+                    couponCode={paymentProps.couponCode}
+                    onSuccess={() => {
+                      paymentProps.onSuccess();
+                      setShowPaymentModal(false);
+                    }}
+                    onError={paymentProps.onError}
+                    onCancel={() => setShowPaymentModal(false)}
+                  />
+                  <button
+                    onClick={() => setShowPaymentModal(false)}
+                    className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors text-center"
+                  >
+                    Go Back
+                  </button>
+                </div>
               </div>
             </div>
           </div>

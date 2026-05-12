@@ -73,13 +73,19 @@ class SendTraineeStageTwoInvite implements ShouldQueue
             'https://app.hirevire.com/applications/091820fa-6fef-45e0-97e8-d714fc0b27cf'
         );
 
-        // Send the Stage 2 invitation email
-        Mail::to($this->application->email)->send(new DynamicEmail('trainee_stage_two_invite', [
-            'first_name'    => $this->application->first_name,
-            'full_name'     => $this->application->first_name . ' ' . $this->application->last_name,
-            'interview_url' => $hirevireUrl,
-            'deadline_date' => $deadline,
-        ]));
+        // Send the Stage 2 invitation email using the centralized EmailService for logging
+        $emailService = app(\App\Services\EmailService::class);
+        $emailService->sendAndLog(
+            $this->application->email, 
+            'trainee_stage_two_invite', 
+            [
+                'first_name'    => $this->application->first_name,
+                'full_name'     => $this->application->first_name . ' ' . $this->application->last_name,
+                'interview_url' => $hirevireUrl,
+                'deadline_date' => $deadline,
+            ],
+            $this->application
+        );
 
         // Progress status to Stage 2 Invited
         if (in_array($this->application->status, ['New Application', 'Stage 1 Complete', 'pending', 'reviewed'])) {

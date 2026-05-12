@@ -963,7 +963,7 @@ class TrainingCounsellorController extends Controller
             }
 
             // 2. Send portal invite email
-            Mail::to($tc->email)->send(new DynamicEmail('trainee_portal_invite', [
+            Mail::to($tc->email)->send(new DynamicEmail('counsellor_portal_invite', [
                 'first_name'         => explode(' ', $tc->name)[0] ?? $tc->name,
                 'portal_link'        => $portalUrl,
                 'email'              => $tc->email,
@@ -987,5 +987,86 @@ class TrainingCounsellorController extends Controller
             Log::error('Failed to send TC portal invite: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to send invite: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Bulk send portal invites to multiple counsellors
+     */
+    public function bulkPortalInvite(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'required|string', // UUIDs or tc_ids
+        ]);
+
+        $results = [
+            'success' => [],
+            'failed' => [],
+        ];
+
+        $portalUrl = rtrim(config('app.frontend_url', 'https://vqtmanagement.com'), '/') . '/counsellor-login';
+
+        foreach ($validated['ids'] as $id) {
+            try {
+                $tc = TrainingCounsellor::where('uuid', $id)->orWhere('tc_id', $id)->first();
+                
+                if (!$tc) {
+                    $results['failed'][] = ['id' => $id, 'reason' => 'Counsellor not found'];
+                    continue;
+                }
+
+                if (!$tc->email) {
+                    $results['failed'][] = ['id' => $id, 'name' => $tc->name, 'reason' => 'No email address'];
+                    continue;
+                }
+
+                // 1. Find or create User account
+                $existingUser = User::where('email', $tc->email)->first();
+                $temporaryPassword = null;
+
+                if (!$existingUser) {
+                    $temporaryPassword = \Illuminate\Support\Str::random(10) . '!1Aa';
+                    $existingUser = User::create([
+                        'name'                    => $tc->name,
+                        'email'                   => strtolower(trim($tc->email)),
+                        'password'                => Hash::make($temporaryPassword),
+                        'role'                    => 'counsellor',
+                        'training_counsellor_id'  => $tc->id,
+                    ]);
+                } elseif ($existingUser->role !== 'counsellor') {
+                    $existingUser->update([
+                        'role'                   => 'counsellor',
+                        'training_counsellor_id' => $tc->id,
+                    ]);
+                }
+
+                // 2. Send portal invite email
+                Mail::to($tc->email)->send(new DynamicEmail('counsellor_portal_invite', [
+                    'first_name'         => explode(' ', $tc->name)[0] ?? $tc->name,
+                    'portal_link'        => $portalUrl,
+                    'email'              => $tc->email,
+                    'temporary_password' => $temporaryPassword ?? '(use your existing password)',
+                ]));
+
+                ActivityLog::create([
+                    'user_id'     => optional($request->user())->id,
+                    'action'      => 'tc_portal_invite_sent',
+                    'model_type'  => TrainingCounsellor::class,
+                    'model_id'    => $tc->id,
+                    'description' => "Bulk portal invite sent for {$tc->name}",
+                    'ip_address'  => $request->ip(),
+                ]);
+
+                $results['success'][] = ['id' => $id, 'name' => $tc->name];
+
+            } catch (\Exception $e) {
+                $results['failed'][] = ['id' => $id, 'reason' => $e->getMessage()];
+            }
+        }
+
+        return response()->json([
+            'message' => 'Bulk invitation process completed',
+            'results' => $results,
+        ]);
     }
 }

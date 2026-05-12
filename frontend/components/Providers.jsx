@@ -6,6 +6,8 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { BrandingProvider } from "@/contexts/BrandingContext";
 import { ModalProvider } from "@/contexts/ModalContext";
+import NewMessageNotifier from "@/components/NewMessageNotifier";
+import MessageReadNotifier from "@/components/MessageReadNotifier";
 
 export function Providers({ children }) {
   return (
@@ -16,6 +18,8 @@ export function Providers({ children }) {
             <ToastProvider>
               <ModalProvider>
                 {children}
+                <NewMessageNotifier />
+                <MessageReadNotifier />
               </ModalProvider>
             </ToastProvider>
           </SidebarProvider>

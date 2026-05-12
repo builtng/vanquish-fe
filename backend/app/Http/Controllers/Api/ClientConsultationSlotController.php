@@ -29,7 +29,9 @@ class ClientConsultationSlotController extends Controller
                     ->orWhereRaw('booked_slots < max_slots');
             })
             ->orderBy('consultation_datetime', 'asc')
-            ->get();
+            ->get()
+            ->unique('consultation_datetime')
+            ->values();
 
         return response()->json($slots);
     }

@@ -235,20 +235,20 @@ class IntakeFormController extends Controller
 
                 // Send emails
                 try {
-                    $this->emailService->sendAndLog($client, 'intake_submission', [
+                    $this->emailService->sendAndLog($client->email, 'intake_submission', [
                         'client_name' => $client->name,
                         'email' => $client->email
-                    ]);
+                    ], $client);
 
                     sleep(1);
 
                     $bookingLink = config('app.frontend_url') . "/client-booking?uuid=" . $client->uuid;
-                    $this->emailService->sendAndLog($client, 'consultation_booking_link', [
+                    $this->emailService->sendAndLog($client->email, 'consultation_booking_link', [
                         'client_name' => $client->name,
                         'booking_link' => $bookingLink,
                         'tc_name' => 'To Be Assigned',
                         'session_date' => 'Pending'
-                    ]);
+                    ], $client);
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error('Failed to send free intake emails: ' . $e->getMessage());
                 }
@@ -353,15 +353,22 @@ class IntakeFormController extends Controller
                 // PSG
                 'psg_day_preference' => 'nullable|string|max:100',
                 'psg_reason' => 'nullable|string',
-                // Document validations
-                'fitnessTopractice' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
-                'qualifications' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
-                'dbs' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
-                'cv' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
-                'validId' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-                'insurance' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
-                'create_tc' => 'nullable|boolean',
-            ]);
+            // Document validations
+            'fitnessTopractice' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
+            'qualifications' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
+            'dbs' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
+            'cv' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'validId' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'insurance' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
+            'create_tc' => 'nullable|boolean',
+        ], [
+            'validId.file' => 'Please upload a valid ID document',
+            'validId.mimes' => 'Please upload a valid ID document (PDF, JPG, or PNG)',
+            'validId.max' => 'The ID document must not exceed 10MB',
+        ], [
+            'validId' => 'Valid ID',
+            'fitnessTopractice' => 'Fitness to Practise',
+        ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Validation failed',
