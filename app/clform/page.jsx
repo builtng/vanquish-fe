@@ -19,11 +19,15 @@ export default function ClientIntakeForm() {
     lastName: "",
     email: "",
     phone: "",
-    address: "",
+    street: "",
+    city: "",
+    postcode: "",
+    country: "",
 
     // Emergency Contact
     emergencyContactName: "",
     emergencyContactPhone: "",
+    emergencyContactEmail: "",
     emergencyContactRelationship: "",
 
     // Demographics
@@ -164,7 +168,10 @@ export default function ClientIntakeForm() {
         last_name: formData.lastName,
         email: formData.email,
         phone: formData.phone,
-        address: formData.address,
+        street: formData.street,
+        city: formData.city,
+        postcode: formData.postcode,
+        country: formData.country,
         age: formData.age,
         gender: formData.gender,
         ethnicity: formData.ethnicity,
@@ -177,6 +184,7 @@ export default function ClientIntakeForm() {
         },
         emergency_contact_name: formData.emergencyContactName,
         emergency_contact_phone: formData.emergencyContactPhone,
+        emergency_contact_email: formData.emergencyContactEmail,
         emergency_contact_relationship: formData.emergencyContactRelationship,
         gender_preference: formData.genderPreference,
         age_preference: formData.agePreference,
@@ -254,12 +262,14 @@ export default function ClientIntakeForm() {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+            <div className="text-center flex-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
                 Book Your Therapy Session
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-gray-600">
                 Vanquish Therapies - Professional counselling support
               </p>
+            </div>
             </div>
             <div className="text-sm text-gray-500">Step {currentStep} of 5</div>
           </div>
@@ -408,14 +418,53 @@ export default function ClientIntakeForm() {
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Residential Address <span className="text-red-500">*</span>
+                    Street Address <span className="text-red-500">*</span>
                   </label>
-                  <textarea
-                    value={formData.address}
-                    onChange={(e) => handleInputChange("address", e.target.value)}
-                    rows="2"
+                  <input
+                    type="text"
+                    value={formData.street}
+                    onChange={(e) => handleInputChange("street", e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    placeholder="Street name, City, Postcode"
+                    placeholder="House number and street name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Town / City <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.city}
+                    onChange={(e) => handleInputChange("city", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="City"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Postcode <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.postcode}
+                    onChange={(e) => handleInputChange("postcode", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="Postcode"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Country <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.country}
+                    onChange={(e) => handleInputChange("country", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="Country"
                   />
                 </div>
 
@@ -449,6 +498,19 @@ export default function ClientIntakeForm() {
                     onChange={(e) => handleInputChange("emergencyContactPhone", e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                     placeholder="+44..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Emergency Contact Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.emergencyContactEmail}
+                    onChange={(e) => handleInputChange("emergencyContactEmail", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="email@example.com"
                   />
                 </div>
 

@@ -28,9 +28,13 @@ export default function CoachingIntake() {
     currentlyInTherapy: "",
     workingWithAnotherReason: "",
     locationOfResidence: "",
-    address: "",
+    street: "",
+    city: "",
+    postcode: "",
+    country: "",
     emergencyContactName: "",
     emergencyContactPhone: "",
+    emergencyContactEmail: "",
     emergencyContactRelationship: "",
 
     // Availability
@@ -243,12 +247,24 @@ export default function CoachingIntake() {
         }
         if (!formData.locationOfResidence.trim())
           stepErrors.locationOfResidence = "Location is required";
-        if (!formData.address.trim())
-          stepErrors.address = "Address is required";
+        if (!formData.street.trim())
+          stepErrors.street = "Street address is required";
+        if (!formData.city.trim())
+          stepErrors.city = "City is required";
+        if (!formData.postcode.trim())
+          stepErrors.postcode = "Postcode is required";
+        if (!formData.country.trim())
+          stepErrors.country = "Country is required";
         if (!formData.emergencyContactName.trim())
           stepErrors.emergencyContactName = "Emergency contact name is required";
         if (!formData.emergencyContactPhone.trim())
           stepErrors.emergencyContactPhone = "Emergency contact phone is required";
+        if (
+          !formData.emergencyContactEmail.trim() ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emergencyContactEmail)
+        ) {
+          stepErrors.emergencyContactEmail = "Valid emergency contact email is required";
+        }
         if (!formData.emergencyContactRelationship.trim())
           stepErrors.emergencyContactRelationship = "Relationship is required";
         break;
@@ -429,9 +445,13 @@ export default function CoachingIntake() {
             working_with_another_reason:
               formData.workingWithAnotherReason || null,
             location_of_residence: formData.locationOfResidence,
-            address: formData.address,
+            street: formData.street,
+            city: formData.city,
+            postcode: formData.postcode,
+            country: formData.country,
             emergency_contact_name: formData.emergencyContactName,
             emergency_contact_phone: formData.emergencyContactPhone,
+            emergency_contact_email: formData.emergencyContactEmail,
             emergency_contact_relationship: formData.emergencyContactRelationship,
 
             service_type: "Counselling & Coaching",
@@ -510,7 +530,7 @@ export default function CoachingIntake() {
     { number: 1, title: "Personal", icon: User },
     { number: 2, title: "Availability", icon: Calendar },
     { number: 3, title: "Referral", icon: User },
-    { number: 4, title: "Concerns", icon: MessageCircle },
+    { number: 4, title: "Support", icon: MessageCircle },
     { number: 5, title: "Payment", icon: CreditCard },
   ];
 
@@ -572,7 +592,7 @@ export default function CoachingIntake() {
                   VT
                 </div>
                 <div className="flex-1 text-center">
-                  <h1 className="text-lg md:text-2xl font-bold text-primary">
+                  <h1 className="text-xl md:text-3xl font-bold text-primary mb-2">
                     Counselling & Coaching Consultation Form
                   </h1>
                   <p className="text-sm mt-0.5 md:mt-1 text-secondary">
@@ -656,7 +676,7 @@ export default function CoachingIntake() {
           >
             {currentStep === 1 && (
               <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary text-center">
+                <h2 className="text-xl md:text-2xl font-bold mb-4 text-primary text-center">
                   Personal Information
                 </h2>
                 <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
@@ -898,23 +918,81 @@ export default function CoachingIntake() {
                     )}
                     <div className="md:col-span-2">
                       <label className="block text-base font-medium mb-2 text-primary">
-                        Address <span className="text-red-500">*</span>
+                        Street Address <span className="text-red-500">*</span>
                       </label>
-                      <textarea
-                        value={formData.address}
+                      <input
+                        type="text"
+                        value={formData.street}
                         onChange={(e) =>
-                          handleInputChange("address", e.target.value)
+                          handleInputChange("street", e.target.value)
                         }
-                        rows={2}
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.address ? "border-red-500" : "border-gray-300"}`}
-                        placeholder="123 Example Street, London"
+                        placeholder="House number and street name"
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.street ? "border-red-500" : "border-gray-300"}`}
                       />
-                      {errors.address && (
+                      {errors.street && (
                         <p className="text-red-500 text-sm mt-1">
-                          {errors.address}
+                          {errors.street}
                         </p>
                       )}
                     </div>
+
+                    <div>
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Town / City <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.city}
+                        onChange={(e) =>
+                          handleInputChange("city", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.city ? "border-red-500" : "border-gray-300"}`}
+                      />
+                      {errors.city && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.city}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Postcode <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.postcode}
+                        onChange={(e) =>
+                          handleInputChange("postcode", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.postcode ? "border-red-500" : "border-gray-300"}`}
+                      />
+                      {errors.postcode && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.postcode}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-base font-medium mb-2 text-primary">
+                        Country <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.country}
+                        onChange={(e) =>
+                          handleInputChange("country", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.country ? "border-red-500" : "border-gray-300"}`}
+                      />
+                      {errors.country && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.country}
+                        </p>
+                      )}
+                    </div>
+
                     <div className="md:col-span-2">
                       <label className="block text-base font-medium mb-2 text-primary">
                         Please state where you reside in the world. Please note,
@@ -932,7 +1010,6 @@ export default function CoachingIntake() {
                           )
                         }
                         className={`w-full px-4 py-3 border rounded-lg ${errors.locationOfResidence ? "border-red-500" : "border-gray-300"}`}
-                        placeholder="Your location..."
                       />
                       {errors.locationOfResidence && (
                         <p className="text-red-500 text-sm mt-1">
@@ -941,82 +1018,99 @@ export default function CoachingIntake() {
                       )}
                     </div>
 
-                    <div className="md:col-span-2 pt-4 border-t border-gray-100">
-                      <h3 className="text-xl font-bold mb-4 text-primary">
+                    <div className="md:col-span-2 mt-4 pt-4 border-t border-gray-100">
+                      <h3 className="text-lg font-bold text-primary mb-4">
                         Emergency Contact Details
                       </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                        <div>
-                          <label className="block text-base font-medium mb-2 text-primary">
-                            Emergency Contact Name{" "}
-                            <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.emergencyContactName}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "emergencyContactName",
-                                e.target.value,
-                              )
-                            }
-                            className={`w-full px-4 py-3 border rounded-lg ${errors.emergencyContactName ? "border-red-500" : "border-gray-300"}`}
-                            placeholder="Jane Smith"
-                          />
-                          {errors.emergencyContactName && (
-                            <p className="text-red-500 text-sm mt-1">
-                              {errors.emergencyContactName}
-                            </p>
-                          )}
-                        </div>
+                    </div>
 
-                        <div>
-                          <label className="block text-base font-medium mb-2 text-primary">
-                            Emergency Contact Phone{" "}
-                            <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="tel"
-                            value={formData.emergencyContactPhone}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "emergencyContactPhone",
-                                e.target.value,
-                              )
-                            }
-                            className={`w-full px-4 py-3 border rounded-lg ${errors.emergencyContactPhone ? "border-red-500" : "border-gray-300"}`}
-                            placeholder="+44 7700 900000"
-                          />
-                          {errors.emergencyContactPhone && (
-                            <p className="text-red-500 text-sm mt-1">
-                              {errors.emergencyContactPhone}
-                            </p>
-                          )}
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 md:col-span-2">
+                      <div>
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Full Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.emergencyContactName}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "emergencyContactName",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.emergencyContactName ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {errors.emergencyContactName && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.emergencyContactName}
+                          </p>
+                        )}
+                      </div>
 
-                        <div className="md:col-span-2">
-                          <label className="block text-base font-medium mb-2 text-primary">
-                            Relationship to You{" "}
-                            <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.emergencyContactRelationship}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "emergencyContactRelationship",
-                                e.target.value,
-                              )
-                            }
-                            className={`w-full px-4 py-3 border rounded-lg ${errors.emergencyContactRelationship ? "border-red-500" : "border-gray-300"}`}
-                            placeholder="e.g. Mother, Spouse, Friend"
-                          />
-                          {errors.emergencyContactRelationship && (
-                            <p className="text-red-500 text-sm mt-1">
-                              {errors.emergencyContactRelationship}
-                            </p>
-                          )}
-                        </div>
+                      <div>
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Phone Number <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          value={formData.emergencyContactPhone}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "emergencyContactPhone",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.emergencyContactPhone ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {errors.emergencyContactPhone && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.emergencyContactPhone}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Email Address <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.emergencyContactEmail}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "emergencyContactEmail",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.emergencyContactEmail ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {errors.emergencyContactEmail && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.emergencyContactEmail}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Relationship <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.emergencyContactRelationship}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "emergencyContactRelationship",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.emergencyContactRelationship ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {errors.emergencyContactRelationship && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.emergencyContactRelationship}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
