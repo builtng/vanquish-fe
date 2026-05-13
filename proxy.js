@@ -25,8 +25,14 @@ export default async function proxy(request) {
   let maintenanceActive = false;
 
   try {
-    const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api";
+    let apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (process.env.NODE_ENV === "production") {
+      if (!apiUrl || apiUrl.includes("127.0.0.1") || apiUrl.includes("localhost")) {
+        apiUrl = "https://api.vqtmanagement.com/api";
+      }
+    } else {
+      apiUrl = apiUrl || "http://127.0.0.1:8000/api";
+    }
     const res = await fetch(`${apiUrl}/maintenance`, {
       signal: AbortSignal.timeout(3000),
     });

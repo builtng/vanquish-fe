@@ -13,8 +13,11 @@ import {
 import { StripePaymentWrapper } from "@/components/StripePayment";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { toast } from "react-toastify";
+import { useBranding } from "@/contexts/BrandingContext";
+import apiService from "@/lib/api";
 
 export default function CoachingIntake() {
+  const { branding, loading: brandingLoading } = useBranding();
   const [formData, setFormData] = useState({
     // Personal Info
     firstName: "",
@@ -29,9 +32,10 @@ export default function CoachingIntake() {
     workingWithAnotherReason: "",
     locationOfResidence: "",
     street: "",
-    city: "",
-    postcode: "",
-    country: "",
+    fullAddress: "",
+    city: "N/A",
+    postcode: "N/A",
+    country: "N/A",
     emergencyContactName: "",
     emergencyContactPhone: "",
     emergencyContactEmail: "",
@@ -247,21 +251,14 @@ export default function CoachingIntake() {
         }
         if (!formData.locationOfResidence.trim())
           stepErrors.locationOfResidence = "Location is required";
-        if (!formData.street.trim())
-          stepErrors.street = "Street address is required";
-        if (!formData.city.trim())
-          stepErrors.city = "City is required";
-        if (!formData.postcode.trim())
-          stepErrors.postcode = "Postcode is required";
-        if (!formData.country.trim())
-          stepErrors.country = "Country is required";
+        if (!formData.fullAddress.trim())
+          stepErrors.fullAddress = "Address is required";
         if (!formData.emergencyContactName.trim())
           stepErrors.emergencyContactName = "Emergency contact name is required";
         if (!formData.emergencyContactPhone.trim())
           stepErrors.emergencyContactPhone = "Emergency contact phone is required";
         if (
-          !formData.emergencyContactEmail.trim() ||
-          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emergencyContactEmail)
+          formData.emergencyContactEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emergencyContactEmail)
         ) {
           stepErrors.emergencyContactEmail = "Valid emergency contact email is required";
         }
@@ -445,10 +442,10 @@ export default function CoachingIntake() {
             working_with_another_reason:
               formData.workingWithAnotherReason || null,
             location_of_residence: formData.locationOfResidence,
-            street: formData.street,
-            city: formData.city,
-            postcode: formData.postcode,
-            country: formData.country,
+            street: formData.fullAddress,
+            city: formData.city || "N/A",
+            postcode: formData.postcode || "N/A",
+            country: formData.country || "N/A",
             emergency_contact_name: formData.emergencyContactName,
             emergency_contact_phone: formData.emergencyContactPhone,
             emergency_contact_email: formData.emergencyContactEmail,
@@ -583,25 +580,51 @@ export default function CoachingIntake() {
       >
         <div className="max-w-4xl mx-auto">
           <div className="card rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border bg-white">
-            <div className="flex items-center justify-between mb-4 md:mb-6">
-              <div className="flex items-center gap-3 md:gap-4">
-                <div
-                  className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl"
-                  style={{ backgroundColor: "#6f1d56" }}
-                >
-                  VT
+            <div className="flex flex-col items-center w-full gap-4 mb-4 md:mb-6">
+              {brandingLoading ? (
+                <div className="flex flex-col items-center animate-pulse w-full">
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-200 rounded-full mb-2"></div>
+                  <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
+                  <div className="h-4 w-full bg-gray-200 rounded"></div>
+                  <div className="h-4 w-2/3 bg-gray-200 rounded mt-2"></div>
                 </div>
-                <div className="flex-1 text-center">
-                  <h1 className="text-xl md:text-3xl font-bold text-primary mb-2">
-                    Counselling & Coaching Consultation Form
-                  </h1>
-                  <p className="text-sm mt-0.5 md:mt-1 text-secondary">
-                    By completing this form, you (client) are giving permission
-                    for your information to be shared within Vanquish Therapies
-                    for the purpose of appointment scheduling.
-                  </p>
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div className="inline-flex items-center justify-center">
+                    {branding.platform_logo_url ? (
+                      <img
+                        src={apiService.getStorageUrl(branding.platform_logo_url)}
+                        alt={branding.company_name}
+                        className="max-h-16 md:max-h-20 object-contain"
+                      />
+                    ) : (
+                      <div
+                        className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl"
+                        style={{ backgroundColor: "#6f1d56" }}
+                      >
+                        {branding.company_name
+                          ? branding.company_name
+                              .split(" ")
+                              .map((word) => word[0])
+                              .join("")
+                              .substring(0, 2)
+                              .toUpperCase()
+                          : "VT"}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <h1 className="text-xl md:text-3xl font-bold text-primary mb-2">
+                      Client Information Sheet
+                    </h1>
+                    <p className="text-sm mt-0.5 md:mt-1 text-secondary">
+                      By completing this form, you (client) are giving permission
+                      for your information to be shared within {branding.company_name || "Vanquish Therapies"}
+                      for the purpose of appointment scheduling.
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="hidden md:block">
@@ -709,325 +732,41 @@ export default function CoachingIntake() {
 
                 {!isCapacityFull && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <div>
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        First Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.firstName}
-                        onChange={(e) =>
-                          handleInputChange("firstName", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.firstName ? "border-red-500" : "border-gray-300"}`}
-                      />
-                      {errors.firstName && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.firstName}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Last Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.lastName}
-                        onChange={(e) =>
-                          handleInputChange("lastName", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.lastName ? "border-red-500" : "border-gray-300"}`}
-                      />
-                      {errors.lastName && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.lastName}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Email Address <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) =>
-                          handleInputChange("email", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.email ? "border-red-500" : "border-gray-300"}`}
-                      />
-                      {errors.email && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.email}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Tel: <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) =>
-                          handleInputChange("phone", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.phone ? "border-red-500" : "border-gray-300"}`}
-                      />
-                      {errors.phone && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.phone}
-                        </p>
-                      )}
-                    </div>
                     <div className="md:col-span-2">
                       <label className="block text-base font-medium mb-2 text-primary">
-                        We primarily communicate through Emails and WhatsApp. Do
-                        you agree to this method of communication?{" "}
-                        <span className="text-red-500">*</span>
+                        Your Complete Current Address of Residence Including
+                        Postcode & City (As the sessions are online, this
+                        information is required for safeguarding and insurance
+                        purposes): <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        value={formData.whatsappAgreement}
+                      <textarea
+                        value={formData.fullAddress}
                         onChange={(e) =>
-                          handleInputChange("whatsappAgreement", e.target.value)
+                          handleInputChange("fullAddress", e.target.value)
                         }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.whatsappAgreement ? "border-red-500" : "border-gray-300"}`}
-                      >
-                        <option value="">Please Select</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No WhatsApp">
-                          I prefer emails but not WhatsApp (This is the only
-                          messaging/texting platform we use currently).
-                        </option>
-                      </select>
-                      {errors.whatsappAgreement && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.whatsappAgreement}
-                        </p>
-                      )}
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Is it okay for us to leave you a voicemail?{" "}
-                        <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={formData.voicemailOk}
-                        onChange={(e) =>
-                          handleInputChange("voicemailOk", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.voicemailOk ? "border-red-500" : "border-gray-300"}`}
-                      >
-                        <option value="">Please Select</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                      </select>
-                      {errors.voicemailOk && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.voicemailOk}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Partner's Email <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.partnerEmail}
-                        onChange={(e) =>
-                          handleInputChange("partnerEmail", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.partnerEmail ? "border-red-500" : "border-gray-300"}`}
+                        rows="4"
+                        placeholder="Please enter your full address here..."
+                        className={`w-full px-4 py-3 border rounded-lg ${errors.fullAddress ? "border-red-500" : "border-gray-300"}`}
                       />
-                      {errors.partnerEmail && (
+                      {errors.fullAddress && (
                         <p className="text-red-500 text-sm mt-1">
-                          {errors.partnerEmail}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Partner's Contact No.{" "}
-                        <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.partnerPhone}
-                        onChange={(e) =>
-                          handleInputChange("partnerPhone", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.partnerPhone ? "border-red-500" : "border-gray-300"}`}
-                      />
-                      {errors.partnerPhone && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.partnerPhone}
-                        </p>
-                      )}
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Are you currently in Therapy/Counselling or Coaching
-                        anywhere else? <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={formData.currentlyInTherapy}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "currentlyInTherapy",
-                            e.target.value,
-                          )
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.currentlyInTherapy ? "border-red-500" : "border-gray-300"}`}
-                      >
-                        <option value="">Please Select</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                      </select>
-                      {errors.currentlyInTherapy && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.currentlyInTherapy}
-                        </p>
-                      )}
-                    </div>
-                    {formData.currentlyInTherapy === "Yes" && (
-                      <div className="md:col-span-2">
-                        <label className="block text-base font-medium mb-2 text-primary">
-                          Please explain reasons for working with another
-                          Therapist/Counsellor or Coach{" "}
-                          <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                          value={formData.workingWithAnotherReason}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "workingWithAnotherReason",
-                              e.target.value,
-                            )
-                          }
-                          className={`w-full px-4 py-3 border rounded-lg ${errors.workingWithAnotherReason ? "border-red-500" : "border-gray-300"}`}
-                          placeholder="Reasons..."
-                        />
-                        {errors.workingWithAnotherReason && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {errors.workingWithAnotherReason}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    <div className="md:col-span-2">
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Street Address <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.street}
-                        onChange={(e) =>
-                          handleInputChange("street", e.target.value)
-                        }
-                        placeholder="House number and street name"
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.street ? "border-red-500" : "border-gray-300"}`}
-                      />
-                      {errors.street && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.street}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Town / City <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.city}
-                        onChange={(e) =>
-                          handleInputChange("city", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.city ? "border-red-500" : "border-gray-300"}`}
-                      />
-                      {errors.city && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.city}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Postcode <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.postcode}
-                        onChange={(e) =>
-                          handleInputChange("postcode", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.postcode ? "border-red-500" : "border-gray-300"}`}
-                      />
-                      {errors.postcode && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.postcode}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Country <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.country}
-                        onChange={(e) =>
-                          handleInputChange("country", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.country ? "border-red-500" : "border-gray-300"}`}
-                      />
-                      {errors.country && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.country}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-base font-medium mb-2 text-primary">
-                        Please state where you reside in the world. Please note,
-                        our Practice is based in the UK. Therefore, the
-                        Consultations and Session times are scheduled in UK
-                        time. <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.locationOfResidence}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "locationOfResidence",
-                            e.target.value,
-                          )
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg ${errors.locationOfResidence ? "border-red-500" : "border-gray-300"}`}
-                      />
-                      {errors.locationOfResidence && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.locationOfResidence}
+                          {errors.fullAddress}
                         </p>
                       )}
                     </div>
 
                     <div className="md:col-span-2 mt-4 pt-4 border-t border-gray-100">
-                      <h3 className="text-lg font-bold text-primary mb-4">
-                        Emergency Contact Details
-                      </h3>
+                        <h3 className="text-lg font-bold text-primary mb-4">
+                          Emergency Contact Details (As the sessions are online, this
+                          information is required for safeguarding and insurance
+                          purposes):
+                        </h3>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 md:col-span-2">
                       <div>
                         <label className="block text-base font-medium mb-2 text-primary">
-                          Full Name <span className="text-red-500">*</span>
+                          First Name <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
@@ -1049,7 +788,7 @@ export default function CoachingIntake() {
 
                       <div>
                         <label className="block text-base font-medium mb-2 text-primary">
-                          Phone Number <span className="text-red-500">*</span>
+                          Telephone Number of Your Emergency Contact: <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="tel"
@@ -1071,7 +810,7 @@ export default function CoachingIntake() {
 
                       <div>
                         <label className="block text-base font-medium mb-2 text-primary">
-                          Email Address <span className="text-red-500">*</span>
+                          Email Address
                         </label>
                         <input
                           type="email"
@@ -1109,6 +848,248 @@ export default function CoachingIntake() {
                         {errors.emergencyContactRelationship && (
                           <p className="text-red-500 text-sm mt-1">
                             {errors.emergencyContactRelationship}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-2 mt-4 pt-4 border-t border-gray-100">
+                      <h2 className="text-xl md:text-2xl font-bold mb-4 text-primary text-center">
+                        Personal Information
+                      </h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 md:col-span-2">
+                      <div>
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          First Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.firstName}
+                          onChange={(e) =>
+                            handleInputChange("firstName", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.firstName ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {errors.firstName && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.firstName}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Last Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.lastName}
+                          onChange={(e) =>
+                            handleInputChange("lastName", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.lastName ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {errors.lastName && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.lastName}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Email Address <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) =>
+                            handleInputChange("email", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.email ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {errors.email && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.email}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Tel: <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) =>
+                            handleInputChange("phone", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.phone ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {errors.phone && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.phone}
+                          </p>
+                        )}
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-base font-medium mb-2 text-primary">
+                          We primarily communicate via email and WhatsApp
+                        </p>
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Is it okay for us to leave you a voicemail?{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={formData.voicemailOk}
+                          onChange={(e) =>
+                            handleInputChange("voicemailOk", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.voicemailOk ? "border-red-500" : "border-gray-300"}`}
+                        >
+                          <option value="">Please Select</option>
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                        {errors.voicemailOk && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.voicemailOk}
+                          </p>
+                        )}
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Do you agree to our primary method of communication (Emails and WhatsApp)?{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={formData.whatsappAgreement}
+                          onChange={(e) =>
+                            handleInputChange("whatsappAgreement", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.whatsappAgreement ? "border-red-500" : "border-gray-300"}`}
+                        >
+                          <option value="">Please Select</option>
+                          <option value="Yes">Yes</option>
+                          <option value="No WhatsApp">
+                            I prefer emails but not WhatsApp (This is the only
+                            messaging/texting platform we use currently).
+                          </option>
+                        </select>
+                        {errors.whatsappAgreement && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.whatsappAgreement}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Partner's Email <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.partnerEmail}
+                          onChange={(e) =>
+                            handleInputChange("partnerEmail", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.partnerEmail ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {errors.partnerEmail && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.partnerEmail}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Partner's Contact No.{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          value={formData.partnerPhone}
+                          onChange={(e) =>
+                            handleInputChange("partnerPhone", e.target.value)
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.partnerPhone ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {errors.partnerPhone && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.partnerPhone}
+                          </p>
+                        )}
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Are you currently in Therapy/Counselling or Coaching
+                          anywhere else? <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={formData.currentlyInTherapy}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "currentlyInTherapy",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.currentlyInTherapy ? "border-red-500" : "border-gray-300"}`}
+                        >
+                          <option value="">Please Select</option>
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                        {errors.currentlyInTherapy && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.currentlyInTherapy}
+                          </p>
+                        )}
+                      </div>
+                      {formData.currentlyInTherapy === "Yes" && (
+                        <div className="md:col-span-2">
+                          <label className="block text-base font-medium mb-2 text-primary">
+                            Please explain reasons for working with another
+                            Therapist/Counsellor or Coach{" "}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            value={formData.workingWithAnotherReason}
+                            onChange={(e) =>
+                              handleInputChange(
+                                "workingWithAnotherReason",
+                                e.target.value,
+                              )
+                            }
+                            className={`w-full px-4 py-3 border rounded-lg ${errors.workingWithAnotherReason ? "border-red-500" : "border-gray-300"}`}
+                            placeholder="Reasons..."
+                          />
+                          {errors.workingWithAnotherReason && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.workingWithAnotherReason}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      <div className="md:col-span-2">
+                        <label className="block text-base font-medium mb-2 text-primary">
+                          Please state where you reside in the world. Please note,
+                          our Practice is based in the UK. Therefore, the
+                          Consultations and Session times are scheduled in UK
+                          time. <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.locationOfResidence}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "locationOfResidence",
+                              e.target.value,
+                            )
+                          }
+                          className={`w-full px-4 py-3 border rounded-lg ${errors.locationOfResidence ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {errors.locationOfResidence && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.locationOfResidence}
                           </p>
                         )}
                       </div>

@@ -18,8 +18,10 @@ import { StripePaymentWrapper } from "@/components/StripePayment";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { toast } from "react-toastify";
 import apiService from "@/lib/api";
+import { useBranding } from "@/contexts/BrandingContext";
 
 export default function VanquishClientIntake() {
+  const { branding, loading: brandingLoading } = useBranding();
   const [formData, setFormData] = useState({
     // Personal Info
     firstName: "",
@@ -42,7 +44,9 @@ export default function VanquishClientIntake() {
     // Demographics
     gender: "",
     ethnicity: "",
+    otherEthnicity: "",
     sexualOrientation: "",
+    otherSexualOrientation: "",
 
     // Medical & Service
     serviceType: "",
@@ -321,22 +325,29 @@ export default function VanquishClientIntake() {
         }
         if (!formData.phone.trim())
           stepErrors.phone = "Phone number is required";
-        
-        // Address validation
-        if (!formData.street.trim()) stepErrors.street = "Street address is required";
-        if (!formData.city.trim()) stepErrors.city = "City is required";
-        if (!formData.postcode.trim()) stepErrors.postcode = "Postcode is required";
-        if (!formData.country.trim()) stepErrors.country = "Country is required";
 
-        if (!formData.age || parseInt(formData.age) < 18 || formData.age.length > 2)
+        // Address validation
+        if (!formData.street.trim()) stepErrors.street = "Address is required";
+
+        if (
+          !formData.age ||
+          parseInt(formData.age) < 18 ||
+          formData.age.length > 2
+        )
           stepErrors.age = "Valid age (18-99) is required";
-        
+
         if (!formData.emergencyContactName.trim())
-          stepErrors.emergencyContactName = "Emergency contact name is required";
+          stepErrors.emergencyContactName =
+            "Emergency contact name is required";
         if (!formData.emergencyContactPhone.trim())
-          stepErrors.emergencyContactPhone = "Emergency contact phone is required";
-        if (!formData.emergencyContactEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emergencyContactEmail))
-          stepErrors.emergencyContactEmail = "Valid emergency contact email is required";
+          stepErrors.emergencyContactPhone =
+            "Emergency contact phone is required";
+        if (
+          formData.emergencyContactEmail.trim() &&
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emergencyContactEmail)
+        )
+          stepErrors.emergencyContactEmail =
+            "Valid emergency contact email is required";
         if (!formData.emergencyContactRelationship.trim())
           stepErrors.emergencyContactRelationship = "Relationship is required";
         if (!formData.voicemailOk)
@@ -626,8 +637,15 @@ export default function VanquishClientIntake() {
             voicemail_ok: formData.voicemailOk === "Yes",
             currently_in_therapy: formData.currentlyInTherapy === "Yes",
             gender: formData.gender || null,
-            ethnicity: formData.ethnicity || null,
-            sexual_orientation: formData.sexualOrientation || null,
+            ethnicity:
+              formData.ethnicity === "Other" && formData.otherEthnicity
+                ? formData.otherEthnicity
+                : formData.ethnicity || null,
+            sexual_orientation:
+              formData.sexualOrientation === "Other" &&
+              formData.otherSexualOrientation
+                ? formData.otherSexualOrientation
+                : formData.sexualOrientation || null,
             service_type: formData.serviceType || null,
             on_medication: formData.onMedication === "Yes",
             medication_details: formData.medicationDetails || null,
@@ -921,29 +939,49 @@ export default function VanquishClientIntake() {
         <div className="max-w-4xl mx-auto">
           {/* Header with Logo */}
           <div className="card rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border">
-            <div className="flex items-center justify-between mb-4 md:mb-6">
-              <div className="flex items-center gap-3 md:gap-4">
-                <div
-                  className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl"
-                  style={{ backgroundColor: "#6f1d56" }}
-                >
-                  VT
+            <div className="flex flex-col items-center justify-center mb-4 md:mb-6 text-center">
+              {brandingLoading ? (
+                <div className="flex flex-col items-center animate-pulse">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-200 rounded-full mb-4"></div>
+                  <div className="h-8 w-48 bg-gray-200 rounded"></div>
                 </div>
-                <div className="text-center flex-1">
+              ) : (
+                <>
+                  <div className="inline-flex items-center justify-center mb-4">
+                    {branding.platform_logo_url ? (
+                      <img
+                        src={apiService.getStorageUrl(
+                          branding.platform_logo_url,
+                        )}
+                        alt={branding.company_name}
+                        className="max-h-20 md:max-h-24 object-contain"
+                      />
+                    ) : (
+                      <div
+                        className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-white font-bold text-xl md:text-2xl"
+                        style={{ backgroundColor: "#6f1d56" }}
+                      >
+                        {branding.company_name
+                          ? branding.company_name
+                              .split(" ")
+                              .map((word) => word[0])
+                              .join("")
+                              .substring(0, 2)
+                              .toUpperCase()
+                          : "VT"}
+                      </div>
+                    )}
+                  </div>
                   <h1
-                    className="text-lg md:text-2xl font-bold"
+                    className="text-2xl md:text-3xl font-bold"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Vanquish Therapies
+                    {branding.company_name ||
+                      process.env.NEXT_PUBLIC_APP_NAME ||
+                      "Vanquish Therapies"}
                   </h1>
-                  <p
-                    className="text-base md:text-lg mt-0.5 md:mt-1"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    Client Intake Form
-                  </p>
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
             {/* Mobile Progress - Simple */}
@@ -1065,27 +1103,22 @@ export default function VanquishClientIntake() {
             {/* Step 1: Personal Information */}
             {currentStep === 1 && (
               <div className="space-y-4 md:space-y-6">
-                <div>
+                <div className="text-center mb-6">
                   <h2
-                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    className="text-2xl md:text-3xl font-bold mb-4"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Personal Information - (Please be advised that all required
-                    fields must be completed in the form. Failure to do so may
-                    result in an error. Therefore, it is crucial that you
-                    carefully review the form and provide accurate and complete
-                    information to avoid any issues. For any fields that do not
-                    apply to you, please enter "N/A.")
+                    Client Information Sheet
                   </h2>
-                </div>
-
-                <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 md:p-5">
-                  <p className="text-lg md:text-xl text-red-900 font-bold mb-3">
-                    Consent for Information Sharing
-                  </p>
-                  <p className="text-lg md:text-xl text-red-800 leading-relaxed">
+                  <p
+                    className="text-lg md:text-xl"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     By completing this form, you (client) are giving permission
-                    for your information to be shared within Vanquish Therapies
+                    for your information to be shared within{" "}
+                    {branding.company_name ||
+                      process.env.NEXT_PUBLIC_APP_NAME ||
+                      "Vanquish Therapies"}{" "}
                     for the purpose of matching you with the appropriate
                     Counsellor, for appointment scheduling, and in the event of
                     an emergency. If you are submitting this form on behalf of
@@ -1097,13 +1130,36 @@ export default function VanquishClientIntake() {
                   </p>
                 </div>
 
+                <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 md:p-5">
+                  <p className="text-lg md:text-xl text-red-900 font-bold mb-3">
+                    Consent for Information Sharing
+                  </p>
+                  <p className="text-lg md:text-xl text-red-800 leading-relaxed">
+                    Please be advised that all required fields must be completed
+                    in the form. Failure to do so may result in an error.
+                    Therefore, it is crucial that you carefully review the form
+                    and provide accurate and complete information to avoid any
+                    issues. For any fields that do not apply to you, please
+                    enter "N/A."
+                  </p>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <h3
+                    className="text-2xl font-bold mb-6"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Personal Information
+                  </h3>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   <div>
                     <label
                       className="block text-lg font-medium mb-2"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Full Name <span className="text-red-500">*</span>
+                      First Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -1177,12 +1233,6 @@ export default function VanquishClientIntake() {
                         {errors.email}
                       </p>
                     )}
-                    <p
-                      className="text-sm font-bold mt-1"
-                      style={{ color: "var(--text-tertiary)" }}
-                    >
-                      We primarily communicate via email and WhatsApp
-                    </p>
                   </div>
 
                   <div>
@@ -1190,7 +1240,7 @@ export default function VanquishClientIntake() {
                       className="block text-lg font-medium mb-2"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Phone Number <span className="text-red-500">*</span>
+                      Tel <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
@@ -1211,103 +1261,34 @@ export default function VanquishClientIntake() {
                       </p>
                     )}
                   </div>
-                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        className="block text-lg font-medium mb-2"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        Street Address <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="street"
-                        id="street"
-                        value={formData.street}
-                        onChange={(e) =>
-                          handleInputChange("street", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                          errors.street ? "border-red-500" : "border-gray-300"
-                        }`}
-                        placeholder="123 Example Street"
-                      />
-                      {errors.street && (
-                        <p className="text-red-500 text-sm mt-1">{errors.street}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label
-                        className="block text-lg font-medium mb-2"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        City <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="city"
-                        id="city"
-                        value={formData.city}
-                        onChange={(e) =>
-                          handleInputChange("city", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                          errors.city ? "border-red-500" : "border-gray-300"
-                        }`}
-                        placeholder="London"
-                      />
-                      {errors.city && (
-                        <p className="text-red-500 text-sm mt-1">{errors.city}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label
-                        className="block text-lg font-medium mb-2"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        Postcode <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="postcode"
-                        id="postcode"
-                        value={formData.postcode}
-                        onChange={(e) =>
-                          handleInputChange("postcode", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                          errors.postcode ? "border-red-500" : "border-gray-300"
-                        }`}
-                        placeholder="SW1A 1AA"
-                      />
-                      {errors.postcode && (
-                        <p className="text-red-500 text-sm mt-1">{errors.postcode}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label
-                        className="block text-lg font-medium mb-2"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        Country <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="country"
-                        id="country"
-                        value={formData.country}
-                        onChange={(e) =>
-                          handleInputChange("country", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                          errors.country ? "border-red-500" : "border-gray-300"
-                        }`}
-                        placeholder="United Kingdom"
-                      />
-                      {errors.country && (
-                        <p className="text-red-500 text-sm mt-1">{errors.country}</p>
-                      )}
-                    </div>
+                  <div className="md:col-span-2">
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Your Complete Current Address of Residence Including
+                      Postcode & City (As the sessions are online, this
+                      information is required for safeguarding and insurance
+                      purposes): <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="street"
+                      id="street"
+                      rows="4"
+                      value={formData.street}
+                      onChange={(e) =>
+                        handleInputChange("street", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.street ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="Please enter your full address here..."
+                    />
+                    {errors.street && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.street}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -1340,6 +1321,12 @@ export default function VanquishClientIntake() {
                   </div>
 
                   <div>
+                    <p
+                      className="text-sm font-bold mb-2"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      We primarily communicate via email and WhatsApp
+                    </p>
                     <label
                       className="block text-lg font-medium mb-2"
                       style={{ color: "var(--text-primary)" }}
@@ -1408,7 +1395,9 @@ export default function VanquishClientIntake() {
                       className="text-xl font-bold mb-4"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Emergency Contact Details
+                      Emergency Contact Details (As the sessions are online,
+                      this information is required for safeguarding and
+                      insurance purposes):
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                       <div>
@@ -1416,7 +1405,7 @@ export default function VanquishClientIntake() {
                           className="block text-lg font-medium mb-2"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          Emergency Contact Name{" "}
+                          Emergency Contact First Name{" "}
                           <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -1449,7 +1438,7 @@ export default function VanquishClientIntake() {
                           className="block text-lg font-medium mb-2"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          Emergency Contact Phone{" "}
+                          Telephone Number of Your Emergency Contact:{" "}
                           <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -1515,8 +1504,7 @@ export default function VanquishClientIntake() {
                           className="block text-lg font-medium mb-2"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          Emergency Contact Email{" "}
-                          <span className="text-red-500">*</span>
+                          Emergency Contact Email
                         </label>
                         <input
                           type="email"
@@ -1632,6 +1620,25 @@ export default function VanquishClientIntake() {
                         Prefer not to say
                       </option>
                     </select>
+                    {formData.ethnicity === "Other" && (
+                      <div className="mt-3">
+                        <label
+                          className="block text-base font-medium mb-2"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Please specify your ethnicity
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.otherEthnicity}
+                          onChange={(e) =>
+                            handleInputChange("otherEthnicity", e.target.value)
+                          }
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                          placeholder="Specify ethnicity"
+                        />
+                      </div>
+                    )}
                     {errors.ethnicity && (
                       <p className="text-red-500 text-sm mt-1">
                         {errors.ethnicity}
@@ -1672,6 +1679,28 @@ export default function VanquishClientIntake() {
                         Prefer not to say
                       </option>
                     </select>
+                    {formData.sexualOrientation === "Other" && (
+                      <div className="mt-3">
+                        <label
+                          className="block text-base font-medium mb-2"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Please specify your sexual orientation
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.otherSexualOrientation}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "otherSexualOrientation",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                          placeholder="Specify sexual orientation"
+                        />
+                      </div>
+                    )}
                     {errors.sexualOrientation && (
                       <p className="text-red-500 text-sm mt-1">
                         {errors.sexualOrientation}
@@ -1703,15 +1732,15 @@ export default function VanquishClientIntake() {
                   <p
                     className="text-base md:text-lg "
                     style={{ color: "var(--text-secondary)" }}
-                  >
-                  </p>
+                  ></p>
 
                   <div className="mt-4 p-6 bg-purple-50 border-2 border-purple-200 rounded-xl shadow-sm">
                     <p className="text-purple-900 font-bold mb-3 text-center text-lg">
                       Looking for our Counselling & Coaching service?
                     </p>
                     <p className="text-purple-800 text-sm mb-4 text-center">
-                      Our Counselling & Coaching services now have a dedicated registration page.
+                      Our Counselling & Coaching services now have a dedicated
+                      registration page.
                     </p>
                     <div className="flex justify-center">
                       <Link
@@ -1872,14 +1901,8 @@ export default function VanquishClientIntake() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Your Support
+                    Areas You Require Support With
                   </h2>
-                  <p
-                    className="text-base md:text-lg "
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    Tell us what areas you would like support with.
-                  </p>
                 </div>
 
                 <div className="space-y-4 md:space-y-6">
@@ -1888,8 +1911,8 @@ export default function VanquishClientIntake() {
                       className="block text-lg font-medium  mb-3"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Areas you require support with{" "}
-                      <span className="text-red-500">*</span>
+                      We have listed a few areas below you may require support
+                      with. <span className="text-red-500">*</span>
                       <span
                         className="text-sm font-normal  ml-2"
                         style={{ color: "var(--text-tertiary)" }}
@@ -1952,7 +1975,9 @@ export default function VanquishClientIntake() {
                       className="block text-lg font-medium  mb-2"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Please provide more details about your support needs{" "}
+                      In the box below, kindly specify details related to the
+                      above selected areas or mention anything else not listed
+                      above that you would like support with.{" "}
                       <span className="text-red-500">*</span>
                     </label>
                     <textarea
@@ -1968,8 +1993,17 @@ export default function VanquishClientIntake() {
                           ? "border-red-500"
                           : "border-gray-300"
                       }`}
-                      placeholder="For example: My partner and I have been arguing frequently over finances..."
+                      placeholder=""
                     />
+                    <p
+                      className="text-sm font-medium mt-2"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      For example - Family & Relationship Issues: A & I have
+                      been arguing frequently over how to manage our finances.
+                      The disagreement is causing tension in our relationship
+                      and affecting our family's overall well-being.
+                    </p>
                     {errors.concernsDetails && (
                       <p className="text-red-500 text-sm mt-1">
                         {errors.concernsDetails}
@@ -2003,9 +2037,12 @@ export default function VanquishClientIntake() {
                     Crisis Support
                   </p>
                   <p className="text-base text-red-800">
-                    Vanquish Therapies is not a crisis or emergency service. If
-                    you need immediate help, please contact your GP, NHS (111),
-                    or the Samaritans (116 123).
+                    {branding.company_name ||
+                      process.env.NEXT_PUBLIC_APP_NAME ||
+                      "Vanquish Therapies"}{" "}
+                    is not a crisis or emergency service. If you need immediate
+                    help, please contact your GP, NHS (111), or the Samaritans
+                    (116 123).
                   </p>
                 </div>
               </div>
@@ -2398,7 +2435,11 @@ export default function VanquishClientIntake() {
                               ? "border-red-500"
                               : "border-gray-300"
                           }`}
-                          style={{ borderColor: errors.referralReason ? "" : "var(--input-border)" }}
+                          style={{
+                            borderColor: errors.referralReason
+                              ? ""
+                              : "var(--input-border)",
+                          }}
                           placeholder="Please provide any additional context about your referral"
                         />
                         {errors.referralReason && (
@@ -2429,7 +2470,11 @@ export default function VanquishClientIntake() {
                                 ? "border-red-500"
                                 : "border-gray-300"
                             }`}
-                            style={{ borderColor: errors.referrerName ? "" : "var(--input-border)" }}
+                            style={{
+                              borderColor: errors.referrerName
+                                ? ""
+                                : "var(--input-border)",
+                            }}
                             placeholder="Full name"
                           />
                           {errors.referrerName && (
@@ -2458,7 +2503,11 @@ export default function VanquishClientIntake() {
                                 ? "border-red-500"
                                 : "border-gray-300"
                             }`}
-                            style={{ borderColor: errors.referrerPhone ? "" : "var(--input-border)" }}
+                            style={{
+                              borderColor: errors.referrerPhone
+                                ? ""
+                                : "var(--input-border)",
+                            }}
                             placeholder="+44 7700 900000"
                           />
                           {errors.referrerPhone && (
@@ -2506,7 +2555,11 @@ export default function VanquishClientIntake() {
                                 ? "border-red-500"
                                 : "border-gray-300"
                             }`}
-                            style={{ borderColor: errors.referrerEmail ? "" : "var(--input-border)" }}
+                            style={{
+                              borderColor: errors.referrerEmail
+                                ? ""
+                                : "var(--input-border)",
+                            }}
                             placeholder="email@example.com"
                           />
                           {errors.referrerEmail && (
@@ -2532,11 +2585,10 @@ export default function VanquishClientIntake() {
                   >
                     Assessment (CORE 34)
                   </h2>
-                  <div
-                    className="text-base md:text-lg mb-4 p-6 bg-red-600 border-2 border-red-700 rounded-xl space-y-3"
-                  >
+                  <div className="text-base md:text-lg mb-4 p-6 bg-red-600 border-2 border-red-700 rounded-xl space-y-3">
                     <p className="font-bold text-white text-lg uppercase tracking-wide">
-                      Important - Please read this information before you start:
+                      Important - Please read this information before you start
+                      completing the below section:
                     </p>
                     <p className="text-white font-medium">
                       This section has 34 statements about how you have been
@@ -2548,10 +2600,16 @@ export default function VanquishClientIntake() {
                       the box that relates closest to how you have felt.
                     </p>
                     <p className="text-red-100 text-xs italic mt-2 border-t border-red-500 pt-2">
-                      This core 34 has been taken from The CORE System Trust:
-                      http://www.coresystemtrust.org.uk/copyright.pdf
+                      This core 34 has been taken from The CORE System
+                      Trust:http://www.coresystemtrust.org.uk/copyright.pdf
                     </p>
                   </div>
+                  <p
+                    className="font-bold text-lg mb-4"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    How you have been or felt over the last week?*
+                  </p>
                 </div>
 
                 {errors.core34 && (
@@ -2773,7 +2831,7 @@ export default function VanquishClientIntake() {
 
                             const uniqueSlots = [];
                             const slotTimes = new Set();
-                            
+
                             availableSlots.forEach((slot) => {
                               if (!slotTimes.has(slot.consultation_datetime)) {
                                 slotTimes.add(slot.consultation_datetime);

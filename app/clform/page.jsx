@@ -11,8 +11,10 @@ import {
 } from "lucide-react";
 import apiService from "@/lib/api";
 import { toast } from "react-toastify";
+import { useBranding } from "@/contexts/BrandingContext";
 
-export default function ClientIntakeForm() {
+export default function ClientInformationSheet() {
+  const { branding, loading: brandingLoading } = useBranding();
   const [formData, setFormData] = useState({
     // Basic Info
     firstName: "",
@@ -259,23 +261,46 @@ export default function ClientIntakeForm() {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-            <div className="text-center flex-1">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                Book Your Therapy Session
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6 text-center">
+          {brandingLoading ? (
+            <div className="flex flex-col items-center animate-pulse w-full">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-200 rounded-full mb-2"></div>
+              <div className="h-6 w-48 bg-gray-200 rounded"></div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center mb-4 md:mb-6">
+              <div className="inline-flex items-center justify-center mb-4">
+                {branding.platform_logo_url ? (
+                  <img
+                    src={apiService.getStorageUrl(branding.platform_logo_url)}
+                    alt={branding.company_name}
+                    className="max-h-16 md:max-h-20 object-contain"
+                  />
+                ) : (
+                  <div
+                    className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl"
+                    style={{ backgroundColor: "#6f1d56" }}
+                  >
+                    {branding.company_name
+                      ? branding.company_name
+                          .split(" ")
+                          .map((word) => word[0])
+                          .join("")
+                          .substring(0, 2)
+                          .toUpperCase()
+                      : "VT"}
+                  </div>
+                )}
+              </div>
+              <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+                {branding.company_name || "Vanquish Therapies"} - Professional counselling support
               </h1>
-              <p className="text-gray-600">
-                Vanquish Therapies - Professional counselling support
-              </p>
+              <div className="text-sm text-gray-500 mt-4">Step {currentStep} of 5</div>
             </div>
-            </div>
-            <div className="text-sm text-gray-500">Step {currentStep} of 5</div>
-          </div>
+          )}
 
           {/* Progress Steps */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between border-t pt-6">
             {steps.map((step, index) => (
               <React.Fragment key={step.number}>
                 <div className="flex flex-col items-center flex-1">
@@ -340,11 +365,90 @@ export default function ClientIntakeForm() {
           {/* Step 1: Personal Info */}
           {currentStep === 1 && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Your Information
-              </h2>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Your Complete Current Address of Residence Including
+                    Postcode & City (As the sessions are online, this
+                    information is required for safeguarding and insurance
+                    purposes): <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={formData.street}
+                    onChange={(e) => handleInputChange("street", e.target.value)}
+                    rows="4"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="Please enter your full address here..."
+                  />
+                </div>
+
+                <div className="md:col-span-2 border-t border-gray-100 pt-4 mt-2">
+                  <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-orange-500" />
+                    Emergency Contact Details (As the sessions are online, this
+                    information is required for safeguarding and insurance
+                    purposes):
+                  </h3>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Emergency Contact First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.emergencyContactName}
+                    onChange={(e) => handleInputChange("emergencyContactName", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="Full Name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Telephone Number of Your Emergency Contact: <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.emergencyContactPhone}
+                    onChange={(e) => handleInputChange("emergencyContactPhone", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="+44..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Emergency Contact Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.emergencyContactEmail}
+                    onChange={(e) => handleInputChange("emergencyContactEmail", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="email@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Relationship to You <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.emergencyContactRelationship}
+                    onChange={(e) => handleInputChange("emergencyContactRelationship", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="e.g. Spouse, Parent, Friend"
+                  />
+                </div>
+
+                <div className="md:col-span-2 border-t border-gray-100 pt-4 mt-2">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                    Personal Information
+                  </h2>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     First Name <span className="text-red-500">*</span>
@@ -390,7 +494,7 @@ export default function ClientIntakeForm() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number <span className="text-red-500">*</span>
+                    Tel <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="tel"
@@ -413,117 +517,6 @@ export default function ClientIntakeForm() {
                     onChange={(e) => handleInputChange("age", e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                     placeholder="28"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Street Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.street}
-                    onChange={(e) => handleInputChange("street", e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    placeholder="House number and street name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Town / City <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.city}
-                    onChange={(e) => handleInputChange("city", e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    placeholder="City"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Postcode <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.postcode}
-                    onChange={(e) => handleInputChange("postcode", e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    placeholder="Postcode"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Country <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.country}
-                    onChange={(e) => handleInputChange("country", e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    placeholder="Country"
-                  />
-                </div>
-
-                <div className="md:col-span-2 border-t border-gray-100 pt-4 mt-2">
-                  <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-orange-500" />
-                    Emergency Contact Information
-                  </h3>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Emergency Contact Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.emergencyContactName}
-                    onChange={(e) => handleInputChange("emergencyContactName", e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    placeholder="Full Name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Emergency Contact Phone <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.emergencyContactPhone}
-                    onChange={(e) => handleInputChange("emergencyContactPhone", e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    placeholder="+44..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Emergency Contact Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.emergencyContactEmail}
-                    onChange={(e) => handleInputChange("emergencyContactEmail", e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    placeholder="email@example.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Relationship to You <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.emergencyContactRelationship}
-                    onChange={(e) => handleInputChange("emergencyContactRelationship", e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    placeholder="e.g. Spouse, Parent, Friend"
                   />
                 </div>
 

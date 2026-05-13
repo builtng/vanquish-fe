@@ -53,7 +53,8 @@ export default function NewMessageNotifier() {
 
     // Also listen for staff group messages if staff
     let staffChannel = null;
-    if (user.role !== 'counsellor') {
+    const staffRoles = ['super_admin', 'admin', 'staff', 'consultation_staff', 'compliance_officer'];
+    if (staffRoles.includes(user.role)) {
       staffChannel = echo.private(`messages.staff_group`);
       staffChannel.listen(".message.sent", (e) => {
         const message = e.message;
