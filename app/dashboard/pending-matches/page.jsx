@@ -54,7 +54,7 @@ import {
 const PendingMatchRow = ({
   client,
   setSelectedClient,
-  setShowAssignModal,
+  setShowMatchModal,
   setSelectedTC,
   getUrgencyBadge,
   formatName,
@@ -124,12 +124,12 @@ const PendingMatchRow = ({
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedClient(client);
-                setShowAssignModal(true);
+                setShowMatchModal(true);
               }}
               className="px-3 py-1.5 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap"
             >
               <UserCheck className="w-4 h-4" />
-              Assign
+              Match
             </button>
             <button
               className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
@@ -253,11 +253,11 @@ const PendingMatchRow = ({
                             e.stopPropagation();
                             setSelectedClient(client);
                             setSelectedTC(tc);
-                            setShowAssignModal(true);
+                            setShowMatchModal(true);
                           }}
                           className="flex-shrink-0 px-3 py-1.5 bg-[var(--purple-bg)] text-[var(--purple-primary)] group-hover:bg-[var(--purple-primary)] group-hover:text-white rounded-lg text-[11px] font-bold transition-all"
                         >
-                          Assign
+                          Match
                         </button>
                       </div>
                     </div>
@@ -267,7 +267,7 @@ const PendingMatchRow = ({
                       <RefreshCw className="w-5 h-5 text-gray-400 mb-2" />
                       <p className="text-xs text-gray-500 italic text-center">
                         Calculating ideal matches... <br />
-                        Or click Assign to browse all practitioners.
+                        Or click Match to browse all practitioners.
                       </p>
                     </div>
                   )}
@@ -287,15 +287,15 @@ export default function PendingMatchesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterService, setFilterService] = useState("all");
   const [filterUrgency, setFilterUrgency] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy, setSortBy] = useState("urgency");
   const [selectedClient, setSelectedClient] = useState(null);
-  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showMatchModal, setShowMatchModal] = useState(false);
   const [selectedTC, setSelectedTC] = useState(null);
   const [pendingMatches, setPendingMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [trainingCounsellors, setTrainingCounsellors] = useState([]);
-  const [assignLoading, setAssignLoading] = useState(false);
+  const [matchLoading, setMatchLoading] = useState(false);
 
   // Fetch pending matches from API
   useEffect(() => {
@@ -828,7 +828,7 @@ export default function PendingMatchesPage() {
                         key={client.id}
                         client={client}
                         setSelectedClient={setSelectedClient}
-                        setShowAssignModal={setShowAssignModal}
+                        setShowMatchModal={setShowMatchModal}
                         setSelectedTC={setSelectedTC}
                         getUrgencyBadge={getUrgencyBadge}
                         formatName={formatName}
@@ -841,13 +841,13 @@ export default function PendingMatchesPage() {
           </div>
         </div>
 
-        {/* Assign Modal */}
-        {showAssignModal && selectedClient && (
+        {/* Match Modal */}
+        {showMatchModal && selectedClient && (
           <>
             <div
               className="fixed inset-0 bg-black bg-opacity-50 z-40"
               onClick={() => {
-                setShowAssignModal(false);
+                setShowMatchModal(false);
                 setSelectedClient(null);
                 setSelectedTC(null);
               }}
@@ -856,7 +856,7 @@ export default function PendingMatchesPage() {
               <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-2xl w-full">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                    Assign{" "}
+                    Match{" "}
                     {selectedClient.serviceType === "Mid Range"
                       ? "Qualified"
                       : "Trainee"}{" "}
@@ -865,7 +865,7 @@ export default function PendingMatchesPage() {
 
                   <button
                     onClick={() => {
-                      setShowAssignModal(false);
+                      setShowMatchModal(false);
                       setSelectedClient(null);
                       setSelectedTC(null);
                     }}
@@ -981,13 +981,13 @@ export default function PendingMatchesPage() {
 
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Assignment Notes (Optional)
+                      Match Notes (Optional)
                     </label>
                     <textarea
-                      id="assignmentNotes"
+                      id="matchNotes"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
                       rows={3}
-                      placeholder="Add any notes about this assignment..."
+                      placeholder="Add any notes about this match..."
                     />
                   </div>
 
@@ -1009,11 +1009,11 @@ export default function PendingMatchesPage() {
                   <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
                     <button
                       onClick={() => {
-                        setShowAssignModal(false);
+                        setShowMatchModal(false);
                         setSelectedClient(null);
                         setSelectedTC(null);
                       }}
-                      disabled={assignLoading}
+                      disabled={matchLoading}
                       className="px-6 py-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Cancel
@@ -1022,30 +1022,30 @@ export default function PendingMatchesPage() {
                       onClick={async () => {
                         if (!selectedTC) {
                           showError(
-                            "Please select a Trainee Counsellor before assigning.",
+                            "Please select a Trainee Counsellor before matching.",
                           );
                           return;
                         }
                         try {
-                          setAssignLoading(true);
+                          setMatchLoading(true);
 
-                          const assignmentNotes =
-                            document.getElementById("assignmentNotes")?.value ||
+                          const matchNotes =
+                            document.getElementById("matchNotes")?.value ||
                             "";
 
-                          await apiService.assignMatch({
+                          await apiService.matchClient({
                             client_id: selectedClient.uuid || selectedClient.id,
                             tc_id: selectedTC.uuid || selectedTC.id,
                             match_score: selectedTC.matchScore || null,
-                            assignment_notes: assignmentNotes,
+                            match_notes: matchNotes,
                             send_notification:
                               document.getElementById("sendNotification")
                                 ?.checked ?? true,
                           });
                           success(
-                            `Client "${selectedClient.name}" assigned to "${selectedTC.name}" successfully!`,
+                            `Client "${selectedClient.name}" matched to "${selectedTC.name}" successfully!`,
                           );
-                          setShowAssignModal(false);
+                          setShowMatchModal(false);
                           setSelectedClient(null);
                           setSelectedTC(null);
                           // Refresh data
@@ -1102,26 +1102,26 @@ export default function PendingMatchesPage() {
                           }));
                           setPendingMatches(transformedData);
                         } catch (err) {
-                          console.error("Error assigning match:", err);
+                          console.error("Error matching client:", err);
                           showError(
                             err.message ||
-                              "Failed to assign client. Please try again.",
+                              "Failed to match client. Please try again.",
                           );
                         } finally {
-                          setAssignLoading(false);
+                          setMatchLoading(false);
                         }
                       }}
-                      disabled={assignLoading || !selectedTC}
+                      disabled={matchLoading || !selectedTC}
                       className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       style={{ backgroundColor: "#6f1d56" }}
                     >
-                      {assignLoading ? (
+                      {matchLoading ? (
                         <>
                           <RefreshCw className="w-4 h-4 animate-spin" />
-                          Assigning...
+                          Matching...
                         </>
                       ) : (
-                        "Assign Client"
+                        "Match Client"
                       )}
                     </button>
                   </div>

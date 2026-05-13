@@ -77,9 +77,9 @@ export default function IndividualTCDetailPage() {
   const [tc, setTc] = useState(null);
   const [tcPhoto, setTcPhoto] = useState(null);
 
-  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showMatchModal, setShowMatchModal] = useState(false);
   const [pendingClients, setPendingClients] = useState([]);
-  const [assignForm, setAssignForm] = useState({
+  const [matchForm, setMatchForm] = useState({
     clientId: "",
     notes: "",
     sendNotification: true,
@@ -234,7 +234,7 @@ export default function IndividualTCDetailPage() {
     fetchTcData();
   }, [uuid]);
 
-  // Fetch pending clients for assignment dropdown
+  // Fetch pending clients for matchment dropdown
   useEffect(() => {
     const fetchPendingClients = async () => {
       try {
@@ -515,11 +515,11 @@ export default function IndividualTCDetailPage() {
                   </button>
 
                   <button
-                    onClick={() => setShowAssignModal(true)}
+                    onClick={() => setShowMatchModal(true)}
                     className="h-10 px-4 bg-slate-900 text-white rounded-xl hover:bg-slate-800 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-md active:scale-95"
                   >
                     <UserCheck className="w-3.5 h-3.5" />
-                    Assign Client
+                    Match Client
                   </button>
                   <button
                     onClick={() => setShowSendMessageModal(true)}
@@ -1051,7 +1051,7 @@ export default function IndividualTCDetailPage() {
                               </div>
                               <p className="text-xs text-muted-foreground mt-2 italic">
                                 These topics will show as warnings when matching
-                                clients, but won't prevent assignment
+                                clients, but won't prevent matchment
                               </p>
                             </div>
                           )}
@@ -1166,7 +1166,7 @@ export default function IndividualTCDetailPage() {
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground italic text-center py-4">
-                        No clients assigned
+                        No clients matched
                       </p>
                     )}
                   </div>
@@ -1513,11 +1513,11 @@ export default function IndividualTCDetailPage() {
                         Change Status
                       </button>
                       <button
-                        onClick={() => setShowAssignModal(true)}
+                        onClick={() => setShowMatchModal(true)}
                         className="w-full py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm"
                         style={{ backgroundColor: "#6f1d56" }}
                       >
-                        Assign New Client
+                        Match New Client
                       </button>
                       <button
                         onClick={() => setShowSendMessageModal(true)}
@@ -1722,21 +1722,21 @@ export default function IndividualTCDetailPage() {
           </>
         )}
 
-        {/* Assign Client Modal */}
-        {showAssignModal && (
+        {/* Match Client Modal */}
+        {showMatchModal && (
           <>
             <div
               className="fixed inset-0 bg-black bg-opacity-50 z-40"
-              onClick={() => setShowAssignModal(false)}
+              onClick={() => setShowMatchModal(false)}
             ></div>
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div className="bg-card rounded-lg shadow-2xl max-w-2xl w-full border border-border">
                 <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                   <h2 className="text-xl font-bold text-foreground">
-                    Assign Client to {tc.name}
+                    Match Client to {tc.name}
                   </h2>
                   <button
-                    onClick={() => setShowAssignModal(false)}
+                    onClick={() => setShowMatchModal(false)}
                     className="p-2 hover:bg-muted rounded-lg"
                   >
                     <X className="w-5 h-5 text-muted-foreground" />
@@ -1746,29 +1746,29 @@ export default function IndividualTCDetailPage() {
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    if (!assignForm.clientId || !tc) {
-                      showToast.warning("Please select a client to assign.");
+                    if (!matchForm.clientId || !tc) {
+                      showToast.warning("Please select a client to match.");
                       return;
                     }
 
                     try {
                       const client = pendingClients.find(
-                        (c) => c.id === assignForm.clientId,
+                        (c) => c.id === matchForm.clientId,
                       );
 
-                      await apiService.assignMatch({
-                        client_id: assignForm.clientId,
+                      await apiService.matchMatch({
+                        client_id: matchForm.clientId,
                         tc_id: tc.uuid || tc.id,
-                        assignment_notes: assignForm.notes || null,
-                        send_notification: assignForm.sendNotification,
+                        matchment_notes: matchForm.notes || null,
+                        send_notification: matchForm.sendNotification,
                       });
 
                       showToast.success(
-                        `Client "${client.name}" assigned to "${tc.name}"! Client will now move to "Agreement Pending" stage.`,
+                        `Client "${client.name}" matched to "${tc.name}"! Client will now move to "Agreement Pending" stage.`,
                       );
 
-                      setShowAssignModal(false);
-                      setAssignForm({
+                      setShowMatchModal(false);
+                      setMatchForm({
                         clientId: "",
                         notes: "",
                         sendNotification: true,
@@ -1777,9 +1777,9 @@ export default function IndividualTCDetailPage() {
                       // Refresh page to get updated data
                       window.location.reload();
                     } catch (err) {
-                      console.error("Error assigning client:", err);
+                      console.error("Error matching client:", err);
                       showToast.error(
-                        `Failed to assign client: ${err.message || "Please try again."}`,
+                        `Failed to match client: ${err.message || "Please try again."}`,
                       );
                     }
                   }}
@@ -1787,7 +1787,7 @@ export default function IndividualTCDetailPage() {
                 >
                   <div className="p-4 bg-[var(--tag-bg-green)] border border-green-200 dark:border-green-800 rounded-lg mb-4">
                     <p className="text-sm text-green-800 dark:text-green-200">
-                      Select a client from the pending matches list to assign to
+                      Select a client from the pending matches list to match to
                       this trainee counsellor.
                     </p>
                   </div>
@@ -1797,10 +1797,10 @@ export default function IndividualTCDetailPage() {
                       Select Client <span className="text-red-500">*</span>
                     </label>
                     <SearchableSelect
-                      value={assignForm.clientId}
+                      value={matchForm.clientId}
                       onChange={(e) =>
-                        setAssignForm({
-                          ...assignForm,
+                        setMatchForm({
+                          ...matchForm,
                           clientId: e.target.value,
                         })
                       }
@@ -1814,16 +1814,16 @@ export default function IndividualTCDetailPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">
-                      Assignment Notes (Optional)
+                      Matchment Notes (Optional)
                     </label>
                     <textarea
-                      value={assignForm.notes}
+                      value={matchForm.notes}
                       onChange={(e) =>
-                        setAssignForm({ ...assignForm, notes: e.target.value })
+                        setMatchForm({ ...matchForm, notes: e.target.value })
                       }
                       className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
                       rows={3}
-                      placeholder="Add any notes about this assignment..."
+                      placeholder="Add any notes about this matchment..."
                     />
                   </div>
 
@@ -1831,10 +1831,10 @@ export default function IndividualTCDetailPage() {
                     <input
                       type="checkbox"
                       id="sendNotification"
-                      checked={assignForm.sendNotification}
+                      checked={matchForm.sendNotification}
                       onChange={(e) =>
-                        setAssignForm({
-                          ...assignForm,
+                        setMatchForm({
+                          ...matchForm,
                           sendNotification: e.target.checked,
                         })
                       }
@@ -1851,7 +1851,7 @@ export default function IndividualTCDetailPage() {
                   <div className="flex items-center justify-end gap-3 pt-6 border-t border-border mt-6">
                     <button
                       type="button"
-                      onClick={() => setShowAssignModal(false)}
+                      onClick={() => setShowMatchModal(false)}
                       className="px-6 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium"
                     >
                       Cancel
@@ -1861,7 +1861,7 @@ export default function IndividualTCDetailPage() {
                       className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium"
                       style={{ backgroundColor: "#6f1d56" }}
                     >
-                      Assign Client
+                      Match Client
                     </button>
                   </div>
                 </form>

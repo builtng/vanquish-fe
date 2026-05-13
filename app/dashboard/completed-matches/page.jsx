@@ -133,19 +133,19 @@ export default function CompletedMatchesPage() {
     }
   };
 
-  const handleUnassign = async (clientId) => {
+  const handleUnmatch = async (clientId) => {
     const ok = await confirm({
-      title: "Unassign Practitioner",
-      message: "Are you sure you want to unassign this practitioner? The client will be moved back to Pending Matches.",
-      confirmText: "Unassign",
+      title: "Unmatch Practitioner",
+      message: "Are you sure you want to unmatch this practitioner? The client will be moved back to Pending Matches.",
+      confirmText: "Unmatch",
       type: "danger"
     });
     if (!ok) return;
 
     try {
       setLoading(true);
-      await apiService.unassignMatch(clientId);
-      success("Practitioner unassigned successfully");
+      await apiService.unmatchMatch(clientId);
+      success("Practitioner unmatched successfully");
       await fetchClients();
       if (
         selectedClient &&
@@ -154,8 +154,8 @@ export default function CompletedMatchesPage() {
         setSelectedClient(null);
       }
     } catch (err) {
-      console.error("Error unassigning practitioner:", err);
-      showError(err.message || "Failed to unassign practitioner");
+      console.error("Error unmatching practitioner:", err);
+      showError(err.message || "Failed to unmatch practitioner");
     } finally {
       setLoading(false);
     }
@@ -497,11 +497,11 @@ export default function CompletedMatchesPage() {
             </button>
           )}
           <button
-            onClick={() => handleUnassign(client.uuid || client.id)}
+            onClick={() => handleUnmatch(client.uuid || client.id)}
             className="w-full py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium flex items-center justify-center gap-2"
           >
             <UserCheck className="w-4 h-4" />
-            Unassign Practitioner
+            Unmatch Practitioner
           </button>
           <button className="w-full py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium">
             Archive Client
@@ -844,10 +844,10 @@ export default function CompletedMatchesPage() {
                             )}
                             <button
                               onClick={() =>
-                                handleUnassign(client.uuid || client.id)
+                                handleUnmatch(client.uuid || client.id)
                               }
                               className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                              title="Unassign Practitioner"
+                              title="Unmatch Practitioner"
                             >
                               <UserCheck className="w-4 h-4 text-red-600" />
                             </button>

@@ -80,12 +80,12 @@ export default function ViewAllTrainingCounsellorsPage() {
   // Modal states
   const [selectedTC, setSelectedTC] = useState(null);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showMatchModal, setShowMatchModal] = useState(false);
   const [showTopicsModal, setShowTopicsModal] = useState(false);
   const [topicsModalData, setTopicsModalData] = useState(null);
 
-  // Assign client form
-  const [assignForm, setAssignForm] = useState({
+  // Match client form
+  const [matchForm, setMatchForm] = useState({
     clientId: "",
     notes: "",
     sendNotification: true,
@@ -188,7 +188,7 @@ export default function ViewAllTrainingCounsellorsPage() {
     }
   };
 
-  // Fetch pending clients for assignment dropdown
+  // Fetch pending clients for matchment dropdown
   const fetchPendingClients = async () => {
     try {
       const data = await apiService.getPendingMatches();
@@ -399,38 +399,38 @@ export default function ViewAllTrainingCounsellorsPage() {
     setShowTopicsModal(true);
   };
 
-  const handleAssignClient = async (e) => {
+  const handleMatchClient = async (e) => {
     e.preventDefault();
 
-    if (!assignForm.clientId || !selectedTC) {
-      toast.error("Please select a client to assign.");
+    if (!matchForm.clientId || !selectedTC) {
+      toast.error("Please select a client to match.");
       return;
     }
 
     try {
-      const client = pendingClients.find((c) => c.id === assignForm.clientId);
+      const client = pendingClients.find((c) => c.id === matchForm.clientId);
 
-      await apiService.assignMatch({
-        client_id: assignForm.clientId,
+      await apiService.matchMatch({
+        client_id: matchForm.clientId,
         tc_id: selectedTC.uuid || selectedTC.id,
-        assignment_notes: assignForm.notes || null,
-        send_notification: assignForm.sendNotification,
+        matchment_notes: matchForm.notes || null,
+        send_notification: matchForm.sendNotification,
       });
 
       toast.success(
-        `Client "${formatName(client.name, "client")}" assigned to "${formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}"!\n\nClient will now move to "Agreement Pending" stage.`,
+        `Client "${formatName(client.name, "client")}" matched to "${formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}"!\n\nClient will now move to "Agreement Pending" stage.`,
       );
 
-      setShowAssignModal(false);
-      setAssignForm({ clientId: "", notes: "", sendNotification: true });
+      setShowMatchModal(false);
+      setMatchForm({ clientId: "", notes: "", sendNotification: true });
 
       // Refresh data
       fetchTrainingCounsellors();
       fetchPendingClients();
     } catch (err) {
-      console.error("Error assigning client:", err);
+      console.error("Error matching client:", err);
       toast.error(
-        `Failed to assign client: ${err.message || "Please try again."}`,
+        `Failed to match client: ${err.message || "Please try again."}`,
       );
     }
   };
@@ -854,7 +854,7 @@ export default function ViewAllTrainingCounsellorsPage() {
                   </p>
                   {tc.currentClients === 0 ? (
                     <p className="text-sm text-gray-500 dark:text-[var(--text-tertiary)] italic">
-                      No clients assigned
+                      No clients matched
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
@@ -890,12 +890,12 @@ export default function ViewAllTrainingCounsellorsPage() {
 
                         setSelectedTC(tc);
 
-                        setShowAssignModal(true);
+                        setShowMatchModal(true);
                       }}
                       className="flex-1 px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors"
                     >
                       <UserCheck className="w-4 h-4" />
-                      Assign Client
+                      Match Client
                     </button>
                   )}
                 </div>
@@ -966,13 +966,13 @@ export default function ViewAllTrainingCounsellorsPage() {
         </>
       )}
 
-      {/* Assign Client Modal */}
+      {/* Match Client Modal */}
 
-      {showAssignModal && selectedTC && (
+      {showMatchModal && selectedTC && (
         <>
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setShowAssignModal(false)}
+            onClick={() => setShowMatchModal(false)}
           ></div>
 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -980,10 +980,10 @@ export default function ViewAllTrainingCounsellorsPage() {
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-foreground">
-                    Assign Client
+                    Match Client
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Assign a client to{" "}
+                    Match a client to{" "}
                     {formatName(
                       selectedTC.name,
                       getCounsellorPrefixType(selectedTC.counsellor_type),
@@ -991,14 +991,14 @@ export default function ViewAllTrainingCounsellorsPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowAssignModal(false)}
+                  onClick={() => setShowMatchModal(false)}
                   className="p-2 hover:bg-muted rounded-lg"
                 >
                   <X className="w-5 h-5 text-muted-foreground" />
                 </button>
               </div>
 
-              <form onSubmit={handleAssignClient} className="p-6 space-y-4">
+              <form onSubmit={handleMatchClient} className="p-6 space-y-4">
                 {/* TC Info */}
                 <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                   <div className="flex items-center gap-3">
@@ -1032,9 +1032,9 @@ export default function ViewAllTrainingCounsellorsPage() {
                     <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={assignForm.clientId}
+                    value={matchForm.clientId}
                     onChange={(e) =>
-                      setAssignForm({ ...assignForm, clientId: e.target.value })
+                      setMatchForm({ ...matchForm, clientId: e.target.value })
                     }
                     className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                     required
@@ -1053,16 +1053,16 @@ export default function ViewAllTrainingCounsellorsPage() {
                 {/* Notes */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    Assignment Notes (Optional)
+                    Matchment Notes (Optional)
                   </label>
                   <textarea
-                    value={assignForm.notes}
+                    value={matchForm.notes}
                     onChange={(e) =>
-                      setAssignForm({ ...assignForm, notes: e.target.value })
+                      setMatchForm({ ...matchForm, notes: e.target.value })
                     }
                     className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
                     rows={3}
-                    placeholder="Add any notes about this assignment..."
+                    placeholder="Add any notes about this matchment..."
                   />
                 </div>
 
@@ -1071,10 +1071,10 @@ export default function ViewAllTrainingCounsellorsPage() {
                   <input
                     type="checkbox"
                     id="sendNotification"
-                    checked={assignForm.sendNotification}
+                    checked={matchForm.sendNotification}
                     onChange={(e) =>
-                      setAssignForm({
-                        ...assignForm,
+                      setMatchForm({
+                        ...matchForm,
                         sendNotification: e.target.checked,
                       })
                     }
@@ -1094,7 +1094,7 @@ export default function ViewAllTrainingCounsellorsPage() {
                     <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-green-900 dark:text-green-200 mb-1">
-                        After Assignment
+                        After Matchment
                       </p>
                       <p className="text-sm text-green-800 dark:text-green-300">
                         Client will move to "Agreement Pending" stage and
@@ -1109,7 +1109,7 @@ export default function ViewAllTrainingCounsellorsPage() {
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                   <button
                     type="button"
-                    onClick={() => setShowAssignModal(false)}
+                    onClick={() => setShowMatchModal(false)}
                     className="px-6 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium bg-card"
                   >
                     Cancel
@@ -1121,7 +1121,7 @@ export default function ViewAllTrainingCounsellorsPage() {
                     style={{ backgroundColor: "#6f1d56" }}
                   >
                     <UserCheck className="w-5 h-5" />
-                    Assign Client
+                    Match Client
                   </button>
                 </div>
               </form>
