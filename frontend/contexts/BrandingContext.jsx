@@ -7,7 +7,7 @@ const BrandingContext = createContext();
 
 export function BrandingProvider({ children }) {
   const [branding, setBranding] = useState({
-    company_name: "Vanquish",
+    company_name: typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_APP_NAME || "Vanquish Therapies") : "Vanquish Therapies",
     company_tagline: "Admin",
     platform_logo_url: "",
     platform_logo_base64: "",

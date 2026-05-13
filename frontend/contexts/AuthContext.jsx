@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import apiService from "@/lib/api";
+import { resetEcho } from "@/lib/echo";
 
 const AuthContext = createContext(null);
 
@@ -83,6 +84,7 @@ export function AuthProvider({ children }) {
         return { requiresTwoFactor: true, message: response.message };
       }
 
+      resetEcho();
       setUser(response.user);
       return response;
     } catch (error) {
@@ -97,6 +99,7 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
+      resetEcho();
       setUser(null);
       if (role === "counsellor") {
         router.push("/counsellor-login");

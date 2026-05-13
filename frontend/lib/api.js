@@ -1,9 +1,15 @@
 // API Configuration and Service
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "https://api.vqtmanagement.com/api"
-    : "http://127.0.0.1:8000/api");
+export let API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+if (process.env.NODE_ENV === "production") {
+  if (!API_BASE_URL || API_BASE_URL.includes("127.0.0.1") || API_BASE_URL.includes("localhost")) {
+    API_BASE_URL = "https://api.vqtmanagement.com/api";
+  }
+} else {
+  if (!API_BASE_URL) {
+    API_BASE_URL = "http://127.0.0.1:8000/api";
+  }
+}
 
 class ApiError extends Error {
   constructor(message, status, data) {
