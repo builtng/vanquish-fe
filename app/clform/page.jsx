@@ -548,23 +548,27 @@ export default function ClientInformationSheet() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Ethnicity <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={formData.ethnicity}
-                    onChange={(e) =>
-                      handleInputChange("ethnicity", e.target.value)
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                  >
-                    <option value="">Select ethnicity</option>
-                    <option value="Asian">Asian</option>
-                    <option value="Black">Black</option>
-                    <option value="White">White</option>
-                    <option value="Mixed">Mixed</option>
-                    <option value="Hispanic/Latino">Hispanic/Latino</option>
-                    <option value="Middle Eastern">Middle Eastern</option>
-                    <option value="Other">Other</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
+                    <select
+                      value={formData.ethnicity}
+                      onChange={(e) =>
+                        handleInputChange("ethnicity", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    >
+                      <option value="">Select ethnicity</option>
+                      <option value="Caucasian/White">Caucasian/White</option>
+                      <option value="African/Caribbean/Black">African/Caribbean/Black</option>
+                      <option value="North African">North African</option>
+                      <option value="Hispanic/Latino">Hispanic/Latino</option>
+                      <option value="South Asian">South Asian</option>
+                      <option value="Southeast Asian">Southeast Asian</option>
+                      <option value="East Asian">East Asian</option>
+                      <option value="Central Asian">Central Asian</option>
+                      <option value="West Asian (Middle Eastern)">West Asian (Middle Eastern)</option>
+                      <option value="North Asian">North Asian</option>
+                      <option value="Mixed/Multiracial">Mixed/Multiracial</option>
+                      <option value="Other">Other (Please use the box below to specify)</option>
+                    </select>
                 </div>
 
                 <div className="md:col-span-2">

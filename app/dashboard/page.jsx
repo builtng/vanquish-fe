@@ -1190,8 +1190,7 @@ export default function ClientDashboard() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Ethnicity
                     </label>
-                    <input
-                      type="text"
+                    <SearchableSelect
                       value={newClientForm.ethnicity}
                       onChange={(e) =>
                         setNewClientForm({
@@ -1199,8 +1198,21 @@ export default function ClientDashboard() {
                           ethnicity: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                      placeholder="White British"
+                      options={[
+                        { value: "Caucasian/White", label: "Caucasian/White" },
+                        { value: "African/Caribbean/Black", label: "African/Caribbean/Black" },
+                        { value: "North African", label: "North African" },
+                        { value: "Hispanic/Latino", label: "Hispanic/Latino" },
+                        { value: "South Asian", label: "South Asian" },
+                        { value: "Southeast Asian", label: "Southeast Asian" },
+                        { value: "East Asian", label: "East Asian" },
+                        { value: "Central Asian", label: "Central Asian" },
+                        { value: "West Asian (Middle Eastern)", label: "West Asian (Middle Eastern)" },
+                        { value: "North Asian", label: "North Asian" },
+                        { value: "Mixed/Multiracial", label: "Mixed/Multiracial" },
+                        { value: "Other", label: "Other (Please use the box below to specify)" },
+                      ]}
+                      placeholder="Select ethnicity"
                     />
                   </div>
                   <div>

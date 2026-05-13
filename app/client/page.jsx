@@ -1609,16 +1609,18 @@ export default function VanquishClientIntake() {
                       }`}
                     >
                       <option value="">Please select</option>
-                      <option value="Asian">Asian</option>
-                      <option value="Black">Black</option>
-                      <option value="White">White</option>
-                      <option value="Mixed">Mixed</option>
+                      <option value="Caucasian/White">Caucasian/White</option>
+                      <option value="African/Caribbean/Black">African/Caribbean/Black</option>
+                      <option value="North African">North African</option>
                       <option value="Hispanic/Latino">Hispanic/Latino</option>
-                      <option value="Middle Eastern">Middle Eastern</option>
-                      <option value="Other">Other</option>
-                      <option value="Prefer not to say">
-                        Prefer not to say
-                      </option>
+                      <option value="South Asian">South Asian</option>
+                      <option value="Southeast Asian">Southeast Asian</option>
+                      <option value="East Asian">East Asian</option>
+                      <option value="Central Asian">Central Asian</option>
+                      <option value="West Asian (Middle Eastern)">West Asian (Middle Eastern)</option>
+                      <option value="North Asian">North Asian</option>
+                      <option value="Mixed/Multiracial">Mixed/Multiracial</option>
+                      <option value="Other">Other (Please use the box below to specify)</option>
                     </select>
                     {formData.ethnicity === "Other" && (
                       <div className="mt-3">
@@ -2716,6 +2718,12 @@ export default function VanquishClientIntake() {
                     </div>
                   ))}
                 </div>
+
+                <div className="mt-8 p-6 bg-purple-50 border-2 border-purple-200 rounded-xl text-center">
+                  <p className="text-lg font-bold text-purple-900">
+                    Thank you for answering all of the above statements, please proceed with booking your consultation on the next page.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -2727,7 +2735,7 @@ export default function VanquishClientIntake() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Select a Consultation Slot
+                    Select a Consultation Slot (UK time)
                   </h2>
                   <p
                     className="text-base md:text-lg "
@@ -2916,10 +2924,17 @@ export default function VanquishClientIntake() {
                             </h3>
 
                             {(() => {
+                              const seenTimes = new Set();
                               const dateSlots = availableSlots.filter((s) => {
                                 const sd = new Date(s.consultation_datetime);
                                 const dateStr = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, "0")}-${String(sd.getDate()).padStart(2, "0")}`;
-                                return dateStr === selectedCalendarDate;
+                                if (dateStr !== selectedCalendarDate)
+                                  return false;
+
+                                const timeKey = sd.getTime();
+                                if (seenTimes.has(timeKey)) return false;
+                                seenTimes.add(timeKey);
+                                return true;
                               });
 
                               return (
@@ -2962,7 +2977,7 @@ export default function VanquishClientIntake() {
                                           }
                                           className="hidden"
                                         />
-                                        {timeStr}
+                                        {timeStr} (UK time)
                                       </label>
                                     );
                                   })}
@@ -2994,21 +3009,22 @@ export default function VanquishClientIntake() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Consultation Payment
+                    Consultation Payment & Acknowledgement
                   </h2>
                   <p
                     className="text-base md:text-lg "
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    Secure your consultation appointment with a small admin fee.
-                  </p>
-                </div>
-
-                <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 md:p-5 mb-4 md:mb-6">
-                  <p className="text-base md:text-lg text-red-900 font-medium">
-                    This is a non-refundable administrative fee, which also
-                    covers the cost of your consultation time with the
-                    consultant.
+                    Our consultation/assessment and admin fee is £13. This small
+                    fee helps us ensure that those embarking on their
+                    therapeutic journey are truly committed to their well-being.
+                    Please Note: This consultation/admin fee is non-refundable
+                    as it covers the processing of your consultation regardless
+                    of attendance. Additionally, our consultation slots are
+                    limited, and once you book a slot, it is reserved just for
+                    you, making it unavailable to others. We appreciate your
+                    understanding and we are here to support you every step of
+                    the way.
                   </p>
                 </div>
 
@@ -3053,7 +3069,7 @@ export default function VanquishClientIntake() {
                     className="block text-lg font-medium  mb-2"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Have a discount code?
+                    Enter coupon
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -3137,9 +3153,17 @@ export default function VanquishClientIntake() {
                 )}
 
                 <div
-                  className="space-y-4 pt-4 border-t "
+                  className="space-y-6 pt-6 border-t "
                   style={{ borderColor: "var(--border-color)" }}
                 >
+                  <h3 className="text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+                    Terms & Conditions
+                  </h3>
+                  
+                  <p className="text-base" style={{ color: "var(--text-primary)" }}>
+                    We understand that unforeseen circumstances may arise. However, please be aware; Due to limited availability, missing more than one session or failing to book sessions for a week or more, without prior communication, may result in the release of your reserved space with your assigned Counsellor to accommodate other individuals in need of help and support.
+                  </p>
+
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
@@ -3154,30 +3178,34 @@ export default function VanquishClientIntake() {
                       }}
                     />
                     <span
-                      className="text-base "
+                      className="text-base font-medium"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      I understand that missing more than one session or failing
-                      to book sessions for a week or more, without
-                      communication, may result in my reserved space being
-                      released. <span className="text-red-500">*</span>
+                      By submitting this form, you understand and acknowledge that if you miss more than one session or fail to book sessions for a week or more, without communication, your reserved space will be released to benefit someone else who may need it. <span className="text-red-500">*</span>
                     </span>
                   </label>
 
                   <div
-                    className=" border  rounded-lg p-4"
+                    className=" border rounded-xl p-6"
                     style={{
-                      borderColor: "var(--border-color)",
-                      backgroundColor: "var(--bg-secondary)",
+                      borderColor: "#6f1d56",
+                      backgroundColor: "#fcf6fa",
                     }}
                   >
-                    <p
-                      className="text-xs "
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      🔒 Your payment information is secure and encrypted. This
-                      consultation/admin fee is non-refundable.
+                    <p className="text-base font-bold mb-4" style={{ color: "#6f1d56" }}>
+                      Thank you for completing this form and for taking the first step towards healing. 
                     </p>
+                    <p className="text-sm mb-4" style={{ color: "var(--text-primary)" }}>
+                      We understand that starting counselling can feel daunting but please know, Vanquish Therapies is here to support you on your journey, and we are committed to providing a supportive environment for you. 
+                    </p>
+                    <div className="bg-white p-4 rounded-lg border border-purple-200">
+                      <p className="text-sm font-bold text-red-600 mb-2">
+                        IMPORTANT NOTICE:
+                      </p>
+                      <p className="text-sm" style={{ color: "var(--text-primary)" }}>
+                        Please note – Vanquish Therapies and our online counselling are not a crisis or emergency service. If you need to speak to someone immediately, please contact your GP, NHS (111), or the Samaritans (116 123).
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
