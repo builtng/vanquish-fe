@@ -153,7 +153,7 @@ function AvailabilitySchedule({ value }) {
             <div className="flex flex-wrap gap-1.5">
               {slots.map((slot, idx) => (
                 <span key={idx} className="px-2 py-0.5 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-md text-[11px] font-medium text-gray-700 dark:text-gray-300 shadow-sm">
-                  {slot}
+                  {typeof slot === 'object' ? JSON.stringify(slot) : String(slot)}
                 </span>
               ))}
             </div>

@@ -49,8 +49,19 @@ export default function ConsultationSlotsAdminPage() {
       return;
     }
 
+    const dateTime = selectedDateTime.toISOString();
+
+    // Check for duplicates
+    const isDuplicate = slots.some(s => 
+      new Date(s.consultation_datetime).getTime() === selectedDateTime.getTime()
+    );
+
+    if (isDuplicate) {
+      showError("A consultation slot already exists for this date and time");
+      return;
+    }
+
     try {
-      const dateTime = selectedDateTime.toISOString();
       await apiService.createConsultationSlot({
         consultation_datetime: dateTime,
         max_slots: parseInt(formData.maxSlots, 10) || null,

@@ -987,7 +987,7 @@ export default function IndividualTCDetailPage() {
                                             key={idx}
                                             className="px-3 py-1 bg-[var(--tag-bg-green)] text-[var(--tag-text)] text-sm rounded-full"
                                           >
-                                            {slotLabel}
+                                            {typeof slotLabel === 'object' ? JSON.stringify(slotLabel) : String(slotLabel)}
                                           </span>
                                         );
                                       })}
