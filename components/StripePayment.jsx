@@ -37,6 +37,7 @@ export function StripePaymentForm({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [paymentStatus, setPaymentStatus] = useState("idle"); // idle, processing, success, error
+  const [isReady, setIsReady] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -120,7 +121,7 @@ export function StripePaymentForm({
       )}
 
       <div className="border border-gray-300 rounded-lg p-4">
-        <PaymentElement />
+        <PaymentElement onReady={() => setIsReady(true)} />
       </div>
 
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex flex-col gap-3">
@@ -159,7 +160,7 @@ export function StripePaymentForm({
         )}
         <button
           type="submit"
-          disabled={!stripe || isLoading || paymentStatus === "processing"}
+          disabled={!stripe || !isReady || isLoading || paymentStatus === "processing"}
           className={`flex-[2] py-3 px-4 rounded-lg text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
             isLoading ? "cursor-wait" : ""
           }`}
