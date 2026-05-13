@@ -165,7 +165,7 @@ export default function TrainingProvidersPage() {
     const matchesCourse = filterCourse === 'all' || 
                          provider.courses.some(c => c.courseTitle === filterCourse);
     return matchesSearch && matchesCourse;
-  });
+  }).sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true }));
 
   const allCourses = [...new Set(trainingProviders.flatMap(p => p.courses.map(c => c.courseTitle)))];
 

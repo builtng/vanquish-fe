@@ -287,7 +287,7 @@ export default function PendingMatchesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterService, setFilterService] = useState("all");
   const [filterUrgency, setFilterUrgency] = useState("all");
-  const [sortBy, setSortBy] = useState("id");
+  const [sortBy, setSortBy] = useState("newest");
   const [selectedClient, setSelectedClient] = useState(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedTC, setSelectedTC] = useState(null);
@@ -534,7 +534,7 @@ export default function PendingMatchesPage() {
     })
     .sort((a, b) => {
       if (sortBy === "newest") {
-        return a.waitingHours - b.waitingHours;
+        return b.waitingHours - a.waitingHours;
       } else if (sortBy === "urgency") {
         const urgencyOrder = { high: 3, medium: 2, low: 1 };
         return urgencyOrder[b.urgency] - urgencyOrder[a.urgency];

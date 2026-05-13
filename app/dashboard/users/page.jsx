@@ -69,7 +69,11 @@ export default function UsersPage() {
     try {
       setLoading(true);
       const data = await apiService.getUsers();
-      setUsers(data);
+      // Sort users by ID descending
+      const sortedData = Array.isArray(data) 
+        ? [...data].sort((a, b) => b.id - a.id)
+        : data;
+      setUsers(sortedData);
     } catch (err) {
       // Handle rate limit errors gracefully
       if (err.message && err.message.includes("Too Many Attempts")) {

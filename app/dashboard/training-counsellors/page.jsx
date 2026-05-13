@@ -288,16 +288,11 @@ export default function ViewAllTrainingCounsellorsPage() {
           return b.tc_id?.localeCompare(a.tc_id, undefined, { numeric: true });
 
         case "availability":
-          // Active with capacity first
-
           if (a.status === "Active" && b.status !== "Active") return -1;
-
           if (a.status !== "Active" && b.status === "Active") return 1;
-
-          return a.currentClients - b.currentClients;
-
+          return b.currentClients - a.currentClients;
         case "name":
-          return a.name.localeCompare(b.name);
+          return b.name.localeCompare(a.name);
 
         case "clients":
           return b.currentClients - a.currentClients;
