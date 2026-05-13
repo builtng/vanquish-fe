@@ -41,6 +41,7 @@ function ClientBookingContent() {
   const [availableSlots, setAvailableSlots] = useState([]);
   const [bookingEnabled, setBookingEnabled] = useState(null); // null = unknown yet
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedSlots, setSelectedSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [pricing, setPricing] = useState({});
 
@@ -52,14 +53,8 @@ function ClientBookingContent() {
           const data = await apiService.getAvailableSlots(
             clientData.client.uuid,
           );
-          // booking_enabled=false means admin has not opened this service yet
           setBookingEnabled(data.booking_enabled !== false);
           setAvailableSlots(data.slots || []);
-
-          // If it's a block booking and we have a specific date from the server, use it
-          if (bookingType === "block" && data.slots && data.slots.length > 0) {
-            setSelectedDate(data.slots[0].date);
-          }
         } catch (err) {
           console.error("Failed to fetch slots:", err);
           toast.error("Failed to load available slots");
@@ -168,14 +163,14 @@ function ClientBookingContent() {
   };
 
   const handleBookBlock = async () => {
-    if (!selectedDate && !selectedSlot) {
-      setError("Please select a start date and time slot");
+    if (selectedSlots.length !== sessionsCount) {
+      setError(`Please select exactly ${sessionsCount} slots for your block.`);
       return;
     }
 
-    if (selectedSlot && !selectedSlot.available) {
+    if (selectedSlots.some((s) => !s.available)) {
       toast.error(
-        "The selected slot is already booked. Please choose another one.",
+        "One of the selected slots is no longer available. Please choose another one.",
       );
       return;
     }
@@ -195,8 +190,7 @@ function ClientBookingContent() {
     // Store booking data for after payment
     setPendingBookingData({
       client_uuid: clientData.client.uuid,
-      start_date: selectedDate || selectedSlot.date,
-      time_slot: selectedSlot ? selectedSlot.time : null,
+      session_slots: selectedSlots.map((s) => `${s.date} ${s.time}:00`),
       sessions_count: sessionsCount,
     });
 
@@ -603,21 +597,34 @@ function ClientBookingContent() {
                     <>
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {!client?.allocated_day || !client?.allocated_time
-                            ? "Select Your Weekly Time Slot"
-                            : "Select Your Booking Start Date"}
+                          Select Your {sessionsCount} Time Slots
                         </label>
                         <p className="text-xs text-gray-500 mb-3">
-                          {!client?.allocated_day || !client?.allocated_time
-                            ? `For ${client?.service_type} services, you'll have this same slot each week.`
-                            : `Consistent weekly slot maintained: ${client?.allocated_day ? client.allocated_day.charAt(0).toUpperCase() + client.allocated_day.slice(1).toLowerCase() : ""}s at ${formatTimeSlotDisplay(client?.allocated_time)}.`}
+                          Please pick exactly {sessionsCount} dates and times for your sessions.
                         </p>
                         <CalendarPicker
                           availableSlots={availableSlots}
-                          selectedSlot={selectedSlot}
+                          selectedSlots={selectedSlots}
+                          mode="block"
                           onSelect={(slot) => {
-                            setSelectedSlot(slot);
-                            setSelectedDate(slot.date);
+                            setSelectedSlots((prev) => {
+                              const exists = prev.some(
+                                (s) => s.date === slot.date && s.time === slot.time,
+                              );
+                              if (exists) {
+                                return prev.filter(
+                                  (s) => !(s.date === slot.date && s.time === slot.time),
+                                );
+                              } else {
+                                if (prev.length >= sessionsCount) {
+                                  toast.error(
+                                    `You can only select ${sessionsCount} slots.`,
+                                  );
+                                  return prev;
+                                }
+                                return [...prev, slot];
+                              }
+                            });
                           }}
                         />
                       </div>
@@ -761,12 +768,16 @@ function ClientBookingContent() {
                       </>
                     ) : (
                       <>
-                        {pendingBookingData?.sessions_count} Sessions starting
-                        from{" "}
-                        {pendingBookingData?.start_date &&
-                          new Date(
-                            pendingBookingData.start_date,
-                          ).toLocaleDateString()}
+                        {pendingBookingData?.sessions_count} Sessions manually selected.
+                        {pendingBookingData?.session_slots && pendingBookingData.session_slots.length > 0 && (
+                          <div className="mt-2 flex flex-col gap-1">
+                            {pendingBookingData.session_slots.map((slot, i) => (
+                              <span key={i} className="text-xs bg-white px-2 py-1 rounded-md border border-blue-100 inline-block">
+                                {new Date(slot.split(' ')[0]).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} at {slot.split(' ')[1].slice(0, 5)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </>
                     )}
                   </p>
