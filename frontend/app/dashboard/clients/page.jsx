@@ -50,7 +50,7 @@ export default function ViewAllClients() {
   const [filterTC, setFilterTC] = useState("all");
   const [filterService, setFilterService] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [sortColumn, setSortColumn] = useState("createdAt");
+  const [sortColumn, setSortColumn] = useState("submittedDate");
   const [sortDirection, setSortDirection] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
