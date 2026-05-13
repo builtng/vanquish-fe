@@ -1055,13 +1055,18 @@ export default function VanquishTCApplication() {
                       handleInputChange("ethnicity", e.target.value)
                     }
                     options={[
-                      { value: "Asian", label: "Asian" },
-                      { value: "Black", label: "Black" },
-                      { value: "White", label: "White" },
-                      { value: "Mixed", label: "Mixed" },
+                      { value: "Caucasian/White", label: "Caucasian/White" },
+                      { value: "African/Caribbean/Black", label: "African/Caribbean/Black" },
+                      { value: "North African", label: "North African" },
                       { value: "Hispanic/Latino", label: "Hispanic/Latino" },
-                      { value: "Middle Eastern", label: "Middle Eastern" },
-                      { value: "Other", label: "Other" },
+                      { value: "South Asian", label: "South Asian" },
+                      { value: "Southeast Asian", label: "Southeast Asian" },
+                      { value: "East Asian", label: "East Asian" },
+                      { value: "Central Asian", label: "Central Asian" },
+                      { value: "West Asian (Middle Eastern)", label: "West Asian (Middle Eastern)" },
+                      { value: "North Asian", label: "North Asian" },
+                      { value: "Mixed/Multiracial", label: "Mixed/Multiracial" },
+                      { value: "Other", label: "Other (Please use the box below to specify)" },
                     ]}
                     placeholder="Please select"
                   />

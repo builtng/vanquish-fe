@@ -2,6 +2,8 @@ import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { API_BASE_URL } from './api';
 
+let echoInstance = null;
+
 export const resetEcho = () => {
     if (echoInstance) {
         echoInstance.disconnect();
