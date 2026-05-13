@@ -956,8 +956,8 @@ export default function IndividualTCDetailPage() {
                             "Thursday",
                             "Friday",
                           ].map((day) => {
-                            const daySlots = tc.availability[day] || [];
-                            const hasSlots = daySlots.length > 0;
+                            const daySlots = tc.availability[day] || tc.availability[day.toLowerCase()] || [];
+                            const hasSlots = Array.isArray(daySlots) && daySlots.length > 0;
                             return (
                               <div
                                 key={day}

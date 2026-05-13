@@ -26,7 +26,7 @@ export const getEcho = () => {
         return null;
     }
 
-    const token = localStorage.getItem('api_token');
+    const token = apiService.getToken();
     if (!token) return null;
 
     window.Pusher = Pusher;
@@ -36,7 +36,7 @@ export const getEcho = () => {
         key: process.env.NEXT_PUBLIC_PUSHER_APP_KEY,
         cluster: process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTER || 'mt1',
         forceTLS: true,
-        authEndpoint: `${API_BASE_URL || 'http://localhost:8000/api'}/broadcasting/auth`,
+        authEndpoint: `${apiService.baseURL}/broadcasting/auth`,
         auth: {
             headers: {
                 Authorization: `Bearer ${token}`,

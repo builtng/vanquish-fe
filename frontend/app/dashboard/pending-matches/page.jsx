@@ -900,7 +900,12 @@ export default function PendingMatchesPage() {
                       </p>
                       <p className="text-xs text-green-600 mt-1">
                         Current Clients: {selectedTC.currentClients} •
-                        Availability: {selectedTC.availability}
+                        Availability: {typeof selectedTC.availability === 'object' 
+                          ? Object.entries(selectedTC.availability)
+                              .filter(([_, slots]) => Array.isArray(slots) && slots.length > 0)
+                              .map(([day, slots]) => `${day}: ${slots.length} slots`)
+                              .join(', ') || "No availability set"
+                          : selectedTC.availability}
                       </p>
                     </div>
                   ) : (

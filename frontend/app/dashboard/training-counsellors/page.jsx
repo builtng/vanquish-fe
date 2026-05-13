@@ -385,7 +385,10 @@ export default function ViewAllTrainingCounsellorsPage() {
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
     const available = days.filter(
-      (day) => availability[day] && availability[day].length > 0,
+      (day) => {
+        const slots = availability[day] || availability[day.toLowerCase()];
+        return Array.isArray(slots) && slots.length > 0;
+      }
     );
 
     if (available.length === 0) return "No availability set";
