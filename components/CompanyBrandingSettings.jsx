@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, X, Save, Image as ImageIcon, Building2, FileText, Globe, Mail, Phone, MapPin, Loader2 } from "lucide-react";
+import { Upload, X, Save, Image as ImageIcon, Building2, FileText, Globe, Mail, Phone, MapPin, Loader2, Video } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
 import apiService from "@/lib/api";
 import { useModal } from "@/contexts/ModalContext";

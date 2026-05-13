@@ -534,7 +534,7 @@ export default function PendingMatchesPage() {
     })
     .sort((a, b) => {
       if (sortBy === "newest") {
-        return b.waitingHours - a.waitingHours;
+        return a.waitingHours - b.waitingHours;
       } else if (sortBy === "urgency") {
         const urgencyOrder = { high: 3, medium: 2, low: 1 };
         return urgencyOrder[b.urgency] - urgencyOrder[a.urgency];
