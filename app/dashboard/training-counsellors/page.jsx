@@ -68,7 +68,8 @@ export default function ViewAllTrainingCounsellorsPage() {
 
   const [filterAvailability, setFilterAvailability] = useState("all");
 
-  const [sortBy, setSortBy] = useState("tc_id");
+  const [sortColumn, setSortColumn] = useState("newest");
+  const [sortDirection, setSortDirection] = useState("desc");
 
   // Data states
   const [trainingCounsellors, setTrainingCounsellors] = useState([]);
@@ -278,28 +279,32 @@ export default function ViewAllTrainingCounsellorsPage() {
     // Sort
 
     filtered.sort((a, b) => {
-      switch (sortBy) {
+      let result = 0;
+      switch (sortColumn) {
         case "newest":
-          if (!a.createdAt) return 1;
-          if (!b.createdAt) return -1;
-          return new Date(b.createdAt) - new Date(a.createdAt);
-
+          if (!a.createdAt && !b.createdAt) result = 0;
+          else if (!a.createdAt) result = 1;
+          else if (!b.createdAt) result = -1;
+          else result = new Date(b.createdAt) - new Date(a.createdAt);
+          break;
         case "tc_id":
-          return b.tc_id?.localeCompare(a.tc_id, undefined, { numeric: true });
-
+          result = b.tc_id?.localeCompare(a.tc_id, undefined, { numeric: true });
+          break;
         case "availability":
-          if (a.status === "Active" && b.status !== "Active") return -1;
-          if (a.status !== "Active" && b.status === "Active") return 1;
-          return b.currentClients - a.currentClients;
+          if (a.status === "Active" && b.status !== "Active") result = -1;
+          else if (a.status !== "Active" && b.status === "Active") result = 1;
+          else result = b.currentClients - a.currentClients;
+          break;
         case "name":
-          return b.name.localeCompare(a.name);
-
+          result = b.name.localeCompare(a.name);
+          break;
         case "clients":
-          return b.currentClients - a.currentClients;
-
+          result = b.currentClients - a.currentClients;
+          break;
         default:
-          return 0;
+          result = 0;
       }
+      return sortDirection === "desc" ? result : -result;
     });
 
     return filtered;
@@ -641,8 +646,20 @@ export default function ViewAllTrainingCounsellorsPage() {
             </select>
 
             <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
+              value={sortColumn}
+              onChange={(e) => {
+                setSortColumn(e.target.value);
+                if (
+                  e.target.value === "newest" ||
+                  e.target.value === "tc_id" ||
+                  e.target.value === "availability" ||
+                  e.target.value === "clients"
+                ) {
+                  setSortDirection("desc");
+                } else {
+                  setSortDirection("asc");
+                }
+              }}
               className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[150px]"
             >
               <option value="newest">Sort: Newest</option>

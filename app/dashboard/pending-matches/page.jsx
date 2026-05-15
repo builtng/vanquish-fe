@@ -287,7 +287,8 @@ export default function PendingMatchesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterService, setFilterService] = useState("all");
   const [filterUrgency, setFilterUrgency] = useState("all");
-  const [sortBy, setSortBy] = useState("urgency");
+  const [sortColumn, setSortColumn] = useState("newest");
+  const [sortDirection, setSortDirection] = useState("desc");
   const [selectedClient, setSelectedClient] = useState(null);
   const [showMatchModal, setShowMatchModal] = useState(false);
   const [selectedTC, setSelectedTC] = useState(null);
@@ -307,7 +308,7 @@ export default function PendingMatchesPage() {
         if (searchTerm) params.search = searchTerm;
         if (filterService !== "all") params.service_type = filterService;
         if (filterUrgency !== "all") params.urgency = filterUrgency;
-        if (sortBy) params.sort_by = sortBy;
+        if (sortColumn) params.sort_by = sortColumn;
 
         const data = await apiService.getPendingMatches(params);
 
@@ -365,7 +366,7 @@ export default function PendingMatchesPage() {
     };
 
     fetchPendingMatches();
-  }, [searchTerm, filterService, filterUrgency, sortBy]);
+  }, [searchTerm, filterService, filterUrgency, sortColumn, sortDirection]);
 
   // Fetch training counsellors for suggestions
   useEffect(() => {
@@ -533,21 +534,22 @@ export default function PendingMatchesPage() {
       return matchesSearch && matchesService && matchesUrgency;
     })
     .sort((a, b) => {
-      if (sortBy === "newest") {
-        return a.waitingHours - b.waitingHours;
-      } else if (sortBy === "urgency") {
+      let result = 0;
+      if (sortColumn === "newest") {
+        result = a.waitingHours - b.waitingHours;
+      } else if (sortColumn === "urgency") {
         const urgencyOrder = { high: 3, medium: 2, low: 1 };
-        return urgencyOrder[b.urgency] - urgencyOrder[a.urgency];
-      } else if (sortBy === "daysWaiting") {
-        return b.waitingHours - a.waitingHours;
-      } else if (sortBy === "id") {
-        return b.client_id?.localeCompare(a.client_id, undefined, {
+        result = urgencyOrder[b.urgency] - urgencyOrder[a.urgency];
+      } else if (sortColumn === "daysWaiting") {
+        result = b.waitingHours - a.waitingHours;
+      } else if (sortColumn === "id") {
+        result = b.client_id?.localeCompare(a.client_id, undefined, {
           numeric: true,
         });
-      } else if (sortBy === "name") {
-        return b.name.localeCompare(a.name);
+      } else if (sortColumn === "name") {
+        result = b.name.localeCompare(a.name);
       }
-      return 0;
+      return sortDirection === "desc" ? result : -result;
     });
 
   const stats = {
@@ -574,7 +576,7 @@ export default function PendingMatchesPage() {
                     if (filterService !== "all")
                       params.service_type = filterService;
                     if (filterUrgency !== "all") params.urgency = filterUrgency;
-                    if (sortBy) params.sort_by = sortBy;
+                    if (sortColumn) params.sort_by = sortColumn;
 
                     const data = await apiService.getPendingMatches(params);
 
@@ -760,8 +762,20 @@ export default function PendingMatchesPage() {
               </div>
               <div className="min-w-[120px] flex-shrink-0">
                 <SearchableSelect
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                  value={sortColumn}
+                  onChange={(e) => {
+                    setSortColumn(e.target.value);
+                    if (
+                      e.target.value === "newest" ||
+                      e.target.value === "urgency" ||
+                      e.target.value === "daysWaiting" ||
+                      e.target.value === "id"
+                    ) {
+                      setSortDirection("desc");
+                    } else {
+                      setSortDirection("asc");
+                    }
+                  }}
                   options={[
                     { value: "newest", label: "Sort: Newest" },
                     { value: "id", label: "Sort: Client ID" },
@@ -769,7 +783,7 @@ export default function PendingMatchesPage() {
                     { value: "daysWaiting", label: "Sort: Days Waiting" },
                     { value: "name", label: "Sort: Name" },
                   ]}
-                  placeholder="Sort: Urgency"
+                  placeholder="Sort: Newest"
                   className="text-sm"
                 />
               </div>
