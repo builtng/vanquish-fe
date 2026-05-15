@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   FileText,
   AlertTriangle,
+  Plus,
 } from "lucide-react";
 import apiService from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
@@ -37,6 +38,8 @@ export default function VanquishTCApplication() {
     postcode: "",
     beliefs: [],
     otherBeliefs: "",
+    otherBeliefsSpecify: "",
+    showSpecificBeliefs: false,
     disabilities: "",
     medicalConditions: "",
 
@@ -135,7 +138,7 @@ export default function VanquishTCApplication() {
     "Sikhism",
     "Spiritual",
     "Taoism",
-    "Other (Please specify)",
+    "Other",
   ];
 
   // Comprehensive list of therapy topics/issues
@@ -638,7 +641,13 @@ export default function VanquishTCApplication() {
       if (formData.beliefs && formData.beliefs.length > 0) {
         formDataToSubmit.append('beliefs', JSON.stringify(formData.beliefs));
       }
-      formDataToSubmit.append('beliefs_other', formData.otherBeliefs || '');
+      
+      const combinedOtherBeliefs = [
+        formData.otherBeliefsSpecify ? `Other: ${formData.otherBeliefsSpecify}` : '',
+        formData.otherBeliefs ? `Specific: ${formData.otherBeliefs}` : ''
+      ].filter(Boolean).join(' | ');
+      
+      formDataToSubmit.append('beliefs_other', combinedOtherBeliefs);
       formDataToSubmit.append('disabilities', formData.disabilities || '');
       formDataToSubmit.append('medical_conditions', formData.medicalConditions || '');
 
@@ -1319,22 +1328,50 @@ export default function VanquishTCApplication() {
                   )}
                 </div>
 
-                  {formData.beliefs.length > 0 && (
-                    <div className="md:col-span-2 mt-4">
+                  {formData.beliefs.includes("Other") && (
+                    <div className="md:col-span-2 mt-4 animate-in fade-in slide-in-from-top-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        List if not mentioned above / Specific beliefs
+                        Please specify 'Other' belief <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
-                        value={formData.otherBeliefs}
+                        value={formData.otherBeliefsSpecify || ""}
                         onChange={(e) =>
-                          handleInputChange("otherBeliefs", e.target.value)
+                          handleInputChange("otherBeliefsSpecify", e.target.value)
                         }
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                        placeholder="Specify other beliefs or additional details"
+                        placeholder="Please specify your belief"
                       />
                     </div>
                   )}
+
+                  <div className="md:col-span-2 mt-4">
+                    {!formData.showSpecificBeliefs ? (
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange("showSpecificBeliefs", true)}
+                        className="text-sm font-medium text-[var(--bg-primary)] hover:underline flex items-center gap-1"
+                      >
+                        <Plus className="w-4 h-4" />
+                        List if not mentioned above / Specific beliefs
+                      </button>
+                    ) : (
+                      <div className="animate-in fade-in slide-in-from-top-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          List if not mentioned above / Specific beliefs
+                        </label>
+                        <textarea
+                          value={formData.otherBeliefs}
+                          onChange={(e) =>
+                            handleInputChange("otherBeliefs", e.target.value)
+                          }
+                          rows="3"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                          placeholder="Specify other beliefs or additional details"
+                        />
+                      </div>
+                    )}
+                  </div>
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
