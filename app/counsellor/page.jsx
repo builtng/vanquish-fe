@@ -105,6 +105,7 @@ export default function VanquishTCApplication() {
     cv: null,
     validId: null,
     insurance: null,
+    docsConfirmed: false,
 
     // Terms
     criminalConviction: "",
@@ -653,7 +654,7 @@ export default function VanquishTCApplication() {
       formDataToSubmit.append('previous_online_counselling', formData.previousOnlineCounselling || '');
       formDataToSubmit.append('criminal_convictions', formData.criminalConviction || '');
 
-      // ── Training provider / course info ────────────────────────────
+      // ── Training Organisation / course info ────────────────────────────
       formDataToSubmit.append('modality', formData.modality || '');
       formDataToSubmit.append('course', formData.courseTitle || '');
       formDataToSubmit.append('institution', formData.trainingOrgName || '');
@@ -697,9 +698,13 @@ export default function VanquishTCApplication() {
       if (formData.topicsExperienceWith && formData.topicsExperienceWith.length > 0) {
         formDataToSubmit.append('topics_with_experience', JSON.stringify(formData.topicsExperienceWith));
       }
+      formDataToSubmit.append('topics_experience_other', formData.topicsExperienceOther || '');
+      
       if (formData.topicsNotReady && formData.topicsNotReady.length > 0) {
         formDataToSubmit.append('topics_not_ready_for', JSON.stringify(formData.topicsNotReady));
       }
+      formDataToSubmit.append('topics_not_ready_other', formData.topicsNotReadyOther || '');
+
       if (formData.availability) {
         formDataToSubmit.append('availability', JSON.stringify(formData.availability));
         formDataToSubmit.append('availability_schedule', JSON.stringify(formData.availability));
@@ -733,6 +738,7 @@ export default function VanquishTCApplication() {
       console.error('Form submission error:', error);
       
       // Check if error has validation errors from backend
+      if (error.data?.errors) {
         const validationErrors = error.data.errors;
         const fieldLabels = {
           validId: "Valid ID",
@@ -755,6 +761,7 @@ export default function VanquishTCApplication() {
           })
           .join('\n');
         setSubmitError(`Validation failed:\n${errorMessages}`);
+      } else {
         setSubmitError(error.message || 'Failed to submit form. Please try again.');
       }
       
@@ -1617,14 +1624,14 @@ export default function VanquishTCApplication() {
                   Current Course Information
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
-                  Details about your course and training provider.
+                  Details about your course and Training Organisation.
                 </p>
               </div>
 
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Training Organisation/College Name{" "}
+                    Training Organisation Name{" "}
                     <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -2410,7 +2417,7 @@ export default function VanquishTCApplication() {
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                   Required Documents
                 </h2>
-                <p className="text-sm md:text-base text-gray-600 text-center">
+                <p className="text-sm md:text-base text-gray-600">
                   Please upload all mandatory documents. Incomplete applications
                   will need to be re-submitted.
                 </p>
@@ -2432,7 +2439,7 @@ export default function VanquishTCApplication() {
                             "We cannot accept documents submitted via email separately",
                             "Qualification certificates or documents addressed to nicknames/aliases will not be accepted",
                             "DBS certificate must be Enhanced (Adult Workforce) and no more than 2 years old",
-                            "Fitness to Practise must be signed by your course tutor and/or training provider"
+                            "Fitness to Practise must be signed by your course tutor and/or Training Organisation"
                           ].map((item, i) => (
                             <li key={i} className="flex items-start gap-3 text-gray-700">
                               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">{i + 1}</span>

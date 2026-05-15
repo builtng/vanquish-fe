@@ -239,14 +239,18 @@ export default function DashboardChatPage() {
 
       // Check for unread messages in the thread and mark them as read
       // We check for any unread message addressed to us
-      const unreadCount = msgs.filter(m => !m.is_read && String(m.to_user_id) === String(authUser?.id)).length;
+      const isRecipient = (m) => 
+        String(m.to_user_id) === String(authUser?.id) || 
+        (authUser?.training_counsellor_id && String(m.to_tc_id) === String(authUser.training_counsellor_id));
+
+      const unreadCount = msgs.filter(m => !m.is_read && isRecipient(m)).length;
       
       if (unreadCount > 0) {
         apiService.markConversationAsRead(peerType, peerId)
           .then(() => {
             window.dispatchEvent(new CustomEvent("refresh-sidebar-data"));
             // Update local state to show items as read immediately
-            setMessages(prev => prev.map(m => (!m.is_read && String(m.to_user_id) === String(authUser?.id)) ? { ...m, is_read: true } : m));
+            setMessages(prev => prev.map(m => (!m.is_read && isRecipient(m)) ? { ...m, is_read: true } : m));
             // Update conversation list item to clear its unread status
             setConversations(prev => prev.map(conv => 
               (conv.peer_id === peerId && conv.peer_type === peerType) 
@@ -462,7 +466,12 @@ export default function DashboardChatPage() {
                 ) : (
                   filteredConversations.filter(c => c).map((conv) => {
                     const isActive = activeChat?.id === conv.peer_id && activeChat?.type === conv.peer_type;
-                    const isUnread = !!conv.unread_for_user || (!conv.last_message.is_read && String(conv.last_message.to_user_id) === String(authUser?.id));
+                    const isUnread = !!conv.unread_for_user || (
+                      !conv.last_message.is_read && (
+                        String(conv.last_message.to_user_id) === String(authUser?.id) ||
+                        (authUser?.training_counsellor_id && String(conv.last_message.to_tc_id) === String(authUser.training_counsellor_id))
+                      )
+                    );
 
                     return (
                       <div
