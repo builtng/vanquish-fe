@@ -2348,8 +2348,7 @@ export default function VanquishTCApplication() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Please mention all Counsellor-related training, education
-                      and voluntary/paid experiences (including number of hours){" "}
+                      Please mention all Counsellor-related training, education (Inclusive of Coaching/Mentoring), and voluntary/paid experiences (including number of hours & experience thus far):{" "}
                       <span className="text-red-500">*</span>
                     </label>
                     <textarea
@@ -2798,12 +2797,32 @@ export default function VanquishTCApplication() {
                         value: "Thursday 7pm-8:30pm",
                         label: "Thursday 7:00 PM - 8:30 PM",
                       },
+                      {
+                        value: "None of the above",
+                        label: "None of the above",
+                      },
                     ]}
                     placeholder="Please select"
                     className={errors.psgDay ? "border-red-500" : ""}
                   />
                   {errors.psgDay && (
                     <p className="text-red-500 text-xs mt-1">{errors.psgDay}</p>
+                  )}
+
+                  {formData.psgDay === "None of the above" && (
+                    <div className="mt-3 animate-in fade-in slide-in-from-top-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Please specify the reason you cannot attend any of the above sessions{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={formData.psgDayOther}
+                        onChange={(e) => handleInputChange("psgDayOther", e.target.value)}
+                        rows="3"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                        placeholder="Please explain why you cannot attend any of the listed PSG sessions..."
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -2897,8 +2916,8 @@ export default function VanquishTCApplication() {
 
                 <div className="space-y-4 md:space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Fitness to Practise Document{" "}
+                    <label className="block text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">
+                      FITNESS TO PRACTISE UPLOAD - KINDLY ONLY APPLY IF YOU HAVE RECEIVED THIS{" "}
                       <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -2921,8 +2940,8 @@ export default function VanquishTCApplication() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Prior Counselling Qualifications{" "}
+                    <label className="block text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">
+                      PRIOR COUNSELLING QUALIFICATIONS - UPLOAD{" "}
                       <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -2945,8 +2964,8 @@ export default function VanquishTCApplication() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Enhanced DBS (Adult Workforce) - Max 2 years old{" "}
+                    <label className="block text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">
+                      ENHANCED DBS CERTIFICATE (ADULT WORKFORCE) 2 YEARS OLD - UPLOAD{" "}
                       <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -2967,8 +2986,9 @@ export default function VanquishTCApplication() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      CV <span className="text-red-500">*</span>
+                    <label className="block text-sm font-bold text-gray-900 mb-2 uppercase tracking-wide">
+                      Complete CV (NOT modified/edited specifically for counselling) - UPLOAD{" "}
+                      <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="file"
@@ -3004,8 +3024,7 @@ export default function VanquishTCApplication() {
                     </p>
                     <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-3">
                       <p className="text-sm text-red-900 font-bold">
-                        For insurance purposes, we may need to verify your Right
-                        to Work in the UK
+                        • Please note - The Disclosure and Barring Service (DBS) does not classify Trainee Counsellors as volunteers, as you are working towards a qualification. Although not monetary, there is a gain, and therefore, it is classed as working. For insurance purposes, we need to verify your Right to Work in the UK if you are not a British citizen.
                       </p>
                     </div>
                     {formData.validId && (
