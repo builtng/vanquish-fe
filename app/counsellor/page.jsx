@@ -16,8 +16,10 @@ import {
 import apiService from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
+import { useBranding } from "@/contexts/BrandingContext";
 
 export default function VanquishTCApplication() {
+  const { branding, loading: brandingLoading } = useBranding();
   const [formData, setFormData] = useState({
     // Personal Info
     firstName: "",
@@ -731,13 +733,28 @@ export default function VanquishTCApplication() {
       console.error('Form submission error:', error);
       
       // Check if error has validation errors from backend
-      if (error.data && error.data.errors) {
         const validationErrors = error.data.errors;
+        const fieldLabels = {
+          validId: "Valid ID",
+          firstName: "First Name",
+          lastName: "Last Name",
+          email: "Email",
+          phone: "Phone",
+          fitnessTopractice: "Fitness to Practise",
+          qualifications: "Qualifications",
+          dbs: "DBS Certificate",
+          cv: "CV",
+          insurance: "Insurance",
+        };
         const errorMessages = Object.entries(validationErrors)
-          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+          .map(([field, messages]) => {
+            const label = fieldLabels[field] || field;
+            const message = Array.isArray(messages) ? messages.join(', ') : messages;
+            if (field === 'validId') return "Please upload a valid ID document";
+            return `${label}: ${message}`;
+          })
           .join('\n');
         setSubmitError(`Validation failed:\n${errorMessages}`);
-      } else {
         setSubmitError(error.message || 'Failed to submit form. Please try again.');
       }
       
@@ -766,25 +783,42 @@ export default function VanquishTCApplication() {
       <div className="min-h-screen" style={{ background: 'var(--bg-secondary)' }}>
         <div className="flex items-center justify-center p-4 min-h-screen">
           <div className="card rounded-2xl shadow-xl p-8 max-w-md w-full text-center border">
+            <div className="flex flex-col items-center justify-center mb-6 text-center">
+               {brandingLoading ? (
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-200 animate-pulse rounded-full mb-4"></div>
+               ) : (
+                  branding.platform_logo_url ? (
+                    <img
+                      src={apiService.getStorageUrl(branding.platform_logo_url)}
+                      alt={branding.company_name}
+                      className="max-h-20 md:max-h-24 object-contain mb-4"
+                    />
+                  ) : (
+                    <div
+                      className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-white font-bold text-xl md:text-2xl mb-4"
+                      style={{ backgroundColor: "#6f1d56" }}
+                    >
+                      {branding.company_name?.[0] || 'V'}
+                    </div>
+                  )
+               )}
+            </div>
             <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'var(--success-bg)', border: '2px solid var(--success-border)' }}>
               <CheckCircle className="w-12 h-12" style={{ color: 'var(--success-primary)' }} />
             </div>
             <h2 className="text-2xl font-bold mb-3 text-center" style={{ color: 'var(--text-primary)' }}>
               Application Submitted!
             </h2>
-            <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>
+            <p className="mb-6 text-center" style={{ color: 'var(--text-secondary)' }}>
               Thank you for applying to join Vanquish Therapies as a Trainee
               Counsellor. We'll review your application and be in touch soon.
             </p>
-            <div className="rounded-lg p-4 mb-6 border" style={{ backgroundColor: 'var(--purple-bg)', borderColor: 'var(--purple-border)' }}>
+            <div className="rounded-lg p-4 mb-6 border text-center" style={{ backgroundColor: 'var(--purple-bg)', borderColor: 'var(--purple-border)' }}>
               <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                Next Steps:
+                Next Step:
               </p>
-              <p className="text-xs text-left" style={{ color: 'var(--text-secondary)' }}>
-                • Stage 1: Application review (you are here)
-                <br />
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                 • Stage 2: Short virtual video interview (Few questions)
-                <br />• Stage 3: Face-to-face virtual interview
               </p>
             </div>
             <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
@@ -803,22 +837,32 @@ export default function VanquishTCApplication() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="card rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border">
-          <div className="flex items-center justify-between mb-4 md:mb-6">
-            <div className="flex items-center gap-3 md:gap-4">
-              <div
-                className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl"
-                style={{ backgroundColor: "#6f1d56" }}
-              >
-                VT
-              </div>
-            <div className="flex-1 text-center">
+          <div className="flex flex-col items-center justify-center mb-4 md:mb-6 text-center">
+            {brandingLoading ? (
+               <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-200 animate-pulse rounded-full mb-4"></div>
+            ) : (
+               branding.platform_logo_url ? (
+                 <img
+                   src={apiService.getStorageUrl(branding.platform_logo_url)}
+                   alt={branding.company_name}
+                   className="max-h-20 md:max-h-24 object-contain mb-4"
+                 />
+               ) : (
+                 <div
+                   className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-white font-bold text-xl md:text-2xl mb-4"
+                   style={{ backgroundColor: "#6f1d56" }}
+                 >
+                   {branding.company_name?.[0] || 'V'}
+                 </div>
+               )
+            )}
+            <div>
               <h1 className="text-lg md:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                Vanquish Therapies
+                {branding.company_name || 'Vanquish Therapies'}
               </h1>
               <p className="text-sm md:text-base mt-0.5 md:mt-1" style={{ color: 'var(--text-secondary)' }}>
                 Trainee Counsellor Application (Stage 1)
               </p>
-            </div>
             </div>
           </div>
 
@@ -953,8 +997,8 @@ export default function VanquishTCApplication() {
           {/* Step 1: Personal Information */}
           {currentStep === 1 && (
             <div className="space-y-4 md:space-y-6">
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
+              <div className="text-center">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                   Candidate Information
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
@@ -1268,20 +1312,22 @@ export default function VanquishTCApplication() {
                   )}
                 </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      List if not mentioned above / Specific beliefs
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.otherBeliefs}
-                      onChange={(e) =>
-                        handleInputChange("otherBeliefs", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                      placeholder="Specify other beliefs or additional details"
-                    />
-                  </div>
+                  {formData.beliefs.length > 0 && (
+                    <div className="md:col-span-2 mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        List if not mentioned above / Specific beliefs
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.otherBeliefs}
+                        onChange={(e) =>
+                          handleInputChange("otherBeliefs", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                        placeholder="Specify other beliefs or additional details"
+                      />
+                    </div>
+                  )}
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1322,8 +1368,8 @@ export default function VanquishTCApplication() {
           {/* Step 2: Professional Status */}
           {currentStep === 2 && (
             <div className="space-y-4 md:space-y-6">
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
+              <div className="text-center">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                   Professional Status
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
@@ -1425,7 +1471,7 @@ export default function VanquishTCApplication() {
                     ]}
                     placeholder="Please select"
                   />
-                  <p className="text-xs text-black mt-1 font-bold">
+                  <p className="text-xs text-gray-900 mt-1 font-bold bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
                     We will be carrying out a status check
                   </p>
                 </div>
@@ -1446,7 +1492,7 @@ export default function VanquishTCApplication() {
                     ]}
                     placeholder="Please select"
                   />
-                  <p className="text-xs text-black mt-1 font-bold">
+                  <p className="text-xs text-gray-900 mt-1 font-bold bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
                     This is a requirement for our placement
                   </p>
                 </div>
@@ -1566,8 +1612,8 @@ export default function VanquishTCApplication() {
           {/* Step 3: Course Information - keeping original */}
           {currentStep === 3 && (
             <div className="space-y-4 md:space-y-6">
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
+              <div className="text-center">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                   Current Course Information
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
@@ -1854,8 +1900,8 @@ export default function VanquishTCApplication() {
           {/* Step 4: Your Journey & Experience - NOW WITH NEW TOPIC SECTIONS */}
           {currentStep === 4 && (
             <div className="space-y-4 md:space-y-6">
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
+              <div className="text-center">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                   Your Journey & Experience
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
@@ -2194,8 +2240,8 @@ export default function VanquishTCApplication() {
           {/* Step 5: Availability */}
           {currentStep === 5 && (
             <div className="space-y-4 md:space-y-6">
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
+              <div className="text-center">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                   Your Availability
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">
@@ -2360,8 +2406,8 @@ export default function VanquishTCApplication() {
           {/* Step 6: Documents */}
           {currentStep === 6 && (
             <div className="space-y-4 md:space-y-6">
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
+              <div className="text-center">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                   Required Documents
                 </h2>
                 <p className="text-sm md:text-base text-gray-600 text-center">
@@ -2580,8 +2626,8 @@ export default function VanquishTCApplication() {
           {/* Step 7: Review & Submit */}
           {currentStep === 7 && (
             <div className="space-y-4 md:space-y-6">
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 text-center">
+              <div className="text-center">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                   Review & Submit
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">

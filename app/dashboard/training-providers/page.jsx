@@ -38,7 +38,7 @@ export default function TrainingProvidersPage() {
         const tcsData = await apiService.getTrainingCounsellors();
         const tcs = Array.isArray(tcsData) ? tcsData : [];
         
-        // Group TCs by training organization
+        // Group TCs by training organisation
         const providersMap = new Map();
         
         tcs.forEach(tc => {
