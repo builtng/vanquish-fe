@@ -1267,11 +1267,12 @@ export default function VanquishTCApplication() {
                       Date of Birth <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="date"
+                      type="text"
                       value={formData.dateOfBirth}
                       onChange={(e) =>
                         handleInputChange("dateOfBirth", e.target.value)
                       }
+                      placeholder="DD/MM/YYYY"
                       className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
                         errors.dateOfBirth
                           ? "border-red-500"
