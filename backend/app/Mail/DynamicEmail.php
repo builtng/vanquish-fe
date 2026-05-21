@@ -35,6 +35,7 @@ class DynamicEmail extends Mailable
             } else {
                 // Last resort fallback
                 $this->template = (object) [
+                    'type' => $type,
                     'subject' => 'Notification from Vanquish Therapies',
                     'body' => '<p>This is an automated notification.</p>',
                     'placeholders' => []
@@ -87,6 +88,7 @@ class DynamicEmail extends Mailable
             'trainee_placement_acceptance',
             'trainee_placement_rejection',
             'trainee_portal_invite',
+            'trainee_interview_confirmed',
             'counsellor_portal_invite'
         ];
 
@@ -111,12 +113,11 @@ class DynamicEmail extends Mailable
      * These should not show the outer layout header to avoid duplicates.
      */
     private array $selfHeaderedTypes = [
+        'trainee_application_received',
         'trainee_video_interview_received',
         'admin_video_review_notification',
-        'trainee_stage_three_invite',
         'trainee_interview_confirmed',
         'trainee_interview_reminder',
-        'trainee_placement_acceptance',
         'trainee_portal_invite',
         'counsellor_portal_invite',
     ];
