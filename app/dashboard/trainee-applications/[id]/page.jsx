@@ -129,20 +129,16 @@ function AvailabilitySchedule({ value }) {
     return <div className="text-sm text-gray-800 dark:text-gray-200">{String(value)}</div>;
   }
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-  const hasData = days.some(day => {
-    const slots = schedule[day] || schedule[day.toLowerCase()];
-    return Array.isArray(slots) && slots.length > 0;
-  });
-  
+  const hasData = days.some(day => schedule[day] && schedule[day].length > 0);
   if (!hasData) return <div className="text-sm text-gray-800 dark:text-gray-200">{String(value)}</div>;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
       {days.map(day => {
-        const slots = schedule[day] || schedule[day.toLowerCase()];
-        if (!Array.isArray(slots) || slots.length === 0) return null;
+        const slots = schedule[day];
+        if (!slots || slots.length === 0) return null;
         
         return (
           <div key={day} className="bg-gray-50 dark:bg-gray-800/20 p-3 rounded-xl border border-gray-100 dark:border-gray-700/50">
@@ -153,7 +149,7 @@ function AvailabilitySchedule({ value }) {
             <div className="flex flex-wrap gap-1.5">
               {slots.map((slot, idx) => (
                 <span key={idx} className="px-2 py-0.5 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-md text-[11px] font-medium text-gray-700 dark:text-gray-300 shadow-sm">
-                  {typeof slot === 'object' ? JSON.stringify(slot) : String(slot)}
+                  {slot}
                 </span>
               ))}
             </div>

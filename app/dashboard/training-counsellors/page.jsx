@@ -68,8 +68,7 @@ export default function ViewAllTrainingCounsellorsPage() {
 
   const [filterAvailability, setFilterAvailability] = useState("all");
 
-  const [sortColumn, setSortColumn] = useState("newest");
-  const [sortDirection, setSortDirection] = useState("desc");
+  const [sortBy, setSortBy] = useState("tc_id");
 
   // Data states
   const [trainingCounsellors, setTrainingCounsellors] = useState([]);
@@ -81,12 +80,12 @@ export default function ViewAllTrainingCounsellorsPage() {
   // Modal states
   const [selectedTC, setSelectedTC] = useState(null);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
-  const [showMatchModal, setShowMatchModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showTopicsModal, setShowTopicsModal] = useState(false);
   const [topicsModalData, setTopicsModalData] = useState(null);
 
-  // Match client form
-  const [matchForm, setMatchForm] = useState({
+  // Assign client form
+  const [assignForm, setAssignForm] = useState({
     clientId: "",
     notes: "",
     sendNotification: true,
@@ -189,7 +188,7 @@ export default function ViewAllTrainingCounsellorsPage() {
     }
   };
 
-  // Fetch pending clients for matchment dropdown
+  // Fetch pending clients for assignment dropdown
   const fetchPendingClients = async () => {
     try {
       const data = await apiService.getPendingMatches();
@@ -279,32 +278,33 @@ export default function ViewAllTrainingCounsellorsPage() {
     // Sort
 
     filtered.sort((a, b) => {
-      let result = 0;
-      switch (sortColumn) {
+      switch (sortBy) {
         case "newest":
-          if (!a.createdAt && !b.createdAt) result = 0;
-          else if (!a.createdAt) result = 1;
-          else if (!b.createdAt) result = -1;
-          else result = new Date(b.createdAt) - new Date(a.createdAt);
-          break;
+          if (!a.createdAt) return 1;
+          if (!b.createdAt) return -1;
+          return new Date(b.createdAt) - new Date(a.createdAt);
+
         case "tc_id":
-          result = b.tc_id?.localeCompare(a.tc_id, undefined, { numeric: true });
-          break;
+          return b.tc_id?.localeCompare(a.tc_id, undefined, { numeric: true });
+
         case "availability":
-          if (a.status === "Active" && b.status !== "Active") result = -1;
-          else if (a.status !== "Active" && b.status === "Active") result = 1;
-          else result = b.currentClients - a.currentClients;
-          break;
+          // Active with capacity first
+
+          if (a.status === "Active" && b.status !== "Active") return -1;
+
+          if (a.status !== "Active" && b.status === "Active") return 1;
+
+          return a.currentClients - b.currentClients;
+
         case "name":
-          result = b.name.localeCompare(a.name);
-          break;
+          return a.name.localeCompare(b.name);
+
         case "clients":
-          result = b.currentClients - a.currentClients;
-          break;
+          return b.currentClients - a.currentClients;
+
         default:
-          result = 0;
+          return 0;
       }
-      return sortDirection === "desc" ? result : -result;
     });
 
     return filtered;
@@ -385,10 +385,7 @@ export default function ViewAllTrainingCounsellorsPage() {
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
     const available = days.filter(
-      (day) => {
-        const slots = availability[day] || availability[day.toLowerCase()];
-        return Array.isArray(slots) && slots.length > 0;
-      }
+      (day) => availability[day] && availability[day].length > 0,
     );
 
     if (available.length === 0) return "No availability set";
@@ -404,38 +401,38 @@ export default function ViewAllTrainingCounsellorsPage() {
     setShowTopicsModal(true);
   };
 
-  const handleMatchClient = async (e) => {
+  const handleAssignClient = async (e) => {
     e.preventDefault();
 
-    if (!matchForm.clientId || !selectedTC) {
-      toast.error("Please select a client to match.");
+    if (!assignForm.clientId || !selectedTC) {
+      toast.error("Please select a client to assign.");
       return;
     }
 
     try {
-      const client = pendingClients.find((c) => c.id === matchForm.clientId);
+      const client = pendingClients.find((c) => c.id === assignForm.clientId);
 
-      await apiService.matchMatch({
-        client_id: matchForm.clientId,
+      await apiService.assignMatch({
+        client_id: assignForm.clientId,
         tc_id: selectedTC.uuid || selectedTC.id,
-        matchment_notes: matchForm.notes || null,
-        send_notification: matchForm.sendNotification,
+        assignment_notes: assignForm.notes || null,
+        send_notification: assignForm.sendNotification,
       });
 
       toast.success(
-        `Client "${formatName(client.name, "client")}" matched to "${formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}"!\n\nClient will now move to "Agreement Pending" stage.`,
+        `Client "${formatName(client.name, "client")}" assigned to "${formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}"!\n\nClient will now move to "Agreement Pending" stage.`,
       );
 
-      setShowMatchModal(false);
-      setMatchForm({ clientId: "", notes: "", sendNotification: true });
+      setShowAssignModal(false);
+      setAssignForm({ clientId: "", notes: "", sendNotification: true });
 
       // Refresh data
       fetchTrainingCounsellors();
       fetchPendingClients();
     } catch (err) {
-      console.error("Error matching client:", err);
+      console.error("Error assigning client:", err);
       toast.error(
-        `Failed to match client: ${err.message || "Please try again."}`,
+        `Failed to assign client: ${err.message || "Please try again."}`,
       );
     }
   };
@@ -646,20 +643,8 @@ export default function ViewAllTrainingCounsellorsPage() {
             </select>
 
             <select
-              value={sortColumn}
-              onChange={(e) => {
-                setSortColumn(e.target.value);
-                if (
-                  e.target.value === "newest" ||
-                  e.target.value === "tc_id" ||
-                  e.target.value === "availability" ||
-                  e.target.value === "clients"
-                ) {
-                  setSortDirection("desc");
-                } else {
-                  setSortDirection("asc");
-                }
-              }}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
               className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[150px]"
             >
               <option value="newest">Sort: Newest</option>
@@ -871,7 +856,7 @@ export default function ViewAllTrainingCounsellorsPage() {
                   </p>
                   {tc.currentClients === 0 ? (
                     <p className="text-sm text-gray-500 dark:text-[var(--text-tertiary)] italic">
-                      No clients matched
+                      No clients assigned
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
@@ -907,12 +892,12 @@ export default function ViewAllTrainingCounsellorsPage() {
 
                         setSelectedTC(tc);
 
-                        setShowMatchModal(true);
+                        setShowAssignModal(true);
                       }}
                       className="flex-1 px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors"
                     >
                       <UserCheck className="w-4 h-4" />
-                      Match Client
+                      Assign Client
                     </button>
                   )}
                 </div>
@@ -983,13 +968,13 @@ export default function ViewAllTrainingCounsellorsPage() {
         </>
       )}
 
-      {/* Match Client Modal */}
+      {/* Assign Client Modal */}
 
-      {showMatchModal && selectedTC && (
+      {showAssignModal && selectedTC && (
         <>
           <div
             className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setShowMatchModal(false)}
+            onClick={() => setShowAssignModal(false)}
           ></div>
 
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -997,10 +982,10 @@ export default function ViewAllTrainingCounsellorsPage() {
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-foreground">
-                    Match Client
+                    Assign Client
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Match a client to{" "}
+                    Assign a client to{" "}
                     {formatName(
                       selectedTC.name,
                       getCounsellorPrefixType(selectedTC.counsellor_type),
@@ -1008,14 +993,14 @@ export default function ViewAllTrainingCounsellorsPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowMatchModal(false)}
+                  onClick={() => setShowAssignModal(false)}
                   className="p-2 hover:bg-muted rounded-lg"
                 >
                   <X className="w-5 h-5 text-muted-foreground" />
                 </button>
               </div>
 
-              <form onSubmit={handleMatchClient} className="p-6 space-y-4">
+              <form onSubmit={handleAssignClient} className="p-6 space-y-4">
                 {/* TC Info */}
                 <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                   <div className="flex items-center gap-3">
@@ -1049,9 +1034,9 @@ export default function ViewAllTrainingCounsellorsPage() {
                     <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={matchForm.clientId}
+                    value={assignForm.clientId}
                     onChange={(e) =>
-                      setMatchForm({ ...matchForm, clientId: e.target.value })
+                      setAssignForm({ ...assignForm, clientId: e.target.value })
                     }
                     className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                     required
@@ -1070,16 +1055,16 @@ export default function ViewAllTrainingCounsellorsPage() {
                 {/* Notes */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
-                    Matchment Notes (Optional)
+                    Assignment Notes (Optional)
                   </label>
                   <textarea
-                    value={matchForm.notes}
+                    value={assignForm.notes}
                     onChange={(e) =>
-                      setMatchForm({ ...matchForm, notes: e.target.value })
+                      setAssignForm({ ...assignForm, notes: e.target.value })
                     }
                     className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
                     rows={3}
-                    placeholder="Add any notes about this matchment..."
+                    placeholder="Add any notes about this assignment..."
                   />
                 </div>
 
@@ -1088,10 +1073,10 @@ export default function ViewAllTrainingCounsellorsPage() {
                   <input
                     type="checkbox"
                     id="sendNotification"
-                    checked={matchForm.sendNotification}
+                    checked={assignForm.sendNotification}
                     onChange={(e) =>
-                      setMatchForm({
-                        ...matchForm,
+                      setAssignForm({
+                        ...assignForm,
                         sendNotification: e.target.checked,
                       })
                     }
@@ -1111,7 +1096,7 @@ export default function ViewAllTrainingCounsellorsPage() {
                     <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-green-900 dark:text-green-200 mb-1">
-                        After Matchment
+                        After Assignment
                       </p>
                       <p className="text-sm text-green-800 dark:text-green-300">
                         Client will move to "Agreement Pending" stage and
@@ -1126,7 +1111,7 @@ export default function ViewAllTrainingCounsellorsPage() {
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                   <button
                     type="button"
-                    onClick={() => setShowMatchModal(false)}
+                    onClick={() => setShowAssignModal(false)}
                     className="px-6 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium bg-card"
                   >
                     Cancel
@@ -1138,7 +1123,7 @@ export default function ViewAllTrainingCounsellorsPage() {
                     style={{ backgroundColor: "#6f1d56" }}
                   >
                     <UserCheck className="w-5 h-5" />
-                    Match Client
+                    Assign Client
                   </button>
                 </div>
               </form>

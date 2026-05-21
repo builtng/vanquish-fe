@@ -16,7 +16,6 @@ function InternalBookConsultation() {
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [consultationId, setConsultationId] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
 
   useEffect(() => {
@@ -47,18 +46,10 @@ function InternalBookConsultation() {
 
     setBookingLoading(true);
     try {
-      const response = await apiService.bookConsultation({
+      await apiService.bookConsultation({
         client_uuid: clientUuid,
         consultation_slot_id: selectedSlot.id,
-        notify_tc: false,
-        notify_trainee: false,
       });
-
-      if (response && response.id) {
-        setConsultationId(response.id);
-      } else if (response && response.consultation && response.consultation.id) {
-        setConsultationId(response.consultation.id);
-      }
 
       setSuccess(true);
       toast.success("Consultation booked successfully!");
@@ -82,22 +73,12 @@ function InternalBookConsultation() {
               Your consultation has been successfully booked. You will receive a
               confirmation email shortly.
             </p>
-            <div className="space-y-3">
-              {consultationId && (
-                <button
-                  onClick={() => router.push(`/consultation/${consultationId}`)}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                  View Consultation Details
-                </button>
-              )}
-              <button
-                onClick={() => router.push("/")}
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0f2c4a]"
-              >
-                Return Home
-              </button>
-            </div>
+            <button
+              onClick={() => router.push("/")}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#0f2c4a] hover:bg-[#0c233e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0f2c4a]"
+            >
+              Return Home
+            </button>
           </div>
         </div>
       </div>

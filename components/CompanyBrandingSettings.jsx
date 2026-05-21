@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, X, Save, Image as ImageIcon, Building2, FileText, Globe, Mail, Phone, MapPin, Loader2, Video } from "lucide-react";
+import { Upload, X, Save, Image as ImageIcon, Building2, FileText, Globe, Mail, Phone, MapPin, Loader2 } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
 import apiService from "@/lib/api";
 import { useModal } from "@/contexts/ModalContext";
@@ -22,7 +22,6 @@ export default function CompanyBrandingSettings() {
     pdf_footer_text: "",
     platform_logo_url: "",
     platform_logo_dark_url: "",
-    consultation_zoom_link: "",
   });
 
   const logoInputRef = useRef(null);
@@ -218,22 +217,6 @@ export default function CompanyBrandingSettings() {
                 />
                 <Globe className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1">Consultation Zoom Link</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  name="consultation_zoom_link"
-                  value={settings.consultation_zoom_link || ""}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-[var(--card-border)] rounded-lg dark:bg-[var(--input-bg)] dark:text-[var(--text-primary)]"
-                  placeholder="https://zoom.us/j/..."
-                />
-                <Video className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
-              </div>
-              <p className="text-[10px] text-gray-500 mt-1 italic">This link will be used for all intake consultations.</p>
             </div>
 
             <div>

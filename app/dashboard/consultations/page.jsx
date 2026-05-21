@@ -108,7 +108,6 @@ export default function ConsultationsManagementPageFixed() {
     date: "",
     time: "",
     sendNotification: true,
-    zoomLink: "",
   });
 
   // Forms
@@ -120,7 +119,6 @@ export default function ConsultationsManagementPageFixed() {
     time: "",
     notes: "",
     sendConfirmation: true,
-    zoomLink: "",
   });
 
   const [completeForm, setCompleteForm] = useState({
@@ -279,7 +277,6 @@ export default function ConsultationsManagementPageFixed() {
       outcome: consultation.outcome || null,
       recommendedService: consultation.recommended_service || null,
       recommendedModality: consultation.recommended_modality || null,
-      zoomLink: consultation.zoom_link || null,
     }));
   };
 
@@ -554,9 +551,6 @@ export default function ConsultationsManagementPageFixed() {
         scheduled_at: scheduledDateTime,
         notes: bookForm.notes,
         send_confirmation: bookForm.sendConfirmation,
-        zoom_link: bookForm.zoomLink,
-        notify_tc: false,
-        notify_trainee: false,
         is_fallback: true,
       });
 
@@ -938,6 +932,7 @@ export default function ConsultationsManagementPageFixed() {
                           {consultation.serviceRequested}
                         </span>
                       </div>
+
                       <div className="flex items-center gap-2">
                         <CreditCard className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
 
@@ -946,20 +941,6 @@ export default function ConsultationsManagementPageFixed() {
                           {consultation.paymentStatus}
                         </span>
                       </div>
-
-                      {consultation.zoomLink && (
-                        <div className="flex items-center gap-2">
-                          <Video className="w-4 h-4 text-blue-500" />
-                          <a
-                            href={consultation.zoomLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline font-medium"
-                          >
-                            Join Zoom Meeting
-                          </a>
-                        </div>
-                      )}
                     </div>
 
                     {consultation.status === "Completed" &&
@@ -1419,22 +1400,6 @@ export default function ConsultationsManagementPageFixed() {
                     </label>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Zoom Link (Optional - overrides global setting)
-                    </label>
-
-                    <input
-                      type="text"
-                      value={bookForm.zoomLink}
-                      onChange={(e) =>
-                        setBookForm({ ...bookForm, zoomLink: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                      placeholder="https://zoom.us/j/..."
-                    />
-                  </div>
-
                   <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
                     <button
                       type="button"
@@ -1822,25 +1787,6 @@ export default function ConsultationsManagementPageFixed() {
                     </label>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Zoom Link (Optional)
-                    </label>
-
-                    <input
-                      type="text"
-                      value={rescheduleForm.zoomLink}
-                      onChange={(e) =>
-                        setRescheduleForm({
-                          ...rescheduleForm,
-                          zoomLink: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                      placeholder="https://zoom.us/j/..."
-                    />
-                  </div>
-
                   <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
                     <button
                       onClick={() => {
@@ -1849,7 +1795,6 @@ export default function ConsultationsManagementPageFixed() {
                           date: "",
                           time: "",
                           sendNotification: true,
-                          zoomLink: "",
                         });
                       }}
                       disabled={actionLoading}
@@ -1907,7 +1852,6 @@ export default function ConsultationsManagementPageFixed() {
                             selectedConsultation.id,
                             {
                               scheduled_at: scheduledDateTime,
-                              zoom_link: rescheduleForm.zoomLink,
                             },
                           );
 
@@ -1917,7 +1861,6 @@ export default function ConsultationsManagementPageFixed() {
                             date: "",
                             time: "",
                             sendNotification: true,
-                            zoomLink: "",
                           });
                           // Refresh data
                           const data = await apiService.getConsultations();

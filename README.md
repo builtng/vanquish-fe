@@ -1,229 +1,85 @@
-# Vanquish Therapy Management System
+# 💻 Vanquish Frontend (Next.js)
 
-A comprehensive therapy management system with Next.js frontend and Laravel backend API.
+The user interface for the Vanquish Therapy Management System, built with **Next.js 15 (App Router)** and **Tailwind CSS 4**.
 
-## Project Structure
+## 🏗️ Project Structure
 
-```
-vanquish/
-├── app/                    # Next.js frontend application
-├── backend/                # Laravel API backend
-├── contexts/               # React contexts
-├── lib/                    # Utility libraries (API service)
-└── public/                 # Static assets
-```
+- `app/`: Main App Router directory containing all pages.
+- `app/dashboard/`: The primary management hub (protected routes).
+- `app/dashboard/trainee-applications/`: The recruitment and onboarding tracker.
+- `components/`: Reusable UI components (Modals, Navigation, Tables).
+- `contexts/`: React context providers (Auth, Global Settings).
+- `lib/`: API service abstraction (`api.js`) and charting utils.
 
-## Features
+---
 
-### Frontend (Next.js)
-- ✅ **Admin Dashboard**: Real-time stats and management hub.
-- ✅ **Trainee Recruitment Flow**: 4-stage automated application system.
-- ✅ **Client Management**: Full CRM with consultation history.
-- ✅ **Training Counsellor Management**: Track modalities, availability, and clinical hours.
-- ✅ **Booking System**: Integration with Trafft for seamless scheduling.
-- ✅ **Activity Logging**: Comprehensive audit trail for all admin actions.
-- ✅ **Company Branding**: Customizable logos, headers, and reporting templates.
+## 🚀 Key Modules
 
-### Backend (Laravel)
-- ✅ **RESTful API**: Secure Laravel 12 API with Sanctum.
-- ✅ **Automation Engine**: Queued jobs for email triggers and status updates.
-- ✅ **Webhooks**: Deep integration with JotForm, HireVire, and Trafft.
-- ✅ **Email System**: Rich HTML dynamic templates for all candidate touchpoints.
-- ✅ **Security**: CORS, rate limiting, and role-based access control (RBAC).
-- ✅ **SEO**: Optimized metadata and semantic structure for public pages.
+### **Recruitment Dashboard**
+Location: `app/dashboard/trainee-applications/`
+- **List View**: Features advanced filtering by Stage (S1-S4) and Status.
+- **Detail View ([id])**: A comprehensive command center for a single candidate. Handles video playback, interview scheduling (Trafft), and the onboarding checklist.
 
-## Quick Start
+### **Management Panels**
+- **Clients**: CRM for tracking therapy progress.
+- **Counsellors**: Profile management for practitioners.
+- **Inductions**: Mandatory training tracker.
 
-### Prerequisites
+---
 
-- PHP 8.2+
-- Composer
-- Node.js 18+
-- MySQL 8.0+
-- npm or yarn
+## 🎨 Design System
 
-### Backend Setup
+We use **Tailwind CSS 4** for styling.
+- **Glassmorphism**: Used in dashboard cards for a premium feel.
+- **Transitions**: Smooth HSL-based color shifts and hover effects.
+- **Responsiveness**: Mobile-first design for all admin panels.
 
-1. Navigate to backend directory:
-```bash
-cd backend
-```
+---
 
-2. Install dependencies:
-```bash
-composer install
-```
+## 🔌 API Integration
 
-3. Copy environment file:
-```bash
-cp .env.example .env
-```
+All API calls should go through the `fetch` abstraction.
+Environment Variable: `NEXT_PUBLIC_API_URL`.
 
-4. Configure database in `.env`:
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=vanquish
-DB_USERNAME=root
-DB_PASSWORD=your_password
+**Pattern for Data Fetching:**
+```javascript
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/endpoint`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      setData(data);
+    } catch (err) {
+      toast.error("Failed to load data");
+    }
+  };
+  fetchData();
+}, []);
 ```
 
-5. Generate application key:
-```bash
-php artisan key:generate
-```
+---
 
-6. Run migrations:
-```bash
-php artisan migrate
-```
+## 🔒 Authentication
 
-7. Create admin user:
-```bash
-php artisan tinker
-```
-```php
-\App\Models\User::create([
-    'name' => 'Admin',
-    'email' => 'admin@vanquish.com',
-    'password' => \Hash::make('admin123'),
-    'role' => 'admin'
-]);
-```
+Routes are protected by the `PageGuard.jsx` component.
+- **Verification**: Checks for a valid JWT in `localStorage`.
+- **RBAC**: Redirects users if they don't have the required `menuId` privilege.
 
-8. Start backend server:
-```bash
-php artisan serve
-```
+---
 
-Backend will run on `http://localhost:8000`
+## 📦 Local Development
 
-### Frontend Setup
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Create `.env.local`:
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
-```
-
-3. Start development server:
+**Run the app:**
 ```bash
 npm run dev
 ```
 
-Frontend will run on `http://localhost:3000`
-
-## Default Credentials
-
-- Email: `admin@vanquish.com`
-- Password: `admin123`
-
-**⚠️ Change these credentials in production!**
-
-## API Documentation
-
-### Authentication
-
-All API endpoints (except login/register) require authentication via Bearer token.
-
-**Login:**
+**Build for production:**
 ```bash
-POST /api/login
-Body: { "email": "admin@vanquish.com", "password": "admin123" }
-Response: { "user": {...}, "token": "..." }
+npm run build
 ```
 
-**Get Current User:**
-```bash
-GET /api/user
-Headers: { "Authorization": "Bearer {token}" }
-```
-
-### Main Endpoints
-
-- `GET /api/clients` - List all clients
-- `POST /api/clients` - Create new client
-- `GET /api/clients/{id}` - Get client details
-- `PUT /api/clients/{id}` - Update client
-- `DELETE /api/clients/{id}` - Delete client
-- `GET /api/pending-matches` - Get pending matches
-- `POST /api/matches` - Assign client to TC
-- `GET /api/training-counsellors` - List TCs
-- `GET /api/consultations` - List consultations
-- `POST /api/consultations` - Book consultation
-- `GET /api/activity-logs` - View activity logs
-
-See `backend/README.md` for complete API documentation.
-
-## Development
-
-### Backend Development
-
-```bash
-cd backend
-php artisan serve
-```
-
-### Frontend Development
-
-```bash
-npm run dev
-```
-
-### Running Tests
-
-Backend:
-```bash
-cd backend
-php artisan test
-```
-
-## Production Deployment
-
-See `PRODUCTION_SETUP.md` for detailed production deployment instructions.
-
-## Security Features
-
-- ✅ Laravel Sanctum token authentication
-- ✅ CORS configuration
-- ✅ Rate limiting (60 requests/minute)
-- ✅ Input validation
-- ✅ SQL injection protection (Eloquent ORM)
-- ✅ XSS protection
-- ✅ CSRF protection
-- ✅ Password hashing (bcrypt)
-- ✅ Secure token storage
-
-## Technology Stack
-
-### Frontend
-- Next.js 15
-- React 19
-- Tailwind CSS 4
-- Lucide React (Icons)
-
-### Backend
-- Laravel 12
-- Laravel Sanctum (Authentication)
-- MySQL
-- Eloquent ORM
-
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Test thoroughly
-4. Submit a pull request
-
-## License
-
-Proprietary - All rights reserved
-
-## Support
-
-For issues or questions, contact the development team.
+---
+*UI/UX Lead: Antigravity AI*

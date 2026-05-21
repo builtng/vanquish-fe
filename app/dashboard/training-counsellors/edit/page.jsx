@@ -484,7 +484,7 @@ function EditTrainingCounsellorContent() {
                     value={formData.trainingOrgAddress}
                     onChange={(e) => handleInputChange('trainingOrgAddress', e.target.value)}
                     className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
-                    placeholder="Address of the training organisation"
+                    placeholder="Address of the training organization"
                   />
                 </div>
               </div>

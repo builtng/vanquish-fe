@@ -54,7 +54,7 @@ import {
 const PendingMatchRow = ({
   client,
   setSelectedClient,
-  setShowMatchModal,
+  setShowAssignModal,
   setSelectedTC,
   getUrgencyBadge,
   formatName,
@@ -124,12 +124,12 @@ const PendingMatchRow = ({
               onClick={(e) => {
                 e.stopPropagation();
                 setSelectedClient(client);
-                setShowMatchModal(true);
+                setShowAssignModal(true);
               }}
               className="px-3 py-1.5 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap"
             >
               <UserCheck className="w-4 h-4" />
-              Match
+              Assign
             </button>
             <button
               className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
@@ -253,11 +253,11 @@ const PendingMatchRow = ({
                             e.stopPropagation();
                             setSelectedClient(client);
                             setSelectedTC(tc);
-                            setShowMatchModal(true);
+                            setShowAssignModal(true);
                           }}
                           className="flex-shrink-0 px-3 py-1.5 bg-[var(--purple-bg)] text-[var(--purple-primary)] group-hover:bg-[var(--purple-primary)] group-hover:text-white rounded-lg text-[11px] font-bold transition-all"
                         >
-                          Match
+                          Assign
                         </button>
                       </div>
                     </div>
@@ -267,7 +267,7 @@ const PendingMatchRow = ({
                       <RefreshCw className="w-5 h-5 text-gray-400 mb-2" />
                       <p className="text-xs text-gray-500 italic text-center">
                         Calculating ideal matches... <br />
-                        Or click Match to browse all practitioners.
+                        Or click Assign to browse all practitioners.
                       </p>
                     </div>
                   )}
@@ -287,16 +287,15 @@ export default function PendingMatchesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterService, setFilterService] = useState("all");
   const [filterUrgency, setFilterUrgency] = useState("all");
-  const [sortColumn, setSortColumn] = useState("newest");
-  const [sortDirection, setSortDirection] = useState("desc");
+  const [sortBy, setSortBy] = useState("id");
   const [selectedClient, setSelectedClient] = useState(null);
-  const [showMatchModal, setShowMatchModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedTC, setSelectedTC] = useState(null);
   const [pendingMatches, setPendingMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [trainingCounsellors, setTrainingCounsellors] = useState([]);
-  const [matchLoading, setMatchLoading] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
 
   // Fetch pending matches from API
   useEffect(() => {
@@ -308,7 +307,7 @@ export default function PendingMatchesPage() {
         if (searchTerm) params.search = searchTerm;
         if (filterService !== "all") params.service_type = filterService;
         if (filterUrgency !== "all") params.urgency = filterUrgency;
-        if (sortColumn) params.sort_by = sortColumn;
+        if (sortBy) params.sort_by = sortBy;
 
         const data = await apiService.getPendingMatches(params);
 
@@ -366,7 +365,7 @@ export default function PendingMatchesPage() {
     };
 
     fetchPendingMatches();
-  }, [searchTerm, filterService, filterUrgency, sortColumn, sortDirection]);
+  }, [searchTerm, filterService, filterUrgency, sortBy]);
 
   // Fetch training counsellors for suggestions
   useEffect(() => {
@@ -534,22 +533,21 @@ export default function PendingMatchesPage() {
       return matchesSearch && matchesService && matchesUrgency;
     })
     .sort((a, b) => {
-      let result = 0;
-      if (sortColumn === "newest") {
-        result = a.waitingHours - b.waitingHours;
-      } else if (sortColumn === "urgency") {
+      if (sortBy === "newest") {
+        return a.waitingHours - b.waitingHours;
+      } else if (sortBy === "urgency") {
         const urgencyOrder = { high: 3, medium: 2, low: 1 };
-        result = urgencyOrder[b.urgency] - urgencyOrder[a.urgency];
-      } else if (sortColumn === "daysWaiting") {
-        result = b.waitingHours - a.waitingHours;
-      } else if (sortColumn === "id") {
-        result = b.client_id?.localeCompare(a.client_id, undefined, {
+        return urgencyOrder[b.urgency] - urgencyOrder[a.urgency];
+      } else if (sortBy === "daysWaiting") {
+        return b.waitingHours - a.waitingHours;
+      } else if (sortBy === "id") {
+        return b.client_id?.localeCompare(a.client_id, undefined, {
           numeric: true,
         });
-      } else if (sortColumn === "name") {
-        result = b.name.localeCompare(a.name);
+      } else if (sortBy === "name") {
+        return b.name.localeCompare(a.name);
       }
-      return sortDirection === "desc" ? result : -result;
+      return 0;
     });
 
   const stats = {
@@ -576,7 +574,7 @@ export default function PendingMatchesPage() {
                     if (filterService !== "all")
                       params.service_type = filterService;
                     if (filterUrgency !== "all") params.urgency = filterUrgency;
-                    if (sortColumn) params.sort_by = sortColumn;
+                    if (sortBy) params.sort_by = sortBy;
 
                     const data = await apiService.getPendingMatches(params);
 
@@ -762,20 +760,8 @@ export default function PendingMatchesPage() {
               </div>
               <div className="min-w-[120px] flex-shrink-0">
                 <SearchableSelect
-                  value={sortColumn}
-                  onChange={(e) => {
-                    setSortColumn(e.target.value);
-                    if (
-                      e.target.value === "newest" ||
-                      e.target.value === "urgency" ||
-                      e.target.value === "daysWaiting" ||
-                      e.target.value === "id"
-                    ) {
-                      setSortDirection("desc");
-                    } else {
-                      setSortDirection("asc");
-                    }
-                  }}
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
                   options={[
                     { value: "newest", label: "Sort: Newest" },
                     { value: "id", label: "Sort: Client ID" },
@@ -783,7 +769,7 @@ export default function PendingMatchesPage() {
                     { value: "daysWaiting", label: "Sort: Days Waiting" },
                     { value: "name", label: "Sort: Name" },
                   ]}
-                  placeholder="Sort: Newest"
+                  placeholder="Sort: Urgency"
                   className="text-sm"
                 />
               </div>
@@ -842,7 +828,7 @@ export default function PendingMatchesPage() {
                         key={client.id}
                         client={client}
                         setSelectedClient={setSelectedClient}
-                        setShowMatchModal={setShowMatchModal}
+                        setShowAssignModal={setShowAssignModal}
                         setSelectedTC={setSelectedTC}
                         getUrgencyBadge={getUrgencyBadge}
                         formatName={formatName}
@@ -855,13 +841,13 @@ export default function PendingMatchesPage() {
           </div>
         </div>
 
-        {/* Match Modal */}
-        {showMatchModal && selectedClient && (
+        {/* Assign Modal */}
+        {showAssignModal && selectedClient && (
           <>
             <div
               className="fixed inset-0 bg-black bg-opacity-50 z-40"
               onClick={() => {
-                setShowMatchModal(false);
+                setShowAssignModal(false);
                 setSelectedClient(null);
                 setSelectedTC(null);
               }}
@@ -870,7 +856,7 @@ export default function PendingMatchesPage() {
               <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-2xl w-full">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                    Match{" "}
+                    Assign{" "}
                     {selectedClient.serviceType === "Mid Range"
                       ? "Qualified"
                       : "Trainee"}{" "}
@@ -879,7 +865,7 @@ export default function PendingMatchesPage() {
 
                   <button
                     onClick={() => {
-                      setShowMatchModal(false);
+                      setShowAssignModal(false);
                       setSelectedClient(null);
                       setSelectedTC(null);
                     }}
@@ -914,12 +900,7 @@ export default function PendingMatchesPage() {
                       </p>
                       <p className="text-xs text-green-600 mt-1">
                         Current Clients: {selectedTC.currentClients} •
-                        Availability: {typeof selectedTC.availability === 'object' 
-                          ? Object.entries(selectedTC.availability)
-                              .filter(([_, slots]) => Array.isArray(slots) && slots.length > 0)
-                              .map(([day, slots]) => `${day}: ${slots.length} slots`)
-                              .join(', ') || "No availability set"
-                          : selectedTC.availability}
+                        Availability: {selectedTC.availability}
                       </p>
                     </div>
                   ) : (
@@ -995,13 +976,13 @@ export default function PendingMatchesPage() {
 
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Match Notes (Optional)
+                      Assignment Notes (Optional)
                     </label>
                     <textarea
-                      id="matchNotes"
+                      id="assignmentNotes"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
                       rows={3}
-                      placeholder="Add any notes about this match..."
+                      placeholder="Add any notes about this assignment..."
                     />
                   </div>
 
@@ -1023,11 +1004,11 @@ export default function PendingMatchesPage() {
                   <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
                     <button
                       onClick={() => {
-                        setShowMatchModal(false);
+                        setShowAssignModal(false);
                         setSelectedClient(null);
                         setSelectedTC(null);
                       }}
-                      disabled={matchLoading}
+                      disabled={assignLoading}
                       className="px-6 py-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Cancel
@@ -1036,30 +1017,30 @@ export default function PendingMatchesPage() {
                       onClick={async () => {
                         if (!selectedTC) {
                           showError(
-                            "Please select a Trainee Counsellor before matching.",
+                            "Please select a Trainee Counsellor before assigning.",
                           );
                           return;
                         }
                         try {
-                          setMatchLoading(true);
+                          setAssignLoading(true);
 
-                          const matchNotes =
-                            document.getElementById("matchNotes")?.value ||
+                          const assignmentNotes =
+                            document.getElementById("assignmentNotes")?.value ||
                             "";
 
-                          await apiService.matchClient({
+                          await apiService.assignMatch({
                             client_id: selectedClient.uuid || selectedClient.id,
                             tc_id: selectedTC.uuid || selectedTC.id,
                             match_score: selectedTC.matchScore || null,
-                            match_notes: matchNotes,
+                            assignment_notes: assignmentNotes,
                             send_notification:
                               document.getElementById("sendNotification")
                                 ?.checked ?? true,
                           });
                           success(
-                            `Client "${selectedClient.name}" matched to "${selectedTC.name}" successfully!`,
+                            `Client "${selectedClient.name}" assigned to "${selectedTC.name}" successfully!`,
                           );
-                          setShowMatchModal(false);
+                          setShowAssignModal(false);
                           setSelectedClient(null);
                           setSelectedTC(null);
                           // Refresh data
@@ -1116,26 +1097,26 @@ export default function PendingMatchesPage() {
                           }));
                           setPendingMatches(transformedData);
                         } catch (err) {
-                          console.error("Error matching client:", err);
+                          console.error("Error assigning match:", err);
                           showError(
                             err.message ||
-                              "Failed to match client. Please try again.",
+                              "Failed to assign client. Please try again.",
                           );
                         } finally {
-                          setMatchLoading(false);
+                          setAssignLoading(false);
                         }
                       }}
-                      disabled={matchLoading || !selectedTC}
+                      disabled={assignLoading || !selectedTC}
                       className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                       style={{ backgroundColor: "#6f1d56" }}
                     >
-                      {matchLoading ? (
+                      {assignLoading ? (
                         <>
                           <RefreshCw className="w-4 h-4 animate-spin" />
-                          Matching...
+                          Assigning...
                         </>
                       ) : (
-                        "Match Client"
+                        "Assign Client"
                       )}
                     </button>
                   </div>

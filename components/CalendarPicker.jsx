@@ -14,7 +14,6 @@ export default function CalendarPicker({
   availableSlots = [],
   onSelect,
   selectedSlot,
-  selectedSlots = [],
   mode = "single",
 }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -79,20 +78,6 @@ export default function CalendarPicker({
 
   const selectedDaySlots = slotsByDate[dateSelection] || [];
 
-  // Helper to check if a date has any selected slots
-  const isDateSelected = (dateStr) => {
-    if (mode === "single" && selectedSlot?.date === dateStr) return true;
-    if (mode === "block" && selectedSlots.some((s) => s.date === dateStr)) return true;
-    return false;
-  };
-
-  // Helper to check if a specific slot is selected
-  const isSlotSelected = (slot) => {
-    if (mode === "single" && selectedSlot === slot) return true;
-    if (mode === "block" && selectedSlots.some((s) => s.date === slot.date && s.time === slot.time)) return true;
-    return false;
-  };
-
   return (
     <div className="flex flex-col md:flex-row gap-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Calendar Section */}
@@ -132,8 +117,7 @@ export default function CalendarPicker({
           {days.map((dayObj, idx) => {
             if (!dayObj) return <div key={`empty-${idx}`} />;
 
-            const isSelected = isDateSelected(dayObj.date);
-            const isViewing = dateSelection === dayObj.date;
+            const isSelected = dateSelection === dayObj.date;
             const canSelect = dayObj.hasSlots;
 
             return (
@@ -144,8 +128,8 @@ export default function CalendarPicker({
                 className={`
                   relative h-10 w-10 sm:h-12 sm:w-12 mx-auto rounded-full flex items-center justify-center text-sm transition-all
                   ${canSelect ? "cursor-pointer" : "cursor-default text-gray-300"}
-                  ${isSelected ? "bg-purple-600 text-white font-bold shadow-md" : isViewing ? "bg-purple-200 text-purple-900 font-bold" : ""}
-                  ${!isSelected && !isViewing && canSelect ? "hover:bg-purple-50 text-purple-700 font-medium" : ""}
+                  ${isSelected ? "bg-purple-600 text-white font-bold scale-110 shadow-lg shadow-purple-200" : ""}
+                  ${!isSelected && canSelect ? "hover:bg-purple-50 text-purple-700 font-medium" : ""}
                   ${dayObj.isToday && !isSelected ? "ring-2 ring-purple-200" : ""}
                 `}
               >
@@ -184,7 +168,7 @@ export default function CalendarPicker({
                     className={`
                       w-full py-3 px-4 rounded-xl text-sm font-medium transition-all border
                       ${
-                        isSlotSelected(slot)
+                        selectedSlot === slot
                           ? "bg-purple-600 text-white border-purple-600 shadow-md"
                           : slot.available
                             ? "bg-white text-gray-700 border-gray-200 hover:border-purple-400 hover:text-purple-600"
@@ -208,28 +192,15 @@ export default function CalendarPicker({
           </div>
         </div>
 
-        {mode === "single" && dateSelection && selectedSlot && selectedSlot.date === dateSelection && (
-          <div className="p-4 bg-purple-50 border-t border-purple-100">
-            <p className="text-xs text-purple-800 font-medium text-center">
-              Selected: {selectedSlot.formatted_time || selectedSlot.time}
-            </p>
-          </div>
-        )}
-        
-        {mode === "block" && selectedSlots.length > 0 && (
-          <div className="p-4 bg-purple-50 border-t border-purple-100 flex flex-col gap-1">
-            <p className="text-xs text-purple-800 font-bold mb-1">
-              Selected Slots ({selectedSlots.length}):
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {selectedSlots.map((s, i) => (
-                <span key={i} className="text-[10px] bg-purple-200 text-purple-900 px-2 py-1 rounded-full font-medium">
-                  {new Date(s.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at {s.formatted_time || s.time}
-                </span>
-              ))}
+        {dateSelection &&
+          selectedSlot &&
+          selectedSlot.date === dateSelection && (
+            <div className="p-4 bg-purple-50 border-t border-purple-100">
+              <p className="text-xs text-purple-800 font-medium text-center">
+                Selected: {selectedSlot.formatted_time || selectedSlot.time}
+              </p>
             </div>
-          </div>
-        )}
+          )}
       </div>
 
       <style jsx>{`
