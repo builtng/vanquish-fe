@@ -54,7 +54,7 @@ function SessionNotesPageContent() {
   const forms = [
     {
       type: "weekly",
-      title: "Weekly Session Note Form",
+      title: "Session Notes",
       description: "Standard form for documenting individual therapy sessions.",
       url: settings?.jotform_session_notes_url || "https://jotform.com/vanquish/session-note",
       time: "5-10 mins",

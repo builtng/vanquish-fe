@@ -22,6 +22,7 @@ import {
   Layout,
   Files,
   User,
+  BarChart2,
 } from "lucide-react";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useTheme } from "next-themes";
@@ -78,6 +79,12 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
       label: "PSG Form",
       icon: FileText,
       href: "/counsellor-portal/pages/psg-form",
+    },
+    {
+      id: "psg-progress",
+      label: "Attendance & Progress",
+      icon: BarChart2,
+      href: "/counsellor-portal/pages/psg-progress",
     },
     {
       id: "files",
@@ -171,6 +178,8 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
                 pathname?.startsWith("/counsellor-portal/pages/session-notes")) ||
               (item.id === "psg" &&
                 pathname?.startsWith("/counsellor-portal/pages/psg-form")) ||
+              (item.id === "psg-progress" &&
+                pathname?.startsWith("/counsellor-portal/pages/psg-progress")) ||
               (item.id === "overview" && pathname === "/counsellor-portal"));
 
           const isAnySubActive =

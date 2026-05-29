@@ -39,6 +39,7 @@ import {
   Info,
   Files,
   FileText,
+  Users2,
 } from "lucide-react";
 
 export default function DashboardSidebar() {
@@ -226,7 +227,7 @@ export default function DashboardSidebar() {
     pathname?.startsWith("/dashboard/completed-matches") ||
     pathname?.startsWith("/dashboard/session-notes")
   );
-  const [tcExpanded, setTcExpanded] = useState(pathname?.startsWith("/dashboard/training-counsellors") || pathname?.startsWith("/dashboard/inductions") || pathname?.startsWith("/dashboard/training-providers"));
+  const [tcExpanded, setTcExpanded] = useState(pathname?.startsWith("/dashboard/training-counsellors") || pathname?.startsWith("/dashboard/inductions") || pathname?.startsWith("/dashboard/training-providers") || pathname?.startsWith("/dashboard/psg-groups"));
   const [commExpanded, setCommExpanded] = useState(pathname?.startsWith("/dashboard/staff-notes") || pathname?.startsWith("/dashboard/messages"));
   const [settingsExpanded, setSettingsExpanded] = useState(
     pathname?.startsWith("/dashboard/email-management") || 
@@ -331,6 +332,12 @@ export default function DashboardSidebar() {
           label: "Training Providers",
           icon: Building2,
           href: "/dashboard/training-providers",
+        },
+        {
+          id: "psg-groups",
+          label: "Peer Support Groups",
+          icon: Users,
+          href: "/dashboard/psg-groups",
         },
       ],
     },

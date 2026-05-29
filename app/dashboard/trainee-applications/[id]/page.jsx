@@ -231,9 +231,6 @@ export default function TraineeApplicationDetail() {
       case 'Stage 2 Invited':
         return sendInviteManual();
       
-      case 'Stage 3 Interview Booked':
-        return sendStageThreeInvite();
-
       case 'Interview Attended':
         return handleAttendance(true);
       
@@ -705,8 +702,8 @@ export default function TraineeApplicationDetail() {
 
                         {application.status !== 'Accepted' && application.status !== 'Rejected' && application.status !== 'Active Placement' && (
                           <div className="mt-6 pt-6 border-t border-purple-100 flex gap-3">
-                             <button onClick={() => handleStatusChange('Accepted')} className="px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold">Rescind & Accept</button>
-                             <button onClick={() => handleStatusChange('Rejected')} className="px-6 py-2 bg-rose-600 text-white rounded-lg text-sm font-bold">Rescind & Reject</button>
+                             <button onClick={() => handleStatusChange('Accepted')} className="px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold">Accept</button>
+                             <button onClick={() => handleStatusChange('Rejected')} className="px-6 py-2 bg-rose-600 text-white rounded-lg text-sm font-bold">Reject</button>
                           </div>
                         )}
                     </div>

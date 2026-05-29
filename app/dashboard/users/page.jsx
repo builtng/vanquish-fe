@@ -23,6 +23,7 @@ import {
   AlertCircle,
   MessageSquarePlus,
 } from "lucide-react";
+import SearchableSelect from "@/components/SearchableSelect";
 
 export default function UsersPage() {
   const { user: authUser } = useAuth();
@@ -559,19 +560,18 @@ export default function UsersPage() {
                     <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] mb-2">
                       Role *
                     </label>
-                    <select
+                    <SearchableSelect
                       value={formData.role}
-                      onChange={(e) =>
-                        setFormData({ ...formData, role: e.target.value })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    >
-                      <option value="super_admin">Super Admin</option>
-                      <option value="admin">Admin</option>
-                      <option value="staff">Staff</option>
-                      <option value="consultation_staff">Consultation Staff</option>
-                      <option value="compliance_officer">Compliance Officer</option>
-                    </select>
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      options={[
+                        { value: 'super_admin', label: 'Super Admin' },
+                        { value: 'admin', label: 'Admin' },
+                        { value: 'staff', label: 'Staff' },
+                        { value: 'consultation_staff', label: 'Consultation Staff' },
+                        { value: 'compliance_officer', label: 'Compliance Officer' },
+                      ]}
+                      placeholder="Select role"
+                    />
                   </div>
 
                   <div>

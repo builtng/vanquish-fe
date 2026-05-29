@@ -584,27 +584,38 @@ export default function ClientDashboard() {
     }
   };
 
-  const StatCard = ({ icon: Icon, label, value, sublabel, color, change }) => (
-    <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow group">
-      <div className="flex items-center gap-3 mb-2">
-        <div 
-          className="w-10 h-10 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
-          style={{ backgroundColor: `${color}15`, color: color }}
-        >
-          <Icon className="w-5 h-5" />
+  const StatCard = ({ icon: Icon, label, value, sublabel, color, change, href }) => {
+    const inner = (
+      <>
+        <div className="flex items-center gap-3 mb-2">
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
+            style={{ backgroundColor: `${color}15`, color: color }}
+          >
+            <Icon className="w-5 h-5" />
+          </div>
+          <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)] leading-tight">{label}</p>
         </div>
-        <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">{label}</p>
-      </div>
-      <div className="pl-1">
-        <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{value}</p>
-        {(change || sublabel) && (
-          <p className="text-xs text-gray-500 dark:text-[var(--text-tertiary)] mt-1 font-medium">
-            {change || sublabel}
-          </p>
+        <div className="pl-1">
+          <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">{value}</p>
+          {(change || sublabel) && (
+            <p className="text-xs text-gray-500 dark:text-[var(--text-tertiary)] mt-1 font-medium">
+              {change || sublabel}
+            </p>
+          )}
+        </div>
+        {href && (
+          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            <ChevronRight className="w-4 h-4" style={{ color: color }} />
+          </div>
         )}
-      </div>
-    </div>
-  );
+      </>
+    );
+    const cls = "relative bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-all group cursor-pointer";
+    return href
+      ? <Link href={href} className={cls}>{inner}</Link>
+      : <div className={cls}>{inner}</div>;
+  };
 
   const UrgentItem = ({ item }) => {
     // Determine the link based on action type
@@ -776,12 +787,14 @@ export default function ClientDashboard() {
                   value={stats.totalClients}
                   change={stats.totalChange}
                   color="#6f1d56"
+                  href="/dashboard/clients"
                 />
                 <StatCard
                   icon={FileText}
                   label="Client Apps"
                   value={pipelineStages.find(s => s.stage === "Application")?.count || 0}
                   color="#3b82f6"
+                  href="/dashboard/clients"
                 />
                 <StatCard
                   icon={ClipboardList}
@@ -789,6 +802,7 @@ export default function ClientDashboard() {
                   value={stats.traineeApps}
                   sublabel={stats.traineeAppsNote}
                   color="#8b5cf6"
+                  href="/dashboard/trainee-applications"
                 />
                 <StatCard
                   icon={Video}
@@ -796,6 +810,7 @@ export default function ClientDashboard() {
                   value={stats.consultations}
                   sublabel={stats.consultationsNote}
                   color="#6366F1"
+                  href="/dashboard/consultations"
                 />
                 <StatCard
                   icon={UserCheck}
@@ -803,12 +818,14 @@ export default function ClientDashboard() {
                   value={stats.pendingMatch}
                   sublabel={stats.pendingNote}
                   color="#f59e0b"
+                  href="/dashboard/pending-matches"
                 />
                 <StatCard
                   icon={CheckCircle}
                   label="Agreement"
                   value={pipelineStages.find(s => s.stage === "Agreement")?.count || 0}
                   color="#f97316"
+                  href="/dashboard/pending-matches"
                 />
                 <StatCard
                   icon={Activity}
@@ -816,6 +833,7 @@ export default function ClientDashboard() {
                   value={stats.activeTherapy}
                   change={stats.activeChange}
                   color="#10b981"
+                  href="/dashboard/clients"
                 />
               </div>
 

@@ -1497,7 +1497,7 @@ export default function ConsultationsManagementPageFixed() {
                         Duration <span className="text-red-500">*</span>
                       </label>
 
-                      <select
+                      <SearchableSelect
                         value={completeForm.duration}
                         onChange={(e) =>
                           setCompleteForm({
@@ -1505,15 +1505,14 @@ export default function ConsultationsManagementPageFixed() {
                             duration: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        options={[
+                          { value: "30", label: "30 minutes" },
+                          { value: "45", label: "45 minutes" },
+                          { value: "60", label: "60 minutes" },
+                        ]}
+                        placeholder="Select duration..."
                         required
-                      >
-                        <option value="30">30 minutes</option>
-
-                        <option value="45">45 minutes</option>
-
-                        <option value="60">60 minutes</option>
-                      </select>
+                      />
                     </div>
 
                     <div>

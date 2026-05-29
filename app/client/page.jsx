@@ -2587,21 +2587,21 @@ export default function VanquishClientIntake() {
                   >
                     Assessment (CORE 34)
                   </h2>
-                  <div className="text-base md:text-lg mb-4 p-6 bg-red-600 border-2 border-red-700 rounded-xl space-y-3">
-                    <p className="font-bold text-white text-lg uppercase tracking-wide">
+                  <div className="text-base md:text-lg mb-4 p-6 bg-red-50 border-2 border-red-300 rounded-xl space-y-3">
+                    <p className="font-bold text-red-900 text-lg uppercase tracking-wide">
                       Important - Please read this information before you start
                       completing the below section:
                     </p>
-                    <p className="text-white font-medium">
+                    <p className="text-red-800 font-medium">
                       This section has 34 statements about how you have been
                       over the last week.
                     </p>
-                    <p className="text-white">
+                    <p className="text-red-800">
                       Please ensure you read each statement and think about how
                       often you have felt that way over the last week. Then tick
                       the box that relates closest to how you have felt.
                     </p>
-                    <p className="text-red-100 text-xs italic mt-2 border-t border-red-500 pt-2">
+                    <p className="text-red-600 text-xs italic mt-2 border-t border-red-300 pt-2">
                       This core 34 has been taken from The CORE System
                       Trust:http://www.coresystemtrust.org.uk/copyright.pdf
                     </p>

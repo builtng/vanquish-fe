@@ -32,6 +32,7 @@ import {
 import apiService from "@/lib/api";
 import { toast } from "react-toastify";
 import PageGuard from "@/components/PageGuard";
+import SearchableSelect from "@/components/SearchableSelect";
 
 const SECTIONS = [
   { id: "personal", label: "Personal Info", icon: User },
@@ -435,19 +436,18 @@ function Input({ label, ...props }) {
   );
 }
 
-function Select({ label, options, ...props }) {
+function Select({ label, options, value, onChange, name, required = false, ...props }) {
   return (
     <div className="space-y-2">
       <label className="text-sm font-bold text-gray-600 dark:text-gray-400 ml-1">{label}</label>
-      <select
+      <SearchableSelect
+        value={value}
+        onChange={(e) => onChange({ target: { name, value: e.target.value } })}
+        options={options.map(opt => ({ value: opt, label: opt }))}
+        placeholder="Select option..."
+        required={required}
         {...props}
-        className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all dark:text-white"
-      >
-        <option value="">Select option...</option>
-        {options.map(opt => (
-          <option key={opt} value={opt}>{opt}</option>
-        ))}
-      </select>
+      />
     </div>
   );
 }
