@@ -238,15 +238,27 @@ export default function DashboardChatPage() {
       setMessages(msgs);
 
       // Check for unread messages in the thread and mark them as read
-      // We check for any unread message addressed to us
-      const unreadCount = msgs.filter(m => !m.is_read && String(m.to_user_id) === String(authUser?.id)).length;
+      // We check for any unread message addressed to us (or from TC if it is a group chat thread)
+      const unreadCount = msgs.filter(m => {
+        if (m.is_read) return false;
+        if (peerType === 'tc') {
+          return String(m.from_user_id) !== String(authUser?.id);
+        } else {
+          return String(m.to_user_id) === String(authUser?.id);
+        }
+      }).length;
       
       if (unreadCount > 0) {
         apiService.markConversationAsRead(peerType, peerId)
           .then(() => {
             window.dispatchEvent(new CustomEvent("refresh-sidebar-data"));
             // Update local state to show items as read immediately
-            setMessages(prev => prev.map(m => (!m.is_read && String(m.to_user_id) === String(authUser?.id)) ? { ...m, is_read: true } : m));
+            setMessages(prev => prev.map(m => {
+              const isUnreadForMe = !m.is_read && (
+                peerType === 'tc' ? String(m.from_user_id) !== String(authUser?.id) : String(m.to_user_id) === String(authUser?.id)
+              );
+              return isUnreadForMe ? { ...m, is_read: true } : m;
+            }));
             // Update conversation list item to clear its unread status
             setConversations(prev => prev.map(conv => 
               (conv.peer_id === peerId && conv.peer_type === peerType) 
@@ -575,7 +587,7 @@ export default function DashboardChatPage() {
                 {/* Chat Thread */}
                 <div 
                   ref={scrollRef}
-                  className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-fixed"
+                  className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-white dark:bg-slate-900"
                 >
                   {messagesLoading && messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
@@ -784,8 +796,8 @@ export default function DashboardChatPage() {
               </>
             ) : (
               /* Empty State */
-              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] relative">
-                <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-0" />
+              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 relative">
+                <div className="absolute inset-0 z-0" />
                 <div className="z-10 flex flex-col items-center">
                   <div className="w-24 h-24 rounded-full bg-accent/10 flex items-center justify-center mb-6">
                     <Send className="w-10 h-10 text-accent" />

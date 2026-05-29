@@ -61,7 +61,16 @@ export default function CounsellorChatPage() {
     try {
       setLoading(true);
       const res = await apiService.request("/messages/conversations");
-      setConversations(res || []);
+      const convs = res || [];
+      setConversations(convs);
+      // Auto-select admin group if not already selected
+      const adminConv = convs.find(c => c.peer_id === 'admin_group' && c.peer_type === 'group');
+      if (adminConv && !activeChat) {
+        setActiveChat({ id: 'admin_group', type: 'group', name: 'Admin Support' });
+      } else if (convs.length > 0 && !activeChat) {
+        const first = convs[0];
+        setActiveChat({ id: first.peer_id, type: first.peer_type, name: first.peer_name });
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -126,15 +135,27 @@ export default function CounsellorChatPage() {
          loadConversations();
          loadUnreadCount();
        });
+
+       // Also listen on staff_group for replies from admin
+       const staffChannel = echo.private(`messages.staff_group`);
+       staffChannel.listen(".message.sent", (e) => {
+         const newMsg = e.message;
+         // Only relevant if it's addressed to this counsellor's TC
+         if (newMsg.type === 'staff_to_counsellor' && String(newMsg.to_tc_id) === String(authUser?.training_counsellor_id)) {
+           loadConversations();
+           loadUnreadCount();
+         }
+       });
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       if (echo && authUser?.id) {
         echo.leave(`messages.${authUser.id}`);
+        echo.leave(`messages.staff_group`);
       }
     };
-  }, [authUser, loadConversations, loadStaff, loadUnreadCount]);
+  }, [authUser, loadConversations, loadUnreadCount]);
 
   // Separate effect for Echo listener to handle thread updates
   useEffect(() => {
@@ -146,8 +167,12 @@ export default function CounsellorChatPage() {
       const newMsg = e.message;
       
       let isForCurrentChat = false;
-      if (activeChat.type === 'user') {
-         isForCurrentChat = newMsg.from_user_id === activeChat.id || (newMsg.to_user_id === activeChat.id && newMsg.from_user_id === authUser.id);
+      if (activeChat.type === 'group' && activeChat.id === 'admin_group') {
+        // Staff reply to this counsellor's TC
+        isForCurrentChat = newMsg.type === 'staff_to_counsellor' &&
+          String(newMsg.to_tc_id) === String(authUser?.training_counsellor_id);
+      } else if (activeChat.type === 'user') {
+        isForCurrentChat = newMsg.from_user_id === activeChat.id || (newMsg.to_user_id === activeChat.id && newMsg.from_user_id === authUser.id);
       }
 
       if (isForCurrentChat) {
@@ -163,6 +188,26 @@ export default function CounsellorChatPage() {
             .catch(() => {});
       }
     });
+
+    // Also listen on staff_group for staff replies
+    let staffGroupChannel = null;
+    if (activeChat.type === 'group' && activeChat.id === 'admin_group') {
+      staffGroupChannel = echo.private(`messages.staff_group`);
+      staffGroupChannel.listen(".message.sent", (e) => {
+        const newMsg = e.message;
+        if (newMsg.type === 'staff_to_counsellor' && String(newMsg.to_tc_id) === String(authUser?.training_counsellor_id)) {
+          setMessages(prev => {
+            if (prev.find(m => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+        }
+        loadConversations();
+      });
+    }
+
+    return () => {
+      if (staffGroupChannel) echo.leave(`messages.staff_group`);
+    };
   }, [authUser, activeChat]);
 
   useEffect(() => {
@@ -184,11 +229,17 @@ export default function CounsellorChatPage() {
     try {
       const body = new FormData();
       body.append("message", newMessage);
-      body.append("subject", "Quick Chat");
+      body.append("subject", "Admin Support");
       if (attachment?.file) {
         body.append("attachment", attachment.file);
       }
-      body.append("to_user_ids[]", activeChat.id);
+
+      // Always send to admin_group for counsellors
+      if (activeChat.type === 'group' && activeChat.id === 'admin_group') {
+        body.append("to_group", "admin_group");
+      } else {
+        body.append("to_user_ids[]", activeChat.id);
+      }
 
       setNewMessage("");
       setAttachment(null);
@@ -258,6 +309,14 @@ export default function CounsellorChatPage() {
       s.name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [staffList, searchQuery]);
+
+  const adminNames = useMemo(() => {
+    return staffList
+      .filter(s => s.role === 'admin' || s.role === 'super_admin')
+      .map(s => s.name.split(' ')[0])
+      .slice(0, 3)
+      .join(', ');
+  }, [staffList]);
 
   return (
     <CounsellorLayout unreadCount={unreadCount}>
@@ -393,7 +452,12 @@ export default function CounsellorChatPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{activeChat.name}</h3>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Staff Support</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
+                      {activeChat.id === 'admin_group'
+                        ? `Group Chat${adminNames ? ` (${adminNames})` : ' with Admin Team'}`
+                        : 'Staff Support'
+                      }
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -446,7 +510,7 @@ export default function CounsellorChatPage() {
               {/* Thread */}
               <div 
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col bg-gray-50/50 dark:bg-transparent custom-scrollbar"
+                className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col bg-white dark:bg-transparent custom-scrollbar"
               >
                 {messagesLoading && messages.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center">
@@ -457,6 +521,11 @@ export default function CounsellorChatPage() {
                     const isMe = String(msg.from_user_id) === String(authUser.id);
                     const showDate = idx === 0 || 
                       new Date(messages[idx-1]?.created_at).toDateString() !== new Date(msg.created_at).toDateString();
+                    
+                    const senderName = msg.from_user?.name || msg.fromUser?.name || "Admin";
+                    const senderRole = msg.from_user?.role || msg.fromUser?.role;
+                    const initial = senderName[0]?.toUpperCase() || "A";
+                    const shouldShowAdminName = activeChat?.type === 'group' && !isMe;
 
                     return (
                       <React.Fragment key={msg.id}>
@@ -470,10 +539,15 @@ export default function CounsellorChatPage() {
                         <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                           {!isMe && (
                              <div className="w-8 h-8 rounded-full bg-accent flex-shrink-0 mr-2 flex items-center justify-center text-white text-[10px] font-bold self-end mb-1">
-                               {activeChat.name?.[0]}
+                               {initial}
                              </div>
                           )}
                           <div className={`max-w-[85%] md:max-w-[75%] animate-in slide-in-from-${isMe ? 'right' : 'left'}-2 duration-300`}>
+                            {shouldShowAdminName && (
+                              <p className="text-[10px] font-bold mb-1 ml-1 text-muted-foreground uppercase tracking-tight">
+                                {senderName} {senderRole === 'super_admin' ? '(Super Admin)' : (senderRole === 'admin' ? '(Admin)' : '')}
+                              </p>
+                            )}
                             <div className={`px-5 py-3.5 rounded-2xl text-[14px] shadow-sm leading-relaxed ${
                               isMe 
                                 ? "bg-accent text-white rounded-br-none shadow-xl shadow-accent/20" 

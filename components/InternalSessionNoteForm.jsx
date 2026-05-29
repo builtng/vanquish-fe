@@ -383,7 +383,7 @@ export default function InternalSessionNoteForm({
         {/* Brief Summary */}
         <div>
           <label className="block text-sm font-bold text-gray-700 dark:text-[var(--text-primary)] mb-2">
-            Brief Summary *
+            Brief, factual summary of the session.*
           </label>
           <textarea
             required
