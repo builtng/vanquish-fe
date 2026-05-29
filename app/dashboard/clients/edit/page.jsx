@@ -54,6 +54,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import PhotoUpload from "@/components/PhotoUpload";
+import SearchableSelect from "@/components/SearchableSelect";
 
 function EditClientPageContent() {
   const pathname = usePathname();
@@ -854,43 +855,39 @@ function EditClientPageContent() {
                         <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                           Gender
                         </label>
-                        <select
+                        <SearchableSelect
                           value={formData.gender}
-                          onChange={(e) =>
-                            handleInputChange("gender", e.target.value)
-                          }
-                          className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                        >
-                          <option value="">Select gender</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                          <option value="Non-binary">Non-binary</option>
-                          <option value="Other">Other</option>
-                          <option value="Prefer not to say">Prefer not to say</option>
-                        </select>
+                          onChange={(e) => handleInputChange("gender", e.target.value)}
+                          options={[
+                            { value: 'Male', label: 'Male' },
+                            { value: 'Female', label: 'Female' },
+                            { value: 'Non-binary', label: 'Non-binary' },
+                            { value: 'Other', label: 'Other' },
+                            { value: 'Prefer not to say', label: 'Prefer not to say' },
+                          ]}
+                          placeholder="Select gender"
+                        />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                           Ethnicity
                         </label>
-                        <select
+                        <SearchableSelect
                           value={formData.ethnicity}
-                          onChange={(e) =>
-                            handleInputChange("ethnicity", e.target.value)
-                          }
-                          className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                        >
-                          <option value="">Select ethnicity</option>
-                          <option value="Asian">Asian</option>
-                          <option value="Black">Black</option>
-                          <option value="White">White</option>
-                          <option value="Mixed">Mixed</option>
-                          <option value="Hispanic/Latino">Hispanic/Latino</option>
-                          <option value="Middle Eastern">Middle Eastern</option>
-                          <option value="Other">Other</option>
-                          <option value="Prefer not to say">Prefer not to say</option>
-                        </select>
+                          onChange={(e) => handleInputChange("ethnicity", e.target.value)}
+                          options={[
+                            { value: 'Asian', label: 'Asian' },
+                            { value: 'Black', label: 'Black' },
+                            { value: 'White', label: 'White' },
+                            { value: 'Mixed', label: 'Mixed' },
+                            { value: 'Hispanic/Latino', label: 'Hispanic/Latino' },
+                            { value: 'Middle Eastern', label: 'Middle Eastern' },
+                            { value: 'Other', label: 'Other' },
+                            { value: 'Prefer not to say', label: 'Prefer not to say' },
+                          ]}
+                          placeholder="Select ethnicity"
+                        />
                       </div>
                     </div>
 
@@ -899,24 +896,22 @@ function EditClientPageContent() {
                         <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                           Sexual Orientation
                         </label>
-                        <select
+                        <SearchableSelect
                           value={formData.sexualOrientation}
-                          onChange={(e) =>
-                            handleInputChange("sexualOrientation", e.target.value)
-                          }
-                          className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                        >
-                          <option value="">Select orientation</option>
-                          <option value="Heterosexual">Heterosexual</option>
-                          <option value="Gay">Gay</option>
-                          <option value="Lesbian">Lesbian</option>
-                          <option value="Bisexual">Bisexual</option>
-                          <option value="Pansexual">Pansexual</option>
-                          <option value="Asexual">Asexual</option>
-                          <option value="Queer">Queer</option>
-                          <option value="Other">Other</option>
-                          <option value="Prefer not to say">Prefer not to say</option>
-                        </select>
+                          onChange={(e) => handleInputChange("sexualOrientation", e.target.value)}
+                          options={[
+                            { value: 'Heterosexual', label: 'Heterosexual' },
+                            { value: 'Gay', label: 'Gay' },
+                            { value: 'Lesbian', label: 'Lesbian' },
+                            { value: 'Bisexual', label: 'Bisexual' },
+                            { value: 'Pansexual', label: 'Pansexual' },
+                            { value: 'Asexual', label: 'Asexual' },
+                            { value: 'Queer', label: 'Queer' },
+                            { value: 'Other', label: 'Other' },
+                            { value: 'Prefer not to say', label: 'Prefer not to say' },
+                          ]}
+                          placeholder="Select orientation"
+                        />
                       </div>
 
                       <div>
@@ -957,20 +952,15 @@ function EditClientPageContent() {
                           <span className="text-red-500">*</span>
                         </label>
 
-                        <select
+                        <SearchableSelect
                           value={formData.voicemailPermission}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "voicemailPermission",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                        >
-                          <option value="Yes">Yes</option>
-
-                          <option value="No">No</option>
-                        </select>
+                          onChange={(e) => handleInputChange("voicemailPermission", e.target.value)}
+                          options={[
+                            { value: 'Yes', label: 'Yes' },
+                            { value: 'No', label: 'No' },
+                          ]}
+                          placeholder="Select option"
+                        />
                       </div>
 
                       <div>
@@ -979,20 +969,15 @@ function EditClientPageContent() {
                           <span className="text-red-500">*</span>
                         </label>
 
-                        <select
+                        <SearchableSelect
                           value={formData.currentlyInTherapy}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "currentlyInTherapy",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                        >
-                          <option value="Yes">Yes</option>
-
-                          <option value="No">No</option>
-                        </select>
+                          onChange={(e) => handleInputChange("currentlyInTherapy", e.target.value)}
+                          options={[
+                            { value: 'Yes', label: 'Yes' },
+                            { value: 'No', label: 'No' },
+                          ]}
+                          placeholder="Select option"
+                        />
                       </div>
                     </div>
 
@@ -1130,26 +1115,16 @@ function EditClientPageContent() {
                       Service Type <span className="text-red-500">*</span>
                     </label>
 
-                    <select
+                    <SearchableSelect
                       value={formData.serviceType}
-                      onChange={(e) =>
-                        handleInputChange("serviceType", e.target.value)
-                      }
-                      className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    >
-                      <option value="Low Cost Counselling">
-                        Low Cost Counselling
-                      </option>
-
-                      <option value="Mid Range Counselling">
-                        Mid Range Counselling with Qualified Counsellors
-                        (starting from £40+)
-                      </option>
-
-                      <option value="Counselling & Coaching Services">
-                        Counselling & Coaching Services
-                      </option>
-                    </select>
+                      onChange={(e) => handleInputChange("serviceType", e.target.value)}
+                      options={[
+                        { value: 'Low Cost Counselling', label: 'Low Cost Counselling' },
+                        { value: 'Mid Range Counselling', label: 'Mid Range Counselling with Qualified Counsellors (starting from £40+)' },
+                        { value: 'Counselling & Coaching Services', label: 'Counselling & Coaching Services' },
+                      ]}
+                      placeholder="Select service type"
+                    />
                   </div>
                 )}
               </div>
@@ -1175,17 +1150,15 @@ function EditClientPageContent() {
                         Currently on Medication?
                       </label>
 
-                      <select
+                      <SearchableSelect
                         value={formData.onMedication}
-                        onChange={(e) =>
-                          handleInputChange("onMedication", e.target.value)
-                        }
-                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent mb-3"
-                      >
-                        <option value="No">No</option>
-
-                        <option value="Yes">Yes</option>
-                      </select>
+                        onChange={(e) => handleInputChange("onMedication", e.target.value)}
+                        options={[
+                          { value: 'No', label: 'No' },
+                          { value: 'Yes', label: 'Yes' },
+                        ]}
+                        placeholder="Select option"
+                      />
 
                       {formData.onMedication === "Yes" && (
                         <div>
@@ -1427,31 +1400,18 @@ function EditClientPageContent() {
                         <span className="text-red-500">*</span>
                       </label>
 
-                      <select
+                      <SearchableSelect
                         value={formData.howHeardAbout}
-                        onChange={(e) =>
-                          handleInputChange("howHeardAbout", e.target.value)
-                        }
-                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
-                      >
-                        <option value="Online (Google, Bing, etc)">
-                          Online (Google, Bing, etc)
-                        </option>
-
-                        <option value="Social Media (Facebook, Instagram)">
-                          Social Media (Facebook, Instagram)
-                        </option>
-
-                        <option value="Referral">Referral</option>
-
-                        <option value="Referred through an organisation">
-                          Referred through an organisation
-                        </option>
-
-                        <option value="Referred through an individual">
-                          Referred through an individual
-                        </option>
-                      </select>
+                        onChange={(e) => handleInputChange("howHeardAbout", e.target.value)}
+                        options={[
+                          { value: 'Online (Google, Bing, etc)', label: 'Online (Google, Bing, etc)' },
+                          { value: 'Social Media (Facebook, Instagram)', label: 'Social Media (Facebook, Instagram)' },
+                          { value: 'Referral', label: 'Referral' },
+                          { value: 'Referred through an organisation', label: 'Referred through an organisation' },
+                          { value: 'Referred through an individual', label: 'Referred through an individual' },
+                        ]}
+                        placeholder="Select how they heard about us"
+                      />
                     </div>
 
                     <div>
@@ -1596,19 +1556,16 @@ function EditClientPageContent() {
                         Consultation Fee Payment Status (£13)
                       </label>
 
-                      <select
+                      <SearchableSelect
                         value={formData.paymentStatus}
-                        onChange={(e) =>
-                          handleInputChange("paymentStatus", e.target.value)
-                        }
-                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
-                      >
-                        <option value="Pending">Pending</option>
-
-                        <option value="Paid">Paid</option>
-
-                        <option value="Waived">Waived</option>
-                      </select>
+                        onChange={(e) => handleInputChange("paymentStatus", e.target.value)}
+                        options={[
+                          { value: 'Pending', label: 'Pending' },
+                          { value: 'Paid', label: 'Paid' },
+                          { value: 'Waived', label: 'Waived' },
+                        ]}
+                        placeholder="Select payment status"
+                      />
                     </div>
 
                     <div className="pt-4 border-t border-[var(--border-color)]">
@@ -1619,16 +1576,15 @@ function EditClientPageContent() {
                           <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                             WhatsApp Agreement
                           </label>
-                          <select
+                          <SearchableSelect
                             value={formData.whatsappAgreement}
-                            onChange={(e) =>
-                              handleInputChange("whatsappAgreement", e.target.value)
-                            }
-                            className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                          >
-                            <option value="Yes">Yes</option>
-                            <option value="No">No</option>
-                          </select>
+                            onChange={(e) => handleInputChange("whatsappAgreement", e.target.value)}
+                            options={[
+                              { value: 'Yes', label: 'Yes' },
+                              { value: 'No', label: 'No' },
+                            ]}
+                            placeholder="Select option"
+                          />
                         </div>
                       </div>
 

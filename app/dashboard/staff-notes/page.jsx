@@ -20,6 +20,7 @@ import {
   Search,
   Bell,
 } from "lucide-react";
+import SearchableSelect from "@/components/SearchableSelect";
 
 export default function StaffNotesPage() {
   const { user: authUser } = useAuth();
@@ -323,21 +324,15 @@ export default function StaffNotesPage() {
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <select
+                    <SearchableSelect
                       value={formData.staff_id}
-                      onChange={(e) =>
-                        setFormData({ ...formData, staff_id: e.target.value })
-                      }
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all dark:text-white"
-                      disabled={sendingNote}
-                    >
-                      <option value="">Select a colleague...</option>
-                      {users.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.role})
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(e) => setFormData({ ...formData, staff_id: e.target.value })}
+                      options={users.map((u) => ({
+                        value: u.id,
+                        label: `${u.name} (${u.role})`,
+                      }))}
+                      placeholder="Select a colleague..."
+                    />
                   </div>
                 </div>
 

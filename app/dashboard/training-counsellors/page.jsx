@@ -54,6 +54,7 @@ import {
   Briefcase,
   Building2,
 } from "lucide-react";
+import SearchableSelect from "@/components/SearchableSelect";
 
 export default function ViewAllTrainingCounsellorsPage() {
   const pathname = usePathname();
@@ -562,101 +563,77 @@ export default function ViewAllTrainingCounsellorsPage() {
                 className="w-full pl-10 pr-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
               />
             </div>
-            <select
+            <SearchableSelect
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[120px] flex-shrink-0"
-            >
-              <option value="all">All Status</option>
+              options={[
+                { value: 'all', label: 'All Status' },
+                { value: 'Active', label: 'Active' },
+                { value: 'At Capacity', label: 'At Capacity' },
+                { value: 'On Leave', label: 'On Leave' },
+                { value: 'Inactive', label: 'Inactive' },
+              ]}
+              placeholder="All Status"
+            />
 
-              <option value="Active">Active</option>
-
-              <option value="At Capacity">At Capacity</option>
-
-              <option value="On Leave">On Leave</option>
-
-              <option value="Inactive">Inactive</option>
-            </select>
-
-            <select
+            <SearchableSelect
               value={filterService}
               onChange={(e) => setFilterService(e.target.value)}
-              className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[160px]"
-            >
-              <option value="all">All Services</option>
+              options={[
+                { value: 'all', label: 'All Services' },
+                { value: 'Qualified Counsellor', label: 'Qualified Counsellor' },
+                { value: 'Coach', label: 'Coach' },
+                { value: 'Trainee Counsellor', label: 'Trainee Counsellor' },
+                { value: 'Trainee Coach', label: 'Trainee Coach' },
+              ]}
+              placeholder="All Services"
+            />
 
-              <option value="Qualified Counsellor">Qualified Counsellor</option>
-
-              <option value="Coach">Coach</option>
-
-              <option value="Trainee Counsellor">Trainee Counsellor</option>
-
-              <option value="Trainee Coach">Trainee Coach</option>
-            </select>
-
-            <select
+            <SearchableSelect
               value={filterModality}
               onChange={(e) => setFilterModality(e.target.value)}
-              className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[180px]"
-            >
-              <option value="all">All Modalities</option>
+              options={[
+                { value: 'all', label: 'All Modalities' },
+                { value: 'CBT', label: 'CBT - Cognitive Behavioral Therapy' },
+                { value: 'Person-Centred', label: 'Person-Centred' },
+                { value: 'Integrative', label: 'Integrative' },
+                { value: 'Psychodynamic', label: 'Psychodynamic' },
+                { value: 'Humanistic', label: 'Humanistic' },
+                { value: 'Gestalt', label: 'Gestalt' },
+                { value: 'Solution-Focused', label: 'Solution-Focused' },
+                { value: 'Transactional Analysis', label: 'Transactional Analysis' },
+                { value: 'EMDR', label: 'EMDR' },
+                { value: 'Mindfulness-Based', label: 'Mindfulness-Based' },
+                { value: 'Narrative Therapy', label: 'Narrative Therapy' },
+                { value: 'Systemic', label: 'Systemic' },
+                { value: 'Existential', label: 'Existential' },
+              ]}
+              placeholder="All Modalities"
+            />
 
-              <option value="CBT">CBT - Cognitive Behavioral Therapy</option>
-
-              <option value="Person-Centred">Person-Centred</option>
-
-              <option value="Integrative">Integrative</option>
-
-              <option value="Psychodynamic">Psychodynamic</option>
-
-              <option value="Humanistic">Humanistic</option>
-
-              <option value="Gestalt">Gestalt</option>
-
-              <option value="Solution-Focused">Solution-Focused</option>
-
-              <option value="Transactional Analysis">
-                Transactional Analysis
-              </option>
-
-              <option value="EMDR">EMDR</option>
-
-              <option value="Mindfulness-Based">Mindfulness-Based</option>
-
-              <option value="Narrative Therapy">Narrative Therapy</option>
-
-              <option value="Systemic">Systemic</option>
-
-              <option value="Existential">Existential</option>
-            </select>
-
-            <select
+            <SearchableSelect
               value={filterAvailability}
               onChange={(e) => setFilterAvailability(e.target.value)}
-              className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[140px]"
-            >
-              <option value="all">All Availability</option>
+              options={[
+                { value: 'all', label: 'All Availability' },
+                { value: 'has-capacity', label: 'Has Capacity' },
+                { value: 'full', label: 'Full' },
+              ]}
+              placeholder="All Availability"
+            />
 
-              <option value="has-capacity">Has Capacity</option>
-
-              <option value="full">Full</option>
-            </select>
-
-            <select
+            <SearchableSelect
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] min-w-[150px]"
-            >
-              <option value="newest">Sort: Newest</option>
-
-              <option value="tc_id">Sort: Practitioner ID</option>
-
-              <option value="availability">Sort: Availability</option>
-
-              <option value="name">Sort: Name</option>
-
-              <option value="clients">Sort: Client Count</option>
-            </select>
+              options={[
+                { value: 'newest', label: 'Sort: Newest' },
+                { value: 'tc_id', label: 'Sort: Practitioner ID' },
+                { value: 'availability', label: 'Sort: Availability' },
+                { value: 'name', label: 'Sort: Name' },
+                { value: 'clients', label: 'Sort: Client Count' },
+              ]}
+              placeholder="Sort by..."
+            />
           </div>
 
           {filteredTCs.length > 0 && (
@@ -1033,23 +1010,15 @@ export default function ViewAllTrainingCounsellorsPage() {
                     Select Client from Pending Matches{" "}
                     <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <SearchableSelect
                     value={assignForm.clientId}
-                    onChange={(e) =>
-                      setAssignForm({ ...assignForm, clientId: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    required
-                  >
-                    <option value="">Select a client...</option>
-
-                    {pendingClients.map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {formatName(client.name, "client")} ({client.age}) -{" "}
-                        {client.issues.join(", ")}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(e) => setAssignForm({ ...assignForm, clientId: e.target.value })}
+                    options={pendingClients.map((client) => ({
+                      value: client.id,
+                      label: `${formatName(client.name, 'client')} (${client.age}) - ${client.issues.join(', ')}`,
+                    }))}
+                    placeholder="Select a client..."
+                  />
                 </div>
 
                 {/* Notes */}

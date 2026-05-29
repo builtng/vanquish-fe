@@ -1666,17 +1666,16 @@ export default function IndividualTCDetailPage() {
 
                   <label className="block text-sm font-medium text-gray-700 mb-2">Select Client</label>
 
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent">
-
-                    <option value="">Select a client...</option>
-
-                    <option value="CL005">Charlotte Evans (30) - Anxiety, Work Stress</option>
-
-                    <option value="CL006">Benjamin Clark (24) - Sexual Abuse, Low Self-esteem</option>
-
-                    <option value="CL009">Thomas Wright (33) - Depression, Relationship Issues</option>
-
-                  </select>
+                  <SearchableSelect
+                    value={assignForm.clientId}
+                    onChange={(e) => setAssignForm({ ...assignForm, clientId: e.target.value })}
+                    options={[
+                      { value: "CL005", label: "Charlotte Evans (30) - Anxiety, Work Stress" },
+                      { value: "CL006", label: "Benjamin Clark (24) - Sexual Abuse, Low Self-esteem" },
+                      { value: "CL009", label: "Thomas Wright (33) - Depression, Relationship Issues" }
+                    ]}
+                    placeholder="Select a client..."
+                  />
 
                 </div>
 

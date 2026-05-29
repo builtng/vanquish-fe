@@ -1,6 +1,7 @@
 "use client";
 import PageGuard from "@/components/PageGuard";
 import React, { useState, useEffect } from "react";
+import SearchableSelect from "@/components/SearchableSelect";
 import { toast } from "react-toastify";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -389,16 +390,17 @@ export default function CouponsPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Discount Type
                   </label>
-                  <select
+                  <SearchableSelect
                     value={formData.type}
                     onChange={(e) =>
                       setFormData({ ...formData, type: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800"
-                  >
-                    <option value="fixed">Fixed Amount (£)</option>
-                    <option value="percent">Percentage (%)</option>
-                  </select>
+                    options={[
+                      { value: "fixed", label: "Fixed Amount (£)" },
+                      { value: "percent", label: "Percentage (%)" },
+                    ]}
+                    placeholder="Select type..."
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

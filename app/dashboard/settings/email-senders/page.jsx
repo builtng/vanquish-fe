@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import SearchableSelect from "@/components/SearchableSelect";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-hot-toast";
 import PageGuard from "@/components/PageGuard";
@@ -263,7 +264,7 @@ export default function EmailSendersSettings() {
                             className="w-full border dark:border-gray-600 rounded-lg p-2.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 outline-none cursor-not-allowed"
                           />
                         ) : (
-                          <select
+                           <SearchableSelect
                             required
                             value={formData.category}
                             onChange={(e) =>
@@ -272,19 +273,13 @@ export default function EmailSendersSettings() {
                                 category: e.target.value,
                               })
                             }
-                            className="w-full border dark:border-gray-600 rounded-lg p-2.5 bg-white dark:bg-gray-700 outline-none focus:ring-2 focus:ring-purple-500"
-                          >
-                            <option value="">Select Category...</option>
-                            {categories.map((c) => (
-                              <option
-                                key={c}
-                                value={c}
-                                disabled={senders.some((s) => s.category === c)}
-                              >
-                                {c.charAt(0).toUpperCase() + c.slice(1)}
-                              </option>
-                            ))}
-                          </select>
+                            options={categories.map((c) => ({
+                              value: c,
+                              label: c.charAt(0).toUpperCase() + c.slice(1),
+                              isDisabled: senders.some((s) => s.category === c),
+                            }))}
+                            placeholder="Select Category..."
+                          />
                         )}
                       </div>
 

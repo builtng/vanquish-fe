@@ -185,7 +185,8 @@ export default function AttendanceProgressPage() {
                       <ExternalLink className="w-3.5 h-3.5 opacity-70" />
                     </a>
                   </div>
-                )}</div>
+                )}
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-10 bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl text-center p-6 gap-3">
                 <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">

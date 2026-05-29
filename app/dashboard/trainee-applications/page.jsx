@@ -10,6 +10,7 @@ import DashboardHeader from "@/components/DashboardHeader";
 import PageGuard from "@/components/PageGuard";
 import { useModal } from "@/contexts/ModalContext";
 import { StatusBadge, SearchableStatusSelect } from "@/components/StatusBadge";
+import SearchableSelect from "@/components/SearchableSelect";
 
 function TraineeApplicationsDashboardContent() {
   const searchParams = useSearchParams();
@@ -184,15 +185,16 @@ function TraineeApplicationsDashboardContent() {
 
           <div className="w-full md:w-48">
             <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Source</label>
-            <select 
+            <SearchableSelect 
               value={source} 
               onChange={(e) => setSource(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="all">All Sources</option>
-              <option value="internal_form">Internal Form</option>
-              <option value="jotform">JotForm</option>
-            </select>
+              options={[
+                { value: "all", label: "All Sources" },
+                { value: "internal_form", label: "Internal Form" },
+                { value: "jotform", label: "JotForm" },
+              ]}
+              placeholder="Select source..."
+            />
           </div>
 
           <button 

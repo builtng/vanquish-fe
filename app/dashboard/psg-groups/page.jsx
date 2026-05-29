@@ -21,6 +21,7 @@ import {
   Calendar,
   Link as LinkIcon,
 } from "lucide-react";
+import SearchableSelect from "@/components/SearchableSelect";
 
 const DAY_OPTIONS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -101,16 +102,12 @@ function GroupFormModal({ group, onClose, onSaved }) {
             <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">
               Day of Week
             </label>
-            <select
+            <SearchableSelect
               value={form.day_of_week}
               onChange={(e) => setForm({ ...form, day_of_week: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm focus:ring-2 focus:ring-[#6f1c56] outline-none transition-all"
-            >
-              <option value="">— Select day —</option>
-              {DAY_OPTIONS.map((d) => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
+              options={DAY_OPTIONS.map((d) => ({ value: d, label: d }))}
+              placeholder="— Select day —"
+            />
           </div>
 
           <div>
@@ -215,19 +212,15 @@ function AllocateModal({ group, onClose, onAllocated }) {
               <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                 Select Counsellor
               </label>
-              <select
-                required
+              <SearchableSelect
                 value={selectedTcId}
                 onChange={(e) => setSelectedTcId(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm focus:ring-2 focus:ring-[#6f1c56] outline-none transition-all"
-              >
-                <option value="">— Choose counsellor —</option>
-                {unassigned.map((tc) => (
-                  <option key={tc.id} value={tc.id}>
-                    {tc.name} ({tc.email})
-                  </option>
-                ))}
-              </select>
+                options={unassigned.map((tc) => ({
+                  value: tc.id,
+                  label: `${tc.name} (${tc.email})`,
+                }))}
+                placeholder="— Choose counsellor —"
+              />
             </div>
           )}
 
