@@ -421,7 +421,7 @@ export default function ViewAllTrainingCounsellorsPage() {
       });
 
       toast.success(
-        `Client "${formatName(client.name, "client")}" assigned to "${formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}"!\n\nClient will now move to "Agreement Pending" stage.`,
+        `Client "${formatName(client.name, "client")}" assigned to "${formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}"!\n\nClient will now move to "Matched With Counsellor" stage.`,
       );
 
       setShowAssignModal(false);
@@ -1068,9 +1068,8 @@ export default function ViewAllTrainingCounsellorsPage() {
                         After Assignment
                       </p>
                       <p className="text-sm text-green-800 dark:text-green-300">
-                        Client will move to "Agreement Pending" stage and
-                        receive an agreement form to sign before starting
-                        therapy.
+                        Client must have signed the agreement first. After assignment,
+                        they move to "Matched With Counsellor" and can book therapy sessions.
                       </p>
                     </div>
                   </div>

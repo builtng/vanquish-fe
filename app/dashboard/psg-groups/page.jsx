@@ -51,13 +51,13 @@ function GroupFormModal({ group, onClose, onSaved }) {
       if (group) {
         await apiService.request(`/attendance-groups/${group.id}`, {
           method: "PATCH",
-          data: form,
+          body: form,
         });
         success("Group updated successfully.");
       } else {
         await apiService.request("/attendance-groups", {
           method: "POST",
-          data: form,
+          body: form,
         });
         success("Group created successfully.");
       }
@@ -148,7 +148,7 @@ function GroupFormModal({ group, onClose, onSaved }) {
 
 function AllocateModal({ group, onClose, onAllocated }) {
   const { success, error: showError } = useToast();
-  const [unassigned, setUnassigned] = useState([]);
+  const [counsellors, setCounsellors] = useState([]);
   const [loadingTcs, setLoadingTcs] = useState(true);
   const [selectedTcId, setSelectedTcId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -156,10 +156,13 @@ function AllocateModal({ group, onClose, onAllocated }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await apiService.request("/attendance-groups/unassigned");
-        setUnassigned(Array.isArray(res) ? res : []);
+        const res = await apiService.request("/attendance-groups/unassigned?include_assigned=1");
+        const availableCounsellors = Array.isArray(res)
+          ? res.filter((tc) => tc.attendance_group_id !== group.id)
+          : [];
+        setCounsellors(availableCounsellors);
       } catch (err) {
-        showError("Could not load unassigned counsellors.");
+        showError("Could not load counsellors.");
       } finally {
         setLoadingTcs(false);
       }
@@ -174,7 +177,7 @@ function AllocateModal({ group, onClose, onAllocated }) {
     try {
       await apiService.request(`/attendance-groups/${group.id}/allocate`, {
         method: "POST",
-        data: { tc_id: selectedTcId },
+        body: { tc_id: selectedTcId },
       });
       success("Counsellor allocated to group.");
       onAllocated();
@@ -203,9 +206,9 @@ function AllocateModal({ group, onClose, onAllocated }) {
             <div className="flex justify-center py-8">
               <RefreshCw className="w-5 h-5 animate-spin text-gray-400" />
             </div>
-          ) : unassigned.length === 0 ? (
+          ) : counsellors.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-6">
-              All counsellors are already assigned to groups.
+              All counsellors are already assigned to this group.
             </p>
           ) : (
             <div>
@@ -215,9 +218,13 @@ function AllocateModal({ group, onClose, onAllocated }) {
               <SearchableSelect
                 value={selectedTcId}
                 onChange={(e) => setSelectedTcId(e.target.value)}
-                options={unassigned.map((tc) => ({
+                options={counsellors.map((tc) => ({
                   value: tc.id,
-                  label: `${tc.name} (${tc.email})`,
+                  label: [
+                    tc.tc_id ? `${tc.tc_id} - ${tc.name}` : tc.name,
+                    tc.email,
+                    tc.attendance_group?.name ? `Current: ${tc.attendance_group.name}` : "Unassigned",
+                  ].filter(Boolean).join(" | "),
                 }))}
                 placeholder="— Choose counsellor —"
               />
@@ -230,11 +237,11 @@ function AllocateModal({ group, onClose, onAllocated }) {
             </button>
             <button
               type="submit"
-              disabled={saving || !selectedTcId || unassigned.length === 0}
+              disabled={saving || !selectedTcId || counsellors.length === 0}
               className="flex-1 px-4 py-2.5 bg-[#6f1c56] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              Add to Group
+              Allocate
             </button>
           </div>
         </form>
@@ -257,7 +264,7 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
     try {
       await apiService.request(`/attendance-groups/${group.id}/deallocate`, {
         method: "POST",
-        data: { tc_id: tc.id },
+        body: { tc_id: tc.id },
       });
       success(`${tc.name} removed.`);
       onRefresh();
@@ -363,7 +370,9 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{tc.name}</p>
-                      <p className="text-[10px] text-gray-400 truncate">{tc.email}</p>
+                      <p className="text-[10px] text-gray-400 truncate">
+                        {[tc.tc_id, tc.email].filter(Boolean).join(" | ")}
+                      </p>
                     </div>
                   </div>
                   <button

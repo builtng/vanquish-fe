@@ -1764,7 +1764,7 @@ export default function IndividualTCDetailPage() {
                       });
 
                       showToast.success(
-                        `Client "${client.name}" assigned to "${tc.name}"! Client will now move to "Agreement Pending" stage.`,
+                        `Client "${client.name}" assigned to "${tc.name}"! Client will now move to "Matched With Counsellor" stage.`,
                       );
 
                       setShowAssignModal(false);

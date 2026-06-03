@@ -168,7 +168,7 @@ export default function IndividualClientDetailPage() {
       gender: data.gender || null,
       ethnicity: data.ethnicity || null,
       sexualOrientation: data.sexual_orientation || null,
-      stage: data.stage || "Application & Assessment form Submitted",
+      stage: data.stage || "Consultation Booked",
       status: data.status || "active",
       daysInSystem: data.submitted_date
         ? Math.floor(
@@ -180,11 +180,6 @@ export default function IndividualClientDetailPage() {
       howHeardAbout: data.how_heard_about || null,
       journey: (() => {
         const stages = [
-          {
-            name: "Application & Assessment form Submitted",
-            date: data.submitted_date,
-            isCompleted: !!data.submitted_date || !!data.id,
-          },
           {
             name: "Consultation Booked",
             date:
@@ -207,11 +202,6 @@ export default function IndividualClientDetailPage() {
               data.consultations.some((c) => c.status === "completed"),
           },
           {
-            name: "Matched with TC",
-            date: data.matched_date,
-            isCompleted: !!data.matched_date || !!data.matched_tc,
-          },
-          {
             name: "Agreement Sent",
             date: data.agreement_sent_at,
             isCompleted: !!data.agreement_sent_at,
@@ -222,21 +212,24 @@ export default function IndividualClientDetailPage() {
             isCompleted: !!data.agreement_signed_at,
           },
           {
-            name: "Sessions Bookable",
-            date: data.agreement_signed_at, // Usually bookable right after agreement
+            name: "Matched With Counsellor",
+            date: data.matched_date,
+            isCompleted: !!data.matched_date || !!data.matched_tc,
+          },
+          {
+            name: "Sessions Booked",
+            date: data.start_date,
             isCompleted:
-              !!data.agreement_signed_at &&
-              (data.status === "active" || !!data.start_date),
+              data.stage === "Sessions Booked" ||
+              data.stage === "Active Therapy" ||
+              (data.sessions && data.sessions.length > 0),
           },
           {
             name: "Active Therapy",
             date: data.start_date,
             isCompleted:
-              data.status === "active" ||
-              (data.consultations &&
-                data.consultations.filter((c) => c.status === "completed")
-                  .length > 0 &&
-                !!data.matched_tc),
+              data.stage === "Active Therapy" ||
+              (data.sessions_completed && data.sessions_completed > 0),
           },
         ];
 
@@ -354,17 +347,17 @@ export default function IndividualClientDetailPage() {
 
         // Determine status based on stage and session completion
         let status = "Not Started";
-        const stage = data.stage || "Application & Assessment form Submitted";
+        const stage = data.stage || "Consultation Booked";
         if (stage === "Completed" || sessionsCompleted >= totalSessions) {
           status = "Completed";
         } else if (stage === "Active Therapy" || sessionsCompleted > 0) {
           status = "Active";
         } else if (
           [
-            "Matched with TC",
             "Agreement Sent",
             "Agreement Signed",
-            "Sessions Bookable",
+            "Matched With Counsellor",
+            "Sessions Booked",
           ].includes(stage)
         ) {
           status = "Pending";
@@ -911,13 +904,12 @@ export default function IndividualClientDetailPage() {
 
   const handleProgressStage = () => {
     const stages = [
-      "Application & Assessment form Submitted",
       "Consultation Booked",
       "Consultation Completed",
-      "Matched with TC",
       "Agreement Sent",
       "Agreement Signed",
-      "Sessions Bookable",
+      "Matched With Counsellor",
+      "Sessions Booked",
       "Active Therapy",
     ];
     const currentIndex = stages.indexOf(client.stage);
@@ -1040,16 +1032,13 @@ export default function IndividualClientDetailPage() {
 
   const getStageBadgeColor = (stage) => {
     switch (stage) {
-      case "Application & Assessment form Submitted":
-        return "bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 border border-sky-100 dark:border-sky-800";
-
       case "Consultation Booked":
         return "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800";
 
       case "Consultation Completed":
         return "bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 border border-violet-100 dark:border-violet-800";
 
-      case "Matched with TC":
+      case "Matched With Counsellor":
         return "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-800";
 
       case "Agreement Sent":
@@ -1058,7 +1047,7 @@ export default function IndividualClientDetailPage() {
       case "Agreement Signed":
         return "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border border-orange-100 dark:border-orange-800";
 
-      case "Sessions Bookable":
+      case "Sessions Booked":
         return "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800";
 
       case "Active Therapy":

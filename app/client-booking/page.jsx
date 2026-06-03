@@ -297,6 +297,7 @@ function ClientBookingContent() {
   const upcomingSessions = clientData?.upcoming_sessions || [];
   const nextSessionNeedingBooking = clientData?.next_session_needing_booking;
   const daysUntilDeadline = client?.days_until_deadline;
+  const canBookSessions = client?.can_book_sessions !== false;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -493,23 +494,45 @@ function ClientBookingContent() {
             <h2 className="text-lg font-semibold text-gray-900">
               Upcoming Sessions
             </h2>
-            <button
-              onClick={() => {
-                setBookingType(
-                  client?.service_type === "Low Cost" ? "block" : "single",
-                );
-                setShowBookingModal(true);
-              }}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium flex items-center gap-2"
-            >
-              <Calendar className="w-4 h-4" />
-              {client?.service_type === "Low Cost"
-                ? "Book Block"
-                : "Book Session"}
-            </button>
+            {canBookSessions && (
+              <button
+                onClick={() => {
+                  setBookingType(
+                    client?.service_type === "Low Cost" ? "block" : "single",
+                  );
+                  setShowBookingModal(true);
+                }}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <Calendar className="w-4 h-4" />
+                {client?.service_type === "Low Cost"
+                  ? "Book Block"
+                  : "Book Session"}
+              </button>
+            )}
           </div>
 
-          {upcomingSessions.length === 0 ? (
+          {!canBookSessions ? (
+            <div className="text-center py-12">
+              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+              <p className="text-gray-900 font-semibold">Your consultation is booked</p>
+              {client?.consultation?.scheduled_at && (
+                <p className="text-gray-600 mt-1">
+                  {new Date(client.consultation.scheduled_at).toLocaleString("en-GB", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              )}
+              <p className="text-sm text-gray-500 mt-3">
+                Therapy session booking will open after your agreement is signed and you are matched with a counsellor.
+              </p>
+            </div>
+          ) : upcomingSessions.length === 0 ? (
             <div className="text-center py-12">
               <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">No upcoming sessions scheduled</p>

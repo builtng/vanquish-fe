@@ -87,6 +87,12 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
       href: "/counsellor-portal/pages/psg-progress",
     },
     {
+      id: "forms",
+      label: "Forms",
+      icon: FileText,
+      href: "/counsellor-portal/forms",
+    },
+    {
       id: "files",
       label: "Resources",
       icon: Files,
@@ -180,6 +186,8 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
                 pathname?.startsWith("/counsellor-portal/pages/psg-form")) ||
               (item.id === "psg-progress" &&
                 pathname?.startsWith("/counsellor-portal/pages/psg-progress")) ||
+              (item.id === "forms" &&
+                pathname?.startsWith("/counsellor-portal/forms")) ||
               (item.id === "overview" && pathname === "/counsellor-portal"));
 
           const isAnySubActive =

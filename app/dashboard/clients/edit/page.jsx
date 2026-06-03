@@ -446,7 +446,7 @@ function EditClientPageContent() {
           partner_phone: formData.partnerPhone,
           working_with_another_reason: formData.workingWithAnotherReason,
           referral_type: formData.referralType,
-          stage: "Application & Assessment form Submitted",
+          stage: "Consultation Booked",
           status: "active",
         });
 

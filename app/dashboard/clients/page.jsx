@@ -96,7 +96,7 @@ export default function ViewAllClients() {
         age: client.age || null,
         email: client.email || "",
         phone: client.phone || "",
-        stage: client.stage || "Application & Assessment form Submitted",
+        stage: client.stage || "Consultation Booked",
         matchedTC: client.matched_tc
           ? client.matched_tc.name || client.matched_tc.full_name
           : null,
@@ -160,19 +160,17 @@ export default function ViewAllClients() {
 
   const getStageBadgeColor = (stage) => {
     switch (stage) {
-      case "Application & Assessment form Submitted":
-        return "bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200";
       case "Consultation Booked":
         return "bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200";
       case "Consultation Completed":
         return "bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200";
-      case "Matched with TC":
+      case "Matched With Counsellor":
         return "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200";
       case "Agreement Sent":
         return "bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-200";
       case "Agreement Signed":
         return "bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200";
-      case "Sessions Bookable":
+      case "Sessions Booked":
         return "bg-indigo-100 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200";
       case "Active Therapy":
         return "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200";
@@ -529,10 +527,6 @@ export default function ViewAllClients() {
                   options={[
                     { value: "all", label: "All Stages" },
                     {
-                      value: "Application & Assessment form Submitted",
-                      label: "Application & Assessment form Submitted",
-                    },
-                    {
                       value: "Consultation Booked",
                       label: "Consultation Booked",
                     },
@@ -541,12 +535,12 @@ export default function ViewAllClients() {
                       label: "Consultation Completed",
                     },
                     {
-                      value: "Matched with TC",
+                      value: "Matched With Counsellor",
                       label: "Matched with Counsellor",
                     },
                     { value: "Agreement Sent", label: "Agreement Sent" },
                     { value: "Agreement Signed", label: "Agreement Signed" },
-                    { value: "Sessions Bookable", label: "Sessions Bookable" },
+                    { value: "Sessions Booked", label: "Sessions Booked" },
                     { value: "Active Therapy", label: "Active Therapy" },
                   ]}
                   placeholder="All Stages"
