@@ -1474,18 +1474,18 @@ export default function IndividualClientDetailPage() {
 
                   <div className="relative pt-4 pb-12">
                     {/* Timeline Line */}
-                    <div className="absolute top-12 left-0 right-0 h-1.5 bg-slate-100 rounded-full"></div>
+                    <div className="absolute top-12 left-[60px] right-[60px] h-1.5 bg-slate-100 rounded-full"></div>
                     <div
-                      className="absolute top-12 left-0 h-1.5 bg-[var(--accent-color)] transition-all duration-1000 ease-out rounded-full shadow-[0_0_15px_rgba(111,29,86,0.3)]"
+                      className="absolute top-12 left-[60px] h-1.5 bg-[var(--accent-color)] transition-all duration-1000 ease-out rounded-full shadow-[0_0_15px_rgba(111,29,86,0.3)]"
                       style={{
-                        width: `${
-                          client.journey && client.journey.length > 0
-                            ? ((client.journey.findIndex((j) => j.current) !== -1
+                        width: client.journey && client.journey.length > 0
+                          ? `calc(${
+                              (client.journey.findIndex((j) => j.current) !== -1
                                 ? client.journey.findIndex((j) => j.current) + 0.5
                                 : client.journey.filter((j) => j.completed).length) /
-                                (client.journey.length - 1)) * 100
-                            : 0
-                        }%`,
+                              (client.journey.length - 1)
+                            } * (100% - 120px))`
+                          : "0px",
                       }}
                     ></div>
 

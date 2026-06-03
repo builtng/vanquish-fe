@@ -135,6 +135,7 @@ export default function ViewAllTrainingCounsellorsPage() {
         joinedDate: tc.joined_date,
         lastActivity: tc.last_activity ? new Date(tc.last_activity) : null,
         qualified_form_completed: tc.qualified_form_completed || false,
+        not_onboarded_properly: tc.not_onboarded_properly || false,
         createdAt: tc.created_at || null,
       }));
 
@@ -767,7 +768,14 @@ export default function ViewAllTrainingCounsellorsPage() {
                       {tc.modality} Specialist
                     </p>
 
-                    {getStatusBadge(tc.status, tc.currentClients)}
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {getStatusBadge(tc.status, tc.currentClients)}
+                      {tc.not_onboarded_properly && (
+                        <span className="px-3 py-1 bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-400 ring-1 ring-inset ring-rose-600/20 dark:ring-rose-500/30 text-xs font-medium rounded-full flex items-center gap-1 w-fit animate-pulse">
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" /> Onboarding Incomplete
+                        </span>
+                      )}
+                    </div>
 
                     <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Clock className="w-3.5 h-3.5" />

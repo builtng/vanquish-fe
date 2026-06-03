@@ -135,6 +135,7 @@ export default function IndividualTCDetailPage() {
           status: data.status,
           counsellor_type: data.counsellor_type || "Trainee",
           qualified_form_completed: data.qualified_form_completed || false,
+          not_onboarded_properly: data.not_onboarded_properly || false,
           modality: data.modality || "",
 
           // Overview stats
@@ -446,6 +447,12 @@ export default function IndividualTCDetailPage() {
                       }`}>
                         {tc.counsellor_type || "Trainee"}
                       </div>
+
+                      {tc.not_onboarded_properly && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-400 ring-1 ring-inset ring-rose-600/20 dark:ring-rose-500/30 text-xs font-bold rounded-full animate-pulse shadow-sm">
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" /> Onboarding Incomplete
+                        </div>
+                      )}
 
                       <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
 
