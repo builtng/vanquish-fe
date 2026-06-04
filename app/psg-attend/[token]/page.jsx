@@ -326,10 +326,11 @@ export default function PsgPublicAttendancePage() {
                             : "bg-red-50/5 border-red-100 dark:bg-red-950/5 dark:border-red-900/10"
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          {/* Name and Avatar */}
                           <div
                             onClick={() => handleToggleAttendance(tc.id)}
-                            className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"
+                            className="flex items-center gap-3 cursor-pointer min-w-[180px] sm:max-w-[240px] flex-shrink-0"
                           >
                             <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
                               isPresent
@@ -346,6 +347,19 @@ export default function PsgPublicAttendancePage() {
                             </div>
                           </div>
 
+                          {/* Inline Optional Comment Section */}
+                          <div className="flex-1 min-w-0">
+                            <input
+                              type="text"
+                              placeholder="Optional comment/notes for this counsellor..."
+                              value={commentValue}
+                              onChange={(e) => handleCommentChange(tc.id, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-xs focus:ring-1 focus:ring-[#6f1c56] outline-none transition-all placeholder:text-gray-400"
+                            />
+                          </div>
+
+                          {/* Present/Absent Checkbox */}
                           <div className="flex-shrink-0 flex items-center gap-2.5">
                             <label className="relative flex items-center justify-center cursor-pointer select-none">
                               <input
@@ -382,18 +396,6 @@ export default function PsgPublicAttendancePage() {
                               Present
                             </span>
                           </div>
-                        </div>
-
-                        {/* Optional Comment Section */}
-                        <div className="mt-3">
-                          <input
-                            type="text"
-                            placeholder="Optional comment/notes for this counsellor..."
-                            value={commentValue}
-                            onChange={(e) => handleCommentChange(tc.id, e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-xs focus:ring-1 focus:ring-[#6f1c56] outline-none transition-all"
-                          />
                         </div>
                       </div>
                     );
