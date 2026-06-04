@@ -291,6 +291,11 @@ export default function AttendanceProgressPage() {
                           Note: {session.notes}
                         </div>
                       )}
+                      {session.comment && (
+                        <div className="mt-2 text-[11px] text-[#6f1c56] dark:text-pink-400 font-bold bg-pink-50/10 dark:bg-pink-900/10 p-2.5 rounded-xl border border-pink-100/60 dark:border-pink-900/30">
+                          Supervisor Feedback: "{session.comment}"
+                        </div>
+                      )}
                     </div>
                   ))}
                   {psgSessions.length > 5 && (

@@ -31,6 +31,7 @@ export default function PsgPublicAttendancePage() {
   const [activities, setActivities] = useState("");
   const [notes, setNotes] = useState("");
   const [attendance, setAttendance] = useState({});
+  const [comments, setComments] = useState({});
 
   useEffect(() => {
     if (token) {
@@ -48,10 +49,13 @@ export default function PsgPublicAttendancePage() {
       
       // Initialize all counsellors as present (true)
       const initialAttendance = {};
+      const initialComments = {};
       (data.counsellors || []).forEach(tc => {
         initialAttendance[tc.id] = true;
+        initialComments[tc.id] = "";
       });
       setAttendance(initialAttendance);
+      setComments(initialComments);
     } catch (err) {
       console.error("Error loading group details:", err);
       setError(err?.message || "Invalid or expired attendance link. Please verify the URL.");
@@ -64,6 +68,13 @@ export default function PsgPublicAttendancePage() {
     setAttendance(prev => ({
       ...prev,
       [id]: !prev[id]
+    }));
+  };
+
+  const handleCommentChange = (id, val) => {
+    setComments(prev => ({
+      ...prev,
+      [id]: val
     }));
   };
 
@@ -95,6 +106,7 @@ export default function PsgPublicAttendancePage() {
         activities: activities,
         notes: notes,
         attendance: attendance,
+        comments: comments,
       });
       setSubmitted(true);
     } catch (err) {
@@ -151,6 +163,7 @@ export default function PsgPublicAttendancePage() {
                 setSubmitted(false);
                 setActivities("");
                 setNotes("");
+                setComments({});
                 // keep supervisor name for quick next entry
               }}
               className="w-full py-2.5 bg-[#6f1c56] text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all shadow-md shadow-[#6f1c56]/20 active:scale-95"
@@ -300,46 +313,87 @@ export default function PsgPublicAttendancePage() {
                   No counsellors currently assigned to this group.
                 </p>
               ) : (
-                <div className="divide-y divide-gray-100 dark:divide-gray-800 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden max-h-72 overflow-y-auto">
+                <div className="space-y-3">
                   {counsellors.map((tc) => {
                     const isPresent = !!attendance[tc.id];
+                    const commentValue = comments[tc.id] || "";
                     return (
                       <div
                         key={tc.id}
-                        onClick={() => handleToggleAttendance(tc.id)}
-                        className={`flex items-center justify-between gap-4 p-3.5 cursor-pointer transition-colors ${
-                          isPresent 
-                            ? "bg-green-50/20 hover:bg-green-50/40 dark:bg-green-950/5 dark:hover:bg-green-950/10" 
-                            : "bg-red-50/10 hover:bg-red-50/25 dark:bg-red-950/5 dark:hover:bg-red-950/10"
+                        className={`border rounded-2xl p-4 transition-all ${
+                          isPresent
+                            ? "bg-green-50/10 border-green-100 dark:bg-green-950/5 dark:border-green-900/20"
+                            : "bg-red-50/5 border-red-100 dark:bg-red-950/5 dark:border-red-900/10"
                         }`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
-                            isPresent 
-                              ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                              : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                          }`}>
-                            {tc.name?.[0]}
+                        <div className="flex items-center justify-between gap-4">
+                          <div
+                            onClick={() => handleToggleAttendance(tc.id)}
+                            className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"
+                          >
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
+                              isPresent
+                                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                            }`}>
+                              {tc.name?.[0]}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{tc.name}</p>
+                              <p className="text-[10px] text-gray-400 truncate">
+                                {tc.tc_id ? `${tc.tc_id} | ${tc.email}` : tc.email}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{tc.name}</p>
-                            <p className="text-[10px] text-gray-400 truncate">
-                              {tc.tc_id ? `${tc.tc_id} | ${tc.email}` : tc.email}
-                            </p>
+
+                          <div className="flex-shrink-0 flex items-center gap-2.5">
+                            <label className="relative flex items-center justify-center cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={isPresent}
+                                onChange={() => handleToggleAttendance(tc.id)}
+                                className="sr-only"
+                              />
+                              <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 ${
+                                isPresent
+                                  ? "bg-[#6f1c56] border-[#6f1c56] shadow-md shadow-[#6f1c56]/20 text-white scale-105"
+                                  : "border-gray-300 dark:border-gray-600 bg-transparent text-transparent hover:border-gray-400 dark:hover:border-gray-500"
+                              }`}>
+                                <svg
+                                  className={`w-3.5 h-3.5 stroke-[3] transition-transform duration-200 ${
+                                    isPresent ? "scale-100 rotate-0" : "scale-0 rotate-12"
+                                  }`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              </div>
+                            </label>
+                            <span
+                              onClick={() => handleToggleAttendance(tc.id)}
+                              className="text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                            >
+                              Present
+                            </span>
                           </div>
                         </div>
 
-                        <div className="flex-shrink-0">
-                          <button
-                            type="button"
-                            className={`w-16 py-1 rounded-full text-[10px] font-black uppercase text-center transition-all ${
-                              isPresent
-                                ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-900/20"
-                                : "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900/20"
-                            }`}
-                          >
-                            {isPresent ? "Present" : "Absent"}
-                          </button>
+                        {/* Optional Comment Section */}
+                        <div className="mt-3">
+                          <input
+                            type="text"
+                            placeholder="Optional comment/notes for this counsellor..."
+                            value={commentValue}
+                            onChange={(e) => handleCommentChange(tc.id, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-xs focus:ring-1 focus:ring-[#6f1c56] outline-none transition-all"
+                          />
                         </div>
                       </div>
                     );

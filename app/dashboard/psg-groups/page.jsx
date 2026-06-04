@@ -253,6 +253,7 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
   const [sessions, setSessions] = useState([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   const handleCopyLink = () => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -261,6 +262,19 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
     setCopied(true);
     success("Attendance link copied to clipboard.");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleToggleStatus = async () => {
+    setToggling(true);
+    try {
+      await apiService.toggleGroupStatus(group.id);
+      success(`Group "${group.name}" is now ${!group.is_active ? "Active" : "Inactive"}.`);
+      onRefresh();
+    } catch (err) {
+      showError("Failed to toggle group status.");
+    } finally {
+      setToggling(false);
+    }
   };
 
   const handleToggleSessions = async () => {
@@ -309,7 +323,9 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
         />
       )}
 
-      <div className="bg-white dark:bg-[var(--card-bg)] rounded-2xl border border-gray-200 dark:border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 group">
+      <div className={`bg-white dark:bg-[var(--card-bg)] rounded-2xl border border-gray-200 dark:border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 group ${
+        !group.is_active ? "opacity-75" : ""
+      }`}>
         {/* Card Header */}
         <div className={`bg-gradient-to-r ${gradient} p-5 text-white relative`}>
           <div className="flex items-start justify-between">
@@ -318,7 +334,16 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-black text-lg leading-tight">{group.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-black text-lg leading-tight">{group.name}</h3>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    group.is_active
+                      ? "bg-green-500/20 text-green-200 border border-green-500/30"
+                      : "bg-red-500/20 text-red-200 border border-red-500/30"
+                  }`}>
+                    {group.is_active ? "Active" : "Inactive"}
+                  </span>
+                </div>
                 {group.day_of_week && (
                   <div className="flex items-center gap-1.5 text-white/80 text-xs font-medium mt-0.5">
                     <Calendar className="w-3 h-3" />
@@ -360,6 +385,21 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
                 {copied ? "Copied!" : "Attendance Link"}
               </button>
             )}
+            <button
+              onClick={handleToggleStatus}
+              disabled={toggling}
+              className={`flex items-center gap-1.5 bg-white/15 hover:bg-white/25 rounded-xl px-3 py-1.5 text-xs font-bold transition-all active:scale-95 text-white`}
+              title={group.is_active ? "Deactivate Group" : "Activate Group"}
+            >
+              {toggling ? (
+                <RefreshCw className="w-3 h-3 animate-spin" />
+              ) : group.is_active ? (
+                <XCircle className="w-3 h-3 text-red-200" />
+              ) : (
+                <CheckCircle2 className="w-3 h-3 text-green-200" />
+              )}
+              {group.is_active ? "Deactivate" : "Activate"}
+            </button>
           </div>
         </div>
 
@@ -482,24 +522,31 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
                           </div>
                         )}
 
-                        {/* Attendee badges */}
+                        {/* Attendee list */}
                         {session.attendees && session.attendees.length > 0 && (
-                          <div className="px-4 pb-3">
-                            <div className="flex flex-wrap gap-1.5 mt-1">
+                          <div className="px-4 pb-3 pt-2.5 border-t border-gray-100 dark:border-gray-800/60 space-y-2 bg-white/40 dark:bg-black/10">
+                            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Counsellor Attendance</p>
+                            <div className="space-y-2">
                               {session.attendees.map((a) => (
-                                <span
-                                  key={a.id}
-                                  className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                    a.attended
-                                      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-                                      : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 line-through opacity-70"
-                                  }`}
-                                >
-                                  {a.attended
-                                    ? <CheckCircle2 className="w-2.5 h-2.5" />
-                                    : <XCircle className="w-2.5 h-2.5" />}
-                                  {a.training_counsellor?.name ?? "Unknown"}
-                                </span>
+                                <div key={a.id} className="text-xs">
+                                  <div className="flex items-center justify-between">
+                                    <span className={`font-medium ${a.attended ? "text-gray-700 dark:text-gray-300" : "text-gray-400 line-through"}`}>
+                                      {a.training_counsellor?.name ?? "Unknown"}
+                                    </span>
+                                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                                      a.attended
+                                        ? "bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-900/20"
+                                        : "bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/20"
+                                    }`}>
+                                      {a.attended ? "Present" : "Absent"}
+                                    </span>
+                                  </div>
+                                  {a.comment && (
+                                    <p className="text-[11px] text-[#6f1c56] dark:text-pink-400 italic mt-0.5 pl-2 border-l border-pink-200 dark:border-pink-900/40">
+                                      "{a.comment}"
+                                    </p>
+                                  )}
+                                </div>
                               ))}
                             </div>
                           </div>
