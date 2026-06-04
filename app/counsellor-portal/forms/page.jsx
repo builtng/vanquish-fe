@@ -5,7 +5,7 @@ import Link from "next/link";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import apiService from "@/lib/api";
-import { CLINICAL_PROGRESS_FORMS, PSG_ATTENDANCE_FORMS } from "@/lib/counsellorForms";
+import { CLINICAL_PROGRESS_FORMS } from "@/lib/counsellorForms";
 import { ChevronRight, ExternalLink, RefreshCw } from "lucide-react";
 
 function FormCard({ form }) {
@@ -89,17 +89,6 @@ export default function CounsellorFormsPage() {
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {CLINICAL_PROGRESS_FORMS.map((form) => (
-                    <FormCard key={form.slug} form={form} />
-                  ))}
-                </div>
-              </section>
-
-              <section className="space-y-4">
-                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                  PSG Attendance Forms
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {PSG_ATTENDANCE_FORMS.map((form) => (
                     <FormCard key={form.slug} form={form} />
                   ))}
                 </div>

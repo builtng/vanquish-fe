@@ -20,6 +20,11 @@ import {
   ChevronUp,
   Calendar,
   Link as LinkIcon,
+  Copy,
+  ClipboardList,
+  CheckCircle2,
+  XCircle,
+  BookOpen,
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 
@@ -39,7 +44,6 @@ function GroupFormModal({ group, onClose, onSaved }) {
   const { success, error: showError } = useToast();
   const [form, setForm] = useState({
     name: group?.name || "",
-    supervisor_link: group?.supervisor_link || "",
     day_of_week: group?.day_of_week || "",
   });
   const [saving, setSaving] = useState(false);
@@ -110,18 +114,7 @@ function GroupFormModal({ group, onClose, onSaved }) {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">
-              Supervisor Link
-            </label>
-            <input
-              type="url"
-              value={form.supervisor_link}
-              onChange={(e) => setForm({ ...form, supervisor_link: e.target.value })}
-              placeholder="https://form.jotform.com/..."
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm focus:ring-2 focus:ring-[#6f1c56] outline-none transition-all"
-            />
-          </div>
+
 
           <div className="flex gap-3 pt-2">
             <button
@@ -255,6 +248,37 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
   const [expanded, setExpanded] = useState(false);
   const [showAllocate, setShowAllocate] = useState(false);
   const [removingId, setRemovingId] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [showSessions, setShowSessions] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+
+  const handleCopyLink = () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/psg-attend/${group.public_token}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    success("Attendance link copied to clipboard.");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleToggleSessions = async () => {
+    const next = !showSessions;
+    setShowSessions(next);
+    if (next && !sessionsLoaded) {
+      setSessionsLoading(true);
+      try {
+        const data = await apiService.getGroupSessions(group.id);
+        setSessions(Array.isArray(data) ? data : []);
+        setSessionsLoaded(true);
+      } catch (err) {
+        showError("Failed to load session logs.");
+      } finally {
+        setSessionsLoading(false);
+      }
+    }
+  };
 
   const gradient = GRADIENT_MAP[group.day_of_week] || "from-[#6f1c56] to-purple-600";
 
@@ -327,17 +351,14 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
             <div className="bg-white/15 rounded-xl px-3 py-1.5 text-xs font-bold">
               {group.training_counsellors_count ?? group.training_counsellors?.length ?? 0} Counsellors
             </div>
-            {group.supervisor_link && (
-              <a
-                href={group.supervisor_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 bg-white/15 hover:bg-white/25 rounded-xl px-3 py-1.5 text-xs font-bold transition-colors"
+            {group.public_token && (
+              <button
+                onClick={handleCopyLink}
+                className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 rounded-xl px-3 py-1.5 text-xs font-bold transition-all active:scale-95 text-white"
               >
-                <LinkIcon className="w-3 h-3" />
-                Supervisor Link
-                <ExternalLink className="w-3 h-3 opacity-70" />
-              </a>
+                {copied ? <Check className="w-3 h-3 text-green-300" /> : <Copy className="w-3 h-3" />}
+                {copied ? "Copied!" : "Attendance Link"}
+              </button>
             )}
           </div>
         </div>
@@ -398,6 +419,98 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
             <UserPlus className="w-4 h-4" />
             Add Counsellor
           </button>
+
+          {/* Session History Toggle */}
+          <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-3">
+            <button
+              onClick={handleToggleSessions}
+              className="w-full flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-[#6f1c56] transition-colors uppercase tracking-widest mb-2"
+            >
+              <span className="flex items-center gap-1.5">
+                <ClipboardList className="w-3.5 h-3.5" />
+                Session History {sessionsLoaded ? `(${sessions.length})` : ""}
+              </span>
+              {showSessions ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+
+            {showSessions && (
+              <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
+                {sessionsLoading ? (
+                  <div className="flex justify-center py-6">
+                    <RefreshCw className="w-4 h-4 animate-spin text-gray-400" />
+                  </div>
+                ) : sessions.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-gray-400 italic">
+                    No sessions logged yet for this group.
+                  </div>
+                ) : (
+                  sessions.map((session) => {
+                    const attended = session.attendees?.filter(a => a.attended) ?? [];
+                    const absent = session.attendees?.filter(a => !a.attended) ?? [];
+                    return (
+                      <div
+                        key={session.id}
+                        className="rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden bg-gray-50 dark:bg-gray-900/40"
+                      >
+                        {/* Session header */}
+                        <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+                          <div>
+                            <p className="text-xs font-black text-gray-800 dark:text-gray-200">
+                              {new Date(`${session.session_date}T00:00:00`).toLocaleDateString("en-GB", {
+                                weekday: "short", day: "numeric", month: "short", year: "numeric"
+                              })}
+                            </p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Supervisor: {session.supervisor_name}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full">
+                              <CheckCircle2 className="w-2.5 h-2.5" />{attended.length}
+                            </span>
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-900/20 dark:text-red-400 px-2 py-0.5 rounded-full">
+                              <XCircle className="w-2.5 h-2.5" />{absent.length}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Activities */}
+                        {session.activities && (
+                          <div className="px-4 py-2.5">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                              <BookOpen className="w-3 h-3" /> Activities
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{session.activities}</p>
+                          </div>
+                        )}
+
+                        {/* Attendee badges */}
+                        {session.attendees && session.attendees.length > 0 && (
+                          <div className="px-4 pb-3">
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {session.attendees.map((a) => (
+                                <span
+                                  key={a.id}
+                                  className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    a.attended
+                                      ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                      : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 line-through opacity-70"
+                                  }`}
+                                >
+                                  {a.attended
+                                    ? <CheckCircle2 className="w-2.5 h-2.5" />
+                                    : <XCircle className="w-2.5 h-2.5" />}
+                                  {a.training_counsellor?.name ?? "Unknown"}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>

@@ -62,6 +62,46 @@ import {
 import PhotoUpload from "@/components/PhotoUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 
+/**
+ * Normalise a stored document URL so it always points to the current backend.
+ * - Relative /storage/... paths → prepend backend base
+ * - Absolute URLs with a different host (e.g. localhost) → rebase to current backend
+ * - Relative paths not starting with /storage/ → prepend backend base + /storage/
+ * - External CDN URLs (JotForm, etc.) → pass through unchanged
+ */
+function resolveDocUrl(storedUrl) {
+  if (!storedUrl) return null;
+
+  // Derive backend base from the API URL (strip trailing /api)
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+  const backendBase = apiBase.replace(/\/api\/?$/, "");
+
+  // Already a relative storage path
+  if (storedUrl.startsWith("/storage/")) {
+    return backendBase + storedUrl;
+  }
+
+  // Extract the /storage/... portion from any absolute URL
+  const match = storedUrl.match(/(\/storage\/.+)/);
+  if (match) {
+    // Only rebase if it's a localhost / dev URL — otherwise keep original
+    const isDevUrl =
+      storedUrl.includes("localhost") ||
+      storedUrl.includes("127.0.0.1") ||
+      storedUrl.includes("0.0.0.0");
+    return isDevUrl ? backendBase + match[1] : storedUrl;
+  }
+
+  // If it's a relative path, prepend backend base + /storage/
+  if (!storedUrl.startsWith("http://") && !storedUrl.startsWith("https://")) {
+    const cleanUrl = storedUrl.startsWith("/") ? storedUrl.slice(1) : storedUrl;
+    return `${backendBase}/storage/${cleanUrl}`;
+  }
+
+  // External URL (JotForm CDN, etc.) — use as-is
+  return storedUrl;
+}
+
 export default function IndividualTCDetailPage() {
   const pathname = usePathname();
   const params = useParams();
@@ -1215,9 +1255,7 @@ export default function IndividualTCDetailPage() {
                                   onClick={() => {
                                     // Create download link
                                     const link = document.createElement("a");
-                                    link.href = doc.url.startsWith("http")
-                                      ? doc.url
-                                      : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/storage/${doc.url}`;
+                                    link.href = resolveDocUrl(doc.url);
                                     link.download = doc.name || "document";
                                     link.target = "_blank";
                                     link.click();

@@ -36,6 +36,9 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
 
   const [expandedItems, setExpandedItems] = useState({
     messages: pathname?.startsWith("/counsellor-portal/messages"),
+    psg:
+      pathname?.startsWith("/counsellor-portal/pages/psg-form") ||
+      pathname?.startsWith("/counsellor-portal/pages/psg-progress"),
   });
 
   const toggleExpanded = (id) => {
@@ -76,15 +79,23 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
     },
     {
       id: "psg",
-      label: "PSG Form",
-      icon: FileText,
-      href: "/counsellor-portal/pages/psg-form",
-    },
-    {
-      id: "psg-progress",
-      label: "Attendance & Progress",
+      label: "PSG",
       icon: BarChart2,
-      href: "/counsellor-portal/pages/psg-progress",
+      isExpandable: true,
+      expanded: expandedItems.psg,
+      onToggle: () => toggleExpanded("psg"),
+      subItems: [
+        {
+          id: "psg-form",
+          label: "PSG Forms",
+          href: "/counsellor-portal/pages/psg-form",
+        },
+        {
+          id: "psg-progress",
+          label: "Attendance & Progress",
+          href: "/counsellor-portal/pages/psg-progress",
+        },
+      ],
     },
     {
       id: "forms",
@@ -182,10 +193,6 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
                 pathname?.startsWith("/counsellor-portal/files")) ||
               (item.id === "notes" &&
                 pathname?.startsWith("/counsellor-portal/pages/session-notes")) ||
-              (item.id === "psg" &&
-                pathname?.startsWith("/counsellor-portal/pages/psg-form")) ||
-              (item.id === "psg-progress" &&
-                pathname?.startsWith("/counsellor-portal/pages/psg-progress")) ||
               (item.id === "forms" &&
                 pathname?.startsWith("/counsellor-portal/forms")) ||
               (item.id === "overview" && pathname === "/counsellor-portal"));
