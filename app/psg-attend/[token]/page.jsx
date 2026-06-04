@@ -178,7 +178,7 @@ export default function PsgPublicAttendancePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#121212] py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-8">
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#6f1c56]/10 flex items-center justify-center mb-3">
@@ -202,7 +202,7 @@ export default function PsgPublicAttendancePage() {
         <form onSubmit={handleSubmit} className="bg-white dark:bg-[#1e1e1e] rounded-3xl border border-gray-200 dark:border-[#2d2d2d] shadow-xl overflow-hidden">
           {/* Group Header Info */}
           <div className="bg-gradient-to-r from-[#6f1c56] to-purple-800 p-6 text-white">
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest bg-white/20 px-2 py-0.5 rounded-md">
                   Active Group
@@ -213,8 +213,8 @@ export default function PsgPublicAttendancePage() {
                   Scheduled: {group?.day_of_week}s
                 </div>
               </div>
-              <div className="text-right">
-                <span className="text-xs font-black bg-white/25 rounded-full px-3 py-1">
+              <div className="text-left sm:text-right">
+                <span className="text-xs font-black bg-white/25 rounded-full px-3 py-1 inline-block">
                   {counsellors.length} Counsellors
                 </span>
               </div>
