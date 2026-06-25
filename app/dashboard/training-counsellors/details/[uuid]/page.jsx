@@ -63,43 +63,39 @@ import PhotoUpload from "@/components/PhotoUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 
 /**
- * Normalise a stored document URL so it always points to the current backend.
- * - Relative /storage/... paths → prepend backend base
- * - Absolute URLs with a different host (e.g. localhost) → rebase to current backend
- * - Relative paths not starting with /storage/ → prepend backend base + /storage/
- * - External CDN URLs (JotForm, etc.) → pass through unchanged
+ * Resolve a document URL for viewing/downloading.
+ * External URLs (JotForm CDN, S3, etc.) are used as-is.
+ * Local storage paths are routed through the secure API serve endpoint.
  */
-function resolveDocUrl(storedUrl) {
+function resolveDocUrl(storedUrl, tcUuid, fieldName) {
   if (!storedUrl) return null;
 
-  // Derive backend base from the API URL (strip trailing /api)
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-  const backendBase = apiBase.replace(/\/api\/?$/, "");
-
-  // Already a relative storage path
-  if (storedUrl.startsWith("/storage/")) {
-    return backendBase + storedUrl;
-  }
-
-  // Extract the /storage/... portion from any absolute URL
-  const match = storedUrl.match(/(\/storage\/.+)/);
-  if (match) {
-    // Only rebase if it's a localhost / dev URL — otherwise keep original
+  // Already an external URL — use directly
+  if (storedUrl.startsWith("http://") || storedUrl.startsWith("https://")) {
+    // Rebase localhost/dev URLs to the production backend
     const isDevUrl =
       storedUrl.includes("localhost") ||
       storedUrl.includes("127.0.0.1") ||
       storedUrl.includes("0.0.0.0");
-    return isDevUrl ? backendBase + match[1] : storedUrl;
+    if (!isDevUrl) return storedUrl;
+
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+    const backendBase = apiBase.replace(/\/api\/?$/, "");
+    const match = storedUrl.match(/(\/storage\/.+)/);
+    return match ? backendBase + match[1] : storedUrl;
   }
 
-  // If it's a relative path, prepend backend base + /storage/
-  if (!storedUrl.startsWith("http://") && !storedUrl.startsWith("https://")) {
-    const cleanUrl = storedUrl.startsWith("/") ? storedUrl.slice(1) : storedUrl;
-    return `${backendBase}/storage/${cleanUrl}`;
+  // Local file — route through authenticated API endpoint to avoid symlink/CORS issues
+  if (tcUuid && fieldName) {
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+    return `${apiBase}/training-counsellors/${tcUuid}/document/${fieldName}`;
   }
 
-  // External URL (JotForm CDN, etc.) — use as-is
-  return storedUrl;
+  // Fallback: prepend storage base
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+  const backendBase = apiBase.replace(/\/api\/?$/, "");
+  const cleanUrl = storedUrl.startsWith("/") ? storedUrl.slice(1) : storedUrl;
+  return `${backendBase}/storage/${cleanUrl}`;
 }
 
 export default function IndividualTCDetailPage() {
@@ -1252,16 +1248,39 @@ export default function IndividualTCDetailPage() {
                               {doc.status && getDocumentStatusBadge(doc.status)}
                               {doc.url && (
                                 <button
-                                  onClick={() => {
-                                    // Create download link
-                                    const link = document.createElement("a");
-                                    link.href = resolveDocUrl(doc.url);
-                                    link.download = doc.name || "document";
-                                    link.target = "_blank";
-                                    link.click();
+                                  onClick={async () => {
+                                    const resolvedUrl = resolveDocUrl(doc.url, uuid, doc.id);
+                                    if (!resolvedUrl) return;
+
+                                    // For external/storage URLs that go through the API, attach auth token
+                                    const isApiUrl = resolvedUrl.includes("/api/training-counsellors/");
+                                    if (isApiUrl) {
+                                      try {
+                                        const token = apiService.getToken();
+                                        const response = await fetch(resolvedUrl, {
+                                          headers: { Authorization: `Bearer ${token}` },
+                                        });
+                                        if (!response.ok) throw new Error("Failed to fetch document");
+                                        const blob = await response.blob();
+                                        const blobUrl = URL.createObjectURL(blob);
+                                        const link = document.createElement("a");
+                                        link.href = blobUrl;
+                                        link.download = doc.name || "document";
+                                        link.target = "_blank";
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+                                      } catch (err) {
+                                        console.error("Document download error:", err);
+                                        alert("Failed to open document. Please try again.");
+                                      }
+                                    } else {
+                                      window.open(resolvedUrl, "_blank", "noopener,noreferrer");
+                                    }
                                   }}
                                   className="p-2 hover:bg-muted rounded-lg"
-                                  title="Download"
+                                  title="View / Download"
                                 >
                                   <Download className="w-4 h-4 text-muted-foreground" />
                                 </button>
