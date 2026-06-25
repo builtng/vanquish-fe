@@ -40,6 +40,8 @@ import {
   Files,
   FileText,
   Users2,
+  Search,
+  X,
 } from "lucide-react";
 
 export default function DashboardSidebar() {
@@ -49,6 +51,7 @@ export default function DashboardSidebar() {
   const { branding } = useBranding();
   const { theme } = useTheme();
   const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const [searchQuery, setSearchQuery] = useState("");
   
   const [consultationCounts, setConsultationCounts] = useState({
     today: 0,
@@ -239,6 +242,16 @@ export default function DashboardSidebar() {
     pathname === "/dashboard/settings" ||
     pathname === "/dashboard/session-notes"
   );
+
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      setAppsExpanded(true);
+      setConsultExpanded(true);
+      setTcExpanded(true);
+      setCommExpanded(true);
+      setSettingsExpanded(true);
+    }
+  }, [searchQuery]);
 
   const menuItems = [
     { id: "overview", icon: Home, label: "Overview", href: "/dashboard" },
@@ -454,7 +467,7 @@ export default function DashboardSidebar() {
   ];
 
   // Role-based filtering logic
-  const filteredMenuItems = menuItems.filter((item) => {
+  const roleFilteredMenuItems = menuItems.filter((item) => {
     const userRole = user?.role;
 
     // Admin/Super Admin: check against fetched privileges (if loaded), otherwise see everything
@@ -527,6 +540,30 @@ export default function DashboardSidebar() {
     return false;
   });
 
+  const filteredMenuItems = roleFilteredMenuItems.map((item) => {
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesParent = item.label.toLowerCase().includes(query);
+
+      if (item.subItems) {
+        const filteredSubItems = item.subItems.filter((sub) =>
+          sub.label.toLowerCase().includes(query)
+        );
+
+        if (matchesParent || filteredSubItems.length > 0) {
+          return {
+            ...item,
+            subItems: matchesParent ? item.subItems : filteredSubItems,
+          };
+        }
+        return null;
+      } else {
+        return matchesParent ? item : null;
+      }
+    }
+    return item;
+  }).filter(Boolean);
+
   return (
     <div
       className={`${sidebarOpen ? "w-64" : "w-20"} bg-white dark:bg-[var(--sidebar-bg)] border-r border-gray-200 dark:border-[var(--sidebar-border)] transition-all duration-300 flex flex-col h-screen fixed left-0 top-0 z-30`}
@@ -571,6 +608,30 @@ export default function DashboardSidebar() {
           </button>
         </div>
       </div>
+
+      {/* Search Input */}
+      {sidebarOpen && (
+        <div className="px-4 pt-4 pb-2 flex-shrink-0">
+          <div className="relative flex items-center">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search navigation..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-xs border border-gray-200 dark:border-gray-850 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#6f1c56]/30 bg-gray-50 dark:bg-gray-800/40 text-gray-800 dark:text-gray-200"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -712,6 +773,11 @@ export default function DashboardSidebar() {
             </Link>
           );
         })}
+        {filteredMenuItems.length === 0 && searchQuery.trim() && (
+          <div className="px-4 py-8 text-center text-xs text-gray-500 dark:text-gray-400">
+            No matching links
+          </div>
+        )}
       </nav>
 
       {/* Settings & Logout */}
