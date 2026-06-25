@@ -146,7 +146,7 @@ export default function MatchingAlgorithmPage() {
                   <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-orange-500 border-2 border-white dark:border-gray-800"></div>
                   <h3 className="font-bold text-gray-900 dark:text-[var(--text-primary)]">3. Tentative Match</h3>
                   <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)] mt-1">
-                    Admin selects the best match. The client is moved to "Pending Match" status.
+                    Admin selects the best match after the agreement is signed. The client is moved to "Matched With Counsellor" status.
                   </p>
                 </div>
 

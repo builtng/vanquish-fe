@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
-import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/lib/api";
+import { CLINICAL_PROGRESS_FORMS } from "@/lib/counsellorForms";
 import {
   Users,
   Calendar,
@@ -12,7 +13,6 @@ import {
   RefreshCw,
   CheckCircle,
   AlertCircle,
-  BarChart2,
   Clock,
   FileText,
 } from "lucide-react";
@@ -27,60 +27,22 @@ const DAY_COLORS = {
   Sunday: "from-red-500 to-pink-500",
 };
 
-const PSG_GROUPS = [
-  {
-    name: "Group 5 - Mondays",
-    day: "Monday",
-    url: "https://form.jotform.com/252162390922454",
-    time: "Mondays",
-    gradient: "from-purple-500/10 to-indigo-500/10",
-    border: "hover:border-indigo-500",
-    text: "text-indigo-600 dark:text-indigo-400 font-bold",
-  },
-  {
-    name: "Group 4 - Thursdays",
-    day: "Thursday",
-    url: "https://form.jotform.com/250412125203438",
-    time: "Thursdays",
-    gradient: "from-orange-500/10 to-amber-500/10",
-    border: "hover:border-orange-500",
-    text: "text-orange-600 dark:text-orange-400 font-bold",
-  },
-  {
-    name: "Group 3 - Wednesdays",
-    day: "Wednesday",
-    url: "https://form.jotform.com/241365224856459",
-    time: "Wednesdays",
-    gradient: "from-emerald-500/10 to-teal-500/10",
-    border: "hover:border-emerald-500",
-    text: "text-emerald-600 dark:text-emerald-400 font-bold",
-  },
-];
+function formatDate(dateValue) {
+  if (!dateValue) return "Not submitted";
 
-const PROGRESS_FORMS = [
-  {
-    title: "End of Therapy Form",
-    subtitle: "Trainee & Qualified Counsellors",
-    url: "https://form.jotform.com/242455166711051",
-    icon: FileText,
-    accent: "#6f1d56",
-    description: "Complete this form when a client's therapy journey concludes.",
-  },
-  {
-    title: "Client Progress Review",
-    subtitle: "Trainee Counsellors",
-    url: "https://form.jotform.com/240292614707051",
-    icon: BarChart2,
-    accent: "#3b82f6",
-    description: "Periodic review to document client progress and therapeutic outcomes.",
-  },
-];
+  return new Date(dateValue).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 export default function AttendanceProgressPage() {
-  const { user: authUser } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [attendanceGroup, setAttendanceGroup] = useState(null);
+  const [reflections, setReflections] = useState([]);
+  const [psgSessions, setPsgSessions] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -91,12 +53,16 @@ export default function AttendanceProgressPage() {
     setLoading(true);
     setError(null);
     try {
-      const [unreadRes, profileRes] = await Promise.all([
+      const [unreadRes, profileRes, reflectionsRes, sessionsRes] = await Promise.all([
         apiService.getUnreadMessageCount(),
         apiService.getCounsellorOwnData(),
+        apiService.getPsgReflections(),
+        apiService.getPsgSessions(),
       ]);
       setUnreadCount(unreadRes?.count || 0);
       setAttendanceGroup(profileRes?.attendance_group || null);
+      setReflections(Array.isArray(reflectionsRes) ? reflectionsRes : []);
+      setPsgSessions(Array.isArray(sessionsRes) ? sessionsRes : []);
     } catch (err) {
       console.error("Error loading PSG data:", err);
       setError("Unable to load your PSG details. Please try again.");
@@ -108,6 +74,25 @@ export default function AttendanceProgressPage() {
   const dayGradient = attendanceGroup?.day_of_week
     ? DAY_COLORS[attendanceGroup.day_of_week] || "from-[#6f1d56] to-purple-600"
     : "from-[#6f1d56] to-purple-600";
+
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
+  const submittedThisMonth = reflections.some((reflection) => {
+    const attendanceDate = new Date(reflection.attendance_date);
+    return `${attendanceDate.getFullYear()}-${attendanceDate.getMonth()}` === currentMonthKey;
+  });
+
+  const sessionsThisMonth = psgSessions.filter((session) => {
+    const sDate = new Date(session.session_date);
+    return `${sDate.getFullYear()}-${sDate.getMonth()}` === currentMonthKey;
+  });
+  const attendedCount = sessionsThisMonth.filter(s => s.attended).length;
+  const totalSessionsThisMonth = sessionsThisMonth.length;
+
+  const latestReflection = reflections[0] || null;
+  const lastAttendedSession = psgSessions.find(s => s.attended);
+  const lastAttendedDate = lastAttendedSession ? lastAttendedSession.session_date : null;
+
 
   return (
     <CounsellorLayout unreadCount={unreadCount}>
@@ -124,11 +109,66 @@ export default function AttendanceProgressPage() {
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 py-6 max-w-4xl space-y-8">
+          {/* Overview Section */}
+          <section className="space-y-4">
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              Overview
+            </h2>
+
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {[0, 1, 2].map((item) => (
+                  <div
+                    key={item}
+                    className="h-28 bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : error ? null : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl p-5 shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-[#6f1d56]/10 flex items-center justify-center mb-4">
+                    <Users className="w-5 h-5 text-[#6f1d56]" />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] font-bold uppercase tracking-wide">
+                    Assigned Groups
+                  </p>
+                  <p className="text-3xl font-black text-gray-900 dark:text-[var(--text-primary)] mt-1">
+                    {attendanceGroup ? 1 : 0}
+                  </p>
+                </div>
+
+                <div className="bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl p-5 shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/20 flex items-center justify-center mb-4">
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] font-bold uppercase tracking-wide">
+                    This Month (Attended)
+                  </p>
+                  <p className="text-sm font-black text-gray-900 dark:text-[var(--text-primary)] mt-2">
+                    {totalSessionsThisMonth > 0 ? `${attendedCount} / ${totalSessionsThisMonth} Sessions` : "No sessions logged"}
+                  </p>
+                </div>
+
+                <div className="bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl p-5 shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center mb-4">
+                    <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] font-bold uppercase tracking-wide">
+                    Last Attendance
+                  </p>
+                  <p className="text-sm font-black text-gray-900 dark:text-[var(--text-primary)] mt-2">
+                    {formatDate(lastAttendedDate || latestReflection?.attendance_date)}
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
 
           {/* Assigned Group Section */}
           <section className="space-y-4">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-              Your Assigned peer support group
+              Your Assigned Peer Support Group
             </h2>
 
             {loading ? (
@@ -168,24 +208,19 @@ export default function AttendanceProgressPage() {
                   </div>
                 </div>
 
-                {/* Attendance Form */}
-                {attendanceGroup.supervisor_link && (
-                  <div className="bg-white dark:bg-[var(--card-bg)] border border-t-0 border-gray-200 dark:border-[var(--card-border)] rounded-b-2xl p-5">
-                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mb-3 font-medium">
-                      Access the attendance logging form for your group supervisor.
-                    </p>
-                    <a
-                      href={attendanceGroup.supervisor_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#6f1c56] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-all shadow-lg shadow-[#6f1c56]/20 active:scale-95"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Supervisor Link
-                      <ExternalLink className="w-3.5 h-3.5 opacity-70" />
-                    </a>
-                  </div>
-                )}
+                {/* PSG Reflection Form CTA */}
+                <div className="bg-white dark:bg-[var(--card-bg)] border border-t-0 border-gray-200 dark:border-[var(--card-border)] rounded-b-2xl p-5">
+                  <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mb-3 font-medium">
+                    Submit your monthly PSG reflection for this group session.
+                  </p>
+                  <Link
+                    href="/counsellor-portal/pages/psg-form"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#6f1c56] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-all shadow-lg shadow-[#6f1c56]/20 active:scale-95"
+                  >
+                    <FileText className="w-4 h-4" />
+                    PSG Reflection Form
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-10 bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl text-center p-6 gap-3">
@@ -197,60 +232,126 @@ export default function AttendanceProgressPage() {
                     No Peer Support Group Assigned
                   </p>
                   <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1 max-w-xs">
-                    You aren't allocated to a group in the system yet. Please contact the clinical admin team. You can still use the directory below to mark your attendance.
+                    You aren't allocated to a group in the system yet. Please contact the clinical admin team before logging attendance.
                   </p>
                 </div>
               </div>
             )}
           </section>
 
-          {/* Quick Attendance Directory */}
+          {/* Supervisor Attendance Logs */}
           <section className="space-y-4">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-              Peer Support Group Directory
+              Supervisor Attendance Logs
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {PSG_GROUPS.map((group, idx) => {
-                const isAssigned = attendanceGroup && attendanceGroup.day_of_week === group.day;
-                return (
-                  <div
-                    key={idx}
-                    className={`bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl p-5 shadow-sm transition-all duration-300 flex flex-col justify-between hover:shadow-lg ${group.border} relative overflow-hidden`}
-                  >
-                    {isAssigned && (
-                      <div className="absolute top-0 right-0 bg-[#6f1d56] text-white px-2.5 py-1 text-[9px] font-bold rounded-bl-xl flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3 text-green-300" />
-                        My Group
+            <div className="bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl shadow-sm overflow-hidden">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-6 h-6 animate-spin text-[#6f1d56]/50" />
+                </div>
+              ) : psgSessions.length === 0 ? (
+                <div className="p-8 text-center">
+                  <CheckCircle className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <p className="text-sm font-bold text-gray-700 dark:text-[var(--text-primary)]">
+                    No supervisor logs recorded yet
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">
+                    When a supervisor logs group session attendance, it will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {psgSessions.slice(0, 5).map((session) => (
+                    <div key={session.id} className="p-5 hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors">
+                      <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                            session.attended 
+                              ? "text-green-700 bg-green-100 dark:text-green-400 dark:bg-green-950/20" 
+                              : "text-red-700 bg-red-100 dark:text-red-400 dark:bg-red-950/20"
+                          }`}>
+                            {session.attended ? "Present" : "Absent"}
+                          </span>
+                          <span className="text-[10px] text-gray-400">
+                            Supervisor: {session.supervisor_name}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-gray-400 flex-shrink-0">
+                          {formatDate(session.session_date)}
+                        </span>
                       </div>
-                    )}
-                    <div>
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${group.gradient} flex items-center justify-center mb-4`}>
-                        <Calendar className={`w-5 h-5 ${group.text}`} />
+                      <p className="text-xs font-bold text-gray-700 dark:text-gray-200 mb-1">
+                        Activities Covered:
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-3 leading-relaxed">
+                        {session.activities}
+                      </p>
+                      {session.notes && (
+                        <div className="mt-2 text-[11px] text-gray-500 italic bg-gray-50 dark:bg-gray-800/40 p-2 rounded-xl border border-gray-100 dark:border-gray-800">
+                          Note: {session.notes}
+                        </div>
+                      )}
+                      {session.comment && (
+                        <div className="mt-2 text-[11px] text-[#6f1c56] dark:text-pink-400 font-bold bg-pink-50/10 dark:bg-pink-900/10 p-2.5 rounded-xl border border-pink-100/60 dark:border-pink-900/30">
+                          Supervisor Feedback: "{session.comment}"
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {psgSessions.length > 5 && (
+                    <div className="px-5 py-3 text-xs text-gray-500 dark:text-[var(--text-secondary)] bg-gray-50/50 dark:bg-gray-800/20">
+                      Showing 5 of {psgSessions.length} supervisor logs.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Submission History */}
+          <section className="space-y-4">
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              Attendance Reflection History
+            </h2>
+            <div className="bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl shadow-sm overflow-hidden">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-6 h-6 animate-spin text-[#6f1d56]/50" />
+                </div>
+              ) : reflections.length === 0 ? (
+                <div className="p-8 text-center">
+                  <FileText className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <p className="text-sm font-bold text-gray-700 dark:text-[var(--text-primary)]">
+                    No attendance reflections yet
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">
+                    Your submitted PSG reflections will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {reflections.slice(0, 5).map((reflection) => (
+                    <div key={reflection.id} className="p-5 hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <span className="text-[10px] font-black uppercase text-[#6f1d56] px-2 py-0.5 bg-[#6f1d56]/10 rounded">
+                          {reflection.status || "Submitted"}
+                        </span>
+                        <span className="text-[10px] text-gray-400 flex-shrink-0">
+                          {formatDate(reflection.attendance_date)}
+                        </span>
                       </div>
-                      <h3 className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-sm mb-1 leading-snug">
-                        {group.name}
-                      </h3>
-                      <p className="text-[11px] text-gray-500 dark:text-[var(--text-secondary)] mb-4">
-                        Weekly Peer Support Group on {group.time}.
+                      <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                        {reflection.reflection}
                       </p>
                     </div>
-
-                    <a
-                      href={group.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-xl transition-all duration-200 border w-full ${
-                        isAssigned
-                          ? "bg-[#6f1d56] hover:bg-[#6f1d56]/90 text-white border-transparent shadow-md"
-                          : "bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
-                      }`}
-                    >
-                      <span>Supervisor Link</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  </div>
-                );
-              })}
+                  ))}
+                  {reflections.length > 5 && (
+                    <div className="px-5 py-3 text-xs text-gray-500 dark:text-[var(--text-secondary)] bg-gray-50/50 dark:bg-gray-800/20">
+                      Showing 5 of {reflections.length} submissions.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 
@@ -260,9 +361,9 @@ export default function AttendanceProgressPage() {
               Clinical Progress Forms
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {PROGRESS_FORMS.map((form, idx) => (
+              {CLINICAL_PROGRESS_FORMS.map((form) => (
                 <div
-                  key={idx}
+                  key={form.slug}
                   className="group bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col"
                 >
                   <div className="flex items-start gap-4 mb-4">
@@ -286,15 +387,13 @@ export default function AttendanceProgressPage() {
                     {form.description}
                   </p>
 
-                  <a
-                    href={form.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    href={form.href}
                     className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#6f1d56] text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all shadow-md shadow-[#6f1d56]/20 active:scale-95 w-full"
                   >
                     Open Form
                     <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-                  </a>
+                  </Link>
                 </div>
               ))}
             </div>

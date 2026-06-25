@@ -133,19 +133,53 @@ function Badge({
   );
 }
 
+/**
+ * Normalise a stored document URL so it always points to the current backend.
+ * - Relative /storage/... paths → prepend backend base
+ * - Absolute URLs with a different host (e.g. localhost) → rebase to current backend
+ * - External CDN URLs (JotForm, etc.) → pass through unchanged
+ */
+function resolveDocUrl(storedUrl) {
+  if (!storedUrl) return null;
+
+  // Derive backend base from the API URL (strip trailing /api)
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+  const backendBase = apiBase.replace(/\/api\/?$/, "");
+
+  // Already a relative storage path
+  if (storedUrl.startsWith("/storage/")) {
+    return backendBase + storedUrl;
+  }
+
+  // Extract the /storage/... portion from any absolute URL
+  const match = storedUrl.match(/(\/storage\/.+)/);
+  if (match) {
+    // Only rebase if it's a localhost / dev URL — otherwise keep original
+    const isDevUrl =
+      storedUrl.includes("localhost") ||
+      storedUrl.includes("127.0.0.1") ||
+      storedUrl.includes("0.0.0.0");
+    return isDevUrl ? backendBase + match[1] : storedUrl;
+  }
+
+  // External URL (JotForm CDN, S3, etc.) — use as-is
+  return storedUrl;
+}
+
 function DocLink({ label, url, icon: Icon = FileText }) {
+  const resolvedUrl = resolveDocUrl(url);
   return (
     <div
-      className={`flex items-center justify-between p-3 rounded-xl border transition-all ${url ? "bg-green-50 border-green-100 hover:bg-green-100" : "bg-gray-50 border-gray-100 opacity-50"}`}
+      className={`flex items-center justify-between p-3 rounded-xl border transition-all ${resolvedUrl ? "bg-green-50 border-green-100 hover:bg-green-100" : "bg-gray-50 border-gray-100 opacity-50"}`}
     >
       <div className="flex items-center gap-2.5">
         <Icon
-          className={`w-4 h-4 ${url ? "text-green-600" : "text-gray-400"}`}
+          className={`w-4 h-4 ${resolvedUrl ? "text-green-600" : "text-gray-400"}`}
         />
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
         </span>
-        {url ? (
+        {resolvedUrl ? (
           <span className="px-1.5 py-0.5 rounded-full bg-green-600 text-white text-[9px] font-bold uppercase">
             Uploaded
           </span>
@@ -155,9 +189,9 @@ function DocLink({ label, url, icon: Icon = FileText }) {
           </span>
         )}
       </div>
-      {url && (
+      {resolvedUrl && (
         <a
-          href={url}
+          href={resolvedUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1 px-3 py-1 bg-white border border-green-200 text-green-700 rounded-lg text-xs font-semibold hover:bg-green-50 transition-colors"
@@ -168,6 +202,7 @@ function DocLink({ label, url, icon: Icon = FileText }) {
     </div>
   );
 }
+
 
 function PaperworkToggle({ label, status, onToggle }) {
   return (

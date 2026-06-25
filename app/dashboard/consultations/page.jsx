@@ -86,6 +86,8 @@ export default function ConsultationsManagementPageFixed() {
     this_week_count: 0,
     completed_this_month: 0,
     pending_payment: 0,
+    rescheduled_count: 0,
+    cancelled_count: 0,
   });
 
   // Modal states
@@ -162,6 +164,8 @@ export default function ConsultationsManagementPageFixed() {
           this_week_count: 0,
           completed_this_month: 0,
           pending_payment: 0,
+          rescheduled_count: 0,
+          cancelled_count: 0,
         },
       );
     } catch (err) {
@@ -260,7 +264,9 @@ export default function ConsultationsManagementPageFixed() {
               ? "No Show"
               : consultation.status === "cancelled"
                 ? "Cancelled"
-                : consultation.status,
+                : consultation.status === "rescheduled"
+                  ? "Rescheduled"
+                  : consultation.status,
       serviceRequested: consultation.client?.service_type || "N/A",
       paymentStatus: "Paid", // TODO: Get from payment records
       paymentAmount:
@@ -322,6 +328,16 @@ export default function ConsultationsManagementPageFixed() {
 
         break;
 
+      case "rescheduled":
+        filtered = filtered.filter((c) => c.status === "Rescheduled");
+
+        break;
+
+      case "cancelled":
+        filtered = filtered.filter((c) => c.status === "Cancelled");
+
+        break;
+
       default:
         break;
     }
@@ -351,11 +367,13 @@ export default function ConsultationsManagementPageFixed() {
   const thisWeekCount = stats.this_week_count || 0;
   const completedThisMonth = stats.completed_this_month || 0;
   const pendingPayment = stats.pending_payment || 0;
+  const rescheduledCount = stats.rescheduled_count || 0;
+  const cancelledCount = stats.cancelled_count || 0;
 
   // Filter clients for the pending bookings tab
   const pendingClients = clients.filter(
     (c) =>
-      c.stage === "Application & Assessment form Submitted" ||
+      c.stage === "Consultation Booked" ||
       c.stage === "Agreement Sent" ||
       c.stage === "Agreement Signed" ||
       !c.stage,
@@ -492,7 +510,7 @@ export default function ConsultationsManagementPageFixed() {
 
       const outcomeMessage =
         completeForm.outcome === "approved"
-          ? `Consultation marked as completed! Client "${selectedConsultation.clientName || "Unknown Client"}" has been moved to "Pending Match" stage.`
+          ? `Consultation marked as completed! Client "${selectedConsultation.clientName || "Unknown Client"}" has been moved to "Consultation Completed" stage.`
           : `Consultation marked as completed!`;
 
       success(outcomeMessage);
@@ -1052,7 +1070,7 @@ export default function ConsultationsManagementPageFixed() {
 
           {/* Stats Cards */}
           <div className="bg-white dark:bg-[var(--sidebar-bg)] border-b border-gray-200 dark:border-[var(--sidebar-border)] px-6 py-4">
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
               <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -1106,6 +1124,34 @@ export default function ConsultationsManagementPageFixed() {
                 </div>
                 <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
                   {pendingPayment}
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                    <Repeat className="w-4 h-4" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">
+                    Rescheduled
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                  {rescheduledCount}
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center justify-center">
+                    <Ban className="w-4 h-4" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)]">
+                    Cancelled
+                  </p>
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                  {cancelledCount}
                 </p>
               </div>
             </div>
@@ -1164,6 +1210,18 @@ export default function ConsultationsManagementPageFixed() {
                     id: "completed",
                     label: "Completed",
                     count: completedCount,
+                  },
+
+                  {
+                    id: "rescheduled",
+                    label: "Rescheduled",
+                    count: rescheduledCount,
+                  },
+
+                  {
+                    id: "cancelled",
+                    label: "Cancelled",
+                    count: cancelledCount,
                   },
 
                   { id: "all", label: "All", count: consultations.length },
@@ -1626,12 +1684,12 @@ export default function ConsultationsManagementPageFixed() {
 
                         <div>
                           <p className="text-sm font-medium text-green-900 mb-1">
-                            Client Will Move to Pending Match
+                            Client Will Move to Consultation Completed
                           </p>
 
                           <p className="text-sm text-green-800">
                             Once saved, this client will automatically move to
-                            the "Pending Match" stage.
+                            the "Consultation Completed" stage.
                           </p>
                         </div>
                       </div>

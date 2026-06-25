@@ -60,7 +60,6 @@ export default function ClientDashboard() {
     traineeAppsNote: "0 new",
   });
   const [pipelineStages, setPipelineStages] = useState([
-    { stage: "Application", count: 0, color: "#3b82f6", icon: FileText },
     { stage: "Consultation", count: 0, color: "#6366F1", icon: Video },
     { stage: "Matched", count: 0, color: "#10B981", icon: UserCheck },
     { stage: "Agreement", count: 0, color: "#f59e0b", icon: CheckCircle },
@@ -231,14 +230,12 @@ export default function ClientDashboard() {
         const thisWeekConsultations = consultations.filter(c => c.status === 'scheduled').length;
         
         // Calculate pipeline stages
-        const applicationCount = allClients.filter(c => c.stage === 'Application').length;
         const consultationCount = allClients.filter(c => c.stage === 'Consultation Booked' || c.stage === 'Consultation Completed').length;
-        const matchedCount = allClients.filter(c => c.stage === 'Matched').length;
-        const agreementCount = allClients.filter(c => c.stage === 'Agreement Pending').length;
+        const matchedCount = allClients.filter(c => c.stage === 'Matched With Counsellor').length;
+        const agreementCount = allClients.filter(c => c.stage === 'Agreement Sent' || c.stage === 'Agreement Signed').length;
         const activeCount = allClients.filter(c => c.stage === 'Active Therapy').length;
         
         setPipelineStages([
-          { stage: "Application", count: applicationCount, color: "#3b82f6", icon: FileText },
           { stage: "Consultation", count: consultationCount, color: "#6366F1", icon: Video },
           { stage: "Matched", count: matchedCount, color: "#10B981", icon: UserCheck },
           { stage: "Agreement", count: agreementCount, color: "#f59e0b", icon: CheckCircle },
@@ -297,13 +294,13 @@ export default function ClientDashboard() {
           });
         }
         
-        const stuckClients = allClients.filter(c => c.stage === 'Agreement Pending' && c.status === 'stuck');
+        const stuckClients = allClients.filter(c => c.stage === 'Agreement Sent' && c.status === 'stuck');
         if (stuckClients.length > 0) {
           urgentItemsList.push({
             id: 2,
             type: "stuck",
             icon: Clock,
-            message: `${stuckClients.length} client${stuckClients.length > 1 ? 's' : ''} stuck in Agreement Pending`,
+            message: `${stuckClients.length} client${stuckClients.length > 1 ? 's' : ''} stuck in Agreement Sent`,
             details: "No response for over 7 days",
             priority: "medium",
             action: "Review Clients",
@@ -406,14 +403,12 @@ export default function ClientDashboard() {
       const thisWeekConsultations = consultations.filter(c => c.status === 'scheduled').length;
       
       // Calculate pipeline stages
-      const applicationCount = allClients.filter(c => c.stage === 'Application').length;
       const consultationCount = allClients.filter(c => c.stage === 'Consultation Booked' || c.stage === 'Consultation Completed').length;
-      const matchedCount = allClients.filter(c => c.stage === 'Matched').length;
-      const agreementCount = allClients.filter(c => c.stage === 'Agreement Pending').length;
+      const matchedCount = allClients.filter(c => c.stage === 'Matched With Counsellor').length;
+      const agreementCount = allClients.filter(c => c.stage === 'Agreement Sent' || c.stage === 'Agreement Signed').length;
       const activeCount = allClients.filter(c => c.stage === 'Active Therapy').length;
       
       const exportPipelineStages = [
-        { stage: "Application", count: applicationCount },
         { stage: "Consultation", count: consultationCount },
         { stage: "Matched", count: matchedCount },
         { stage: "Agreement", count: agreementCount },
@@ -536,11 +531,11 @@ export default function ClientDashboard() {
         });
       }
       
-      const stuckClients = allClients.filter(c => c.stage === 'Agreement Pending' && c.status === 'stuck');
+      const stuckClients = allClients.filter(c => c.stage === 'Agreement Sent' && c.status === 'stuck');
       if (stuckClients.length > 0) {
         urgentItemsList.push({
           type: "stuck",
-          message: `${stuckClients.length} client${stuckClients.length > 1 ? 's' : ''} stuck in Agreement Pending`,
+          message: `${stuckClients.length} client${stuckClients.length > 1 ? 's' : ''} stuck in Agreement Sent`,
           details: "No response for over 7 days",
           priority: "medium",
           action: "Review Clients",
@@ -791,8 +786,8 @@ export default function ClientDashboard() {
                 />
                 <StatCard
                   icon={FileText}
-                  label="Client Apps"
-                  value={pipelineStages.find(s => s.stage === "Application")?.count || 0}
+                  label="Client Journey"
+                  value={pipelineStages.find(s => s.stage === "Consultation")?.count || 0}
                   color="#3b82f6"
                   href="/dashboard/clients"
                 />

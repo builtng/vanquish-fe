@@ -29,14 +29,18 @@ export default function MessageReadNotifier() {
 
   const showReadToast = (message) => {
     // We only care about messages SENT by the current user
-    if (message.from_user_id !== user?.id) return;
+    if (String(message.from_user_id) !== String(user?.id)) return;
     
     // Avoid duplicates
     const key = `${message.id}-read`;
     if (shownIdsRef.current.has(key)) return;
     shownIdsRef.current.add(key);
 
-    const recipientName = message.to_training_counsellor?.name || message.to_user?.name || "Recipient";
+    const recipientName = message.to_training_counsellor?.name || 
+                          message.toTrainingCounsellor?.name || 
+                          message.to_user?.name || 
+                          message.toUser?.name || 
+                          "Recipient";
     const toastId = `read-${message.id}-${Date.now()}`;
     
     const item = {

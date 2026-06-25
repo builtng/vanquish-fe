@@ -62,6 +62,42 @@ import {
 import PhotoUpload from "@/components/PhotoUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 
+/**
+ * Resolve a document URL for viewing/downloading.
+ * External URLs (JotForm CDN, S3, etc.) are used as-is.
+ * Local storage paths are routed through the secure API serve endpoint.
+ */
+function resolveDocUrl(storedUrl, tcUuid, fieldName) {
+  if (!storedUrl) return null;
+
+  // Already an external URL — use directly
+  if (storedUrl.startsWith("http://") || storedUrl.startsWith("https://")) {
+    // Rebase localhost/dev URLs to the production backend
+    const isDevUrl =
+      storedUrl.includes("localhost") ||
+      storedUrl.includes("127.0.0.1") ||
+      storedUrl.includes("0.0.0.0");
+    if (!isDevUrl) return storedUrl;
+
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+    const backendBase = apiBase.replace(/\/api\/?$/, "");
+    const match = storedUrl.match(/(\/storage\/.+)/);
+    return match ? backendBase + match[1] : storedUrl;
+  }
+
+  // Local file — route through authenticated API endpoint to avoid symlink/CORS issues
+  if (tcUuid && fieldName) {
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+    return `${apiBase}/training-counsellors/${tcUuid}/document/${fieldName}`;
+  }
+
+  // Fallback: prepend storage base
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+  const backendBase = apiBase.replace(/\/api\/?$/, "");
+  const cleanUrl = storedUrl.startsWith("/") ? storedUrl.slice(1) : storedUrl;
+  return `${backendBase}/storage/${cleanUrl}`;
+}
+
 export default function IndividualTCDetailPage() {
   const pathname = usePathname();
   const params = useParams();
@@ -135,6 +171,7 @@ export default function IndividualTCDetailPage() {
           status: data.status,
           counsellor_type: data.counsellor_type || "Trainee",
           qualified_form_completed: data.qualified_form_completed || false,
+          not_onboarded_properly: data.not_onboarded_properly || false,
           modality: data.modality || "",
 
           // Overview stats
@@ -446,6 +483,12 @@ export default function IndividualTCDetailPage() {
                       }`}>
                         {tc.counsellor_type || "Trainee"}
                       </div>
+
+                      {tc.not_onboarded_properly && (
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-400 ring-1 ring-inset ring-rose-600/20 dark:ring-rose-500/30 text-xs font-bold rounded-full animate-pulse shadow-sm">
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" /> Onboarding Incomplete
+                        </div>
+                      )}
 
                       <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
 
@@ -1205,18 +1248,39 @@ export default function IndividualTCDetailPage() {
                               {doc.status && getDocumentStatusBadge(doc.status)}
                               {doc.url && (
                                 <button
-                                  onClick={() => {
-                                    // Create download link
-                                    const link = document.createElement("a");
-                                    link.href = doc.url.startsWith("http")
-                                      ? doc.url
-                                      : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/storage/${doc.url}`;
-                                    link.download = doc.name || "document";
-                                    link.target = "_blank";
-                                    link.click();
+                                  onClick={async () => {
+                                    const resolvedUrl = resolveDocUrl(doc.url, uuid, doc.id);
+                                    if (!resolvedUrl) return;
+
+                                    // For external/storage URLs that go through the API, attach auth token
+                                    const isApiUrl = resolvedUrl.includes("/api/training-counsellors/");
+                                    if (isApiUrl) {
+                                      try {
+                                        const token = apiService.getToken();
+                                        const response = await fetch(resolvedUrl, {
+                                          headers: { Authorization: `Bearer ${token}` },
+                                        });
+                                        if (!response.ok) throw new Error("Failed to fetch document");
+                                        const blob = await response.blob();
+                                        const blobUrl = URL.createObjectURL(blob);
+                                        const link = document.createElement("a");
+                                        link.href = blobUrl;
+                                        link.download = doc.name || "document";
+                                        link.target = "_blank";
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+                                      } catch (err) {
+                                        console.error("Document download error:", err);
+                                        alert("Failed to open document. Please try again.");
+                                      }
+                                    } else {
+                                      window.open(resolvedUrl, "_blank", "noopener,noreferrer");
+                                    }
                                   }}
                                   className="p-2 hover:bg-muted rounded-lg"
-                                  title="Download"
+                                  title="View / Download"
                                 >
                                   <Download className="w-4 h-4 text-muted-foreground" />
                                 </button>
@@ -1764,7 +1828,7 @@ export default function IndividualTCDetailPage() {
                       });
 
                       showToast.success(
-                        `Client "${client.name}" assigned to "${tc.name}"! Client will now move to "Agreement Pending" stage.`,
+                        `Client "${client.name}" assigned to "${tc.name}"! Client will now move to "Matched With Counsellor" stage.`,
                       );
 
                       setShowAssignModal(false);

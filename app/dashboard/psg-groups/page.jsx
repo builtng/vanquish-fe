@@ -20,6 +20,11 @@ import {
   ChevronUp,
   Calendar,
   Link as LinkIcon,
+  Copy,
+  ClipboardList,
+  CheckCircle2,
+  XCircle,
+  BookOpen,
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 
@@ -39,7 +44,6 @@ function GroupFormModal({ group, onClose, onSaved }) {
   const { success, error: showError } = useToast();
   const [form, setForm] = useState({
     name: group?.name || "",
-    supervisor_link: group?.supervisor_link || "",
     day_of_week: group?.day_of_week || "",
   });
   const [saving, setSaving] = useState(false);
@@ -51,13 +55,13 @@ function GroupFormModal({ group, onClose, onSaved }) {
       if (group) {
         await apiService.request(`/attendance-groups/${group.id}`, {
           method: "PATCH",
-          data: form,
+          body: form,
         });
         success("Group updated successfully.");
       } else {
         await apiService.request("/attendance-groups", {
           method: "POST",
-          data: form,
+          body: form,
         });
         success("Group created successfully.");
       }
@@ -110,18 +114,7 @@ function GroupFormModal({ group, onClose, onSaved }) {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">
-              Supervisor Link
-            </label>
-            <input
-              type="url"
-              value={form.supervisor_link}
-              onChange={(e) => setForm({ ...form, supervisor_link: e.target.value })}
-              placeholder="https://form.jotform.com/..."
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm focus:ring-2 focus:ring-[#6f1c56] outline-none transition-all"
-            />
-          </div>
+
 
           <div className="flex gap-3 pt-2">
             <button
@@ -148,7 +141,7 @@ function GroupFormModal({ group, onClose, onSaved }) {
 
 function AllocateModal({ group, onClose, onAllocated }) {
   const { success, error: showError } = useToast();
-  const [unassigned, setUnassigned] = useState([]);
+  const [counsellors, setCounsellors] = useState([]);
   const [loadingTcs, setLoadingTcs] = useState(true);
   const [selectedTcId, setSelectedTcId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -156,10 +149,13 @@ function AllocateModal({ group, onClose, onAllocated }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await apiService.request("/attendance-groups/unassigned");
-        setUnassigned(Array.isArray(res) ? res : []);
+        const res = await apiService.request("/attendance-groups/unassigned?include_assigned=1");
+        const availableCounsellors = Array.isArray(res)
+          ? res.filter((tc) => tc.attendance_group_id !== group.id)
+          : [];
+        setCounsellors(availableCounsellors);
       } catch (err) {
-        showError("Could not load unassigned counsellors.");
+        showError("Could not load counsellors.");
       } finally {
         setLoadingTcs(false);
       }
@@ -174,7 +170,7 @@ function AllocateModal({ group, onClose, onAllocated }) {
     try {
       await apiService.request(`/attendance-groups/${group.id}/allocate`, {
         method: "POST",
-        data: { tc_id: selectedTcId },
+        body: { tc_id: selectedTcId },
       });
       success("Counsellor allocated to group.");
       onAllocated();
@@ -203,9 +199,9 @@ function AllocateModal({ group, onClose, onAllocated }) {
             <div className="flex justify-center py-8">
               <RefreshCw className="w-5 h-5 animate-spin text-gray-400" />
             </div>
-          ) : unassigned.length === 0 ? (
+          ) : counsellors.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-6">
-              All counsellors are already assigned to groups.
+              All counsellors are already assigned to this group.
             </p>
           ) : (
             <div>
@@ -215,9 +211,13 @@ function AllocateModal({ group, onClose, onAllocated }) {
               <SearchableSelect
                 value={selectedTcId}
                 onChange={(e) => setSelectedTcId(e.target.value)}
-                options={unassigned.map((tc) => ({
+                options={counsellors.map((tc) => ({
                   value: tc.id,
-                  label: `${tc.name} (${tc.email})`,
+                  label: [
+                    tc.tc_id ? `${tc.tc_id} - ${tc.name}` : tc.name,
+                    tc.email,
+                    tc.attendance_group?.name ? `Current: ${tc.attendance_group.name}` : "Unassigned",
+                  ].filter(Boolean).join(" | "),
                 }))}
                 placeholder="— Choose counsellor —"
               />
@@ -230,11 +230,11 @@ function AllocateModal({ group, onClose, onAllocated }) {
             </button>
             <button
               type="submit"
-              disabled={saving || !selectedTcId || unassigned.length === 0}
+              disabled={saving || !selectedTcId || counsellors.length === 0}
               className="flex-1 px-4 py-2.5 bg-[#6f1c56] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              Add to Group
+              Allocate
             </button>
           </div>
         </form>
@@ -248,6 +248,51 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
   const [expanded, setExpanded] = useState(false);
   const [showAllocate, setShowAllocate] = useState(false);
   const [removingId, setRemovingId] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [showSessions, setShowSessions] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const [toggling, setToggling] = useState(false);
+
+  const handleCopyLink = () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/psg-attend/${group.public_token}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    success("Attendance link copied to clipboard.");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleToggleStatus = async () => {
+    setToggling(true);
+    try {
+      await apiService.toggleGroupStatus(group.id);
+      success(`Group "${group.name}" is now ${!group.is_active ? "Active" : "Inactive"}.`);
+      onRefresh();
+    } catch (err) {
+      showError("Failed to toggle group status.");
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  const handleToggleSessions = async () => {
+    const next = !showSessions;
+    setShowSessions(next);
+    if (next && !sessionsLoaded) {
+      setSessionsLoading(true);
+      try {
+        const data = await apiService.getGroupSessions(group.id);
+        setSessions(Array.isArray(data) ? data : []);
+        setSessionsLoaded(true);
+      } catch (err) {
+        showError("Failed to load session logs.");
+      } finally {
+        setSessionsLoading(false);
+      }
+    }
+  };
 
   const gradient = GRADIENT_MAP[group.day_of_week] || "from-[#6f1c56] to-purple-600";
 
@@ -257,7 +302,7 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
     try {
       await apiService.request(`/attendance-groups/${group.id}/deallocate`, {
         method: "POST",
-        data: { tc_id: tc.id },
+        body: { tc_id: tc.id },
       });
       success(`${tc.name} removed.`);
       onRefresh();
@@ -278,7 +323,9 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
         />
       )}
 
-      <div className="bg-white dark:bg-[var(--card-bg)] rounded-2xl border border-gray-200 dark:border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 group">
+      <div className={`bg-white dark:bg-[var(--card-bg)] rounded-2xl border border-gray-200 dark:border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 group ${
+        !group.is_active ? "opacity-75" : ""
+      }`}>
         {/* Card Header */}
         <div className={`bg-gradient-to-r ${gradient} p-5 text-white relative`}>
           <div className="flex items-start justify-between">
@@ -287,7 +334,16 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-black text-lg leading-tight">{group.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-black text-lg leading-tight">{group.name}</h3>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    group.is_active
+                      ? "bg-green-500/20 text-green-200 border border-green-500/30"
+                      : "bg-red-500/20 text-red-200 border border-red-500/30"
+                  }`}>
+                    {group.is_active ? "Active" : "Inactive"}
+                  </span>
+                </div>
                 {group.day_of_week && (
                   <div className="flex items-center gap-1.5 text-white/80 text-xs font-medium mt-0.5">
                     <Calendar className="w-3 h-3" />
@@ -320,18 +376,30 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
             <div className="bg-white/15 rounded-xl px-3 py-1.5 text-xs font-bold">
               {group.training_counsellors_count ?? group.training_counsellors?.length ?? 0} Counsellors
             </div>
-            {group.supervisor_link && (
-              <a
-                href={group.supervisor_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 bg-white/15 hover:bg-white/25 rounded-xl px-3 py-1.5 text-xs font-bold transition-colors"
+            {group.public_token && (
+              <button
+                onClick={handleCopyLink}
+                className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 rounded-xl px-3 py-1.5 text-xs font-bold transition-all active:scale-95 text-white"
               >
-                <LinkIcon className="w-3 h-3" />
-                Supervisor Link
-                <ExternalLink className="w-3 h-3 opacity-70" />
-              </a>
+                {copied ? <Check className="w-3 h-3 text-green-300" /> : <Copy className="w-3 h-3" />}
+                {copied ? "Copied!" : "Attendance Link"}
+              </button>
             )}
+            <button
+              onClick={handleToggleStatus}
+              disabled={toggling}
+              className={`flex items-center gap-1.5 bg-white/15 hover:bg-white/25 rounded-xl px-3 py-1.5 text-xs font-bold transition-all active:scale-95 text-white`}
+              title={group.is_active ? "Deactivate Group" : "Activate Group"}
+            >
+              {toggling ? (
+                <RefreshCw className="w-3 h-3 animate-spin" />
+              ) : group.is_active ? (
+                <XCircle className="w-3 h-3 text-red-200" />
+              ) : (
+                <CheckCircle2 className="w-3 h-3 text-green-200" />
+              )}
+              {group.is_active ? "Deactivate" : "Activate"}
+            </button>
           </div>
         </div>
 
@@ -363,7 +431,9 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{tc.name}</p>
-                      <p className="text-[10px] text-gray-400 truncate">{tc.email}</p>
+                      <p className="text-[10px] text-gray-400 truncate">
+                        {[tc.tc_id, tc.email].filter(Boolean).join(" | ")}
+                      </p>
                     </div>
                   </div>
                   <button
@@ -389,6 +459,105 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
             <UserPlus className="w-4 h-4" />
             Add Counsellor
           </button>
+
+          {/* Session History Toggle */}
+          <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-3">
+            <button
+              onClick={handleToggleSessions}
+              className="w-full flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-[#6f1c56] transition-colors uppercase tracking-widest mb-2"
+            >
+              <span className="flex items-center gap-1.5">
+                <ClipboardList className="w-3.5 h-3.5" />
+                Session History {sessionsLoaded ? `(${sessions.length})` : ""}
+              </span>
+              {showSessions ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+
+            {showSessions && (
+              <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
+                {sessionsLoading ? (
+                  <div className="flex justify-center py-6">
+                    <RefreshCw className="w-4 h-4 animate-spin text-gray-400" />
+                  </div>
+                ) : sessions.length === 0 ? (
+                  <div className="text-center py-6 text-xs text-gray-400 italic">
+                    No sessions logged yet for this group.
+                  </div>
+                ) : (
+                  sessions.map((session) => {
+                    const attended = session.attendees?.filter(a => a.attended) ?? [];
+                    const absent = session.attendees?.filter(a => !a.attended) ?? [];
+                    return (
+                      <div
+                        key={session.id}
+                        className="rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden bg-gray-50 dark:bg-gray-900/40"
+                      >
+                        {/* Session header */}
+                        <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+                          <div>
+                            <p className="text-xs font-black text-gray-800 dark:text-gray-200">
+                              {new Date(`${session.session_date}T00:00:00`).toLocaleDateString("en-GB", {
+                                weekday: "short", day: "numeric", month: "short", year: "numeric"
+                              })}
+                            </p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Supervisor: {session.supervisor_name}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full">
+                              <CheckCircle2 className="w-2.5 h-2.5" />{attended.length}
+                            </span>
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-900/20 dark:text-red-400 px-2 py-0.5 rounded-full">
+                              <XCircle className="w-2.5 h-2.5" />{absent.length}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Activities */}
+                        {session.activities && (
+                          <div className="px-4 py-2.5">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1 flex items-center gap-1">
+                              <BookOpen className="w-3 h-3" /> Activities
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{session.activities}</p>
+                          </div>
+                        )}
+
+                        {/* Attendee list */}
+                        {session.attendees && session.attendees.length > 0 && (
+                          <div className="px-4 pb-3 pt-2.5 border-t border-gray-100 dark:border-gray-800/60 space-y-2 bg-white/40 dark:bg-black/10">
+                            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">Counsellor Attendance</p>
+                            <div className="space-y-2">
+                              {session.attendees.map((a) => (
+                                <div key={a.id} className="text-xs">
+                                  <div className="flex items-center justify-between">
+                                    <span className={`font-medium ${a.attended ? "text-gray-700 dark:text-gray-300" : "text-gray-400 line-through"}`}>
+                                      {a.training_counsellor?.name ?? "Unknown"}
+                                    </span>
+                                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                                      a.attended
+                                        ? "bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-900/20"
+                                        : "bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/20"
+                                    }`}>
+                                      {a.attended ? "Present" : "Absent"}
+                                    </span>
+                                  </div>
+                                  {a.comment && (
+                                    <p className="text-[11px] text-[#6f1c56] dark:text-pink-400 italic mt-0.5 pl-2 border-l border-pink-200 dark:border-pink-900/40">
+                                      "{a.comment}"
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>
