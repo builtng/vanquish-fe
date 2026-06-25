@@ -23,6 +23,8 @@ import {
   Files,
   User,
   BarChart2,
+  Search,
+  X,
 } from "lucide-react";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useTheme } from "next-themes";
@@ -41,9 +43,20 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
       pathname?.startsWith("/counsellor-portal/pages/psg-progress"),
   });
 
+  const [searchQuery, setSearchQuery] = useState("");
+
   const toggleExpanded = (id) => {
     setExpandedItems((prev) => ({ ...prev, [id]: !prev[id] }));
   };
+
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      setExpandedItems((prev) => ({
+        ...prev,
+        psg: true,
+      }));
+    }
+  }, [searchQuery]);
 
   const navItems = [
     {
@@ -110,6 +123,30 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
       href: "/counsellor-portal/files",
     },
   ];
+
+  const filteredNavItems = navItems.map((item) => {
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesParent = item.label.toLowerCase().includes(query);
+
+      if (item.subItems) {
+        const filteredSubItems = item.subItems.filter((sub) =>
+          sub.label.toLowerCase().includes(query)
+        );
+
+        if (matchesParent || filteredSubItems.length > 0) {
+          return {
+            ...item,
+            subItems: matchesParent ? item.subItems : filteredSubItems,
+          };
+        }
+        return null;
+      } else {
+        return matchesParent ? item : null;
+      }
+    }
+    return item;
+  }).filter(Boolean);
 
   return (
     <div
@@ -179,9 +216,33 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
         </div>
       )}
 
+      {/* Search Input */}
+      {sidebarOpen && (
+        <div className="px-3 pt-2 pb-2">
+          <div className="relative flex items-center">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search navigation..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-xs border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#6f1c56]/30 bg-gray-50 dark:bg-gray-800/40 text-gray-800 dark:text-gray-200"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto no-scrollbar">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive =
             item.href &&
             (pathname === item.href ||
@@ -298,6 +359,11 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
             </Link>
           );
         })}
+        {filteredNavItems.length === 0 && searchQuery.trim() && (
+          <div className="px-4 py-8 text-center text-xs text-gray-500 dark:text-gray-400">
+            No matching links
+          </div>
+        )}
       </nav>
 
       {/* Settings & Logout */}

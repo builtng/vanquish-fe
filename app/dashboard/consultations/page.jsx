@@ -231,65 +231,83 @@ export default function ConsultationsManagementPageFixed() {
     }
   }, [showBookModal]);
 
+  // Helper to parse backend date strings safely in all browsers (including Safari)
+  const parseBackendDate = (dateStr) => {
+    if (!dateStr) return null;
+    const normalizedStr = dateStr.includes(" ") && !dateStr.includes("T") 
+      ? dateStr.replace(" ", "T") 
+      : dateStr;
+    const d = new Date(normalizedStr);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   // Transform API consultation data to match component structure
   const transformConsultationData = (consultations) => {
     if (!Array.isArray(consultations)) {
       return [];
     }
 
-    return consultations.map((consultation) => ({
-      id: consultation.id,
-      consultationId:
-        consultation.consultation_id ||
-        `CONS${String(consultation.id).padStart(3, "0")}`,
-      clientId: consultation.client_id,
-      clientUuid: consultation.client?.uuid || consultation.client_id, // Use UUID, fallback to ID for backward compatibility
-      clientName: consultation.client?.name || "Unknown Client",
-      clientAge: consultation.client?.age || null,
-      date: consultation.scheduled_at
-        ? consultation.scheduled_at.split("T")[0]
-        : null,
-      time: consultation.scheduled_at
-        ? new Date(consultation.scheduled_at).toLocaleTimeString("en-GB", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : null,
-      status:
-        consultation.status === "scheduled"
-          ? "Booked"
-          : consultation.status === "completed"
-            ? "Completed"
-            : consultation.status === "no_show"
-              ? "No Show"
-              : consultation.status === "cancelled"
-                ? "Cancelled"
-                : consultation.status === "rescheduled"
-                  ? "Rescheduled"
-                  : consultation.status,
-      serviceRequested: consultation.client?.service_type || "N/A",
-      paymentStatus: "Paid", // TODO: Get from payment records
-      paymentAmount:
-        consultation.recommended_service === "Coaching/Counselling"
-          ? 25
-          : consultation.payment_amount || 13,
-      conductedBy: consultation.tc?.name || "Not Assigned",
-      bookedAt: consultation.created_at || null,
-      notes: consultation.notes || "",
-      completedAt: consultation.completed_at || null,
-      duration: consultation.duration_minutes
-        ? `${consultation.duration_minutes} min`
-        : null,
-      outcome: consultation.outcome || null,
-      recommendedService: consultation.recommended_service || null,
-      recommendedModality: consultation.recommended_modality || null,
-    }));
+    return consultations.map((consultation) => {
+      const scheduledDateObj = parseBackendDate(consultation.scheduled_at);
+      const createdDateObj = parseBackendDate(consultation.created_at);
+
+      return {
+        id: consultation.id,
+        consultationId:
+          consultation.consultation_id ||
+          `CONS${String(consultation.id).padStart(3, "0")}`,
+        clientId: consultation.client_id,
+        clientUuid: consultation.client?.uuid || consultation.client_id, // Use UUID, fallback to ID for backward compatibility
+        clientName: consultation.client?.name || "Unknown Client",
+        clientAge: consultation.client?.age || null,
+        date: scheduledDateObj
+          ? `${scheduledDateObj.getFullYear()}-${String(scheduledDateObj.getMonth() + 1).padStart(2, "0")}-${String(scheduledDateObj.getDate()).padStart(2, "0")}`
+          : null,
+        time: scheduledDateObj
+          ? scheduledDateObj.toLocaleTimeString("en-GB", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : null,
+        status:
+          consultation.status === "scheduled"
+            ? "Booked"
+            : consultation.status === "completed"
+              ? "Completed"
+              : consultation.status === "no_show"
+                ? "No Show"
+                : consultation.status === "cancelled"
+                  ? "Cancelled"
+                  : consultation.status === "rescheduled"
+                    ? "Rescheduled"
+                    : consultation.status,
+        serviceRequested: consultation.client?.service_type || "N/A",
+        paymentStatus: "Paid", // TODO: Get from payment records
+        paymentAmount:
+          consultation.recommended_service === "Coaching/Counselling"
+            ? 25
+            : consultation.payment_amount || 13,
+        conductedBy: consultation.tc?.name || "Not Assigned",
+        bookedAt: createdDateObj
+          ? `${createdDateObj.getFullYear()}-${String(createdDateObj.getMonth() + 1).padStart(2, "0")}-${String(createdDateObj.getDate()).padStart(2, "0")}`
+          : null,
+        notes: consultation.notes || "",
+        completedAt: consultation.completed_at || null,
+        duration: consultation.duration_minutes
+          ? `${consultation.duration_minutes} min`
+          : null,
+        outcome: consultation.outcome || null,
+        recommendedService: consultation.recommended_service || null,
+        recommendedModality: consultation.recommended_modality || null,
+      };
+    });
   };
 
   // Filter consultations
 
   const getFilteredConsultations = () => {
-    const today = new Date().toISOString().split("T")[0];
+    const todayObj = new Date();
+    const today = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
 
     let filtered = [...consultations];
 
@@ -310,7 +328,7 @@ export default function ConsultationsManagementPageFixed() {
             (c.date === today ||
               (c.date === null &&
                 c.bookedAt &&
-                c.bookedAt.startsWith(today))) &&
+                c.bookedAt === today)) &&
             c.status === "Booked",
         );
 
@@ -349,11 +367,12 @@ export default function ConsultationsManagementPageFixed() {
   const filteredConsultations = getFilteredConsultations();
 
   // Calculate actual counts from consultations data
-  const today = new Date().toISOString().split("T")[0];
+  const todayObj = new Date();
+  const today = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
   const todayCount = consultations.filter(
     (c) =>
       (c.date === today ||
-        (c.date === null && c.bookedAt && c.bookedAt.startsWith(today))) &&
+        (c.date === null && c.bookedAt && c.bookedAt === today)) &&
       c.status === "Booked",
   ).length;
   const upcomingCount = consultations.filter(
