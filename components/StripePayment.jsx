@@ -28,6 +28,7 @@ if (!STRIPE_KEY) {
 export function StripePaymentForm({
   clientId,
   amount,
+  consultationSlotId,
   onSuccess,
   onError,
   onCancel,
@@ -77,6 +78,7 @@ export function StripePaymentForm({
                 body: JSON.stringify({
                   payment_intent_id: paymentIntent.id,
                   client_id: clientId,
+                  consultation_slot_id: consultationSlotId || undefined,
                 }),
               },
             );
@@ -206,6 +208,7 @@ export function StripePaymentWrapper({
   amount,
   paymentType = "consultation",
   couponCode,
+  consultationSlotId,
   onSuccess,
   onError,
   onCancel,
@@ -230,6 +233,7 @@ export function StripePaymentWrapper({
               currency: "gbp",
               payment_type: paymentType,
               coupon_code: couponCode,
+              consultation_slot_id: consultationSlotId || undefined,
             }),
           },
         );
@@ -336,6 +340,7 @@ export function StripePaymentWrapper({
       <StripePaymentForm
         clientId={clientId}
         amount={amount}
+        consultationSlotId={consultationSlotId}
         onSuccess={onSuccess}
         onError={onError}
         onCancel={onCancel}

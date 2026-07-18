@@ -310,14 +310,6 @@ export default function CounsellorChatPage() {
     );
   }, [staffList, searchQuery]);
 
-  const adminNames = useMemo(() => {
-    return staffList
-      .filter(s => s.role === 'admin' || s.role === 'super_admin')
-      .map(s => s.name.split(' ')[0])
-      .slice(0, 3)
-      .join(', ');
-  }, [staffList]);
-
   return (
     <CounsellorLayout unreadCount={unreadCount}>
       <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-white dark:bg-[var(--background)] text-gray-900 dark:text-gray-200">
@@ -454,7 +446,7 @@ export default function CounsellorChatPage() {
                     <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{activeChat.name}</h3>
                     <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
                       {activeChat.id === 'admin_group'
-                        ? `Group Chat${adminNames ? ` (${adminNames})` : ' with Admin Team'}`
+                        ? 'Group Chat with Staff Support'
                         : 'Staff Support'
                       }
                     </p>
@@ -522,9 +514,7 @@ export default function CounsellorChatPage() {
                     const showDate = idx === 0 || 
                       new Date(messages[idx-1]?.created_at).toDateString() !== new Date(msg.created_at).toDateString();
                     
-                    const senderName = msg.from_user?.name || msg.fromUser?.name || "Admin";
-                    const senderRole = msg.from_user?.role || msg.fromUser?.role;
-                    const initial = senderName[0]?.toUpperCase() || "A";
+                    const initial = "S";
                     const shouldShowAdminName = activeChat?.type === 'group' && !isMe;
 
                     return (
@@ -545,7 +535,7 @@ export default function CounsellorChatPage() {
                           <div className={`max-w-[85%] md:max-w-[75%] animate-in slide-in-from-${isMe ? 'right' : 'left'}-2 duration-300`}>
                             {shouldShowAdminName && (
                               <p className="text-[10px] font-bold mb-1 ml-1 text-muted-foreground uppercase tracking-tight">
-                                {senderName} {senderRole === 'super_admin' ? '(Super Admin)' : (senderRole === 'admin' ? '(Admin)' : '')}
+                                Staff Support
                               </p>
                             )}
                             <div className={`px-5 py-3.5 rounded-2xl text-[14px] shadow-sm leading-relaxed ${

@@ -25,6 +25,30 @@ import {
   FileText,
 } from "lucide-react";
 
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function getNextSessionCountdown(dayOfWeek) {
+  const targetDay = WEEKDAYS.indexOf(dayOfWeek);
+  if (targetDay === -1) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysUntil = (targetDay - today.getDay() + 7) % 7;
+  const nextDate = new Date(today);
+  nextDate.setDate(today.getDate() + daysUntil);
+
+  return {
+    daysUntil,
+    date: nextDate,
+    label:
+      daysUntil === 0
+        ? "Today"
+        : daysUntil === 1
+          ? "Tomorrow"
+          : `In ${daysUntil}d`,
+  };
+}
+
 function StatCard({ icon: Icon, label, value, color, href }) {
   const content = (
     <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--card-border)] p-5 hover:shadow-md transition-all group cursor-pointer">
@@ -61,6 +85,10 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes }) {
   const { user } = useAuth();
   const firstName = user?.name?.split(" ")[0] || "Counsellor";
 
+  const nextSession = counsellorData?.attendance_group?.day_of_week
+    ? getNextSessionCountdown(counsellorData.attendance_group.day_of_week)
+    : null;
+
   return (
     <div className="space-y-6">
       {/* Stats */}
@@ -85,6 +113,13 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes }) {
           value={unreadCount}
           color="#f59e0b"
           href="/counsellor-portal/messages/inbox"
+        />
+        <StatCard
+          icon={Clock}
+          label="Next PSG Session"
+          value={nextSession ? nextSession.label : "—"}
+          color="#ec4899"
+          href="/counsellor-portal/pages/psg-progress"
         />
       </div>
 

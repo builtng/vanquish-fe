@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { StripePaymentWrapper } from "@/components/StripePayment";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
+import CalendarPicker from "@/components/CalendarPicker";
 import { toast } from "react-toastify";
 import { useBranding } from "@/contexts/BrandingContext";
 import apiService from "@/lib/api";
@@ -78,6 +79,9 @@ export default function CoachingIntake() {
   const [isDiscountApplied, setIsDiscountApplied] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentProps, setPaymentProps] = useState(null);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const formContentRef = useRef(null);
 
   const getConsultationFee = () => {
@@ -162,6 +166,37 @@ export default function CoachingIntake() {
         });
       });
   }, []);
+
+  useEffect(() => {
+    if (currentStep !== 5 || availableSlots.length > 0 || loadingSlots) return;
+
+    const fetchSlots = async () => {
+      try {
+        setLoadingSlots(true);
+        const data = await apiService.getAvailableConsultationSlots();
+        const mapped = (data || []).map((slot) => {
+          const date = new Date(slot.consultation_datetime);
+          return {
+            ...slot,
+            date: date.toISOString().split("T")[0],
+            formatted_time: date.toLocaleTimeString("en-GB", {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "UTC",
+            }),
+            available: !(slot.max_slots && slot.booked_slots >= slot.max_slots),
+          };
+        });
+        setAvailableSlots(mapped);
+      } catch (err) {
+        toast.error("Failed to load available consultation dates.");
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    fetchSlots();
+  }, [currentStep, availableSlots.length, loadingSlots]);
 
   const supportAreasList = [
     "Communication problems",
@@ -288,6 +323,9 @@ export default function CoachingIntake() {
         break;
 
       case 5: // Payment
+        if (!selectedSlot)
+          stepErrors.consultationSlot =
+            "Please choose a consultation date & time";
         if (!formData.termsAccepted)
           stepErrors.termsAccepted = "You must accept the terms";
         break;
@@ -462,6 +500,7 @@ export default function CoachingIntake() {
             terms_accepted: formData.termsAccepted,
             discount_code: isDiscountApplied ? formData.discountCode : null,
             consultation_fee: getConsultationFee(),
+            consultation_slot_id: selectedSlot?.id || null,
             create_client: true,
           }),
         },
@@ -510,6 +549,7 @@ export default function CoachingIntake() {
           clientId: clientIdFromRes,
           amount: fee,
           couponCode: isDiscountApplied ? formData.discountCode : null,
+          consultationSlotId: selectedSlot?.id || null,
           onSuccess: proceedToSuccess,
           onError: (err) =>
             toast.error(`Payment failed: ${err.message || "Please try again"}`),
@@ -544,18 +584,21 @@ export default function CoachingIntake() {
                 <CheckCircle className="w-12 h-12 text-green-600" />
               </div>
               <h2 className="text-2xl font-bold mb-3">
-                THANK YOU FOR BOOKING YOUR CONSULTATION.
+                THANK YOU FOR BOOKING YOUR CONSULTATION WITH US.
               </h2>
               <div className="mb-6 text-center text-secondary">
                 <p className="mb-4 font-medium">
-                  PLEASE REMEMBER TO CHECK YOUR SPAM/JUNK FOLDER.
+                  PLEASE REMEMBER TO CHECK YOUR SPAM/JUNK FOLDER IN CASE THE
+                  BOOKING CONFIRMATION EMAIL DOES NOT APPEAR IN YOUR INBOX.
                 </p>
                 <p className="mb-4 font-medium">
                   <strong>
-                    IF YOU HAVE NOT RECEIVED A CONFIRMATION EMAIL, CONTACT US AT
-                    LEAST 48 HOURS BEFORE YOUR CONSULTATION.
+                    IF YOU HAVE NOT RECEIVED A CONFIRMATION EMAIL, IT IS
+                    IMPORTANT THAT YOU CONTACT US AT LEAST 48 HOURS BEFORE YOUR
+                    CONSULTATION SO WE CAN ASSIST IN CONFIRMING YOUR BOOKING.
                   </strong>
                 </p>
+                <p className="text-lg">We look forward to connecting with you.</p>
               </div>
               <div className="rounded-lg p-4 mb-6 border bg-purple-50 border-purple-100">
                 <p className="text-base font-medium">
@@ -1263,6 +1306,51 @@ export default function CoachingIntake() {
                   Payment & Terms
                 </h2>
 
+                <div className="bg-gray-50 p-6 rounded-lg mb-6" data-field="consultationSlot">
+                  <h3 className="font-bold mb-2">
+                    Choose Your Consultation Date & Time
+                  </h3>
+                  <p className="text-sm mb-4 text-gray-600">
+                    Select an available slot below. Your booking will be
+                    confirmed automatically once payment is complete, and
+                    we&apos;ll email you the date, time, and Zoom link
+                    straight away.
+                  </p>
+                  {loadingSlots ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6f1d56]"></div>
+                      <p className="ml-3 text-sm text-gray-500">
+                        Loading available times…
+                      </p>
+                    </div>
+                  ) : availableSlots.length === 0 ? (
+                    <p className="text-sm text-gray-500 py-4">
+                      No consultation dates are available right now. Please
+                      check back shortly or contact us for assistance.
+                    </p>
+                  ) : (
+                    <CalendarPicker
+                      availableSlots={availableSlots}
+                      selectedSlot={selectedSlot}
+                      onSelect={(slot) => {
+                        setSelectedSlot(slot);
+                        if (errors.consultationSlot) {
+                          setErrors((prev) => {
+                            const newErrors = { ...prev };
+                            delete newErrors.consultationSlot;
+                            return newErrors;
+                          });
+                        }
+                      }}
+                    />
+                  )}
+                  {errors.consultationSlot && (
+                    <p className="text-red-500 text-sm mt-2">
+                      {errors.consultationSlot}
+                    </p>
+                  )}
+                </div>
+
                 <div className="bg-gray-50 p-6 rounded-lg mb-6">
                   <h3 className="font-bold mb-2">Terms & Conditions</h3>
                   <p className="text-sm mb-4">
@@ -1353,7 +1441,7 @@ export default function CoachingIntake() {
                   !clientId && (
                     <button
                       onClick={handleSubmit}
-                      disabled={!formData.termsAccepted}
+                      disabled={!formData.termsAccepted || !selectedSlot}
                       className="px-8 py-2 bg-[#6f1d56] text-white rounded-lg disabled:opacity-50"
                     >
                       Save & Proceed to Payment
@@ -1387,6 +1475,7 @@ export default function CoachingIntake() {
                 clientId={paymentProps.clientId}
                 amount={paymentProps.amount}
                 paymentType="consultation"
+                consultationSlotId={paymentProps.consultationSlotId}
                 onSuccess={paymentProps.onSuccess}
               />
             </div>

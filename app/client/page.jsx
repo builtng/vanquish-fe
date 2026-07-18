@@ -336,20 +336,6 @@ export default function VanquishClientIntake() {
         )
           stepErrors.age = "Valid age (18-99) is required";
 
-        if (!formData.emergencyContactName.trim())
-          stepErrors.emergencyContactName =
-            "Emergency contact name is required";
-        if (!formData.emergencyContactPhone.trim())
-          stepErrors.emergencyContactPhone =
-            "Emergency contact phone is required";
-        if (
-          formData.emergencyContactEmail.trim() &&
-          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emergencyContactEmail)
-        )
-          stepErrors.emergencyContactEmail =
-            "Valid emergency contact email is required";
-        if (!formData.emergencyContactRelationship.trim())
-          stepErrors.emergencyContactRelationship = "Relationship is required";
         if (!formData.voicemailOk)
           stepErrors.voicemailOk = "This field is required";
         if (!formData.currentlyInTherapy)
@@ -426,7 +412,24 @@ export default function VanquishClientIntake() {
             "Please select an available consultation slot";
         break;
 
-      case 10: // Payment
+      case 10: // Emergency Contact
+        if (!formData.emergencyContactName.trim())
+          stepErrors.emergencyContactName =
+            "Emergency contact name is required";
+        if (!formData.emergencyContactPhone.trim())
+          stepErrors.emergencyContactPhone =
+            "Emergency contact phone is required";
+        if (
+          formData.emergencyContactEmail.trim() &&
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emergencyContactEmail)
+        )
+          stepErrors.emergencyContactEmail =
+            "Valid emergency contact email is required";
+        if (!formData.emergencyContactRelationship.trim())
+          stepErrors.emergencyContactRelationship = "Relationship is required";
+        break;
+
+      case 11: // Payment
         if (!formData.termsAccepted)
           stepErrors.termsAccepted = "You must accept the terms";
         break;
@@ -579,10 +582,12 @@ export default function VanquishClientIntake() {
     setFormData((prev) => ({
       ...prev,
       availability: {
-        ...prev.availability,
-        [day]: prev.availability[day].includes(slot)
-          ? prev.availability[day].filter((s) => s !== slot)
-          : [...prev.availability[day], slot],
+        monday: [],
+        tuesday: [],
+        wednesday: [],
+        thursday: [],
+        friday: [],
+        [day]: [slot],
       },
     }));
     // Clear error when user makes a selection
@@ -836,7 +841,7 @@ export default function VanquishClientIntake() {
 
   const steps = [
     { number: 1, title: "Personal", icon: User },
-    { number: 2, title: "About You", icon: Heart },
+    { number: 2, title: "About", icon: Heart },
     { number: 3, title: "Service", icon: Briefcase },
     { number: 4, title: "Support", icon: MessageCircle },
     { number: 5, title: "Availability", icon: Calendar },
@@ -844,7 +849,8 @@ export default function VanquishClientIntake() {
     { number: 7, title: "Referral", icon: User },
     { number: 8, title: "Assessment", icon: CheckCircle },
     { number: 9, title: "Slot", icon: Calendar },
-    { number: 10, title: "Payment", icon: CreditCard },
+    { number: 10, title: "Emergency", icon: AlertTriangle },
+    { number: 11, title: "Payment", icon: CreditCard },
   ];
 
   if (submitted) {
@@ -1390,148 +1396,6 @@ export default function VanquishClientIntake() {
                     )}
                   </div>
 
-                  <div className="md:col-span-2 pt-4 border-t border-gray-100">
-                    <h3
-                      className="text-xl font-bold mb-4"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Emergency Contact Details (As the sessions are online,
-                      this information is required for safeguarding and
-                      insurance purposes):
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                      <div>
-                        <label
-                          className="block text-lg font-medium mb-2"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          Emergency Contact First Name{" "}
-                          <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="emergencyContactName"
-                          id="emergencyContactName"
-                          value={formData.emergencyContactName}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "emergencyContactName",
-                              e.target.value,
-                            )
-                          }
-                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                            errors.emergencyContactName
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          placeholder="Jane Smith"
-                        />
-                        {errors.emergencyContactName && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {errors.emergencyContactName}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label
-                          className="block text-lg font-medium mb-2"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          Telephone Number of Your Emergency Contact:{" "}
-                          <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="tel"
-                          name="emergencyContactPhone"
-                          id="emergencyContactPhone"
-                          value={formData.emergencyContactPhone}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "emergencyContactPhone",
-                              e.target.value,
-                            )
-                          }
-                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                            errors.emergencyContactPhone
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          placeholder="+44 7700 900000"
-                        />
-                        {errors.emergencyContactPhone && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {errors.emergencyContactPhone}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label
-                          className="block text-lg font-medium mb-2"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          Relationship to You{" "}
-                          <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="emergencyContactRelationship"
-                          id="emergencyContactRelationship"
-                          value={formData.emergencyContactRelationship}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "emergencyContactRelationship",
-                              e.target.value,
-                            )
-                          }
-                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                            errors.emergencyContactRelationship
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          placeholder="e.g. Mother, Spouse, Friend"
-                        />
-                        {errors.emergencyContactRelationship && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {errors.emergencyContactRelationship}
-                          </p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label
-                          className="block text-lg font-medium mb-2"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          Emergency Contact Email
-                        </label>
-                        <input
-                          type="email"
-                          name="emergencyContactEmail"
-                          id="emergencyContactEmail"
-                          value={formData.emergencyContactEmail}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "emergencyContactEmail",
-                              e.target.value,
-                            )
-                          }
-                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                            errors.emergencyContactEmail
-                              ? "border-red-500"
-                              : "border-gray-300"
-                          }`}
-                          placeholder="emergency@example.com"
-                        />
-                        {errors.emergencyContactEmail && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {errors.emergencyContactEmail}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -2064,7 +1928,7 @@ export default function VanquishClientIntake() {
                     className="text-base md:text-lg "
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    Select all time slots when you're available for weekly
+                    Select ONE day and time slot for your recurring weekly
                     counselling sessions.
                   </p>
                 </div>
@@ -2079,7 +1943,7 @@ export default function VanquishClientIntake() {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-base text-blue-900">
                     <strong>Important:</strong> To avoid any delays - Please
-                    select the accurate days and times you are available to
+                    select the accurate day and time you are available to
                     attend weekly counselling sessions in UK time, as the
                     practice is based in the UK. Please note - If this
                     information is not provided there can be a delay in matching
@@ -2132,14 +1996,15 @@ export default function VanquishClientIntake() {
                                   }}
                                 >
                                   <input
-                                    type="checkbox"
+                                    type="radio"
+                                    name="availability"
                                     checked={formData.availability[
                                       day
                                     ].includes(slot.value)}
                                     onChange={() =>
                                       handleAvailabilityToggle(day, slot.value)
                                     }
-                                    className="w-5 h-5 rounded "
+                                    className="w-5 h-5"
                                     style={{
                                       borderColor: "var(--input-border)",
                                       accentColor: "#6f1d56",
@@ -2943,14 +2808,15 @@ export default function VanquishClientIntake() {
                                     const d = new Date(
                                       slot.consultation_datetime,
                                     );
-                                    const timeStr = d.toLocaleTimeString(
-                                      "en-GB",
-                                      {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        hour12: true,
-                                      },
+                                    const endD = new Date(
+                                      d.getTime() + 15 * 60 * 1000,
                                     );
+                                    const timeFormat = {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                    };
+                                    const timeStr = `${d.toLocaleTimeString("en-GB", timeFormat)} - ${endD.toLocaleTimeString("en-GB", timeFormat)}`;
                                     return (
                                       <label
                                         key={slot.id}
@@ -3001,8 +2867,162 @@ export default function VanquishClientIntake() {
               </div>
             )}
 
-            {/* Step 10: Payment & Terms */}
+            {/* Step 10: Emergency Contact */}
             {currentStep === 10 && (
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Emergency Contact Details
+                  </h2>
+                  <p
+                    className="text-base md:text-lg text-center"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    As the sessions are online, this information is required
+                    for safeguarding and insurance purposes.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Emergency Contact First Name{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="emergencyContactName"
+                      id="emergencyContactName"
+                      value={formData.emergencyContactName}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "emergencyContactName",
+                          e.target.value,
+                        )
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.emergencyContactName
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Jane Smith"
+                    />
+                    {errors.emergencyContactName && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.emergencyContactName}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Telephone Number of Your Emergency Contact:{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="emergencyContactPhone"
+                      id="emergencyContactPhone"
+                      value={formData.emergencyContactPhone}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "emergencyContactPhone",
+                          e.target.value,
+                        )
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.emergencyContactPhone
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="+44 7700 900000"
+                    />
+                    {errors.emergencyContactPhone && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.emergencyContactPhone}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Relationship to You{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="emergencyContactRelationship"
+                      id="emergencyContactRelationship"
+                      value={formData.emergencyContactRelationship}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "emergencyContactRelationship",
+                          e.target.value,
+                        )
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.emergencyContactRelationship
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="e.g. Mother, Spouse, Friend"
+                    />
+                    {errors.emergencyContactRelationship && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.emergencyContactRelationship}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Emergency Contact Email
+                    </label>
+                    <input
+                      type="email"
+                      name="emergencyContactEmail"
+                      id="emergencyContactEmail"
+                      value={formData.emergencyContactEmail}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "emergencyContactEmail",
+                          e.target.value,
+                        )
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.emergencyContactEmail
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="emergency@example.com"
+                    />
+                    {errors.emergencyContactEmail && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.emergencyContactEmail}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 11: Payment & Terms */}
+            {currentStep === 11 && (
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2

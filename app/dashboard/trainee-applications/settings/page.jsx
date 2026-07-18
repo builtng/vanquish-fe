@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Save, AlertTriangle, ArrowLeft, RotateCcw, HelpCircle, Video, Key, Lock, Eye, EyeOff, Layout, ExternalLink, Star } from "lucide-react";
+import { Save, AlertTriangle, ArrowLeft, RotateCcw, HelpCircle, Video, Key, Lock, Eye, EyeOff, Layout, ExternalLink, Star, Link2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -12,6 +12,7 @@ import { useModal } from "@/contexts/ModalContext";
 export default function TraineeAssessmentSettings() {
   const [zoomLink, setZoomLink] = useState("");
   const [inductionDate, setInductionDate] = useState("");
+  const [interviewLink, setInterviewLink] = useState("");
   const [zoomSdkKey, setZoomSdkKey] = useState("");
   const [zoomSdkSecret, setZoomSdkSecret] = useState("");
   const [zoomMode, setZoomMode] = useState("embedded");
@@ -26,6 +27,7 @@ export default function TraineeAssessmentSettings() {
       const data = await apiService.getTraineeSettings();
       setZoomLink(data.default_zoom_link || "");
       setInductionDate(data.next_induction_date || "");
+      setInterviewLink(data.placement_interview_link || "");
       setZoomSdkKey(data.zoom_sdk_key || "");
       setZoomSdkSecret(data.zoom_sdk_secret || "");
       setZoomMode(data.zoom_mode || "embedded");

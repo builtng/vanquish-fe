@@ -37,6 +37,30 @@ function formatDate(dateValue) {
   });
 }
 
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function getNextSessionCountdown(dayOfWeek) {
+  const targetDay = WEEKDAYS.indexOf(dayOfWeek);
+  if (targetDay === -1) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysUntil = (targetDay - today.getDay() + 7) % 7;
+  const nextDate = new Date(today);
+  nextDate.setDate(today.getDate() + daysUntil);
+
+  return {
+    daysUntil,
+    date: nextDate,
+    label:
+      daysUntil === 0
+        ? "Today"
+        : daysUntil === 1
+          ? "Tomorrow"
+          : `In ${daysUntil} days`,
+  };
+}
+
 export default function AttendanceProgressPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -75,6 +99,10 @@ export default function AttendanceProgressPage() {
     ? DAY_COLORS[attendanceGroup.day_of_week] || "from-[#6f1d56] to-purple-600"
     : "from-[#6f1d56] to-purple-600";
 
+  const nextSession = attendanceGroup?.day_of_week
+    ? getNextSessionCountdown(attendanceGroup.day_of_week)
+    : null;
+
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
   const submittedThisMonth = reflections.some((reflection) => {
@@ -88,6 +116,9 @@ export default function AttendanceProgressPage() {
   });
   const attendedCount = sessionsThisMonth.filter(s => s.attended).length;
   const totalSessionsThisMonth = sessionsThisMonth.length;
+  const missedCount = totalSessionsThisMonth - attendedCount;
+  const attendedPercent = totalSessionsThisMonth > 0 ? (attendedCount / totalSessionsThisMonth) * 100 : 0;
+  const missedPercent = totalSessionsThisMonth > 0 ? (missedCount / totalSessionsThisMonth) * 100 : 0;
 
   const latestReflection = reflections[0] || null;
   const lastAttendedSession = psgSessions.find(s => s.attended);
@@ -143,11 +174,31 @@ export default function AttendanceProgressPage() {
                     <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
                   <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] font-bold uppercase tracking-wide">
-                    This Month (Attended)
+                    This Month
                   </p>
-                  <p className="text-sm font-black text-gray-900 dark:text-[var(--text-primary)] mt-2">
-                    {totalSessionsThisMonth > 0 ? `${attendedCount} / ${totalSessionsThisMonth} Sessions` : "No sessions logged"}
-                  </p>
+                  {totalSessionsThisMonth > 0 ? (
+                    <>
+                      <div className="flex w-full h-2 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 mt-3">
+                        <div
+                          className="bg-green-500 h-full"
+                          style={{ width: `${attendedPercent}%` }}
+                          title={`${attendedCount} attended`}
+                        />
+                        <div
+                          className="bg-red-500 h-full"
+                          style={{ width: `${missedPercent}%` }}
+                          title={`${missedCount} missed`}
+                        />
+                      </div>
+                      <p className="text-[11px] font-bold text-gray-600 dark:text-[var(--text-secondary)] mt-2">
+                        {attendedCount} attended · {missedCount} missed
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm font-black text-gray-900 dark:text-[var(--text-primary)] mt-2">
+                      No sessions logged
+                    </p>
+                  )}
                 </div>
 
                 <div className="bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl p-5 shadow-sm">
@@ -202,23 +253,33 @@ export default function AttendanceProgressPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-4 bg-white/15 rounded-xl px-4 py-2.5 w-fit">
-                    <Calendar className="w-4 h-4" />
-                    <span className="font-bold text-sm">{attendanceGroup.day_of_week}s</span>
+                  <div className="flex flex-wrap items-center gap-2 mt-4">
+                    <div className="flex items-center gap-2 bg-white/15 rounded-xl px-4 py-2.5 w-fit">
+                      <Calendar className="w-4 h-4" />
+                      <span className="font-bold text-sm">{attendanceGroup.day_of_week}s</span>
+                    </div>
+                    {nextSession && (
+                      <div className="flex items-center gap-2 bg-white/15 rounded-xl px-4 py-2.5 w-fit">
+                        <Clock className="w-4 h-4" />
+                        <span className="font-bold text-sm">
+                          Next session: {nextSession.label} ({nextSession.date.toLocaleDateString("en-GB", { day: "numeric", month: "short" })})
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* PSG Reflection Form CTA */}
+                {/* PSG Discussion Form CTA */}
                 <div className="bg-white dark:bg-[var(--card-bg)] border border-t-0 border-gray-200 dark:border-[var(--card-border)] rounded-b-2xl p-5">
                   <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mb-3 font-medium">
-                    Submit your monthly PSG reflection for this group session.
+                    Submit your monthly PSG discussion for this group session.
                   </p>
                   <Link
                     href="/counsellor-portal/pages/psg-form"
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#6f1c56] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-all shadow-lg shadow-[#6f1c56]/20 active:scale-95"
                   >
                     <FileText className="w-4 h-4" />
-                    PSG Reflection Form
+                    Discussion Form
                   </Link>
                 </div>
               </div>
@@ -311,7 +372,7 @@ export default function AttendanceProgressPage() {
           {/* Submission History */}
           <section className="space-y-4">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-              Attendance Reflection History
+              Attendance &amp; Discussion History
             </h2>
             <div className="bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-2xl shadow-sm overflow-hidden">
               {loading ? (
@@ -322,10 +383,10 @@ export default function AttendanceProgressPage() {
                 <div className="p-8 text-center">
                   <FileText className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                   <p className="text-sm font-bold text-gray-700 dark:text-[var(--text-primary)]">
-                    No attendance reflections yet
+                    No discussions submitted yet
                   </p>
                   <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">
-                    Your submitted PSG reflections will appear here.
+                    Your submitted PSG discussions will appear here.
                   </p>
                 </div>
               ) : (

@@ -199,7 +199,7 @@ export default function SystemModuleToggleSettings() {
     {
       key: "use_internal_psg_form",
       urlKey: "jotform_psg_form_url",
-      label: "Monthly PSG Reflection",
+      label: "Monthly PSG Discussion",
       description: "Toggle between JotForm and Internal PSG Submission Form",
       icon: ClipboardList,
     },

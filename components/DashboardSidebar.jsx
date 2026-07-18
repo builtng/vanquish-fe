@@ -230,12 +230,13 @@ export default function DashboardSidebar() {
     pathname?.startsWith("/dashboard/completed-matches") ||
     pathname?.startsWith("/dashboard/session-notes")
   );
-  const [tcExpanded, setTcExpanded] = useState(pathname?.startsWith("/dashboard/training-counsellors") || pathname?.startsWith("/dashboard/inductions") || pathname?.startsWith("/dashboard/training-providers") || pathname?.startsWith("/dashboard/psg-groups"));
+  const [tcExpanded, setTcExpanded] = useState(pathname?.startsWith("/dashboard/training-counsellors") || pathname?.startsWith("/dashboard/inductions") || pathname?.startsWith("/dashboard/training-providers") || pathname?.startsWith("/dashboard/psg-groups") || pathname?.startsWith("/dashboard/time-off-requests"));
   const [commExpanded, setCommExpanded] = useState(pathname?.startsWith("/dashboard/staff-notes") || pathname?.startsWith("/dashboard/messages"));
   const [settingsExpanded, setSettingsExpanded] = useState(
     pathname?.startsWith("/dashboard/email-management") || 
     pathname?.startsWith("/dashboard/matching-algorithm") || 
-    pathname?.startsWith("/dashboard/consultation-slots") || 
+    pathname?.startsWith("/dashboard/consultation-slots") ||
+    pathname?.startsWith("/dashboard/placement-interview-slots") ||
     pathname?.startsWith("/dashboard/users") ||
     pathname?.startsWith("/dashboard/coupons") ||
     pathname?.startsWith("/dashboard/color-guide") ||
@@ -352,6 +353,12 @@ export default function DashboardSidebar() {
           icon: Users,
           href: "/dashboard/psg-groups",
         },
+        {
+          id: "time-off-requests",
+          label: "Time Off Requests",
+          icon: CalendarDays,
+          href: "/dashboard/time-off-requests",
+        },
       ],
     },
 
@@ -432,6 +439,12 @@ export default function DashboardSidebar() {
           href: "/dashboard/consultation-slots",
         },
         {
+          id: "placement-interview-slots",
+          label: "Placement Interview Slots",
+          icon: CalendarCheck,
+          href: "/dashboard/placement-interview-slots",
+        },
+        {
           id: "users",
           label: "User Management",
           icon: UserCog,
@@ -499,6 +512,7 @@ export default function DashboardSidebar() {
       "email-management",
       "users",
       "consultation-slots",
+      "placement-interview-slots",
       "matching-algo",
       "color-guide",
       "settings-group"

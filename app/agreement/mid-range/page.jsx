@@ -6,6 +6,7 @@ import { FileText, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { toast } from "react-toastify";
 import { Suspense } from "react";
+import AgreementClauses from "@/components/AgreementClauses";
 
 function MidRangeAgreementContent() {
   const searchParams = useSearchParams();
@@ -17,6 +18,7 @@ function MidRangeAgreementContent() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [submittedUuid, setSubmittedUuid] = useState(null);
 
   const [formData, setFormData] = useState({
     fullLegalName: "",
@@ -28,6 +30,7 @@ function MidRangeAgreementContent() {
     gpPracticePhone: "",
     currentAddress: "",
     signatureDate: new Date().toISOString().split("T")[0],
+    termsAgreed: false,
   });
 
   const [errors, setErrors] = useState({});
@@ -139,8 +142,8 @@ function MidRangeAgreementContent() {
       newErrors.gpPracticePhone = "Practice phone is required";
     if (!formData.currentAddress.trim())
       newErrors.currentAddress = "Current address is required";
-    if (!formData.signatureDate)
-      newErrors.signatureDate = "Signature date is required";
+    if (!formData.termsAgreed)
+      newErrors.termsAgreed = "You must confirm you have read and agree to the agreement";
 
     if (signatureRef.current && signatureRef.current.isEmpty()) {
       newErrors.signature = "Signature is required";
@@ -181,7 +184,8 @@ function MidRangeAgreementContent() {
             gp_practice_phone: formData.gpPracticePhone,
             current_address: formData.currentAddress,
             signature_data: signatureDataUrl,
-            signature_date: formData.signatureDate,
+            signature_date: new Date().toISOString().split("T")[0],
+            terms_agreed: formData.termsAgreed,
             service_type: "Mid Range",
           }),
         },
@@ -195,11 +199,7 @@ function MidRangeAgreementContent() {
       const data = await response.json();
 
       toast.success("Agreement submitted successfully!");
-
-      // Redirect to internal booking system
-      setTimeout(() => {
-        window.location.href = `/client-booking?uuid=${clientUuid || data.client_uuid}`;
-      }, 2000);
+      setSubmittedUuid(clientUuid || data.client_uuid);
     } catch (error) {
       console.error("Error submitting agreement:", error);
       toast.error(
@@ -260,6 +260,64 @@ function MidRangeAgreementContent() {
             <p className="mb-6" style={{ color: "var(--text-secondary)" }}>
               {error}
             </p>
+          </div>
+        </div>
+      </PublicFormWrapper>
+    );
+  }
+
+  if (submittedUuid) {
+    const downloadUrl = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/client-agreement/download/${submittedUuid}`;
+    return (
+      <PublicFormWrapper>
+        <div
+          className="min-h-screen flex items-center justify-center p-4"
+          style={{ background: "var(--bg-secondary)" }}
+        >
+          <div className="card rounded-2xl shadow-xl p-8 max-w-md w-full text-center border">
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+              style={{
+                backgroundColor: "var(--success-bg, #dcfce7)",
+                border: "2px solid var(--success-border, #86efac)",
+              }}
+            >
+              <CheckCircle className="w-12 h-12" style={{ color: "#16a34a" }} />
+            </div>
+            <h2
+              className="text-2xl font-bold mb-3"
+              style={{ color: "var(--text-primary)" }}
+            >
+              Agreement Signed
+            </h2>
+            <p className="mb-6" style={{ color: "var(--text-secondary)" }}>
+              Thank you. Your signed agreement has been recorded. You can
+              download a PDF copy for your records below.
+            </p>
+            <a
+              href={downloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full py-3 mb-3 rounded-lg text-base font-semibold text-white transition-all"
+              style={{
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              }}
+            >
+              Download PDF Copy
+            </a>
+            <button
+              type="button"
+              onClick={() =>
+                (window.location.href = `/client-booking?uuid=${submittedUuid}`)
+              }
+              className="block w-full py-3 rounded-lg text-base font-semibold"
+              style={{
+                border: "1px solid var(--border-color)",
+                color: "var(--text-primary)",
+              }}
+            >
+              Continue to Book Your Consultation
+            </button>
           </div>
         </div>
       </PublicFormWrapper>
@@ -333,6 +391,37 @@ function MidRangeAgreementContent() {
                     style={{ color: "var(--error-primary)" }}
                   >
                     {errors.fullLegalName}
+                  </p>
+                )}
+              </div>
+
+              {/* Full Agreement Text */}
+              <div className="mb-6">
+                <AgreementClauses variant="mid-range" />
+                <label className="flex items-start gap-3 cursor-pointer mt-4">
+                  <input
+                    type="checkbox"
+                    checked={formData.termsAgreed}
+                    onChange={(e) =>
+                      handleInputChange("termsAgreed", e.target.checked)
+                    }
+                    className="mt-1 w-5 h-5 rounded"
+                  />
+                  <span
+                    className="text-base font-medium"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    I have read and agree to the terms and conditions above,
+                    including the prohibition against recording any sessions.{" "}
+                    <span className="text-red-500">*</span>
+                  </span>
+                </label>
+                {errors.termsAgreed && (
+                  <p
+                    className="text-sm mt-1"
+                    style={{ color: "var(--error-primary)" }}
+                  >
+                    {errors.termsAgreed}
                   </p>
                 )}
               </div>
@@ -714,37 +803,28 @@ function MidRangeAgreementContent() {
                 )}
               </div>
 
-              {/* Signature Date */}
+              {/* Signature Date (auto-generated, not editable) */}
               <div className="mb-6">
                 <label
                   className="block text-base font-semibold mb-2"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Date of signing <span className="text-red-500">*</span>
+                  Date of signing
                 </label>
-                <input
-                  type="date"
-                  value={formData.signatureDate}
-                  onChange={(e) =>
-                    handleInputChange("signatureDate", e.target.value)
-                  }
+                <p
                   className="w-full px-4 py-3 rounded-lg border text-base"
                   style={{
-                    borderColor: errors.signatureDate
-                      ? "var(--error-primary)"
-                      : "var(--border-color)",
-                    backgroundColor: "var(--bg-primary)",
+                    borderColor: "var(--border-color)",
+                    backgroundColor: "var(--bg-secondary)",
                     color: "var(--text-primary)",
                   }}
-                />
-                {errors.signatureDate && (
-                  <p
-                    className="text-sm mt-1"
-                    style={{ color: "var(--error-primary)" }}
-                  >
-                    {errors.signatureDate}
-                  </p>
-                )}
+                >
+                  {new Date(formData.signatureDate).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  })}
+                </p>
               </div>
 
               {/* Submit Button */}
