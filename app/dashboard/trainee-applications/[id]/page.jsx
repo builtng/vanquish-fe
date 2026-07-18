@@ -156,12 +156,9 @@ function resolveDocUrl(storedUrl) {
   // Extract the /storage/... portion from any absolute URL
   const match = storedUrl.match(/(\/storage\/.+)/);
   if (match) {
-    // Only rebase if it's a localhost / dev URL — otherwise keep original
-    const isDevUrl =
-      storedUrl.includes("localhost") ||
-      storedUrl.includes("127.0.0.1") ||
-      storedUrl.includes("0.0.0.0");
-    return isDevUrl ? backendBase + match[1] : storedUrl;
+    // Rebase any /storage/ URL to the current backend base, as these are
+    // Laravel storage files that should always point to the active backend.
+    return backendBase + match[1];
   }
 
   // External URL (JotForm CDN, S3, etc.) — use as-is

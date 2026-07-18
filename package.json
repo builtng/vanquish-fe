@@ -38,14 +38,10 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@next/swc-darwin-x64": "^15.5.14",
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.5.5",
     "tailwindcss": "^4",
     "typescript": "^5.9.3"
-  },
-  "optionalDependencies": {
-    "@next/swc-darwin-x64": "^15.5.20"
   }
 }

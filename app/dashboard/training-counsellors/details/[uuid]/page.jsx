@@ -73,30 +73,27 @@ import RichTextEditor from "@/components/RichTextEditor";
 function resolveDocUrl(storedUrl, tcUuid, fieldName) {
   if (!storedUrl) return null;
 
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+  const backendBase = apiBase.replace(/\/api\/?$/, "");
+
+  // If it's a local storage URL (contains /storage/), rebase it to the current backend base
+  const match = storedUrl.match(/(\/storage\/.+)/);
+  if (match) {
+    return backendBase + match[1];
+  }
+
   // Already an external URL — use directly
   if (storedUrl.startsWith("http://") || storedUrl.startsWith("https://")) {
-    // Rebase localhost/dev URLs to the production backend
-    const isDevUrl =
-      storedUrl.includes("localhost") ||
-      storedUrl.includes("127.0.0.1") ||
-      storedUrl.includes("0.0.0.0");
-    if (!isDevUrl) return storedUrl;
-
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-    const backendBase = apiBase.replace(/\/api\/?$/, "");
-    const match = storedUrl.match(/(\/storage\/.+)/);
-    return match ? backendBase + match[1] : storedUrl;
+    return storedUrl;
   }
 
   // Local file — route through authenticated API endpoint to avoid symlink/CORS issues
   if (tcUuid && fieldName) {
-    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-    return `${apiBase}/training-counsellors/${tcUuid}/document/${fieldName}`;
+    const cleanApiBase = apiBase.replace(/\/$/, "");
+    return `${cleanApiBase}/training-counsellors/${tcUuid}/document/${fieldName}`;
   }
 
   // Fallback: prepend storage base
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-  const backendBase = apiBase.replace(/\/api\/?$/, "");
   const cleanUrl = storedUrl.startsWith("/") ? storedUrl.slice(1) : storedUrl;
   return `${backendBase}/storage/${cleanUrl}`;
 }
