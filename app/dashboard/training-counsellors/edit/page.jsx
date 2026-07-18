@@ -31,6 +31,9 @@ function EditTrainingCounsellorContent() {
   const [showEditConfirmModal, setShowEditConfirmModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [tcPhoto, setTcPhoto] = useState(null);
+  const [holidays, setHolidays] = useState([]);
+  const [newHoliday, setNewHoliday] = useState({ start_date: '', end_date: '', reason: '' });
+  const [holidayLoading, setHolidayLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -39,6 +42,10 @@ function EditTrainingCounsellorContent() {
     modality: '',
     status: 'Active',
     counsellor_type: 'Trainee',
+    session_price: '',
+    bio: '',
+    offers_mid_range: false,
+    offers_coaching: false,
     availability: {
       Monday: [],
       Tuesday: [],
@@ -95,6 +102,10 @@ function EditTrainingCounsellorContent() {
           modality: data.modality || '',
           status: data.status || 'Active',
           counsellor_type: data.counsellor_type || 'Trainee',
+          session_price: data.session_price ?? '',
+          bio: data.bio || '',
+          offers_mid_range: !!data.offers_mid_range,
+          offers_coaching: !!data.offers_coaching,
           availability: data.availability || {
             Monday: [],
             Tuesday: [],
@@ -127,6 +138,48 @@ function EditTrainingCounsellorContent() {
 
     fetchTc();
   }, [tcId]);
+
+  const fetchHolidays = async () => {
+    if (!tcId) return;
+    try {
+      const data = await apiService.getTcHolidays(tcId);
+      setHolidays(data || []);
+    } catch (err) {
+      console.error('Error fetching holidays:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchHolidays();
+  }, [tcId]);
+
+  const handleAddHoliday = async () => {
+    if (!newHoliday.start_date || !newHoliday.end_date) {
+      showError('Please provide a start and end date');
+      return;
+    }
+
+    try {
+      setHolidayLoading(true);
+      await apiService.addTcHoliday(tcId, newHoliday);
+      setNewHoliday({ start_date: '', end_date: '', reason: '' });
+      await fetchHolidays();
+      success('Holiday added successfully!');
+    } catch (err) {
+      showError(err.message || 'Failed to add holiday.');
+    } finally {
+      setHolidayLoading(false);
+    }
+  };
+
+  const handleDeleteHoliday = async (holidayId) => {
+    try {
+      await apiService.deleteTcHoliday(tcId, holidayId);
+      setHolidays((prev) => prev.filter((h) => h.id !== holidayId));
+    } catch (err) {
+      showError(err.message || 'Failed to remove holiday.');
+    }
+  };
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -178,6 +231,10 @@ function EditTrainingCounsellorContent() {
         modality: formData.modality || null,
         status: formData.status,
         counsellor_type: formData.counsellor_type,
+        session_price: formData.session_price === '' ? null : formData.session_price,
+        bio: formData.bio || null,
+        offers_mid_range: formData.offers_mid_range,
+        offers_coaching: formData.offers_coaching,
         availability: formData.availability,
         topics_with_experience: formData.topicsWithExperience,
         topics_not_ready_for: formData.topicsNotReadyFor,
@@ -419,7 +476,129 @@ function EditTrainingCounsellorContent() {
                   />
                 </div>
               </div>
+
+              {formData.counsellor_type === 'Qualified' && (
+                <div className="mt-6 pt-6 border-t border-border space-y-4">
+                  <h3 className="text-sm font-semibold text-foreground">Mid Range / Coaching Settings</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Session Price (£)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.session_price}
+                        onChange={(e) => handleInputChange('session_price', e.target.value)}
+                        className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                        placeholder="e.g. 45.00"
+                      />
+                    </div>
+                    <div className="flex items-end gap-6">
+                      <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={formData.offers_mid_range}
+                          onChange={(e) => handleInputChange('offers_mid_range', e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        Offers Mid Range
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={formData.offers_coaching}
+                          onChange={(e) => handleInputChange('offers_coaching', e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        Offers Coaching
+                      </label>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Short Bio</label>
+                    <textarea
+                      value={formData.bio}
+                      onChange={(e) => handleInputChange('bio', e.target.value)}
+                      rows={3}
+                      maxLength={2000}
+                      className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                      placeholder="Shown to clients choosing a practitioner"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Holidays (Trainee only - drives auto-scheduling for Low Cost clients) */}
+            {formData.counsellor_type === 'Trainee' && (
+              <div className="bg-card rounded-lg border border-border p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-4">Holidays</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Low Cost clients' sessions are automatically rescheduled around these dates.
+                </p>
+
+                {holidays.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {holidays.map((holiday) => (
+                      <div key={holiday.id} className="flex items-center justify-between border border-border rounded-lg p-3">
+                        <div className="text-sm text-foreground">
+                          <span className="font-medium">{holiday.start_date}</span>
+                          {' → '}
+                          <span className="font-medium">{holiday.end_date}</span>
+                          {holiday.reason && <span className="text-muted-foreground"> — {holiday.reason}</span>}
+                        </div>
+                        <button
+                          onClick={() => handleDeleteHoliday(holiday.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">Start Date</label>
+                    <input
+                      type="date"
+                      value={newHoliday.start_date}
+                      onChange={(e) => setNewHoliday(prev => ({ ...prev, start_date: e.target.value }))}
+                      className="w-full px-3 py-2 border border-input bg-input-bg text-input-text rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">End Date</label>
+                    <input
+                      type="date"
+                      value={newHoliday.end_date}
+                      onChange={(e) => setNewHoliday(prev => ({ ...prev, end_date: e.target.value }))}
+                      className="w-full px-3 py-2 border border-input bg-input-bg text-input-text rounded-lg text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-foreground mb-1">Reason (optional)</label>
+                    <input
+                      type="text"
+                      value={newHoliday.reason}
+                      onChange={(e) => setNewHoliday(prev => ({ ...prev, reason: e.target.value }))}
+                      className="w-full px-3 py-2 border border-input bg-input-bg text-input-text rounded-lg text-sm"
+                      placeholder="e.g. Annual leave"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      onClick={handleAddHoliday}
+                      disabled={holidayLoading}
+                      className="w-full px-4 py-2 bg-[var(--purple-primary)] text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                    >
+                      Add Holiday
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Availability */}
             <div className="bg-card rounded-lg border border-border p-6">

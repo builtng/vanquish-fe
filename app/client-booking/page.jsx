@@ -43,6 +43,8 @@ function ClientBookingContent() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [pricing, setPricing] = useState({});
+  const [nextBlockSlots, setNextBlockSlots] = useState(null);
+  const [loadingNextBlockSlots, setLoadingNextBlockSlots] = useState(false);
 
   useEffect(() => {
     if (showBookingModal && clientData?.client?.uuid) {
@@ -68,6 +70,31 @@ function ClientBookingContent() {
         }
       };
       fetchSlots();
+    }
+  }, [showBookingModal, bookingType, clientData]);
+
+  useEffect(() => {
+    if (
+      showBookingModal &&
+      bookingType === "block" &&
+      clientData?.client?.service_type === "Low Cost" &&
+      clientData?.client?.uuid
+    ) {
+      const fetchNextBlockSlots = async () => {
+        try {
+          setLoadingNextBlockSlots(true);
+          const data = await apiService.getNextBlockSlots(
+            clientData.client.uuid,
+          );
+          setNextBlockSlots(data);
+        } catch (err) {
+          console.error("Failed to fetch next block slots:", err);
+          toast.error("Failed to load your upcoming sessions.");
+        } finally {
+          setLoadingNextBlockSlots(false);
+        }
+      };
+      fetchNextBlockSlots();
     }
   }, [showBookingModal, bookingType, clientData]);
 
@@ -158,7 +185,10 @@ function ClientBookingContent() {
     };
 
     const servicePricing = pricing[serviceType] || pricing["Mid Range"];
-    const sessionFee = parseFloat(servicePricing?.session_price || 40.0);
+    const practitionerPrice = clientData?.client?.matched_tc?.session_price;
+    const sessionFee = parseFloat(
+      practitionerPrice ?? servicePricing?.session_price ?? 40.0,
+    );
 
     setPendingBookingData(bookingData);
     setPaymentAmount(sessionFee); // Dynamic price
@@ -188,7 +218,10 @@ function ClientBookingContent() {
     if (serviceType === "Low Cost") {
       amount = parseFloat(servicePricing?.block_price || 25.0);
     } else {
-      const sessionFee = parseFloat(servicePricing?.session_price || 40.0);
+      const practitionerPrice = clientData?.client?.matched_tc?.session_price;
+      const sessionFee = parseFloat(
+        practitionerPrice ?? servicePricing?.session_price ?? 40.0,
+      );
       amount = sessionFee * sessionsCount;
     }
 
@@ -203,6 +236,27 @@ function ClientBookingContent() {
     // Show payment modal
     setPaymentAmount(amount);
     setBookingType("block"); // Explicitly set for payment context
+    setShowBookingModal(false);
+    setShowPaymentModal(true);
+  };
+
+  const handleConfirmAutoBlock = () => {
+    if (!nextBlockSlots?.slots?.length) {
+      toast.error("No available slots found for your regular time.");
+      return;
+    }
+
+    const servicePricing = pricing["Low Cost"];
+    const amount = parseFloat(servicePricing?.block_price || 25.0);
+
+    setPendingBookingData({
+      client_uuid: clientData.client.uuid,
+      session_slots: nextBlockSlots.slots.map((slot) => slot.scheduled_at),
+      sessions_count: nextBlockSlots.sessions_count,
+    });
+
+    setPaymentAmount(amount);
+    setBookingType("block");
     setShowBookingModal(false);
     setShowPaymentModal(true);
   };
@@ -595,6 +649,33 @@ function ClientBookingContent() {
                 </button>
               </div>
               <div className="p-6">
+                {client?.service_type !== "Low Cost" && (
+                  <div className="mb-4 flex rounded-lg border border-gray-300 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setBookingType("single")}
+                      className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                        bookingType === "single"
+                          ? "bg-purple-600 text-white"
+                          : "bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      Single Session
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBookingType("block")}
+                      className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                        bookingType === "block"
+                          ? "bg-purple-600 text-white"
+                          : "bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      Block of Sessions
+                    </button>
+                  </div>
+                )}
+
                 {loadingSlots && (
                   <div className="flex items-center justify-center py-10">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
@@ -622,7 +703,88 @@ function ClientBookingContent() {
 
                 {!loadingSlots &&
                   bookingEnabled !== false &&
-                  bookingType === "block" && (
+                  bookingType === "block" &&
+                  client?.service_type === "Low Cost" && (
+                    <>
+                      {loadingNextBlockSlots ? (
+                        <div className="flex items-center justify-center py-10">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                          <p className="ml-3 text-sm text-gray-500">
+                            Finding your next available sessions…
+                          </p>
+                        </div>
+                      ) : nextBlockSlots?.auto ? (
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Your Next {nextBlockSlots.sessions_count} Sessions
+                          </label>
+                          <p className="text-xs text-gray-500 mb-3">
+                            Every{" "}
+                            {client.allocated_day
+                              ? client.allocated_day.charAt(0).toUpperCase() +
+                                client.allocated_day.slice(1).toLowerCase()
+                              : ""}{" "}
+                            at {formatTimeSlotDisplay(client.allocated_time)}.
+                            These have been automatically scheduled around your
+                            counsellor's availability.
+                          </p>
+                          <ul className="space-y-2">
+                            {nextBlockSlots.slots.map((slot) => (
+                              <li
+                                key={slot.scheduled_at}
+                                className="p-3 border border-gray-300 rounded-lg text-sm text-gray-900"
+                              >
+                                {slot.formatted}
+                              </li>
+                            ))}
+                          </ul>
+                          <div
+                            className={`mt-4 p-3 rounded-lg border ${
+                              nextBlockSlots.penalty_applied
+                                ? "bg-red-50 border-red-200"
+                                : "bg-blue-50 border-blue-200"
+                            }`}
+                          >
+                            <p className="text-xs text-gray-700">
+                              {nextBlockSlots.penalty_applied
+                                ? "Your sessions were reduced to 3 (penalty applied for missing the booking deadline)."
+                                : "This is your regular block of 4 weekly sessions."}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Select Your Weekly Time Slot
+                          </label>
+                          {nextBlockSlots?.message && (
+                            <div className="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                              <p className="text-xs text-amber-800">
+                                {nextBlockSlots.message}
+                              </p>
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-500 mb-3">
+                            You'll have this same day and time every week going
+                            forward.
+                          </p>
+                          <CalendarPicker
+                            availableSlots={availableSlots}
+                            selectedSlot={selectedSlot}
+                            onSelect={(slot) => {
+                              setSelectedSlot(slot);
+                              setSelectedDate(slot.date);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                {!loadingSlots &&
+                  bookingEnabled !== false &&
+                  bookingType === "block" &&
+                  client?.service_type !== "Low Cost" && (
                     <>
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -645,44 +807,22 @@ function ClientBookingContent() {
                         />
                       </div>
 
-                      {client?.service_type === "Low Cost" && (
-                        <div
-                          className={`mb-4 p-3 rounded-lg border ${
-                            daysUntilDeadline !== null && daysUntilDeadline < 0
-                              ? "bg-red-50 border-red-200"
-                              : "bg-blue-50 border-blue-200"
-                          }`}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Number of Sessions
+                        </label>
+                        <select
+                          value={sessionsCount}
+                          onChange={(e) =>
+                            setSessionsCount(parseInt(e.target.value))
+                          }
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         >
-                          <p className="text-sm font-semibold mb-1">
-                            {daysUntilDeadline !== null && daysUntilDeadline < 0
-                              ? "Booking Deadline Passed"
-                              : "Next Block Details"}
-                          </p>
-                          <p className="text-xs text-gray-700">
-                            {daysUntilDeadline !== null && daysUntilDeadline < 0
-                              ? "Your sessions will be automatically reduced to 3 (penalty applied)."
-                              : "Your sessions will be scheduled for a block of 4."}
-                          </p>
-                        </div>
-                      )}
-                      {client?.service_type !== "Low Cost" && (
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Number of Sessions
-                          </label>
-                          <select
-                            value={sessionsCount}
-                            onChange={(e) =>
-                              setSessionsCount(parseInt(e.target.value))
-                            }
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                          >
-                            <option value={4}>4 sessions (Full block)</option>
-                            <option value={8}>8 sessions</option>
-                            <option value={12}>12 sessions</option>
-                          </select>
-                        </div>
-                      )}
+                          <option value={2}>2 sessions</option>
+                          <option value={3}>3 sessions</option>
+                          <option value={4}>4 sessions</option>
+                        </select>
+                      </div>
                     </>
                   )}
 
@@ -717,14 +857,25 @@ function ClientBookingContent() {
                   <button
                     onClick={
                       bookingType === "block"
-                        ? handleBookBlock
+                        ? client?.service_type === "Low Cost" &&
+                          nextBlockSlots?.auto
+                          ? handleConfirmAutoBlock
+                          : handleBookBlock
                         : handleBookSession
                     }
-                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                    disabled={
+                      bookingType === "block" &&
+                      client?.service_type === "Low Cost" &&
+                      (loadingNextBlockSlots ||
+                        (nextBlockSlots?.auto && !nextBlockSlots.slots?.length))
+                    }
+                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Book{" "}
                     {bookingType === "block"
-                      ? `${sessionsCount} Sessions`
+                      ? client?.service_type === "Low Cost"
+                        ? `${nextBlockSlots?.sessions_count || 4} Sessions`
+                        : `${sessionsCount} Sessions`
                       : "Session"}
                   </button>
                 </div>
@@ -786,10 +937,15 @@ function ClientBookingContent() {
                       <>
                         {pendingBookingData?.sessions_count} Sessions starting
                         from{" "}
-                        {pendingBookingData?.start_date &&
-                          new Date(
-                            pendingBookingData.start_date,
-                          ).toLocaleDateString()}
+                        {pendingBookingData?.start_date
+                          ? new Date(
+                              pendingBookingData.start_date,
+                            ).toLocaleDateString()
+                          : pendingBookingData?.session_slots?.[0]
+                            ? new Date(
+                                pendingBookingData.session_slots[0],
+                              ).toLocaleDateString()
+                            : ""}
                       </>
                     )}
                   </p>

@@ -63,12 +63,12 @@ function PSGFormPageContent() {
               <Heart className="w-10 h-10" />
             </div>
             <h2 className="text-2xl font-black text-gray-900 dark:text-[var(--text-primary)] mb-4">
-              Monthly PSG Reflection
+              Monthly PSG Discussion
             </h2>
             <p className="text-gray-600 dark:text-[var(--text-secondary)] max-w-lg mx-auto mb-8 leading-relaxed">
               As part of our commitment to your clinical wellbeing, we require
               all practitioners to attend at least one PSG meeting per month and
-              submit a brief reflection form.
+              submit a brief discussion form.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -119,14 +119,14 @@ function PSGFormPageContent() {
              <div className="divide-y divide-gray-100 dark:divide-gray-800">
                {!reflections?.length ? (
                  <div className="p-12 text-center text-gray-400 italic text-sm">
-                   No reflections submitted yet.
+                   No discussions submitted yet.
                  </div>
                ) : (
                  reflections.map((ref) => (
                    <div key={ref.id} className="p-5 hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors">
                       <div className="flex items-center justify-between mb-2">
                          <span className="text-[10px] font-black uppercase text-pink-600 px-2 py-0.5 bg-pink-50 dark:bg-pink-900/20 rounded">
-                           PSG Reflection
+                           Discussion
                          </span>
                          <span className="text-[10px] text-gray-400">
                             {new Date(ref.attendance_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}

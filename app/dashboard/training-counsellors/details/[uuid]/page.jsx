@@ -58,6 +58,9 @@ import {
   Building2,
   CalendarDays,
   MessageSquare,
+  Wifi,
+  TrendingUp,
+  ClipboardList,
 } from "lucide-react";
 import PhotoUpload from "@/components/PhotoUpload";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -97,6 +100,46 @@ function resolveDocUrl(storedUrl, tcUuid, fieldName) {
   const cleanUrl = storedUrl.startsWith("/") ? storedUrl.slice(1) : storedUrl;
   return `${backendBase}/storage/${cleanUrl}`;
 }
+
+// Trainee-only conduct/progress event types. Selecting one logs it (feeds
+// the progress bar) and emails the trainee counsellor a notice.
+const CONDUCT_EVENT_TYPES = [
+  {
+    value: "late_to_session",
+    label: "Late to Session",
+    description: "Emails the trainee that they were late to a session and logs it.",
+    icon: Clock,
+    color: "#b45309",
+  },
+  {
+    value: "missed_psg",
+    label: "Missed PSG",
+    description: "Emails the trainee that they missed a Peer Support Group session and logs it.",
+    icon: Users,
+    color: "#b45309",
+  },
+  {
+    value: "missed_session",
+    label: "Missed a Session",
+    description: "Emails the trainee that they missed a scheduled session and logs it.",
+    icon: XCircle,
+    color: "#dc2626",
+  },
+  {
+    value: "late_session_notes",
+    label: "Late Session Notes",
+    description: "Reminds the trainee their session notes are pending completion.",
+    icon: FileText,
+    color: "#6f1d56",
+  },
+  {
+    value: "session_disruption",
+    label: "Disruption to Session (Internet/Device)",
+    description: "Logs a technical disruption (internet/device) that affected a session.",
+    icon: Wifi,
+    color: "#2563eb",
+  },
+];
 
 export default function IndividualTCDetailPage() {
   const pathname = usePathname();
@@ -147,6 +190,33 @@ export default function IndividualTCDetailPage() {
   const [addingNote, setAddingNote] = useState(false);
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [sendingPortalInvite, setSendingPortalInvite] = useState(false);
+
+  // Conduct/progress events (Log Event dropdown + Progress Overview)
+  const [showConductDropdown, setShowConductDropdown] = useState(false);
+  const [conductModalType, setConductModalType] = useState(null);
+  const [conductNotes, setConductNotes] = useState("");
+  const [loggingConductEvent, setLoggingConductEvent] = useState(false);
+  const [conductEvents, setConductEvents] = useState([]);
+  const [conductSummary, setConductSummary] = useState(null);
+  const [loadingConductEvents, setLoadingConductEvents] = useState(true);
+
+  const loadConductEvents = async () => {
+    if (!uuid) return;
+    try {
+      setLoadingConductEvents(true);
+      const data = await apiService.getTcConductEvents(uuid);
+      setConductEvents(data?.events || []);
+      setConductSummary(data?.summary || null);
+    } catch (err) {
+      console.error("Error loading conduct events:", err);
+    } finally {
+      setLoadingConductEvents(false);
+    }
+  };
+
+  useEffect(() => {
+    loadConductEvents();
+  }, [uuid]);
 
   // Fetch TC data from API
   useEffect(() => {
@@ -571,6 +641,61 @@ export default function IndividualTCDetailPage() {
                     <MessageSquare className="w-3.5 h-3.5" />
                     Send Message
                   </button>
+                  {tc.counsellor_type !== "Qualified" && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowConductDropdown((v) => !v)}
+                        className="h-10 px-4 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm active:scale-95"
+                      >
+                        <ClipboardList className="w-3.5 h-3.5" />
+                        Log Event
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </button>
+
+                      {showConductDropdown && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowConductDropdown(false)}
+                          ></div>
+                          <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
+                            <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                Log Trainee Event
+                              </p>
+                            </div>
+                            {CONDUCT_EVENT_TYPES.map((eventType) => {
+                              const ItemIcon = eventType.icon;
+                              return (
+                                <button
+                                  key={eventType.value}
+                                  onClick={() => {
+                                    setConductModalType(eventType.value);
+                                    setConductNotes("");
+                                    setShowConductDropdown(false);
+                                  }}
+                                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-b-0 transition-colors"
+                                >
+                                  <ItemIcon
+                                    className="w-4 h-4 flex-shrink-0 mt-0.5"
+                                    style={{ color: eventType.color }}
+                                  />
+                                  <div>
+                                    <p className="text-sm font-semibold text-slate-800">
+                                      {eventType.label}
+                                    </p>
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                      {eventType.description}
+                                    </p>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                   <button
                     onClick={async () => {
                       if (sendingPortalInvite) return;
@@ -1615,11 +1740,237 @@ export default function IndividualTCDetailPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Progress Overview */}
+                  {tc.counsellor_type !== "Qualified" && (
+                    <div className="bg-card rounded-lg border border-border p-6 mt-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <TrendingUp className="w-4 h-4 text-[var(--purple-primary)]" />
+                        <h2 className="text-lg font-semibold text-foreground">
+                          Progress Overview
+                        </h2>
+                      </div>
+
+                      {loadingConductEvents ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--purple-primary)]"></div>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Reliability score */}
+                          <div className="mb-5">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-sm text-muted-foreground">
+                                Reliability Score
+                              </span>
+                              <span className="text-sm font-semibold text-foreground">
+                                {conductSummary?.reliability_score ?? 100}/100
+                              </span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-2">
+                              <div
+                                className="h-2 rounded-full transition-all"
+                                style={{
+                                  width: `${conductSummary?.reliability_score ?? 100}%`,
+                                  backgroundColor:
+                                    (conductSummary?.reliability_score ?? 100) >= 80
+                                      ? "#16a34a"
+                                      : (conductSummary?.reliability_score ?? 100) >= 50
+                                        ? "#d97706"
+                                        : "#dc2626",
+                                }}
+                              ></div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1.5">
+                              {conductSummary?.total ?? 0} incident
+                              {(conductSummary?.total ?? 0) === 1 ? "" : "s"} logged
+                              {conductSummary?.last_event_at
+                                ? ` · last on ${new Date(conductSummary.last_event_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+                                : ""}
+                            </p>
+                          </div>
+
+                          {/* Per-type counts */}
+                          <div className="space-y-2 mb-5">
+                            {CONDUCT_EVENT_TYPES.map((eventType) => {
+                              const ItemIcon = eventType.icon;
+                              const count =
+                                conductSummary?.counts?.[eventType.value] ?? 0;
+                              return (
+                                <div
+                                  key={eventType.value}
+                                  className="flex items-center justify-between text-sm"
+                                >
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <ItemIcon
+                                      className="w-3.5 h-3.5"
+                                      style={{ color: eventType.color }}
+                                    />
+                                    {eventType.label}
+                                  </div>
+                                  <span
+                                    className={`font-semibold ${count > 0 ? "text-foreground" : "text-muted-foreground"}`}
+                                  >
+                                    {count}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Recent events */}
+                          {conductEvents.length > 0 && (
+                            <div className="pt-4 border-t border-border">
+                              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                                Recent Activity
+                              </p>
+                              <div className="space-y-2 max-h-56 overflow-y-auto">
+                                {conductEvents.slice(0, 6).map((event) => {
+                                  const eventType = CONDUCT_EVENT_TYPES.find(
+                                    (e) => e.value === event.type,
+                                  );
+                                  return (
+                                    <div
+                                      key={event.id}
+                                      className="text-xs bg-muted/50 rounded-lg p-2.5"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-semibold text-foreground">
+                                          {eventType?.label || event.type}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                          {new Date(
+                                            event.created_at,
+                                          ).toLocaleDateString("en-GB", {
+                                            day: "numeric",
+                                            month: "short",
+                                          })}
+                                        </span>
+                                      </div>
+                                      {event.notes && (
+                                        <p className="text-muted-foreground mt-1 line-clamp-2">
+                                          {event.notes}
+                                        </p>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Log Trainee Event Confirmation Modal */}
+        {conductModalType && (() => {
+          const eventType = CONDUCT_EVENT_TYPES.find(
+            (e) => e.value === conductModalType,
+          );
+          if (!eventType) return null;
+          const EventIcon = eventType.icon;
+          return (
+            <>
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                onClick={() => !loggingConductEvent && setConductModalType(null)}
+              ></div>
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="bg-card rounded-lg shadow-2xl max-w-md w-full border border-border">
+                  <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <EventIcon
+                        className="w-5 h-5"
+                        style={{ color: eventType.color }}
+                      />
+                      <h2 className="text-lg font-bold text-foreground">
+                        {eventType.label}
+                      </h2>
+                    </div>
+                    <button
+                      onClick={() => setConductModalType(null)}
+                      disabled={loggingConductEvent}
+                      className="p-2 hover:bg-muted rounded-lg disabled:opacity-50"
+                    >
+                      <X className="w-5 h-5 text-muted-foreground" />
+                    </button>
+                  </div>
+
+                  <div className="p-6 space-y-4">
+                    <p className="text-sm text-foreground">
+                      This will email <strong>{tc.name}</strong> and log this
+                      event on their progress record.
+                    </p>
+                    <p className="text-xs text-muted-foreground bg-muted rounded-lg p-3">
+                      {eventType.description}
+                    </p>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Additional notes (optional)
+                      </label>
+                      <textarea
+                        value={conductNotes}
+                        onChange={(e) => setConductNotes(e.target.value)}
+                        rows={3}
+                        placeholder="Add any context for this event..."
+                        className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--purple-primary)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="px-6 py-4 border-t border-border flex items-center justify-end gap-3">
+                    <button
+                      onClick={() => setConductModalType(null)}
+                      disabled={loggingConductEvent}
+                      className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium text-sm disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          setLoggingConductEvent(true);
+                          await apiService.logTcConductEvent(uuid, {
+                            type: conductModalType,
+                            notes: conductNotes.trim() || undefined,
+                          });
+                          showToast.success(
+                            `${eventType.label} logged and email sent to ${tc.name}.`,
+                          );
+                          setConductModalType(null);
+                          setConductNotes("");
+                          loadConductEvents();
+                        } catch (error) {
+                          console.error("Error logging conduct event:", error);
+                          showToast.error(
+                            error.message ||
+                              "Failed to log event. Please try again.",
+                          );
+                        } finally {
+                          setLoggingConductEvent(false);
+                        }
+                      }}
+                      disabled={loggingConductEvent}
+                      className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: "#6f1d56" }}
+                    >
+                      {loggingConductEvent
+                        ? "Logging..."
+                        : "Confirm & Send Email"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })()}
 
         {/* Change Status Modal */}
         {showStatusModal && (

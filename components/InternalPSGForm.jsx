@@ -20,11 +20,11 @@ export default function InternalPSGForm({ onSuccess }) {
     try {
       await apiService.submitPSGReflection(formData);
       setSubmitted(true);
-      showToast("PSG Reflection submitted successfully!");
+      showToast("Discussion submitted successfully!");
       if (onSuccess) onSuccess();
     } catch (err) {
-      console.error("Error submitting PSG reflection:", err);
-      showToast(err.message || "Failed to submit reflection", "error");
+      console.error("Error submitting PSG discussion:", err);
+      showToast(err.message || "Failed to submit discussion", "error");
     } finally {
       setLoading(false);
     }
@@ -40,13 +40,13 @@ export default function InternalPSGForm({ onSuccess }) {
           Submitted Successfully
         </h3>
         <p className="text-gray-600 dark:text-[var(--text-secondary)] mb-6">
-          Thank you for your reflection. It has been recorded for your monthly requirement.
+          Thank you for your discussion notes. They have been recorded for your monthly requirement.
         </p>
         <button
           onClick={() => setSubmitted(false)}
           className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
         >
-          Submit another reflection
+          Submit another discussion
         </button>
       </div>
     );
@@ -69,12 +69,12 @@ export default function InternalPSGForm({ onSuccess }) {
 
       <div>
         <label className="block text-sm font-bold text-gray-700 dark:text-[var(--text-primary)] mb-2">
-          Your Reflection
+          Your Discussion Notes
         </label>
         <textarea
           required
           rows={6}
-          placeholder="Share your key takeaways and reflections from the PSG meeting..."
+          placeholder="Share your key takeaways and discussion points from the PSG meeting..."
           value={formData.reflection}
           onChange={(e) => setFormData({ ...formData, reflection: e.target.value })}
           className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-[var(--card-border)] bg-gray-50 dark:bg-gray-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-[var(--text-primary)] resize-none"
@@ -88,7 +88,7 @@ export default function InternalPSGForm({ onSuccess }) {
       >
         {loading ? "Submitting..." : (
           <>
-            Submit Reflection <Send className="w-5 h-5" />
+            Submit Discussion <Send className="w-5 h-5" />
           </>
         )}
       </button>

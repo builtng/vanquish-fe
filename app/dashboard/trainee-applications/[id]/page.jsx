@@ -11,6 +11,7 @@ import {
   XCircle,
   Trash2,
   Mail,
+  X,
   Phone,
   MapPin,
   FileText,
@@ -29,6 +30,7 @@ import {
   CalendarCheck,
   ClipboardCheck,
   History,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -307,7 +309,26 @@ export default function TraineeApplicationDetail() {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(null);
   const [zoomRoomConfig, setZoomRoomConfig] = useState(null);
+  const [emailPreview, setEmailPreview] = useState(null);
   const { prompt, confirm } = useModal();
+
+  const previewAndSend = async (templateType, placeholders, sendFn) => {
+    try {
+      const template = await apiService.getEmailTemplate(templateType);
+      let subject = template?.subject || "";
+      let body = template?.body || "";
+      Object.entries(placeholders).forEach(([key, value]) => {
+        const re = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+        subject = subject.replace(re, value ?? "");
+        body = body.replace(re, value ?? "");
+      });
+      setEmailPreview({ subject, body, onConfirm: sendFn });
+    } catch (err) {
+      console.error(err);
+      // If the template can't be loaded for preview, fall back to sending directly
+      sendFn();
+    }
+  };
 
   const fetchApplication = async () => {
     try {
@@ -441,17 +462,41 @@ export default function TraineeApplicationDetail() {
       message: `Enter final review notes (internal only):`,
       required: false,
     });
-    try {
-      await apiService.makeTraineeDecision(
-        id,
-        decision,
-        induction_date,
-        notes || "",
+
+    const submitDecision = async () => {
+      try {
+        await apiService.makeTraineeDecision(
+          id,
+          decision,
+          induction_date,
+          notes || "",
+        );
+        toast.success(`Candidate ${decision}!`);
+        fetchApplication();
+      } catch {
+        toast.error("Failed to record decision.");
+      }
+    };
+
+    if (decision === "Accepted") {
+      previewAndSend(
+        "trainee_placement_acceptance",
+        {
+          first_name: application.first_name,
+          induction_date: induction_date || "To be confirmed",
+          induction_zoom_link: "[Zoom link will be included]",
+          therapy_form_url: "[Therapy form link will be included]",
+        },
+        submitDecision,
       );
-      toast.success(`Candidate ${decision}!`);
-      fetchApplication();
-    } catch {
-      toast.error("Failed to record decision.");
+    } else if (decision === "Rejected") {
+      previewAndSend(
+        "trainee_placement_rejection",
+        { first_name: application.first_name },
+        submitDecision,
+      );
+    } else {
+      submitDecision();
     }
   };
 
@@ -497,10 +542,11 @@ export default function TraineeApplicationDetail() {
   const handlePortalInvite = async () => {
     try {
       await apiService.sendTraineePortalInvite(id);
-      toast.success("SuiteDash invitation sent!");
+      toast.success("Portal invitation sent!");
       fetchApplication();
-    } catch {
-      toast.error("Failed to send invite.");
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.message || "Failed to send invite.");
     }
   };
 
@@ -622,6 +668,31 @@ export default function TraineeApplicationDetail() {
   };
 
   const nextStage = getNextStage(application?.status);
+
+  // Trainee Counsellor Journey — groups the granular status workflow into
+  // the same visual stages used for the client journey timeline.
+  const journeyGroups = [
+    { label: "Application", statuses: ["New Application", "Stage 1 Complete", "Stage 2 Invited"] },
+    { label: "Assessment", statuses: ["Stage 2 Video Submitted", "Stage 2 Approved"] },
+    { label: "Interview Booked", statuses: ["Stage 3 Interview Booked"] },
+    { label: "Interview Attended", statuses: ["Interview Attended", "Interview No Show"] },
+    { label: "Accepted", statuses: ["Accepted"] },
+    { label: "Onboarding", statuses: ["Induction Attended", "Induction No-Show", "Onboarding"] },
+    { label: "Active Placement", statuses: ["Active Placement"] },
+  ];
+  const isOffTrack = application?.status === "Rejected" || application?.status === "Hold";
+  const currentGroupIndex = isOffTrack
+    ? -1
+    : journeyGroups.findIndex((g) => g.statuses.includes(application?.status));
+  const journeyStages = journeyGroups.map((g, index) => ({
+    label: g.label,
+    completed: currentGroupIndex !== -1 && index < currentGroupIndex,
+    current: index === currentGroupIndex,
+  }));
+  const journeyProgressPercent =
+    currentGroupIndex !== -1
+      ? ((currentGroupIndex + 1) / journeyGroups.length) * 100
+      : 0;
 
   return (
     <PageGuard menuId="trainee-applications">
@@ -756,6 +827,68 @@ export default function TraineeApplicationDetail() {
                     )
                   </span>
                 )}
+              </div>
+            </div>
+
+            {/* Journey Timeline */}
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-100 dark:border-[var(--card-border)] p-6 mb-6 shadow-sm">
+              <h2 className="text-sm font-bold text-gray-800 dark:text-[var(--text-primary)] mb-6 flex items-center gap-2">
+                <History className="w-4 h-4 text-purple-500" />
+                Trainee Counsellor Journey
+                {isOffTrack && (
+                  <span
+                    className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                      application.status === "Rejected"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    {application.status}
+                  </span>
+                )}
+              </h2>
+              <div className="relative">
+                <div className="absolute top-6 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
+                <div
+                  className="absolute top-6 left-0 h-0.5 bg-purple-600 transition-all duration-500"
+                  style={{ width: `${journeyProgressPercent}%` }}
+                ></div>
+                <div className="relative flex justify-between">
+                  {journeyStages.map((stage) => (
+                    <div
+                      key={stage.label}
+                      className="flex flex-col items-center px-1"
+                      style={{ flex: 1 }}
+                    >
+                      <div
+                        className={`w-12 h-12 rounded-full border-4 flex items-center justify-center relative z-10 bg-white dark:bg-[var(--card-bg)] ${
+                          stage.completed
+                            ? "bg-purple-600 border-purple-600"
+                            : stage.current
+                              ? "border-purple-600"
+                              : "border-gray-300 dark:border-gray-600"
+                        }`}
+                      >
+                        {stage.completed ? (
+                          <Check className="w-6 h-6 text-white" />
+                        ) : stage.current ? (
+                          <Clock className="w-6 h-6 text-purple-600" />
+                        ) : (
+                          <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+                        )}
+                      </div>
+                      <p
+                        className={`mt-3 text-xs font-medium text-center ${
+                          stage.completed || stage.current
+                            ? "text-gray-900 dark:text-[var(--text-primary)]"
+                            : "text-gray-500 dark:text-[var(--text-tertiary)]"
+                        }`}
+                      >
+                        {stage.label}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -1131,11 +1264,21 @@ export default function TraineeApplicationDetail() {
                     <div className="flex flex-col md:flex-row items-center gap-4">
                       {!application.portal_access_granted ? (
                         <button
-                          onClick={handlePortalInvite}
+                          onClick={() =>
+                            previewAndSend(
+                              "trainee_portal_invite",
+                              {
+                                first_name: application.first_name,
+                                email: application.email,
+                                portal_link: `${typeof window !== "undefined" ? window.location.origin : ""}/counsellor-login`,
+                                temporary_password: "(auto-generated on send)",
+                              },
+                              handlePortalInvite,
+                            )
+                          }
                           className="w-full md:w-auto px-8 py-3 bg-violet-600 text-white rounded-xl font-bold text-sm hover:bg-violet-700 transition-all flex items-center justify-center gap-2"
                         >
                           <Mail className="w-5 h-5" /> Grant Portal Access
-                          (SuiteDash)
                         </button>
                       ) : (
                         <div className="flex-1 flex items-center gap-3 bg-violet-50 p-4 rounded-xl border border-violet-100">
@@ -1645,6 +1788,56 @@ export default function TraineeApplicationDetail() {
             </div>
           </div>
         </div>
+
+        {emailPreview && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col text-gray-900 dark:text-[var(--text-primary)]">
+              <div className="flex items-center justify-between p-4 border-b dark:border-[var(--card-border)] bg-gray-50 dark:bg-[var(--bg-secondary)]">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-purple-600" /> Preview Email
+                </h3>
+                <button
+                  onClick={() => setEmailPreview(null)}
+                  className="p-1 text-gray-500 dark:text-[var(--text-secondary)] hover:text-gray-800 dark:hover:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-5 overflow-y-auto flex-1">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                  Subject
+                </p>
+                <p className="text-sm font-semibold mb-4">{emailPreview.subject}</p>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                  Body
+                </p>
+                <div
+                  className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-[var(--card-border)] rounded-lg p-4 bg-gray-50 dark:bg-[var(--bg-secondary)]"
+                  dangerouslySetInnerHTML={{ __html: emailPreview.body }}
+                />
+              </div>
+              <div className="p-4 border-t dark:border-[var(--card-border)] flex justify-end gap-3">
+                <button
+                  onClick={() => setEmailPreview(null)}
+                  className="px-5 py-2 text-gray-700 dark:text-[var(--text-primary)] border border-gray-300 dark:border-[var(--card-border)] rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const send = emailPreview.onConfirm;
+                    setEmailPreview(null);
+                    send();
+                  }}
+                  className="px-5 py-2 text-white rounded-lg font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: "#6f1d56" }}
+                >
+                  <Mail className="w-4 h-4" /> Send Email
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </DashboardLayout>
     </PageGuard>
   );

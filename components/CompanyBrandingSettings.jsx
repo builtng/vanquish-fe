@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Upload, X, Save, Image as ImageIcon, Building2, FileText, Globe, Mail, Phone, MapPin, Loader2 } from "lucide-react";
+import { Upload, X, Save, Image as ImageIcon, Building2, FileText, Globe, Mail, Phone, MapPin, Loader2, Video } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
 import apiService from "@/lib/api";
 import { useModal } from "@/contexts/ModalContext";
@@ -22,6 +22,10 @@ export default function CompanyBrandingSettings() {
     pdf_footer_text: "",
     platform_logo_url: "",
     platform_logo_dark_url: "",
+    consultation_zoom_link: "",
+    consultation_meeting_id: "",
+    consultation_passcode: "",
+    consultation_duration_minutes: "",
   });
 
   const logoInputRef = useRef(null);
@@ -359,6 +363,65 @@ export default function CompanyBrandingSettings() {
               placeholder="Confidential — For internal use only"
             />
             <p className="text-[10px] text-gray-500 mt-1 italic">This text appears at the bottom of all PDF exports.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Consultation Meeting Settings section */}
+      <div className="border-t border-gray-200 dark:border-[var(--card-border)] pt-8 space-y-6">
+        <div className="flex items-center gap-2 mb-2">
+          <Video className="w-5 h-5 text-purple-600" />
+          <h3 className="font-bold text-gray-900 dark:text-[var(--text-primary)]">Consultation Meeting Settings</h3>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] -mt-4">
+          Used in the consultation booking confirmation email sent to clients once they book their consultation slot.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1">Zoom Link</label>
+            <input
+              type="text"
+              name="consultation_zoom_link"
+              value={settings.consultation_zoom_link || ""}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] rounded-lg dark:bg-[var(--input-bg)] dark:text-[var(--text-primary)]"
+              placeholder="https://zoom.us/j/XXXXXXXXXX?pwd=XXXXXXXX"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1">Meeting ID</label>
+            <input
+              type="text"
+              name="consultation_meeting_id"
+              value={settings.consultation_meeting_id || ""}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] rounded-lg dark:bg-[var(--input-bg)] dark:text-[var(--text-primary)]"
+              placeholder="123 456 7890"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1">Passcode</label>
+            <input
+              type="text"
+              name="consultation_passcode"
+              value={settings.consultation_passcode || ""}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] rounded-lg dark:bg-[var(--input-bg)] dark:text-[var(--text-primary)]"
+              placeholder="Ab1Cd2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1">Duration (minutes)</label>
+            <input
+              type="number"
+              name="consultation_duration_minutes"
+              value={settings.consultation_duration_minutes || ""}
+              onChange={handleChange}
+              min={1}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] rounded-lg dark:bg-[var(--input-bg)] dark:text-[var(--text-primary)]"
+              placeholder="15"
+            />
           </div>
         </div>
       </div>

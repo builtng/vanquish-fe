@@ -206,9 +206,16 @@ function SessionNotesPageContent() {
                     All session notes must be submitted within 24 hours of completion.
                   </p>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase text-amber-700 dark:text-amber-500">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      HIPAA Compliant
+                    <div className="flex items-start gap-2 text-amber-700 dark:text-amber-500">
+                      <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[10px] font-bold uppercase leading-tight">
+                          BACP/NCPS/UKCP OR EQUIVALENT
+                        </p>
+                        <p className="text-[10px] italic normal-case leading-snug mt-0.5">
+                          Working ethically to maintain compliance with good practice and professional standards.
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold uppercase text-amber-700 dark:text-amber-500">
                       <CheckCircle2 className="w-3.5 h-3.5" />

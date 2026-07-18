@@ -106,7 +106,6 @@ export default function VanquishTCApplication() {
 
     // Terms
     criminalConviction: "",
-    faceToFaceBeforeOnline: "",
     termsAccepted: false,
   });
 
@@ -434,8 +433,6 @@ export default function VanquishTCApplication() {
           stepErrors.completedHours = "Completed hours is required";
         if (!formData.skillsPractice.trim())
           stepErrors.skillsPractice = "Skills practice information is required";
-        if (!formData.faceToFaceBeforeOnline)
-          stepErrors.faceToFaceBeforeOnline = "This field is required";
         break;
 
       case 4: // Your Journey
@@ -662,7 +659,6 @@ export default function VanquishTCApplication() {
       formDataToSubmit.append('expected_qualification_date', formData.expectedQualification || '');
       formDataToSubmit.append('counselling_type', formData.courseFocus || '');
       formDataToSubmit.append('face_to_face_requirement', formData.faceToFaceRequired || '');
-      formDataToSubmit.append('face_to_face_before_online', formData.faceToFaceBeforeOnline || '');
       formDataToSubmit.append('has_face_to_face_clients', formData.currentClients || '');
       formDataToSubmit.append('face_to_face_client_count', formData.clientCount || '');
       formDataToSubmit.append('face_to_face_hours_completed', formData.completedHours || '');
@@ -776,17 +772,6 @@ export default function VanquishTCApplication() {
               Thank you for applying to join Vanquish Therapies as a Trainee
               Counsellor. We'll review your application and be in touch soon.
             </p>
-            <div className="rounded-lg p-4 mb-6 border" style={{ backgroundColor: 'var(--purple-bg)', borderColor: 'var(--purple-border)' }}>
-              <p className="text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                Next Steps:
-              </p>
-              <p className="text-xs text-left" style={{ color: 'var(--text-secondary)' }}>
-                • Stage 1: Application review (you are here)
-                <br />
-                • Stage 2: Short virtual video interview (Few questions)
-                <br />• Stage 3: Face-to-face virtual interview
-              </p>
-            </div>
             <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
               A confirmation email has been sent to {formData.email}
             </p>
@@ -1534,31 +1519,6 @@ export default function VanquishTCApplication() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Does your Training Organisation require you to complete
-                    face-to-face hours before commencing online counselling?{" "}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.faceToFaceBeforeOnline}
-                    onChange={(e) =>
-                      handleInputChange("faceToFaceBeforeOnline", e.target.value)
-                    }
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
-                      errors.faceToFaceBeforeOnline ? "border-red-500" : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Please select</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
-                  {errors.faceToFaceBeforeOnline && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.faceToFaceBeforeOnline}
-                    </p>
-                  )}
-                </div>
               </div>
             </div>
           )}

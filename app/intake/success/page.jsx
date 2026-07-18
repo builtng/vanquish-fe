@@ -17,12 +17,12 @@ function SuccessContent() {
         </div>
 
         <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">
-          Submission Successful!
+          Payment Successful!
         </h1>
 
         <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-          Thank you for completing your intake form. We have successfully
-          received your information and processed your payment.
+          Thank you for completing your intake form. Please check your email
+          for a confirmation message.
         </p>
 
         <div className="space-y-4 mb-10">
@@ -47,15 +47,6 @@ function SuccessContent() {
                   don't see it in your inbox.
                 </p>
               </li>
-              <li className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold">
-                  3
-                </div>
-                <p>
-                  Our team will review your application and match you with the
-                  most suitable counsellor.
-                </p>
-              </li>
             </ul>
           </div>
 
@@ -70,7 +61,7 @@ function SuccessContent() {
             </p>
             <div className="mt-4 flex flex-wrap gap-4">
               <a
-                href="mailto:support@vanquishtherapies.co.uk"
+                href="mailto:help@vanquishtherapies.co.uk"
                 className="flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900 transition-colors"
               >
                 <Mail className="w-4 h-4" />

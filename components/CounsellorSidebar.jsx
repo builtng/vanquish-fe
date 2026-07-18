@@ -111,6 +111,12 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
       ],
     },
     {
+      id: "time-off",
+      label: "Time Off",
+      icon: Calendar,
+      href: "/counsellor-portal/pages/time-off",
+    },
+    {
       id: "forms",
       label: "Forms",
       icon: FileText,

@@ -58,8 +58,16 @@ const PendingMatchRow = ({
   setSelectedTC,
   getUrgencyBadge,
   formatName,
+  onMarkReady,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [markReadyLoading, setMarkReadyLoading] = useState(false);
+
+  const canSelfSelect =
+    client.serviceType &&
+    client.serviceType !== "Low Cost" &&
+    client.stage === "Consultation Completed";
+  const isReadyForSelection = client.stage === "Ready to Choose Counsellor";
 
   return (
     <React.Fragment>
@@ -131,6 +139,28 @@ const PendingMatchRow = ({
               <UserCheck className="w-4 h-4" />
               Assign
             </button>
+            {canSelfSelect && isReadyForSelection && (
+              <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs font-medium rounded-full whitespace-nowrap">
+                Awaiting client selection
+              </span>
+            )}
+            {canSelfSelect && !isReadyForSelection && (
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  setMarkReadyLoading(true);
+                  try {
+                    await onMarkReady(client);
+                  } finally {
+                    setMarkReadyLoading(false);
+                  }
+                }}
+                disabled={markReadyLoading}
+                className="px-3 py-1.5 border border-[var(--border-color)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap disabled:opacity-50"
+              >
+                {markReadyLoading ? "Sending…" : "Let Client Choose"}
+              </button>
+            )}
             <button
               className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
               onClick={(e) => {
@@ -296,6 +326,17 @@ export default function PendingMatchesPage() {
   const [error, setError] = useState(null);
   const [trainingCounsellors, setTrainingCounsellors] = useState([]);
   const [assignLoading, setAssignLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleMarkReady = async (client) => {
+    try {
+      await apiService.markReadyForCounsellorSelection(client.uuid);
+      success(`${client.name} can now choose their own practitioner.`);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      showError(err.message || "Failed to send counsellor selection link.");
+    }
+  };
 
   // Fetch pending matches from API
   useEffect(() => {
@@ -365,7 +406,7 @@ export default function PendingMatchesPage() {
     };
 
     fetchPendingMatches();
-  }, [searchTerm, filterService, filterUrgency, sortBy]);
+  }, [searchTerm, filterService, filterUrgency, sortBy, refreshKey]);
 
   // Fetch training counsellors for suggestions
   useEffect(() => {
@@ -387,7 +428,9 @@ export default function PendingMatchesPage() {
                 const matchesService =
                   (client.serviceType === "Low Cost" &&
                     tc.counsellor_type === "Trainee") ||
-                  (client.serviceType === "Mid Range" &&
+                  (["Mid Range", "Counselling & Coaching"].includes(
+                    client.serviceType,
+                  ) &&
                     tc.counsellor_type === "Qualified");
                 return isActive && matchesService;
               })
@@ -832,6 +875,7 @@ export default function PendingMatchesPage() {
                         setSelectedTC={setSelectedTC}
                         getUrgencyBadge={getUrgencyBadge}
                         formatName={formatName}
+                        onMarkReady={handleMarkReady}
                       />
                     ))
                   )}
@@ -857,7 +901,7 @@ export default function PendingMatchesPage() {
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
                     Assign{" "}
-                    {selectedClient.serviceType === "Mid Range"
+                    {selectedClient.serviceType !== "Low Cost"
                       ? "Qualified"
                       : "Trainee"}{" "}
                     Counsellor
@@ -907,7 +951,7 @@ export default function PendingMatchesPage() {
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Select{" "}
-                        {selectedClient.serviceType === "Mid Range"
+                        {selectedClient.serviceType !== "Low Cost"
                           ? "Qualified"
                           : "Trainee"}{" "}
                         Counsellor
@@ -949,7 +993,7 @@ export default function PendingMatchesPage() {
                                 tc.current_clients < (tc.max_clients || 6) &&
                                 ((selectedClient.serviceType === "Low Cost" &&
                                   tc.counsellor_type === "Trainee") ||
-                                  (selectedClient.serviceType === "Mid Range" &&
+                                  (selectedClient.serviceType !== "Low Cost" &&
                                     tc.counsellor_type === "Qualified")),
                             )
                         ).map((tc) => ({
