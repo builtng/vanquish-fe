@@ -749,10 +749,12 @@ function EditClientPageContent() {
                         />
                         <div className="flex-1">
                           <h3 className="text-sm font-medium text-[var(--text-primary)] mb-1">
-                            Profile Photo
+                            Profile Photo (Optional)
                           </h3>
                           <p className="text-xs text-[var(--text-tertiary)]">
-                            Upload a photo for this client (Admin only)
+                            Clients don't need a profile photo — their
+                            initials are shown by default. You may
+                            optionally upload one (Admin only).
                           </p>
                         </div>
                       </div>

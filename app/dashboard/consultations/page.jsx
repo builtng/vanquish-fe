@@ -3,7 +3,7 @@ import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import apiService from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,14 +63,16 @@ import {
   Building2,
 } from "lucide-react";
 
-export default function ConsultationsManagementPageFixed() {
+function ConsultationsManagementPageFixed() {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { success, error: showError } = useToast();
   const { user } = useAuth();
 
   const [viewMode, setViewMode] = useState("list"); // 'list' or 'calendar'
 
-  const [activeTab, setActiveTab] = useState("today");
+  const [activeTab, setActiveTab] = useState("upcoming");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
@@ -231,6 +233,28 @@ export default function ConsultationsManagementPageFixed() {
     }
   }, [showBookModal]);
 
+  // Open the booking modal pre-filled when arriving from a client's "Book Consultation" action
+  useEffect(() => {
+    if (searchParams.get("bookClientUuid")) {
+      setShowBookModal(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const bookClientUuid = searchParams.get("bookClientUuid");
+    if (!bookClientUuid || clients.length === 0) return;
+
+    const matchedClient = clients.find(
+      (c) => c.uuid === bookClientUuid || String(c.id) === bookClientUuid,
+    );
+    if (matchedClient) {
+      setBookForm((prev) => ({ ...prev, clientId: matchedClient.id }));
+    }
+
+    // Clean the URL so refreshing/closing doesn't keep re-triggering this
+    router.replace("/dashboard/consultations");
+  }, [clients, searchParams, router]);
+
   // Helper to parse backend date strings safely in all browsers (including Safari)
   const parseBackendDate = (dateStr) => {
     if (!dateStr) return null;
@@ -306,9 +330,6 @@ export default function ConsultationsManagementPageFixed() {
   // Filter consultations
 
   const getFilteredConsultations = () => {
-    const todayObj = new Date();
-    const today = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
-
     let filtered = [...consultations];
 
     if (searchTerm) {
@@ -322,22 +343,8 @@ export default function ConsultationsManagementPageFixed() {
     }
 
     switch (activeTab) {
-      case "today":
-        filtered = filtered.filter(
-          (c) =>
-            (c.date === today ||
-              (c.date === null &&
-                c.bookedAt &&
-                c.bookedAt === today)) &&
-            c.status === "Booked",
-        );
-
-        break;
-
       case "upcoming":
-        filtered = filtered.filter(
-          (c) => c.status === "Booked" && c.date !== today,
-        );
+        filtered = filtered.filter((c) => c.status === "Booked");
 
         break;
 
@@ -376,7 +383,7 @@ export default function ConsultationsManagementPageFixed() {
       c.status === "Booked",
   ).length;
   const upcomingCount = consultations.filter(
-    (c) => c.status === "Booked" && c.date !== today,
+    (c) => c.status === "Booked",
   ).length;
   const completedCount = consultations.filter(
     (c) => c.status === "Completed",
@@ -1221,8 +1228,6 @@ export default function ConsultationsManagementPageFixed() {
             {viewMode === "list" && (
               <div className="flex items-center gap-2">
                 {[
-                  { id: "today", label: "Today", count: todayCount },
-
                   { id: "upcoming", label: "Upcoming", count: upcomingCount },
 
                   {
@@ -2091,5 +2096,24 @@ export default function ConsultationsManagementPageFixed() {
         />
       </DashboardLayout>
     </PageGuard>
+  );
+}
+
+export default function ConsultationsManagementPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <PageGuard menuId="consultations">
+          <DashboardLayout>
+            <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gray-50 dark:bg-[var(--background)]">
+              <Search className="w-8 h-8 text-gray-400 animate-pulse mb-4" />
+              <p className="text-gray-500">Loading consultations...</p>
+            </div>
+          </DashboardLayout>
+        </PageGuard>
+      }
+    >
+      <ConsultationsManagementPageFixed />
+    </React.Suspense>
   );
 }

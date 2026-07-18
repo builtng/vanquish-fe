@@ -17,8 +17,11 @@ export default function ConsultationSlotsAdminPage() {
   const [showModal, setShowModal] = useState(false);
 
   const [formData, setFormData] = useState({
+    mode: "single",
     date: "",
     time: "",
+    endTime: "",
+    interval: 15,
     maxSlots: 1,
   });
 
@@ -39,8 +42,44 @@ export default function ConsultationSlotsAdminPage() {
     fetchSlots();
   }, []);
 
+  const resetForm = () =>
+    setFormData({
+      mode: "single",
+      date: "",
+      time: "",
+      endTime: "",
+      interval: 15,
+      maxSlots: 1,
+    });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.mode === "range") {
+      if (formData.endTime <= formData.time) {
+        showError("End time must be after start time");
+        return;
+      }
+
+      try {
+        const result = await apiService.createConsultationSlotRange({
+          date: formData.date,
+          start_time: formData.time,
+          end_time: formData.endTime,
+          interval_minutes: parseInt(formData.interval, 10) || 15,
+          max_slots: parseInt(formData.maxSlots, 10) || null,
+        });
+        success(result?.message || "Slots created successfully");
+        setShowModal(false);
+        resetForm();
+        fetchSlots();
+      } catch (err) {
+        console.error(err);
+        showError(err.message || "Failed to create slots");
+      }
+      return;
+    }
+
     const selectedDateTime = new Date(`${formData.date}T${formData.time}`);
     const now = new Date();
 
@@ -57,7 +96,7 @@ export default function ConsultationSlotsAdminPage() {
       });
       success("Slot created successfully");
       setShowModal(false);
-      setFormData({ date: "", time: "", maxSlots: 1 });
+      resetForm();
       fetchSlots();
     } catch (err) {
       console.error(err);
@@ -231,6 +270,39 @@ export default function ConsultationSlotsAdminPage() {
               <form onSubmit={handleSubmit} className="p-5 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
+                    Slot Type
+                  </label>
+                  <div className="flex items-center gap-2 border border-gray-300 dark:border-[var(--card-border)] rounded-lg p-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData({ ...formData, mode: "single" })
+                      }
+                      className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        formData.mode === "single"
+                          ? "bg-purple-600 text-white"
+                          : "text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
+                      }`}
+                    >
+                      Single Slot
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData({ ...formData, mode: "range" })
+                      }
+                      className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        formData.mode === "range"
+                          ? "bg-purple-600 text-white"
+                          : "text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
+                      }`}
+                    >
+                      Time Range
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
                     Date <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -244,20 +316,83 @@ export default function ConsultationSlotsAdminPage() {
                     className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
-                    Time <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={formData.time}
-                    onChange={(e) =>
-                      setFormData({ ...formData, time: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow"
-                  />
-                </div>
+
+                {formData.mode === "single" ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
+                      Time <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="time"
+                      required
+                      value={formData.time}
+                      onChange={(e) =>
+                        setFormData({ ...formData, time: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
+                          Start Time <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          required
+                          value={formData.time}
+                          onChange={(e) =>
+                            setFormData({ ...formData, time: e.target.value })
+                          }
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
+                          End Time <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="time"
+                          required
+                          value={formData.endTime}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              endTime: e.target.value,
+                            })
+                          }
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
+                        Interval Between Slots
+                      </label>
+                      <select
+                        value={formData.interval}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            interval: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--text-primary)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none transition-shadow"
+                      >
+                        <option value={15}>Every 15 minutes</option>
+                        <option value={30}>Every 30 minutes</option>
+                        <option value={45}>Every 45 minutes</option>
+                        <option value={60}>Every 60 minutes</option>
+                      </select>
+                      <p className="text-xs text-gray-500 dark:text-[var(--text-tertiary)] mt-1.5 ml-1">
+                        Creates a slot every {formData.interval} minutes
+                        between the start and end time.
+                      </p>
+                    </div>
+                  </>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
                     Max Bookings Allowed (Per Slot)

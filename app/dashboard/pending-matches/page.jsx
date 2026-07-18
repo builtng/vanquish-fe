@@ -11,7 +11,7 @@ import SearchableSelect from "@/components/SearchableSelect";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import { formatName, getCounsellorPrefixType } from "@/lib/nameFormatter";
-import { formatTimeSlot, formatTimeSlotDisplay } from "@/lib/timeFormatter";
+import { formatTimeSlotDisplay } from "@/lib/timeFormatter";
 import {
   Users,
   Search,
@@ -51,8 +51,153 @@ import {
   CalendarDays,
 } from "lucide-react";
 
+const MATCH_STEPS = [
+  { label: "Checking availability", icon: Calendar },
+  { label: "Matching clinical issues", icon: Shield },
+  { label: "Aligning therapy modality", icon: RefreshCw },
+  { label: "Balancing caseload", icon: Star },
+];
+
+const STEP_DELAY_MS = 450;
+
+function transformPendingMatchClient(client) {
+  return {
+    id: client.uuid || client.id,
+    uuid: client.uuid || client.id,
+    client_id: client.client_id,
+    name: client.name,
+    age: client.age || null,
+    email: client.email,
+    phone: client.phone || null,
+    serviceType: client.service_type || null,
+    submittedDate: client.submitted_date || null,
+    daysWaiting: client.days_waiting || 0,
+    waitingText: client.waiting_days_text,
+    waitingHours: client.waiting_hours || 0,
+    urgency:
+      client.urgency ||
+      (client.status === "urgent"
+        ? "high"
+        : client.status === "stuck"
+          ? "high"
+          : "medium"),
+    primaryIssues: client.primary_issues || [],
+    preferredModality: client.preferred_modality || null,
+    recommendedModality:
+      client.consultations?.[0]?.recommended_modality || null,
+    availability: client.availability
+      ? Object.entries(client.availability).flatMap(([day, slots]) =>
+          slots.map(
+            (slot) =>
+              `${day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()} ${formatTimeSlotDisplay(slot)}`,
+          ),
+        )
+      : [],
+    rawAvailability: client.availability || {},
+    location: client.address
+      ? `${client.address}${client.postcode ? ", " + client.postcode : ""}`
+      : null,
+    matchScore: null,
+    suggestedTCs: [],
+    consultantName: client.consultations?.[0]?.tc?.name || null,
+    matchedTcName: client.matched_tc?.name || null,
+    stage: client.stage,
+  };
+}
+
+// Client is the fixed variable; practitioners are ranked against its criteria.
+function computeSuggestedTCs(client, trainingCounsellors) {
+  return trainingCounsellors
+    .filter((tc) => {
+      const isActive =
+        tc.status === "Active" &&
+        tc.current_clients < (tc.max_clients || 6);
+      const matchesService =
+        (client.serviceType === "Low Cost" &&
+          tc.counsellor_type === "Trainee") ||
+        (["Mid Range", "Counselling & Coaching"].includes(
+          client.serviceType,
+        ) &&
+          tc.counsellor_type === "Qualified");
+      return isActive && matchesService;
+    })
+    .map((tc) => {
+      let score = 0;
+
+      // 1. Availability Overlap (50 points)
+      const clientAvailability = client.rawAvailability || {};
+      if (tc.availability) {
+        let commonSlots = 0;
+        let totalClientSlots = 0;
+        Object.keys(clientAvailability).forEach((day) => {
+          const slots = clientAvailability[day];
+          if (Array.isArray(slots)) {
+            totalClientSlots += slots.length;
+            if (tc.availability[day]) {
+              slots.forEach((slot) => {
+                if (tc.availability[day].includes(slot)) {
+                  commonSlots++;
+                }
+              });
+            }
+          }
+        });
+        if (totalClientSlots > 0) {
+          score += (commonSlots / totalClientSlots) * 50;
+        }
+      }
+
+      // 2. Modality/Specialism Match (25 points)
+      const recommendedModality = client.recommendedModality;
+      if (recommendedModality && tc.modality === recommendedModality) {
+        score += 25;
+      } else if (!recommendedModality) {
+        score += 15; // Neutral if no recommendation
+      }
+
+      // 3. Issue Match (15 points)
+      if (client.primaryIssues && tc.topics_with_experience) {
+        const clientIssues = Array.isArray(client.primaryIssues)
+          ? client.primaryIssues
+          : [];
+        const tcIssues = Array.isArray(tc.topics_with_experience)
+          ? tc.topics_with_experience
+          : [];
+
+        const commonIssues = clientIssues.filter((issue) =>
+          tcIssues.includes(issue),
+        ).length;
+        if (clientIssues.length > 0) {
+          score += (commonIssues / clientIssues.length) * 15;
+        }
+      }
+
+      // 4. Caseload Balance (10 points)
+      const maxCaseload = tc.max_clients || 6;
+      const currentCaseload = tc.current_clients || 0;
+      const utilization = currentCaseload / maxCaseload;
+      score += (1 - utilization) * 10;
+
+      return {
+        id: tc.uuid || tc.id,
+        uuid: tc.uuid || tc.id,
+        name: tc.name,
+        modality: tc.modality || "N/A",
+        matchScore: Math.round(score),
+        currentClients: currentCaseload,
+        counsellorType: tc.counsellor_type,
+        availability: utilization < 0.8 ? "High" : "Low",
+      };
+    })
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, 3);
+}
+
 const PendingMatchRow = ({
   client,
+  trainingCounsellors,
+  matchResult,
+  onMatchComputed,
   setSelectedClient,
   setShowAssignModal,
   setSelectedTC,
@@ -62,6 +207,25 @@ const PendingMatchRow = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [markReadyLoading, setMarkReadyLoading] = useState(false);
+  const [runningMatch, setRunningMatch] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+
+  const handleRunMatch = async () => {
+    setRunningMatch(true);
+    for (let i = 0; i < MATCH_STEPS.length; i++) {
+      setStepIndex(i);
+      await new Promise((resolve) => setTimeout(resolve, STEP_DELAY_MS));
+    }
+    const results = computeSuggestedTCs(client, trainingCounsellors);
+    onMatchComputed(results);
+    setRunningMatch(false);
+  };
+
+  const openAssignModal = (tc) => {
+    setSelectedClient({ ...client, suggestedTCs: matchResult || [] });
+    if (tc) setSelectedTC(tc);
+    setShowAssignModal(true);
+  };
 
   const canSelfSelect =
     client.serviceType &&
@@ -131,8 +295,7 @@ const PendingMatchRow = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setSelectedClient(client);
-                setShowAssignModal(true);
+                openAssignModal(null);
               }}
               className="px-3 py-1.5 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap"
             >
@@ -244,64 +407,141 @@ const PendingMatchRow = ({
                 </div>
               </div>
 
-              {/* Suggested Practitioners */}
+              {/* Practitioner Match */}
               <div className="md:col-span-2 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em]">
-                    💡 Suggested Practitioners
+                    Practitioner Match
                   </h4>
-                  <span className="text-[10px] text-[var(--purple-primary)] font-medium">
-                    Best matches for this client
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {client.suggestedTCs.map((tc) => (
-                    <div
-                      key={tc.id}
-                      className="bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-xl p-3.5 shadow-sm hover:shadow-md transition-shadow group"
+                  {matchResult && !runningMatch && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRunMatch();
+                      }}
+                      className="text-[10px] text-[var(--purple-primary)] font-medium flex items-center gap-1 hover:underline"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Link
-                              href={`/dashboard/training-counsellors/details/${tc.uuid || tc.id}`}
-                              className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-sm hover:text-[var(--purple-primary)] transition-colors truncate block"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {formatName(tc.name, "tc")}
-                            </Link>
-                            <span className="flex-shrink-0 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-[10px] rounded-full font-bold border border-green-100 dark:border-green-900/30">
-                              {tc.matchScore}%
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-gray-500 dark:text-[var(--text-tertiary)] truncate">
-                            {tc.modality} • {tc.currentClients} clients
-                          </p>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedClient(client);
-                            setSelectedTC(tc);
-                            setShowAssignModal(true);
-                          }}
-                          className="flex-shrink-0 px-3 py-1.5 bg-[var(--purple-bg)] text-[var(--purple-primary)] group-hover:bg-[var(--purple-primary)] group-hover:text-white rounded-lg text-[11px] font-bold transition-all"
-                        >
-                          Assign
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {client.suggestedTCs.length === 0 && (
-                    <div className="col-span-2 flex flex-col items-center justify-center py-6 border border-dashed border-gray-200 dark:border-[var(--card-border)] rounded-xl opacity-60">
-                      <RefreshCw className="w-5 h-5 text-gray-400 mb-2" />
-                      <p className="text-xs text-gray-500 italic text-center">
-                        Calculating ideal matches... <br />
-                        Or click Assign to browse all practitioners.
-                      </p>
-                    </div>
+                      <RefreshCw className="w-3 h-3" />
+                      Re-run match
+                    </button>
                   )}
                 </div>
+
+                {!matchResult && !runningMatch && (
+                  <div className="flex flex-col items-center justify-center py-6 border border-dashed border-gray-200 dark:border-[var(--card-border)] rounded-xl">
+                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mb-3 text-center max-w-xs">
+                      Client is fixed. Run the algorithm to rank
+                      practitioners against their criteria.
+                    </p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRunMatch();
+                      }}
+                      className="px-4 py-2 bg-[var(--purple-primary)] text-white rounded-lg text-xs font-bold flex items-center gap-2 hover:opacity-90 transition-opacity"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      Run Match
+                    </button>
+                  </div>
+                )}
+
+                {runningMatch && (
+                  <div className="py-4 px-4 border border-gray-200 dark:border-[var(--card-border)] rounded-xl bg-white dark:bg-[var(--card-bg)] space-y-2.5">
+                    {MATCH_STEPS.map((step, idx) => {
+                      const StepIcon = step.icon;
+                      const state =
+                        idx < stepIndex
+                          ? "done"
+                          : idx === stepIndex
+                            ? "active"
+                            : "pending";
+                      return (
+                        <div
+                          key={step.label}
+                          className="flex items-center gap-2.5"
+                        >
+                          <div
+                            className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              state === "done"
+                                ? "bg-green-100 text-green-600"
+                                : state === "active"
+                                  ? "bg-[var(--purple-bg)] text-[var(--purple-primary)]"
+                                  : "bg-gray-100 dark:bg-gray-800 text-gray-300 dark:text-gray-600"
+                            }`}
+                          >
+                            {state === "done" ? (
+                              <CheckCircle className="w-3.5 h-3.5" />
+                            ) : state === "active" ? (
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <StepIcon className="w-3 h-3" />
+                            )}
+                          </div>
+                          <span
+                            className={`text-xs ${
+                              state === "pending"
+                                ? "text-gray-400 dark:text-[var(--text-tertiary)]"
+                                : "text-gray-700 dark:text-[var(--text-primary)] font-medium"
+                            }`}
+                          >
+                            {step.label}...
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {matchResult && !runningMatch && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {matchResult.map((tc) => (
+                      <div
+                        key={tc.id}
+                        className="bg-white dark:bg-[var(--card-bg)] border border-gray-200 dark:border-[var(--card-border)] rounded-xl p-3.5 shadow-sm hover:shadow-md transition-shadow group"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Link
+                                href={`/dashboard/training-counsellors/details/${tc.uuid || tc.id}`}
+                                className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-sm hover:text-[var(--purple-primary)] transition-colors truncate block"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {formatName(tc.name, "tc")}
+                              </Link>
+                              <span className="flex-shrink-0 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-[10px] rounded-full font-bold border border-green-100 dark:border-green-900/30">
+                                {tc.matchScore}%
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 dark:text-[var(--text-tertiary)] truncate">
+                              {tc.modality} • {tc.currentClients} clients
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openAssignModal(tc);
+                            }}
+                            className="flex-shrink-0 px-3 py-1.5 bg-[var(--purple-bg)] text-[var(--purple-primary)] group-hover:bg-[var(--purple-primary)] group-hover:text-white rounded-lg text-[11px] font-bold transition-all"
+                          >
+                            Assign
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {matchResult.length === 0 && (
+                      <div className="col-span-2 flex flex-col items-center justify-center py-6 border border-dashed border-gray-200 dark:border-[var(--card-border)] rounded-xl opacity-60">
+                        <RefreshCw className="w-5 h-5 text-gray-400 mb-2" />
+                        <p className="text-xs text-gray-500 italic text-center">
+                          No eligible practitioners matched this client's
+                          criteria. <br />
+                          Click Assign to browse all practitioners.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </td>
@@ -327,6 +567,7 @@ export default function PendingMatchesPage() {
   const [trainingCounsellors, setTrainingCounsellors] = useState([]);
   const [assignLoading, setAssignLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [matchesByClient, setMatchesByClient] = useState({});
 
   const handleMarkReady = async (client) => {
     try {
@@ -352,48 +593,8 @@ export default function PendingMatchesPage() {
 
         const data = await apiService.getPendingMatches(params);
 
-        // Transform API data to match component structure
-        const transformedData = data.map((client) => ({
-          id: client.uuid || client.id,
-          uuid: client.uuid || client.id,
-          client_id: client.client_id,
-          name: client.name,
-          age: client.age || null,
-          email: client.email,
-          phone: client.phone || null,
-          serviceType: client.service_type || null,
-          submittedDate: client.submitted_date || null,
-          daysWaiting: client.days_waiting || 0,
-          waitingText: client.waiting_days_text,
-          waitingHours: client.waiting_hours || 0,
-          urgency:
-            client.urgency ||
-            (client.status === "urgent"
-              ? "high"
-              : client.status === "stuck"
-                ? "high"
-                : "medium"),
-          primaryIssues: client.primary_issues || [],
-          preferredModality: client.preferred_modality || null,
-          availability: client.availability
-            ? Object.entries(client.availability).flatMap(([day, slots]) =>
-                slots.map(
-                  (slot) =>
-                    `${day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()} ${formatTimeSlot(slot)}`,
-                ),
-              )
-            : [],
-          location: client.address
-            ? `${client.address}${client.postcode ? ", " + client.postcode : ""}`
-            : null,
-          matchScore: null,
-          suggestedTCs: [], // Will be populated separately
-          consultantName: client.consultations?.[0]?.tc?.name || null,
-          matchedTcName: client.matched_tc?.name || null,
-          stage: client.stage,
-        }));
-
-        setPendingMatches(transformedData);
+        setPendingMatches(data.map(transformPendingMatchClient));
+        setMatchesByClient({});
       } catch (err) {
         console.error("Error fetching pending matches:", err);
         const errorMessage =
@@ -408,120 +609,19 @@ export default function PendingMatchesPage() {
     fetchPendingMatches();
   }, [searchTerm, filterService, filterUrgency, sortBy, refreshKey]);
 
-  // Fetch training counsellors for suggestions
+  // Fetch training counsellors so a match can be run on demand per client
   useEffect(() => {
     const fetchTCs = async () => {
       try {
         const data = await apiService.getTrainingCounsellors();
         setTrainingCounsellors(data);
-
-        // Update pending matches with suggested TCs
-        setPendingMatches((prev) =>
-          prev.map((client) => {
-            // Enhanced matching logic - respect counsellor type for service type
-            // Real matching algorithm
-            const suggested = data
-              .filter((tc) => {
-                const isActive =
-                  tc.status === "Active" &&
-                  tc.current_clients < (tc.max_clients || 6);
-                const matchesService =
-                  (client.serviceType === "Low Cost" &&
-                    tc.counsellor_type === "Trainee") ||
-                  (["Mid Range", "Counselling & Coaching"].includes(
-                    client.serviceType,
-                  ) &&
-                    tc.counsellor_type === "Qualified");
-                return isActive && matchesService;
-              })
-              .map((tc) => {
-                let score = 0;
-
-                // 1. Availability Overlap (50 points)
-                if (client.availability && tc.availability) {
-                  let commonSlots = 0;
-                  let totalClientSlots = 0;
-                  Object.keys(client.availability).forEach((day) => {
-                    const slots = client.availability[day];
-                    if (Array.isArray(slots)) {
-                      totalClientSlots += slots.length;
-                      if (tc.availability[day]) {
-                        slots.forEach((slot) => {
-                          if (tc.availability[day].includes(slot)) {
-                            commonSlots++;
-                          }
-                        });
-                      }
-                    }
-                  });
-                  if (totalClientSlots > 0) {
-                    score += (commonSlots / totalClientSlots) * 50;
-                  }
-                }
-
-                // 2. Modality/Specialism Match (25 points)
-                // Get recommended modality from latest consultation
-                const latestConsultation = client.consultations?.[0];
-                const recommendedModality =
-                  latestConsultation?.recommended_modality;
-                if (
-                  recommendedModality &&
-                  tc.modality === recommendedModality
-                ) {
-                  score += 25;
-                } else if (!recommendedModality) {
-                  score += 15; // Neutral if no recommendation
-                }
-
-                // 3. Issue Match (15 points)
-                if (client.primaryIssues && tc.topics_with_experience) {
-                  const clientIssues = Array.isArray(client.primaryIssues)
-                    ? client.primaryIssues
-                    : [];
-                  const tcIssues = Array.isArray(tc.topics_with_experience)
-                    ? tc.topics_with_experience
-                    : [];
-
-                  const commonIssues = clientIssues.filter((issue) =>
-                    tcIssues.includes(issue),
-                  ).length;
-                  if (clientIssues.length > 0) {
-                    score += (commonIssues / clientIssues.length) * 15;
-                  }
-                }
-
-                // 4. Caseload Balance (10 points)
-                const maxCaseload = tc.max_clients || 6;
-                const currentCaseload = tc.current_clients || 0;
-                const utilization = currentCaseload / maxCaseload;
-                score += (1 - utilization) * 10;
-
-                return {
-                  id: tc.uuid || tc.id,
-                  uuid: tc.uuid || tc.id,
-                  name: tc.name,
-                  modality: tc.modality || "N/A",
-                  matchScore: Math.round(score),
-                  currentClients: currentCaseload,
-                  counsellorType: tc.counsellor_type,
-                  availability: utilization < 0.8 ? "High" : "Low",
-                };
-              })
-              .sort((a, b) => b.matchScore - a.matchScore)
-              .slice(0, 3);
-
-            return { ...client, suggestedTCs: suggested };
-          }),
-        );
       } catch (err) {
         console.error("Error fetching training counsellors:", err);
       }
     };
 
-    if (pendingMatches.length > 0) {
-      fetchTCs();
-    }
-  }, [pendingMatches.length]);
+    fetchTCs();
+  }, []);
 
   // Mock Pending Match Clients (removed)
 
@@ -621,48 +721,8 @@ export default function PendingMatchesPage() {
 
                     const data = await apiService.getPendingMatches(params);
 
-                    const transformedData = data.map((client) => ({
-                      id: client.uuid || client.id,
-                      uuid: client.uuid || client.id,
-                      client_id: client.client_id,
-                      name: client.name,
-                      age: client.age || null,
-                      email: client.email,
-                      phone: client.phone || null,
-                      serviceType: client.service_type || null,
-                      submittedDate: client.submitted_date || null,
-                      daysWaiting: client.days_waiting || 0,
-                      waitingText: client.waiting_days_text,
-                      waitingHours: client.waiting_hours || 0,
-                      urgency:
-                        client.urgency ||
-                        (client.status === "urgent"
-                          ? "high"
-                          : client.status === "stuck"
-                            ? "high"
-                            : "medium"),
-                      primaryIssues: client.primary_issues || [],
-                      preferredModality: client.preferred_modality || null,
-                      availability: client.availability
-                        ? Object.entries(client.availability).flatMap(
-                            ([day, slots]) =>
-                              slots.map(
-                                (slot) =>
-                                  `${day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()} ${formatTimeSlot(slot)}`,
-                              ),
-                          )
-                        : [],
-                      location: client.address
-                        ? `${client.address}${client.postcode ? ", " + client.postcode : ""}`
-                        : null,
-                      matchScore: null,
-                      suggestedTCs: [],
-                      consultantName:
-                        client.consultations?.[0]?.tc?.name || null,
-                      matchedTcName: client.matched_tc?.name || null,
-                      stage: client.stage,
-                    }));
-                    setPendingMatches(transformedData);
+                    setPendingMatches(data.map(transformPendingMatchClient));
+                    setMatchesByClient({});
                     success("Data refreshed successfully");
                   } catch (err) {
                     console.error("Error refreshing:", err);
@@ -870,6 +930,14 @@ export default function PendingMatchesPage() {
                       <PendingMatchRow
                         key={client.id}
                         client={client}
+                        trainingCounsellors={trainingCounsellors}
+                        matchResult={matchesByClient[client.id]}
+                        onMatchComputed={(results) =>
+                          setMatchesByClient((prev) => ({
+                            ...prev,
+                            [client.id]: results,
+                          }))
+                        }
                         setSelectedClient={setSelectedClient}
                         setShowAssignModal={setShowAssignModal}
                         setSelectedTC={setSelectedTC}
@@ -1097,49 +1165,14 @@ export default function PendingMatchesPage() {
                           if (sortBy) params.sort_by = sortBy;
                           const data =
                             await apiService.getPendingMatches(params);
-                          const transformedData = data.map((client) => ({
-                            id: client.uuid || client.id,
-                            uuid: client.uuid || client.id,
-                            client_id: client.client_id,
-                            name: client.name,
-                            age: client.age || null,
-                            email: client.email,
-                            phone: client.phone || null,
-                            serviceType: client.service_type || null,
-                            submittedDate: client.submitted_date || null,
-                            daysWaiting: client.days_waiting || 0,
-                            waitingText: client.waiting_days_text,
-                            waitingHours: client.waiting_hours || 0,
-                            urgency:
-                              client.urgency ||
-                              (client.status === "urgent"
-                                ? "high"
-                                : client.status === "stuck"
-                                  ? "high"
-                                  : "medium"),
-                            primaryIssues: client.primary_issues || [],
-                            preferredModality:
-                              client.preferred_modality || null,
-                            availability: client.availability
-                              ? Object.entries(client.availability).flatMap(
-                                  ([day, slots]) =>
-                                    slots.map((slot) => {
-                                      const formattedSlot =
-                                        formatTimeSlotDisplay(slot);
-                                      return `${day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()} ${formattedSlot}`;
-                                    }),
-                                )
-                              : [],
-                            location: client.address
-                              ? `${client.address}${client.postcode ? ", " + client.postcode : ""}`
-                              : null,
-                            matchScore: null,
-                            suggestedTCs: [],
-                            consultantName:
-                              client.consultations?.[0]?.tc?.name || null,
-                            matchedTcName: client.matched_tc?.name || null,
-                          }));
-                          setPendingMatches(transformedData);
+                          setPendingMatches(
+                            data.map(transformPendingMatchClient),
+                          );
+                          setMatchesByClient((prev) => {
+                            const next = { ...prev };
+                            delete next[selectedClient.id];
+                            return next;
+                          });
                         } catch (err) {
                           console.error("Error assigning match:", err);
                           showError(
