@@ -122,13 +122,14 @@ function computeSuggestedTCs(client, trainingCounsellors) {
       return isActive && matchesService;
     })
     .map((tc) => {
-      let score = 0;
+      const breakdown = {};
+      const flags = [];
 
       // 1. Availability Overlap (50 points)
       const clientAvailability = client.rawAvailability || {};
+      let commonSlots = 0;
+      let totalClientSlots = 0;
       if (tc.availability) {
-        let commonSlots = 0;
-        let totalClientSlots = 0;
         Object.keys(clientAvailability).forEach((day) => {
           const slots = clientAvailability[day];
           if (Array.isArray(slots)) {
@@ -142,41 +143,103 @@ function computeSuggestedTCs(client, trainingCounsellors) {
             }
           }
         });
-        if (totalClientSlots > 0) {
-          score += (commonSlots / totalClientSlots) * 50;
-        }
+      }
+      const availabilityScore =
+        totalClientSlots > 0 ? (commonSlots / totalClientSlots) * 50 : 0;
+      breakdown.availability = {
+        score: Math.round(availabilityScore),
+        max: 50,
+        percentage: Math.round((availabilityScore / 50) * 100),
+        matched: totalClientSlots === 0 || commonSlots > 0,
+        detail:
+          totalClientSlots > 0
+            ? `${commonSlots}/${totalClientSlots} preferred slots overlap`
+            : "No client availability on record to compare",
+      };
+      if (totalClientSlots > 0 && commonSlots === 0) {
+        flags.push("No overlapping availability with this client");
       }
 
       // 2. Modality/Specialism Match (25 points)
       const recommendedModality = client.recommendedModality;
-      if (recommendedModality && tc.modality === recommendedModality) {
-        score += 25;
-      } else if (!recommendedModality) {
-        score += 15; // Neutral if no recommendation
+      const modalityMatched =
+        !!recommendedModality && tc.modality === recommendedModality;
+      const modalityScore = modalityMatched
+        ? 25
+        : !recommendedModality
+          ? 15 // Neutral if no recommendation on file
+          : 0;
+      breakdown.modalityMatch = {
+        score: Math.round(modalityScore),
+        max: 25,
+        percentage: Math.round((modalityScore / 25) * 100),
+        matched: modalityMatched || !recommendedModality,
+        detail: recommendedModality
+          ? modalityMatched
+            ? `Offers the recommended modality (${recommendedModality})`
+            : `Does not offer the recommended modality (${recommendedModality}); offers ${tc.modality || "N/A"}`
+          : "No recommended modality on file for this client",
+      };
+      if (recommendedModality && !modalityMatched) {
+        flags.push(
+          `Recommended modality "${recommendedModality}" not offered (practitioner offers ${tc.modality || "N/A"})`,
+        );
       }
 
-      // 3. Issue Match (15 points)
-      if (client.primaryIssues && tc.topics_with_experience) {
-        const clientIssues = Array.isArray(client.primaryIssues)
-          ? client.primaryIssues
-          : [];
-        const tcIssues = Array.isArray(tc.topics_with_experience)
-          ? tc.topics_with_experience
-          : [];
-
-        const commonIssues = clientIssues.filter((issue) =>
-          tcIssues.includes(issue),
-        ).length;
-        if (clientIssues.length > 0) {
-          score += (commonIssues / clientIssues.length) * 15;
-        }
+      // 3. Clinical Issue Match (15 points)
+      const clientIssues = Array.isArray(client.primaryIssues)
+        ? client.primaryIssues
+        : [];
+      const tcIssues = Array.isArray(tc.topics_with_experience)
+        ? tc.topics_with_experience
+        : [];
+      const commonIssues = clientIssues.filter((issue) =>
+        tcIssues.includes(issue),
+      );
+      const issueScore =
+        clientIssues.length > 0
+          ? (commonIssues.length / clientIssues.length) * 15
+          : 0;
+      breakdown.clinicalIssues = {
+        score: Math.round(issueScore),
+        max: 15,
+        percentage:
+          clientIssues.length > 0
+            ? Math.round((issueScore / 15) * 100)
+            : 100,
+        matched: clientIssues.length === 0 || commonIssues.length > 0,
+        detail:
+          clientIssues.length > 0
+            ? `Experienced with ${commonIssues.length}/${clientIssues.length} of the client's primary issues`
+            : "No primary issues on record",
+      };
+      if (clientIssues.length > 0 && commonIssues.length === 0) {
+        flags.push(
+          `No listed experience with the client's primary issues: ${clientIssues.join(", ")}`,
+        );
       }
 
       // 4. Caseload Balance (10 points)
       const maxCaseload = tc.max_clients || 6;
       const currentCaseload = tc.current_clients || 0;
-      const utilization = currentCaseload / maxCaseload;
-      score += (1 - utilization) * 10;
+      const utilization = maxCaseload > 0 ? currentCaseload / maxCaseload : 1;
+      const caseloadScore = (1 - utilization) * 10;
+      breakdown.caseloadBalance = {
+        score: Math.round(caseloadScore),
+        max: 10,
+        percentage: Math.round((caseloadScore / 10) * 100),
+        matched: utilization < 0.9,
+        detail: `${currentCaseload}/${maxCaseload} active clients`,
+      };
+      if (utilization >= 0.9) {
+        flags.push("Practitioner is near full caseload capacity");
+      }
+
+      const score =
+        breakdown.availability.score +
+        breakdown.modalityMatch.score +
+        breakdown.clinicalIssues.score +
+        breakdown.caseloadBalance.score;
 
       return {
         id: tc.uuid || tc.id,
@@ -184,6 +247,8 @@ function computeSuggestedTCs(client, trainingCounsellors) {
         name: tc.name,
         modality: tc.modality || "N/A",
         matchScore: Math.round(score),
+        matchBreakdown: breakdown,
+        flags,
         currentClients: currentCaseload,
         counsellorType: tc.counsellor_type,
         availability: utilization < 0.8 ? "High" : "Low",
@@ -192,6 +257,13 @@ function computeSuggestedTCs(client, trainingCounsellors) {
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 3);
 }
+
+const BREAKDOWN_LABELS = {
+  availability: "Availability",
+  modalityMatch: "Modality Match",
+  clinicalIssues: "Clinical Issues",
+  caseloadBalance: "Caseload Balance",
+};
 
 const PendingMatchRow = ({
   client,
@@ -494,7 +566,7 @@ const PendingMatchRow = ({
                 )}
 
                 {matchResult && !runningMatch && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3">
                     {matchResult.map((tc) => (
                       <div
                         key={tc.id}
@@ -513,6 +585,13 @@ const PendingMatchRow = ({
                               <span className="flex-shrink-0 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-[10px] rounded-full font-bold border border-green-100 dark:border-green-900/30">
                                 {tc.matchScore}%
                               </span>
+                              {tc.flags.length > 0 && (
+                                <span className="flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-[10px] rounded-full font-bold border border-amber-100 dark:border-amber-900/30">
+                                  <AlertTriangle className="w-2.5 h-2.5" />
+                                  {tc.flags.length} flag
+                                  {tc.flags.length !== 1 ? "s" : ""}
+                                </span>
+                              )}
                             </div>
                             <p className="text-[11px] text-gray-500 dark:text-[var(--text-tertiary)] truncate">
                               {tc.modality} • {tc.currentClients} clients
@@ -528,10 +607,55 @@ const PendingMatchRow = ({
                             Assign
                           </button>
                         </div>
+
+                        {/* Why this practitioner: matched vs unmatched criteria */}
+                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-[var(--card-border)] grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {Object.entries(tc.matchBreakdown).map(
+                            ([key, value]) => (
+                              <div
+                                key={key}
+                                title={value.detail}
+                                className={`px-2 py-1.5 rounded-lg border text-[10px] leading-tight ${
+                                  value.matched
+                                    ? "bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-900/30 text-green-700 dark:text-green-400"
+                                    : "bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30 text-red-700 dark:text-red-400"
+                                }`}
+                              >
+                                <div className="flex items-center gap-1 font-bold">
+                                  {value.matched ? (
+                                    <CheckCircle className="w-2.5 h-2.5 flex-shrink-0" />
+                                  ) : (
+                                    <X className="w-2.5 h-2.5 flex-shrink-0" />
+                                  )}
+                                  <span className="truncate">
+                                    {BREAKDOWN_LABELS[key] || key}
+                                  </span>
+                                </div>
+                                <p className="opacity-80 mt-0.5">
+                                  {value.percentage}%
+                                </p>
+                              </div>
+                            ),
+                          )}
+                        </div>
+
+                        {tc.flags.length > 0 && (
+                          <ul className="mt-2 space-y-1">
+                            {tc.flags.map((flag) => (
+                              <li
+                                key={flag}
+                                className="flex items-start gap-1.5 text-[11px] text-amber-700 dark:text-amber-400"
+                              >
+                                <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                                <span>{flag}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     ))}
                     {matchResult.length === 0 && (
-                      <div className="col-span-2 flex flex-col items-center justify-center py-6 border border-dashed border-gray-200 dark:border-[var(--card-border)] rounded-xl opacity-60">
+                      <div className="flex flex-col items-center justify-center py-6 border border-dashed border-gray-200 dark:border-[var(--card-border)] rounded-xl opacity-60">
                         <RefreshCw className="w-5 h-5 text-gray-400 mb-2" />
                         <p className="text-xs text-gray-500 italic text-center">
                           No eligible practitioners matched this client's
@@ -1015,7 +1139,33 @@ export default function PendingMatchesPage() {
                         Availability: {selectedTC.availability}
                       </p>
                     </div>
-                  ) : (
+                  ) : null}
+
+                  {selectedTC &&
+                    (selectedTC.flags || []).length > 0 && (
+                      <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-2 mb-2">
+                          <AlertTriangle className="w-4 h-4" />
+                          The algorithm flagged this match
+                        </p>
+                        <ul className="space-y-1">
+                          {selectedTC.flags.map((flag) => (
+                            <li
+                              key={flag}
+                              className="text-xs text-amber-800 dark:text-amber-300"
+                            >
+                              • {flag}
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-xs text-amber-800 dark:text-amber-300 mt-2">
+                          You can still assign this practitioner, but you must
+                          explain why below.
+                        </p>
+                      </div>
+                    )}
+
+                  {!selectedTC && (
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Select{" "}
@@ -1045,7 +1195,10 @@ export default function PendingMatchesPage() {
                                 name: tc.name,
                                 modality: tc.modality || "N/A",
                                 matchScore: tc.matchScore || null,
-                                currentClients: tc.current_clients || 0,
+                                matchBreakdown: tc.matchBreakdown || null,
+                                flags: tc.flags || [],
+                                currentClients:
+                                  tc.currentClients ?? tc.current_clients ?? 0,
                                 availability: tc.availability || "N/A",
                               });
                             }
@@ -1088,13 +1241,24 @@ export default function PendingMatchesPage() {
 
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Assignment Notes (Optional)
+                      Assignment Notes{" "}
+                      {(selectedTC?.flags || []).length > 0 ? (
+                        <span className="text-amber-600">
+                          (Required — explain the flagged mismatch)
+                        </span>
+                      ) : (
+                        "(Optional)"
+                      )}
                     </label>
                     <textarea
                       id="assignmentNotes"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
                       rows={3}
-                      placeholder="Add any notes about this assignment..."
+                      placeholder={
+                        (selectedTC?.flags || []).length > 0
+                          ? "Explain why you're assigning this practitioner despite the flagged concerns..."
+                          : "Add any notes about this assignment..."
+                      }
                     />
                   </div>
 
@@ -1133,17 +1297,29 @@ export default function PendingMatchesPage() {
                           );
                           return;
                         }
+
+                        const assignmentNotes =
+                          document
+                            .getElementById("assignmentNotes")
+                            ?.value.trim() || "";
+                        const flags = selectedTC.flags || [];
+
+                        if (flags.length > 0 && !assignmentNotes) {
+                          showError(
+                            "This practitioner was flagged as a possible mismatch. Please add a note explaining the assignment before proceeding.",
+                          );
+                          return;
+                        }
+
                         try {
                           setAssignLoading(true);
-
-                          const assignmentNotes =
-                            document.getElementById("assignmentNotes")?.value ||
-                            "";
 
                           await apiService.assignMatch({
                             client_id: selectedClient.uuid || selectedClient.id,
                             tc_id: selectedTC.uuid || selectedTC.id,
                             match_score: selectedTC.matchScore || null,
+                            match_breakdown: selectedTC.matchBreakdown || null,
+                            flags,
                             assignment_notes: assignmentNotes,
                             send_notification:
                               document.getElementById("sendNotification")

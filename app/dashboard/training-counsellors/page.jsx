@@ -84,6 +84,47 @@ export default function ViewAllTrainingCounsellorsPage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showTopicsModal, setShowTopicsModal] = useState(false);
   const [topicsModalData, setTopicsModalData] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addSubmitting, setAddSubmitting] = useState(false);
+  const emptyAddForm = {
+    name: "",
+    email: "",
+    phone: "",
+    modality: "",
+    course: "",
+    institution: "",
+  };
+  const [addForm, setAddForm] = useState(emptyAddForm);
+  const emptyAddDocs = {
+    qualification_document_file: null,
+    dbs_certificate_file: null,
+    insurance_file: null,
+    self_employment_proof_file: null,
+    professional_membership_file: null,
+  };
+  const [addDocs, setAddDocs] = useState(emptyAddDocs);
+
+  const handleAddTC = async (e) => {
+    e.preventDefault();
+    if (!addForm.name || !addForm.email) {
+      toast.error("Name and email are required");
+      return;
+    }
+    try {
+      setAddSubmitting(true);
+      await apiService.createTrainingCounsellor(addForm, addDocs);
+      toast.success("Training counsellor added successfully");
+      setShowAddModal(false);
+      setAddForm(emptyAddForm);
+      setAddDocs(emptyAddDocs);
+      fetchTrainingCounsellors();
+    } catch (err) {
+      console.error("Error creating training counsellor:", err);
+      toast.error(err.message || "Failed to add training counsellor");
+    } finally {
+      setAddSubmitting(false);
+    }
+  };
 
   // Assign client form
   const [assignForm, setAssignForm] = useState({
@@ -461,14 +502,14 @@ export default function ViewAllTrainingCounsellorsPage() {
                 />
                 <span className="hidden sm:inline">Refresh</span>
               </button>
-              <Link
-                href="/dashboard/training-counsellors"
+              <button
+                onClick={() => setShowAddModal(true)}
                 className="px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg font-medium flex items-center gap-2 whitespace-nowrap transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Add New TC</span>
                 <span className="sm:hidden">Add</span>
-              </Link>
+              </button>
             </>
           }
         >
@@ -1106,6 +1147,190 @@ export default function ViewAllTrainingCounsellorsPage() {
             </div>
           </div>
         </>
+      )}
+
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto text-foreground">
+            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/50 sticky top-0 z-10">
+              <h3 className="font-bold text-lg">Add New Training Counsellor</h3>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddTC} className="p-5 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Manually add a practitioner and, optionally, upload the onboarding
+                documents on their behalf instead of waiting for them to submit
+                the self-service qualified counsellor form.
+              </p>
+
+              <div>
+                <label className="block text-sm font-medium mb-1.5">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={addForm.name}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, name: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1.5">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={addForm.email}
+                  onChange={(e) =>
+                    setAddForm({ ...addForm, email: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={addForm.phone}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, phone: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Modality
+                  </label>
+                  <select
+                    value={addForm.modality}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, modality: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"
+                  >
+                    <option value="">Select...</option>
+                    <option value="CBT">CBT</option>
+                    <option value="Person-Centred">Person-Centred</option>
+                    <option value="Integrative">Integrative</option>
+                    <option value="Psychodynamic">Psychodynamic</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Course
+                  </label>
+                  <input
+                    type="text"
+                    value={addForm.course}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, course: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    Institution
+                  </label>
+                  <input
+                    type="text"
+                    value={addForm.institution}
+                    onChange={(e) =>
+                      setAddForm({ ...addForm, institution: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-border">
+                <h4 className="text-sm font-semibold mt-3 mb-1">
+                  Onboarding Documents (Optional)
+                </h4>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Upload these on the practitioner's behalf if you already have
+                  them, instead of requiring them to upload during onboarding.
+                </p>
+                <div className="space-y-3">
+                  {[
+                    {
+                      key: "qualification_document_file",
+                      label: "Qualification Document",
+                    },
+                    {
+                      key: "dbs_certificate_file",
+                      label: "DBS Certificate",
+                    },
+                    { key: "insurance_file", label: "Insurance" },
+                    {
+                      key: "self_employment_proof_file",
+                      label: "Self-Employment Proof",
+                    },
+                    {
+                      key: "professional_membership_file",
+                      label: "Professional Membership",
+                    },
+                  ].map(({ key, label }) => (
+                    <div key={key}>
+                      <label className="block text-xs font-medium mb-1 text-muted-foreground">
+                        {label}
+                      </label>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                        onChange={(e) =>
+                          setAddDocs({
+                            ...addDocs,
+                            [key]: e.target.files?.[0] || null,
+                          })
+                        }
+                        className="w-full text-sm text-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4 mt-2 border-t border-border flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-5 py-2 text-foreground border border-border rounded-lg font-medium hover:bg-muted transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addSubmitting}
+                  className="px-5 py-2 text-white rounded-lg font-medium flex items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+                  style={{ backgroundColor: "#6f1d56" }}
+                >
+                  <Save className="w-4 h-4" />
+                  {addSubmitting ? "Adding..." : "Add Training Counsellor"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </DashboardLayout>
     </PageGuard>
