@@ -23,7 +23,19 @@ import {
   RefreshCw,
   ArrowRight,
   FileText,
+  TrendingUp,
+  Wifi,
+  XCircle,
 } from "lucide-react";
+
+// Mirrors CONDUCT_EVENT_TYPES on the admin side — keep labels/icons in sync.
+const CONDUCT_EVENT_TYPES = {
+  late_to_session: { label: "Late to Session", icon: Clock, color: "#b45309" },
+  missed_psg: { label: "Missed PSG", icon: Users, color: "#b45309" },
+  missed_session: { label: "Missed a Session", icon: XCircle, color: "#dc2626" },
+  late_session_notes: { label: "Late Session Notes", icon: FileText, color: "#6f1d56" },
+  session_disruption: { label: "Disruption to Session (Internet/Device)", icon: Wifi, color: "#2563eb" },
+};
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -72,7 +84,84 @@ function StatCard({ icon: Icon, label, value, color, href }) {
   return href ? <Link href={href}>{content}</Link> : content;
 }
 
-function OverviewContent({ counsellorData, unreadCount, recentNotes }) {
+function ProgressOverviewCard({ conductSummary, conductEvents }) {
+  const score = conductSummary?.reliability_score ?? 100;
+  const total = conductSummary?.total ?? 0;
+  const barColor = score >= 80 ? "#16a34a" : score >= 50 ? "#d97706" : "#dc2626";
+
+  return (
+    <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--card-border)] p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-lg bg-[#6f1d56]/10 flex items-center justify-center">
+          <TrendingUp className="w-5 h-5 text-[#6f1d56]" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-[var(--text-primary)]">
+            Your Progress
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
+            Reliability record for your placement
+          </p>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-sm text-gray-500 dark:text-[var(--text-secondary)]">
+            Reliability Score
+          </span>
+          <span className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)]">
+            {score}/100
+          </span>
+        </div>
+        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+          <div
+            className="h-2 rounded-full transition-all"
+            style={{ width: `${score}%`, backgroundColor: barColor }}
+          ></div>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1.5">
+          {total} incident{total === 1 ? "" : "s"} logged
+        </p>
+      </div>
+
+      {conductEvents?.length > 0 ? (
+        <div className="space-y-2 pt-3 border-t border-gray-100 dark:border-gray-800">
+          {conductEvents.slice(0, 4).map((event) => {
+            const config = CONDUCT_EVENT_TYPES[event.type];
+            const ItemIcon = config?.icon || AlertCircle;
+            return (
+              <div
+                key={event.id}
+                className="flex items-center justify-between text-xs bg-gray-50 dark:bg-[var(--hover-bg)] rounded-lg px-3 py-2"
+              >
+                <div className="flex items-center gap-2 text-gray-700 dark:text-[var(--text-primary)] font-medium">
+                  <ItemIcon
+                    className="w-3.5 h-3.5 flex-shrink-0"
+                    style={{ color: config?.color || "#6b7280" }}
+                  />
+                  {config?.label || event.type}
+                </div>
+                <span className="text-gray-400 flex-shrink-0">
+                  {new Date(event.created_at).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400 dark:text-[var(--text-secondary)] pt-3 border-t border-gray-100 dark:border-gray-800">
+          No incidents logged — keep up the great work.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function OverviewContent({ counsellorData, unreadCount, recentNotes, conductSummary, conductEvents }) {
   const now = new Date();
   const hour = now.getHours();
   const greeting =
@@ -222,6 +311,14 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes }) {
         </Link>
       </div>
 
+      {/* Progress Overview (trainees only) */}
+      {counsellorData?.tc?.counsellor_type !== "Qualified" && (
+        <ProgressOverviewCard
+          conductSummary={conductSummary}
+          conductEvents={conductEvents}
+        />
+      )}
+
       {/* Recent Notes */}
       <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--card-border)] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-[var(--card-border)] flex items-center justify-between">
@@ -286,6 +383,8 @@ function PortalOverviewPage() {
   const [counsellorData, setCounsellorData] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentNotes, setRecentNotes] = useState([]);
+  const [conductSummary, setConductSummary] = useState(null);
+  const [conductEvents, setConductEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -302,15 +401,20 @@ function PortalOverviewPage() {
 
   const loadData = async () => {
     try {
-      const [dataRes, countRes, notesRes] = await Promise.allSettled([
+      const [dataRes, countRes, notesRes, conductRes] = await Promise.allSettled([
         apiService.getCounsellorOwnData(),
         apiService.getUnreadMessageCount(),
         apiService.getSessionNotes(),
+        apiService.getMyConductEvents(),
       ]);
       if (dataRes.status === "fulfilled") setCounsellorData(dataRes.value);
       if (countRes.status === "fulfilled")
         setUnreadCount(countRes.value?.count || 0);
       if (notesRes.status === "fulfilled") setRecentNotes(notesRes.value || []);
+      if (conductRes.status === "fulfilled") {
+        setConductSummary(conductRes.value?.summary || null);
+        setConductEvents(conductRes.value?.events || []);
+      }
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
@@ -345,6 +449,8 @@ function PortalOverviewPage() {
               counsellorData={counsellorData}
               unreadCount={unreadCount}
               recentNotes={recentNotes}
+              conductSummary={conductSummary}
+              conductEvents={conductEvents}
             />
           )}
         </div>
