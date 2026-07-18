@@ -223,14 +223,22 @@ export default function DashboardSidebar() {
     };
   }, [isAdmin, user?.role]);
 
-  const [appsExpanded, setAppsExpanded] = useState(pathname?.startsWith("/dashboard/trainee-applications"));
-  const [consultExpanded, setConsultExpanded] = useState(
+  const [clientMgmtExpanded, setClientMgmtExpanded] = useState(
+    pathname?.startsWith("/dashboard/clients") ||
+    pathname?.startsWith("/dashboard/client-details") ||
     pathname?.startsWith("/dashboard/consultations") ||
     pathname?.startsWith("/dashboard/pending-matches") ||
     pathname?.startsWith("/dashboard/completed-matches") ||
     pathname?.startsWith("/dashboard/session-notes")
   );
-  const [tcExpanded, setTcExpanded] = useState(pathname?.startsWith("/dashboard/training-counsellors") || pathname?.startsWith("/dashboard/inductions") || pathname?.startsWith("/dashboard/training-providers") || pathname?.startsWith("/dashboard/psg-groups") || pathname?.startsWith("/dashboard/time-off-requests"));
+  const [tcExpanded, setTcExpanded] = useState(
+    pathname?.startsWith("/dashboard/trainee-applications") ||
+    pathname?.startsWith("/dashboard/training-counsellors") ||
+    pathname?.startsWith("/dashboard/inductions") ||
+    pathname?.startsWith("/dashboard/training-providers") ||
+    pathname?.startsWith("/dashboard/psg-groups") ||
+    pathname?.startsWith("/dashboard/time-off-requests")
+  );
   const [commExpanded, setCommExpanded] = useState(pathname?.startsWith("/dashboard/staff-notes") || pathname?.startsWith("/dashboard/messages"));
   const [settingsExpanded, setSettingsExpanded] = useState(
     pathname?.startsWith("/dashboard/email-management") || 
@@ -246,8 +254,7 @@ export default function DashboardSidebar() {
 
   useEffect(() => {
     if (searchQuery.trim()) {
-      setAppsExpanded(true);
-      setConsultExpanded(true);
+      setClientMgmtExpanded(true);
       setTcExpanded(true);
       setCommExpanded(true);
       setSettingsExpanded(true);
@@ -256,54 +263,35 @@ export default function DashboardSidebar() {
 
   const menuItems = [
     { id: "overview", icon: Home, label: "Overview", href: "/dashboard" },
-    
-    // Applications Group
-    {
-      id: "applications-group",
-      icon: ClipboardList,
-      label: "Applications",
-      isExpandable: true,
-      expanded: appsExpanded,
-      onToggle: () => setAppsExpanded(!appsExpanded),
-      subItems: [
-        {
-          id: "trainee-applications",
-          label: "Trainee Applications",
-          icon: ClipboardList,
-          badge: traineeAppsCount,
-          href: "/dashboard/trainee-applications",
-        },
-        {
-          id: "video-reviews",
-          label: "Video Reviews",
-          icon: Video,
-          href: "/dashboard/trainee-applications?filter=video",
-        },
-      ],
-    },
 
-    // Consultations Group
+    // Client Management Group
     {
-      id: "consultations-group",
-      icon: Video,
-      label: "Consultations",
+      id: "client-management-group",
+      icon: Users2,
+      label: "Client Management",
       isExpandable: true,
-      expanded: consultExpanded,
-      onToggle: () => setConsultExpanded(!consultExpanded),
+      expanded: clientMgmtExpanded,
+      onToggle: () => setClientMgmtExpanded(!clientMgmtExpanded),
       subItems: [
         {
-          id: "pending-matches",
-          label: "Pending Matches",
-          icon: Clock,
-          badge: pendingMatchesCount,
-          href: "/dashboard/pending-matches",
+          id: "clients",
+          label: "All Clients",
+          icon: ClipboardList,
+          href: "/dashboard/clients",
         },
         {
           id: "consultations",
-          label: "Consultations",
+          label: "Awaiting Consultation",
           icon: CheckCheck,
           badge: consultationCounts.upcoming,
           href: "/dashboard/consultations",
+        },
+        {
+          id: "pending-matches",
+          label: "Awaiting Matching",
+          icon: Clock,
+          badge: pendingMatchesCount,
+          href: "/dashboard/pending-matches",
         },
         {
           id: "completed-matches",
@@ -330,10 +318,17 @@ export default function DashboardSidebar() {
       onToggle: () => setTcExpanded(!tcExpanded),
       subItems: [
         {
-          id: "tcs",
-          label: "Practitioners",
-          icon: Users,
-          href: "/dashboard/training-counsellors",
+          id: "trainee-applications",
+          label: "Trainee Application",
+          icon: ClipboardList,
+          badge: traineeAppsCount,
+          href: "/dashboard/trainee-applications",
+        },
+        {
+          id: "video-reviews",
+          label: "Video Reviews",
+          icon: Video,
+          href: "/dashboard/trainee-applications?filter=video",
         },
         {
           id: "inductions",
@@ -342,8 +337,14 @@ export default function DashboardSidebar() {
           href: "/dashboard/inductions",
         },
         {
+          id: "tcs",
+          label: "All Practitioners",
+          icon: Users,
+          href: "/dashboard/training-counsellors",
+        },
+        {
           id: "providers",
-          label: "Training Providers",
+          label: "Training providers",
           icon: Building2,
           href: "/dashboard/training-providers",
         },
@@ -470,17 +471,10 @@ export default function DashboardSidebar() {
         },
       ],
     },
-
-    {
-      id: "clients",
-      icon: ClipboardList,
-      label: "All Clients",
-      href: "/dashboard/clients",
-    },
   ];
 
   // Role-based filtering logic
-  const roleFilteredMenuItems = menuItems.filter((item) => {
+  const roleFilteredMenuItems = menuItems.map((item) => {
     const userRole = user?.role;
 
     // Admin/Super Admin: check against fetched privileges (if loaded), otherwise see everything
@@ -489,10 +483,10 @@ export default function DashboardSidebar() {
         // We now only check 'admin' role in DB as super_admin is treated same as admin
         const privilege = menuPrivileges.find((p) => p.menu_id === item.id);
         if (privilege) {
-          return privilege.roles.includes("admin");
+          return privilege.roles.includes("admin") ? item : null;
         }
       }
-      return true; // Default: admin sees everything not in DB
+      return item; // Default: admin sees everything not in DB
     }
 
     // For non-admins: privileges is an array of allowed menu_id strings (from getForRole)
@@ -501,9 +495,9 @@ export default function DashboardSidebar() {
       if (item.subItems) {
         const isGroupAllowed = menuPrivileges.includes(item.id);
         const isAnySubItemAllowed = item.subItems.some(sub => menuPrivileges.includes(sub.id));
-        return isGroupAllowed || isAnySubItemAllowed;
+        return (isGroupAllowed || isAnySubItemAllowed) ? item : null;
       }
-      return menuPrivileges.includes(item.id);
+      return menuPrivileges.includes(item.id) ? item : null;
     }
 
     // Static fallback while privileges are loading or if DB is empty for this role
@@ -520,39 +514,44 @@ export default function DashboardSidebar() {
 
     if (userRole === "staff") {
       // Staff fallback: everything except explicit admin-only items
-      if (adminOnly.includes(item.id)) return false;
-      return true;
+      if (adminOnly.includes(item.id)) return null;
+      return item;
     }
 
     if (userRole === "consultation_staff") {
       const consultationStaffAllowed = [
         "overview",
-        "consultations-group",
-        "consultations",
-        "consultation-slots",
         "clients",
-        "applications-group",
+        "consultations",
         "trainee-applications",
-        "communications-group",
+        "video-reviews",
         "messages",
         "staff-notes",
         "resources"
       ];
-      if (item.id === "consultations-group" || item.id === "applications-group" || item.id === "communications-group") return true;
-      return consultationStaffAllowed.includes(item.id);
+      // Client Management and Communications are fully visible; other groups (e.g.
+      // TC Management) are pruned down to just the sub-items this role is allowed
+      // (Trainee Application, Video Reviews), since they also hold items this role
+      // shouldn't see (Practitioners, Inductions, etc).
+      if (item.id === "client-management-group" || item.id === "communications-group") return item;
+      if (item.subItems) {
+        const allowedSubItems = item.subItems.filter((sub) => consultationStaffAllowed.includes(sub.id));
+        return allowedSubItems.length > 0 ? { ...item, subItems: allowedSubItems } : null;
+      }
+      return consultationStaffAllowed.includes(item.id) ? item : null;
     }
 
     if (userRole === "compliance_officer") {
       const complianceDenied = ["coupons", "matching-algo", "users", "settings-group"];
-      return !complianceDenied.includes(item.id);
+      return complianceDenied.includes(item.id) ? null : item;
     }
 
     if (userRole === "counsellor") {
-      return item.id === "overview" || item.id === "activity" || item.id === "resources";
+      return (item.id === "overview" || item.id === "activity" || item.id === "resources") ? item : null;
     }
 
-    return false;
-  });
+    return null;
+  }).filter(Boolean);
 
   const filteredMenuItems = roleFilteredMenuItems.map((item) => {
     if (searchQuery.trim()) {

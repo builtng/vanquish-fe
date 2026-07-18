@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import PageGuard from "@/components/PageGuard";
 import { useToast } from "@/lib/toast";
@@ -25,6 +26,9 @@ import {
   CheckCircle2,
   XCircle,
   BookOpen,
+  MessageCircle,
+  UserCog,
+  Mail,
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 
@@ -243,10 +247,99 @@ function AllocateModal({ group, onClose, onAllocated }) {
   );
 }
 
+function SupervisorModal({ group, onClose, onSaved }) {
+  const { success, error: showError } = useToast();
+  const [form, setForm] = useState({
+    supervisor_name: group.supervisor_name || "",
+    supervisor_email: group.supervisor_email || "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await apiService.request(`/attendance-groups/${group.id}`, {
+        method: "PATCH",
+        body: form,
+      });
+      success("Supervisor saved.");
+      onSaved();
+    } catch (err) {
+      showError("Failed to save supervisor.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-[var(--card-border)] animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
+          <div>
+            <h2 className="font-bold text-lg text-gray-900 dark:text-white">Supervisor</h2>
+            <p className="text-xs text-gray-400 mt-0.5">for {group.name}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+              Supervisor Name
+            </label>
+            <input
+              value={form.supervisor_name}
+              onChange={(e) => setForm({ ...form, supervisor_name: e.target.value })}
+              placeholder="e.g. Jane Doe"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm focus:ring-2 focus:ring-[#6f1c56] outline-none transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+              Supervisor Email
+            </label>
+            <input
+              type="email"
+              value={form.supervisor_email}
+              onChange={(e) => setForm({ ...form, supervisor_email: e.target.value })}
+              placeholder="e.g. jane@example.com"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm focus:ring-2 focus:ring-[#6f1c56] outline-none transition-all"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-4 py-2.5 bg-[#6f1c56] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Save Supervisor
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function GroupCard({ group, onEdit, onDelete, onRefresh }) {
+  const router = useRouter();
   const { success, error: showError } = useToast();
   const [expanded, setExpanded] = useState(false);
   const [showAllocate, setShowAllocate] = useState(false);
+  const [showSupervisor, setShowSupervisor] = useState(false);
   const [removingId, setRemovingId] = useState(null);
   const [copied, setCopied] = useState(false);
   const [showSessions, setShowSessions] = useState(false);
@@ -323,6 +416,14 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
         />
       )}
 
+      {showSupervisor && (
+        <SupervisorModal
+          group={group}
+          onClose={() => setShowSupervisor(false)}
+          onSaved={() => { setShowSupervisor(false); onRefresh(); }}
+        />
+      )}
+
       <div className={`bg-white dark:bg-[var(--card-bg)] rounded-2xl border border-gray-200 dark:border-[var(--card-border)] shadow-sm overflow-hidden hover:shadow-lg transition-all duration-300 group ${
         !group.is_active ? "opacity-75" : ""
       }`}>
@@ -354,6 +455,22 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
             </div>
 
             <div className="flex items-center gap-1.5">
+              {group.public_token && (
+                <button
+                  onClick={handleCopyLink}
+                  className="p-2 bg-white/15 hover:bg-white/25 rounded-lg transition-colors"
+                  title="Copy attendance link"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-green-300" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              )}
+              <button
+                onClick={() => router.push(`/dashboard/psg-groups/${group.id}/discussions`)}
+                className="p-2 bg-white/15 hover:bg-white/25 rounded-lg transition-colors"
+                title="Group discussions"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+              </button>
               <button
                 onClick={() => onEdit(group)}
                 className="p-2 bg-white/15 hover:bg-white/25 rounded-lg transition-colors"
@@ -459,6 +576,39 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
             <UserPlus className="w-4 h-4" />
             Add Counsellor
           </button>
+
+          {/* Supervisor */}
+          <div className="mt-3">
+            {group.supervisor_name || group.supervisor_email ? (
+              <button
+                onClick={() => setShowSupervisor(true)}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
+              >
+                <div className="w-8 h-8 rounded-full bg-[#6f1c56]/10 flex items-center justify-center text-[#6f1c56] flex-shrink-0">
+                  <UserCog className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
+                    {group.supervisor_name || "Supervisor"}
+                  </p>
+                  {group.supervisor_email && (
+                    <p className="text-[10px] text-gray-400 truncate flex items-center gap-1">
+                      <Mail className="w-2.5 h-2.5" />{group.supervisor_email}
+                    </p>
+                  )}
+                </div>
+                <Pencil className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowSupervisor(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-xs font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:border-gray-400 transition-all"
+              >
+                <UserCog className="w-4 h-4" />
+                Add Supervisor
+              </button>
+            )}
+          </div>
 
           {/* Session History Toggle */}
           <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-3">

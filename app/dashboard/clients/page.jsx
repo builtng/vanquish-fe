@@ -3,11 +3,12 @@ import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import apiService from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import SearchableSelect from "@/components/SearchableSelect";
 import { formatName } from "@/lib/nameFormatter";
+import { getInitials } from "@/lib/utils";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import {
@@ -43,6 +44,7 @@ import {
 
 export default function ViewAllClients() {
   const pathname = usePathname();
+  const router = useRouter();
   const { success, error: showError } = useToast();
   const [selectedClient, setSelectedClient] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -430,7 +432,14 @@ export default function ViewAllClients() {
           <button className="w-full py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">
             Progress to Next Stage
           </button>
-          <button className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
+          <button
+            onClick={() =>
+              router.push(
+                `/dashboard/consultations?bookClientUuid=${client.uuid || client.id}`,
+              )
+            }
+            className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+          >
             Book Consultation
           </button>
           <button className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
@@ -704,16 +713,21 @@ export default function ViewAllClients() {
                           ></div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <Link
-                              href={`/dashboard/client-details/${client.uuid || client.id}`}
-                              className="font-medium text-gray-900 dark:text-[var(--text-primary)] hover:text-purple-600 dark:hover:text-purple-400"
-                            >
-                              {client.name}
-                            </Link>
-                            <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
-                              {client.age} years old
-                            </p>
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 shrink-0 rounded-full bg-purple-600 text-white text-xs font-bold flex items-center justify-center">
+                              {getInitials(client.name) || "?"}
+                            </div>
+                            <div>
+                              <Link
+                                href={`/dashboard/client-details/${client.uuid || client.id}`}
+                                className="font-medium text-gray-900 dark:text-[var(--text-primary)] hover:text-purple-600 dark:hover:text-purple-400"
+                              >
+                                {client.name}
+                              </Link>
+                              <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
+                                {client.age} years old
+                              </p>
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

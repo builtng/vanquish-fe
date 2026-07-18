@@ -32,7 +32,6 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [userCount, setUserCount] = useState({
     count: 0,
-    max_users: 3,
     can_add_more: true,
   });
   const [showAddModal, setShowAddModal] = useState(false);
@@ -103,12 +102,6 @@ export default function UsersPage() {
   };
 
   const handleAddUser = () => {
-    if (!userCount.can_add_more) {
-      showError(
-        `Maximum number of users (${userCount.max_users}) has been reached.`,
-      );
-      return;
-    }
     setFormData({
       name: "",
       email: "",
@@ -316,8 +309,7 @@ export default function UsersPage() {
             actions={
               <button
                 onClick={handleAddUser}
-                disabled={!userCount.can_add_more}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Add User
@@ -341,12 +333,7 @@ export default function UsersPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                    Users: {userCount.count} / {userCount.max_users}
-                  </p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                    {userCount.can_add_more
-                      ? `You can add ${userCount.max_users - userCount.count} more user(s)`
-                      : "Maximum number of users reached"}
+                    Users: {userCount.count}
                   </p>
                 </div>
               </div>

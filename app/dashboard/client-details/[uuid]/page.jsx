@@ -375,19 +375,31 @@ export default function IndividualClientDetailPage() {
         };
       })(),
       matchedTC: data.matched_tc
-        ? {
-            id: data.matched_tc.id,
-            name: data.matched_tc.name,
-            email: data.matched_tc.email,
-            phone: data.matched_tc.phone,
-            currentClients: data.matched_tc.current_clients || 0,
-            maxClients: 6,
-            modality: data.matched_tc.modality || null,
-            matchScore: 0,
-            matchBreakdown: {},
-            warningFlags: [],
-            otherClients: [],
-          }
+        ? (() => {
+            const activeMatch = (data.matches || [])
+              .filter((m) => m.tc_id === data.matched_tc.id)
+              .sort(
+                (a, b) =>
+                  new Date(b.assigned_date || b.created_at || 0) -
+                  new Date(a.assigned_date || a.created_at || 0),
+              )[0];
+            return {
+              id: data.matched_tc.id,
+              name: data.matched_tc.name,
+              email: data.matched_tc.email,
+              phone: data.matched_tc.phone,
+              currentClients: data.matched_tc.current_clients || 0,
+              maxClients: data.matched_tc.max_clients || 6,
+              modality: data.matched_tc.modality || null,
+              matchScore: activeMatch?.match_score ?? null,
+              matchBreakdown: activeMatch?.match_breakdown || {},
+              warningFlags: activeMatch?.flags || [],
+              matchedByName: activeMatch?.matched_by_user?.name || null,
+              assignmentNotes: activeMatch?.assignment_notes || null,
+              assignedDate: activeMatch?.assigned_date || null,
+              otherClients: [],
+            };
+          })()
         : null,
       payments: [],
       sessions: data.consultations
@@ -1894,7 +1906,10 @@ export default function IndividualClientDetailPage() {
 
                             <div className="text-right">
                               <p className="text-2xl font-bold text-[var(--purple-primary)]">
-                                {client.matchedTC.matchScore}%
+                                {client.matchedTC.matchScore !== null &&
+                                client.matchedTC.matchScore !== undefined
+                                  ? `${client.matchedTC.matchScore}%`
+                                  : "N/A"}
                               </p>
 
                               <p className="text-xs text-gray-600">
@@ -1902,6 +1917,25 @@ export default function IndividualClientDetailPage() {
                               </p>
                             </div>
                           </div>
+
+                          {(client.matchedTC.matchedByName ||
+                            client.matchedTC.assignedDate) && (
+                            <p className="text-xs text-gray-500 mb-2">
+                              Matched by{" "}
+                              <span className="font-medium text-gray-700">
+                                {client.matchedTC.matchedByName || "Unknown"}
+                              </span>
+                              {client.matchedTC.assignedDate && (
+                                <>
+                                  {" "}
+                                  on{" "}
+                                  {new Date(
+                                    client.matchedTC.assignedDate,
+                                  ).toLocaleDateString("en-GB")}
+                                </>
+                              )}
+                            </p>
+                          )}
 
                           <div className="grid grid-cols-2 gap-3 mb-4">
                             <div className="bg-gray-50 p-3 rounded-lg">
@@ -1948,37 +1982,58 @@ export default function IndividualClientDetailPage() {
 
                         {/* Match Score Breakdown */}
 
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 mb-3">
-                            Match Score Breakdown
-                          </p>
+                        {Object.keys(client.matchedTC.matchBreakdown).length >
+                        0 ? (
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 mb-3">
+                              Why this practitioner was matched
+                            </p>
 
-                          <div className="space-y-3">
-                            {Object.entries(
-                              client.matchedTC.matchBreakdown,
-                            ).map(([key, value]) => (
-                              <div key={key}>
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className="text-sm text-gray-700 capitalize">
-                                    {key.replace(/([A-Z])/g, " $1").trim()}
-                                  </span>
+                            <div className="space-y-3">
+                              {Object.entries(
+                                client.matchedTC.matchBreakdown,
+                              ).map(([key, value]) => (
+                                <div key={key}>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-sm text-gray-700 capitalize flex items-center gap-1.5">
+                                      {value.matched ? (
+                                        <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                                      ) : (
+                                        <X className="w-3.5 h-3.5 text-red-500" />
+                                      )}
+                                      {key.replace(/([A-Z])/g, " $1").trim()}
+                                    </span>
 
-                                  <span className="text-sm font-medium text-gray-900">
-                                    {value.score}/{value.max} (
-                                    {value.percentage}%)
-                                  </span>
+                                    <span className="text-sm font-medium text-gray-900">
+                                      {value.score}/{value.max} (
+                                      {value.percentage}%)
+                                    </span>
+                                  </div>
+
+                                  <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
+                                    <div
+                                      className={`h-2 rounded-full transition-all duration-500 ${value.matched ? "bg-[var(--purple-primary)]" : "bg-red-400"}`}
+                                      style={{
+                                        width: `${value.percentage}%`,
+                                      }}
+                                    ></div>
+                                  </div>
+
+                                  {value.detail && (
+                                    <p className="text-xs text-gray-500">
+                                      {value.detail}
+                                    </p>
+                                  )}
                                 </div>
-
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                  <div
-                                    className="bg-[var(--purple-primary)] h-2 rounded-full transition-all duration-500"
-                                    style={{ width: `${value.percentage}%` }}
-                                  ></div>
-                                </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <p className="text-xs text-gray-500 italic">
+                            No automated match breakdown was recorded for
+                            this assignment (assigned manually).
+                          </p>
+                        )}
 
                         {client.matchedTC.warningFlags.length > 0 && (
                           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -1987,15 +2042,29 @@ export default function IndividualClientDetailPage() {
 
                               <div>
                                 <p className="text-sm font-medium text-yellow-900 mb-1">
-                                  Warning Flags
+                                  Flagged during matching — assigned anyway
                                 </p>
 
-                                <p className="text-sm text-yellow-800">
-                                  TC marked as not ready for:{" "}
-                                  {client.matchedTC.warningFlags.join(", ")}
-                                </p>
+                                <ul className="text-sm text-yellow-800 list-disc list-inside space-y-0.5">
+                                  {client.matchedTC.warningFlags.map(
+                                    (flag) => (
+                                      <li key={flag}>{flag}</li>
+                                    ),
+                                  )}
+                                </ul>
                               </div>
                             </div>
+                          </div>
+                        )}
+
+                        {client.matchedTC.assignmentNotes && (
+                          <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                            <p className="text-sm font-medium text-gray-900 mb-1">
+                              Assignment Notes
+                            </p>
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                              {client.matchedTC.assignmentNotes}
+                            </p>
                           </div>
                         )}
                       </div>
