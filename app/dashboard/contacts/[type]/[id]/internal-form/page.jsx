@@ -32,6 +32,7 @@ import {
 import apiService from "@/lib/api";
 import { toast } from "react-toastify";
 import PageGuard from "@/components/PageGuard";
+import DashboardLayout from "@/components/DashboardLayout";
 import SearchableSelect from "@/components/SearchableSelect";
 
 const SECTIONS = [
@@ -156,12 +157,32 @@ export default function InternalFormPage() {
           }
         }
       } else if (type === "client") {
-        const clients = await apiService.getClients({ search: id }); // UUID or ID
-        if (clients.data && clients.data.length > 0) {
-          data = clients.data[0];
-          setContact(data);
-          // TODO: Populate from Client data or ClientIntakeForm
-        }
+        // Fetches the client plus its intake_form relation (matches uuid or client_id)
+        data = await apiService.getClientDetails(id);
+        setContact(data);
+
+        const intake = Array.isArray(data.intake_form) && data.intake_form.length > 0
+          ? data.intake_form[0]
+          : null;
+        if (intake) setActiveHistory(intake);
+
+        // Populate from the client's own record first, then layer on any
+        // extra detail captured on their original intake form submission.
+        setFormData(prev => ({
+          ...prev,
+          first_name: data.first_name || data.name?.split(' ')[0] || "",
+          last_name: data.last_name || data.name?.split(' ').slice(1).join(' ') || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          gender: data.gender || intake?.gender || "",
+          ethnicity: data.ethnicity || intake?.ethnicity || "",
+          sexual_orientation: data.sexual_orientation || intake?.sexual_orientation || "",
+          address: data.address || data.current_address || intake?.address || "",
+          disabilities: data.disabilities || intake?.disabilities || "",
+          in_personal_therapy: data.currently_in_therapy || (intake && typeof intake.currently_in_therapy === "boolean"
+            ? (intake.currently_in_therapy ? "Yes" : "No")
+            : "") || "",
+        }));
       }
     } catch (error) {
       console.error("Error fetching contact data:", error);
@@ -226,15 +247,20 @@ export default function InternalFormPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
-        <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
-        <p className="text-gray-500 font-medium">Loading form data...</p>
-      </div>
+      <PageGuard allowedRoles={["admin", "staff", "super_admin"]}>
+        <DashboardLayout>
+          <div className="flex flex-col items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+            <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
+            <p className="text-gray-500 font-medium">Loading form data...</p>
+          </div>
+        </DashboardLayout>
+      </PageGuard>
     );
   }
 
   return (
     <PageGuard allowedRoles={["admin", "staff", "super_admin"]}>
+      <DashboardLayout>
       <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900/50 p-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
@@ -401,6 +427,7 @@ export default function InternalFormPage() {
           </form>
         </div>
       </div>
+      </DashboardLayout>
     </PageGuard>
   );
 }

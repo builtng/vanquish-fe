@@ -15,7 +15,6 @@ import { useToast, showToast } from "@/lib/toast";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import DashboardLayout from "@/components/DashboardLayout";
-import PhotoUpload from "@/components/PhotoUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 
 import {
@@ -109,7 +108,6 @@ export default function IndividualClientDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [client, setClient] = useState(null);
-  const [clientPhoto, setClientPhoto] = useState(null);
   const [notification, setNotification] = useState(null);
   const [showAddSessionModal, setShowAddSessionModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -218,7 +216,7 @@ export default function IndividualClientDetailPage() {
           },
           {
             name: "Sessions Booked",
-            date: data.start_date,
+            date: data.sessions?.[0]?.scheduled_at || data.start_date,
             isCompleted:
               data.stage === "Sessions Booked" ||
               data.stage === "Active Therapy" ||
@@ -229,7 +227,7 @@ export default function IndividualClientDetailPage() {
             date: data.start_date,
             isCompleted:
               data.stage === "Active Therapy" ||
-              (data.sessions_completed && data.sessions_completed > 0),
+              (data.sessions || []).some((s) => s.status === "completed"),
           },
         ];
 
@@ -268,110 +266,75 @@ export default function IndividualClientDetailPage() {
             : [],
       serviceType: data.service_type || null,
       packageDetails: (() => {
-        // Determine total sessions based on service type (default to 6)
-        const getTotalSessions = (serviceType) => {
-          // You can customize this based on your service types
-          if (serviceType === "Low Cost") return 6;
-          if (serviceType === "Mid Range") return 8;
-          if (serviceType === "High Range") return 12;
-          return 6; // Default
-        };
-
-        const totalSessions = getTotalSessions(data.service_type);
-        const consultations = data.consultations || [];
-        const sessionsCompleted = consultations.filter(
-          (c) => c.status === "completed",
-        ).length;
-        const sessionsDNA = consultations.filter(
-          (c) => c.status === "dna",
-        ).length;
-        const sessionsRemaining = Math.max(
-          0,
-          totalSessions - sessionsCompleted - sessionsDNA,
+        // Prefer real booked therapy sessions (the Session model, created via
+        // the client-booking flow) as the source of truth - they reflect
+        // what was actually booked/paid for, unlike the old fixed guesses.
+        const therapySessions = (data.sessions || []).filter(
+          (s) => s.status !== "cancelled",
         );
 
-        // Sort consultations by date to find the true start date
-        const sortedConsultations = [...consultations]
-          .filter((c) => c.scheduled_at)
-          .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+        if (therapySessions.length > 0) {
+          const sessionsCompleted = therapySessions.filter(
+            (s) => s.status === "completed",
+          ).length;
+          const sessionsDNA = therapySessions.filter(
+            (s) => s.status === "no_show",
+          ).length;
+          const totalSessions = therapySessions.length;
+          const sessionsRemaining = Math.max(
+            0,
+            totalSessions - sessionsCompleted - sessionsDNA,
+          );
 
-        // Determine start date - use first scheduled/completed session
-        let startDate = null;
-        let startDateObj = null;
-
-        if (sortedConsultations.length > 0) {
-          const firstSession = sortedConsultations[0];
-          startDateObj = new Date(firstSession.scheduled_at);
-          startDate = startDateObj.toLocaleDateString("en-GB", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          });
-        }
-        if (!startDate && data.start_date) {
-          startDate = new Date(data.start_date).toLocaleDateString("en-GB", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          });
-        }
-        if (!startDate && data.matched_date) {
-          startDate = new Date(data.matched_date).toLocaleDateString("en-GB", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          });
-        }
-
-        // Calculate expected end date (assuming weekly sessions, 7 days apart)
-        let expectedEndDate = null;
-        if (totalSessions > 0) {
-          if (!startDateObj && data.start_date) {
-            startDateObj = new Date(data.start_date);
-          }
-          if (!startDateObj && data.matched_date) {
-            startDateObj = new Date(data.matched_date);
-          }
-
-          if (startDateObj) {
-            // Add weeks based on total sessions (weekly sessions)
-            const endDate = new Date(startDateObj);
-            endDate.setDate(endDate.getDate() + totalSessions * 7);
-            expectedEndDate = endDate.toLocaleDateString("en-GB", {
+          const sorted = [...therapySessions].sort(
+            (a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at),
+          );
+          const formatDate = (d) =>
+            new Date(d).toLocaleDateString("en-GB", {
               year: "numeric",
               month: "short",
               day: "numeric",
             });
-          }
+
+          return {
+            name: `${data.service_type || "Counselling"} Package`,
+            totalSessions,
+            sessionsCompleted,
+            sessionsDNA,
+            sessionsRemaining,
+            status: sessionsRemaining === 0 ? "Completed" : "Active",
+            startDate: formatDate(sorted[0].scheduled_at),
+            expectedEndDate: formatDate(sorted[sorted.length - 1].scheduled_at),
+          };
         }
 
-        // Determine status based on stage and session completion
-        let status = "Not Started";
-        const stage = data.stage || "Consultation Booked";
-        if (stage === "Completed" || sessionsCompleted >= totalSessions) {
-          status = "Completed";
-        } else if (stage === "Active Therapy" || sessionsCompleted > 0) {
-          status = "Active";
-        } else if (
-          [
-            "Agreement Sent",
-            "Agreement Signed",
-            "Matched With Counsellor",
-            "Sessions Booked",
-          ].includes(stage)
-        ) {
-          status = "Pending";
+        // No therapy sessions booked yet - fall back to a rough estimate
+        // based on service type so pre-booking clients still see a preview.
+        const getTotalSessions = (serviceType) => {
+          if (serviceType === "Low Cost") return 4;
+          if (serviceType === "Mid Range") return 8;
+          if (serviceType === "High Range") return 12;
+          return 4; // Default
+        };
+        const totalSessions = getTotalSessions(data.service_type);
+
+        let startDate = null;
+        if (data.matched_date) {
+          startDate = new Date(data.matched_date).toLocaleDateString(
+            "en-GB",
+            { year: "numeric", month: "short", day: "numeric" },
+          );
         }
 
         return {
           name: `${data.service_type || "Counselling"} Package`,
           totalSessions,
-          sessionsCompleted,
-          sessionsDNA,
-          sessionsRemaining,
-          status,
+          sessionsCompleted: 0,
+          sessionsDNA: 0,
+          sessionsRemaining: totalSessions,
+          status: "Not Started",
           startDate: startDate || "Not started",
-          expectedEndDate: expectedEndDate || "Not calculated",
+          expectedEndDate: "Not calculated",
         };
       })(),
       matchedTC: data.matched_tc
@@ -423,6 +386,16 @@ export default function IndividualClientDetailPage() {
             duration: "50 min",
             status: consultation.status || "scheduled",
             notes: consultation.notes || null,
+          }))
+        : [],
+      // Real weekly therapy sessions booked via the client-booking flow -
+      // distinct from `sessions` above, which (despite the name) is actually
+      // the intake/assessment consultation history.
+      therapySessions: data.sessions
+        ? data.sessions.map((session) => ({
+            id: session.id,
+            date: session.scheduled_at,
+            status: session.status,
           }))
         : [],
       consultation:
@@ -593,7 +566,6 @@ export default function IndividualClientDetailPage() {
         const data = await apiService.getClientDetails(uuid);
         const transformedData = transformClientData(data);
         setClient(transformedData);
-        setClientPhoto(data.photo_url || data.photo || null);
         await fetchAdminNotes();
         // Fetch clinical logs once dbId is available
         const logs = await apiService.getSessionNotes({ client_id: data.id });
@@ -1194,72 +1166,21 @@ export default function IndividualClientDetailPage() {
                     <div className="flex items-start gap-6">
                       {/* Avatar Section */}
                       <div className="relative group">
-                        {clientPhoto ? (
-                          <div className="ring-4 ring-white shadow-xl rounded-full overflow-hidden transition-transform duration-300 group-hover:scale-105">
-                            <PhotoUpload
-                              photoUrl={clientPhoto}
-                              entityId={client.uuid || client.id}
-                              entityType="client"
-                              onUpload={async (id, file) => {
-                                const response = await apiService.uploadClientPhoto(id, file);
-                                setClientPhoto(response.photo_url || response.photo);
-                                const data = await apiService.getClientDetails(uuid);
-                                const transformedData = transformClientData(data);
-                                setClient(transformedData);
-                                return response;
-                              }}
-                              onDelete={async (id) => {
-                                await apiService.deleteClientPhoto(id);
-                                setClientPhoto(null);
-                                const data = await apiService.getClientDetails(uuid);
-                                const transformedData = transformClientData(data);
-                                setClient(transformedData);
-                              }}
-                              size="large"
-                            />
-                          </div>
-                        ) : (
-                          <div className="relative group">
-                            <div
-                              className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-extrabold shadow-2xl transition-all duration-300 group-hover:scale-105"
-                              style={{ 
-                                background: "linear-gradient(135deg, #6f1d56 0%, #a21b5e 100%)",
-                                boxShadow: '0 8px 16px -4px rgba(111, 29, 86, 0.3)'
-                              }}
-                            >
-                              {client.name
-                                ? client.name
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")
-                                    .toUpperCase()
-                                : "??"}
-                            </div>
-                            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 group-hover:bg-black/20 transition-all">
-                              <PhotoUpload
-                                photoUrl={null}
-                                entityId={client.uuid || client.id}
-                                entityType="client"
-                                onUpload={async (id, file) => {
-                                  const response = await apiService.uploadClientPhoto(id, file);
-                                  setClientPhoto(response.photo_url || response.photo);
-                                  const data = await apiService.getClientDetails(uuid);
-                                  const transformedData = transformClientData(data);
-                                  setClient(transformedData);
-                                  return response;
-                                }}
-                                onDelete={async (id) => {
-                                  await apiService.deleteClientPhoto(id);
-                                  setClientPhoto(null);
-                                  const data = await apiService.getClientDetails(uuid);
-                                  const transformedData = transformClientData(data);
-                                  setClient(transformedData);
-                                }}
-                                size="large"
-                              />
-                            </div>
-                          </div>
-                        )}
+                        <div
+                          className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-extrabold shadow-2xl transition-all duration-300 group-hover:scale-105"
+                          style={{
+                            background: "linear-gradient(135deg, #6f1d56 0%, #a21b5e 100%)",
+                            boxShadow: '0 8px 16px -4px rgba(111, 29, 86, 0.3)'
+                          }}
+                        >
+                          {client.name
+                            ? client.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase()
+                            : "??"}
+                        </div>
                       </div>
 
                       {/* Header Main Info */}
@@ -1343,7 +1264,7 @@ export default function IndividualClientDetailPage() {
                         </Link>
                         <Link
                           href={`/dashboard/contacts/client/${uuid}/internal-form`}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-white text-amber-700 rounded-lg hover:bg-amber-50 shadow-sm border border-amber-200 transition-all font-semibold text-sm hover:-translate-y-0.5"
+                          className="flex items-center gap-2 px-4 py-2.5 bg-white text-amber-700 rounded-lg hover:bg-amber-50 shadow-sm border border-amber-200 transition-all font-semibold text-sm hover:-translate-y-0.5 whitespace-nowrap"
                         >
                           <FileText className="w-5 h-5" />
                           <span>Internal Form</span>
@@ -1457,16 +1378,35 @@ export default function IndividualClientDetailPage() {
                       </p>
                     </div>
                     <p className="text-sm font-bold text-[var(--text-primary)] truncate">
-                      {client.sessions &&
-                      client.sessions.filter((s) => s.status === "scheduled")
-                        .length > 0
-                        ? (() => {
-                            const next = client.sessions
-                              .filter((s) => s.status === "scheduled")
-                              .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
-                            return `${new Date(next.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
-                          })()
-                        : "None Scheduled"}
+                      {(() => {
+                        const upcomingTherapySessions = (
+                          client.therapySessions || []
+                        ).filter((s) => s.status === "scheduled");
+                        if (upcomingTherapySessions.length > 0) {
+                          const next = upcomingTherapySessions.sort(
+                            (a, b) => new Date(a.date) - new Date(b.date),
+                          )[0];
+                          return new Date(next.date).toLocaleDateString(
+                            "en-GB",
+                            { day: "numeric", month: "short" },
+                          );
+                        }
+
+                        const upcomingConsultations = (
+                          client.sessions || []
+                        ).filter((s) => s.status === "scheduled");
+                        if (upcomingConsultations.length > 0) {
+                          const next = upcomingConsultations.sort(
+                            (a, b) => new Date(a.date) - new Date(b.date),
+                          )[0];
+                          return new Date(next.date).toLocaleDateString(
+                            "en-GB",
+                            { day: "numeric", month: "short" },
+                          );
+                        }
+
+                        return "None Scheduled";
+                      })()}
                     </p>
                   </div>
                 </div>

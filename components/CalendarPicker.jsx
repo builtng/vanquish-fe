@@ -128,14 +128,14 @@ export default function CalendarPicker({
                 className={`
                   relative h-10 w-10 sm:h-12 sm:w-12 mx-auto rounded-full flex items-center justify-center text-sm transition-all
                   ${canSelect ? "cursor-pointer" : "cursor-default text-gray-300"}
-                  ${isSelected ? "bg-purple-600 text-white font-bold scale-110 shadow-lg shadow-purple-200" : ""}
-                  ${!isSelected && canSelect ? "hover:bg-purple-50 text-purple-700 font-medium" : ""}
-                  ${dayObj.isToday && !isSelected ? "ring-2 ring-purple-200" : ""}
+                  ${isSelected ? "bg-[#6f1d56] text-white font-bold scale-110 shadow-lg shadow-[#6f1d56]/20" : ""}
+                  ${!isSelected && canSelect ? "hover:bg-[#fcf6fa] text-[#6f1d56] font-medium" : ""}
+                  ${dayObj.isToday && !isSelected ? "ring-2 ring-[#6f1d56]/30" : ""}
                 `}
               >
                 {dayObj.day}
                 {canSelect && !isSelected && (
-                  <span className="absolute bottom-1 w-1 h-1 bg-purple-400 rounded-full"></span>
+                  <span className="absolute bottom-1 w-1 h-1 bg-[#6f1d56]/60 rounded-full"></span>
                 )}
               </button>
             );
@@ -147,7 +147,7 @@ export default function CalendarPicker({
       <div className="w-full md:w-64 bg-gray-50 border-t md:border-t-0 md:border-l border-gray-100 flex flex-col">
         <div className="p-6 flex-1">
           <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-purple-600" />
+            <Clock className="w-4 h-4 text-[#6f1d56]" />
             {dateSelection
               ? new Date(dateSelection).toLocaleDateString(undefined, {
                   weekday: "short",
@@ -169,9 +169,9 @@ export default function CalendarPicker({
                       w-full py-3 px-4 rounded-xl text-sm font-medium transition-all border
                       ${
                         selectedSlot === slot
-                          ? "bg-purple-600 text-white border-purple-600 shadow-md"
+                          ? "bg-[#6f1d56] text-white border-[#6f1d56] shadow-md"
                           : slot.available
-                            ? "bg-white text-gray-700 border-gray-200 hover:border-purple-400 hover:text-purple-600"
+                            ? "bg-white text-gray-700 border-gray-200 hover:border-[#6f1d56]/60 hover:text-[#6f1d56]"
                             : "bg-gray-100 text-gray-400 border-gray-100 cursor-not-allowed"
                       }
                     `}
@@ -195,8 +195,8 @@ export default function CalendarPicker({
         {dateSelection &&
           selectedSlot &&
           selectedSlot.date === dateSelection && (
-            <div className="p-4 bg-purple-50 border-t border-purple-100">
-              <p className="text-xs text-purple-800 font-medium text-center">
+            <div className="p-4 bg-[#fcf6fa] border-t border-[#6f1d56]/20">
+              <p className="text-xs text-[#6f1d56] font-medium text-center">
                 Selected: {selectedSlot.formatted_time || selectedSlot.time}
               </p>
             </div>

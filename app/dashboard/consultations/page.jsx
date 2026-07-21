@@ -12,8 +12,6 @@ import { formatName } from "@/lib/nameFormatter";
 import SearchableSelect from "@/components/SearchableSelect";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
-import CalendarPicker from "@/components/CalendarPicker";
-import VanquishClientIntake from "@/app/client/page";
 
 import {
   Users,
@@ -184,13 +182,26 @@ function ConsultationsManagementPageFixed() {
     }
   };
 
-  // Fetch consultations and stats from API
+  // Fetch consultations, stats and clients from API
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
         await refreshData();
+        
+        // Also fetch clients for pending bookings tab
+        try {
+          const response = await apiService.getClients();
+          const clientsData = Array.isArray(response)
+            ? response
+            : response && response.data
+              ? response.data
+              : [];
+          setClients(Array.isArray(clientsData) ? clientsData : []);
+        } catch (err) {
+          console.error("Error fetching clients for dashboard:", err);
+        }
       } catch (err) {
         console.error("Error fetching data:", err);
         setError("Failed to load consultations. Please try again.");
@@ -202,86 +213,13 @@ function ConsultationsManagementPageFixed() {
     fetchData();
   }, []);
 
-  // Fetch clients and training counsellors for booking modal
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        const response = await apiService.getClients();
-        // Handle paginated response - extract data array
-        const clientsData = Array.isArray(response)
-          ? response
-          : response && response.data
-            ? response.data
-            : [];
-
-        // Ensure we have an array before setting state
-        setClients(Array.isArray(clientsData) ? clientsData : []);
-      } catch (err) {
-        console.error("Error fetching clients:", err);
-        setClients([]); // Set empty array on error
-      }
-    };
-
-    const fetchTrainingCounsellors = async () => {
-      try {
-        const data = await apiService.getTrainingCounsellors({
-          status: "Active",
-        });
-        const tcsData = Array.isArray(data) ? data : [];
-        setTrainingCounsellors(tcsData);
-      } catch (err) {
-        console.error("Error fetching training counsellors:", err);
-        setTrainingCounsellors([]);
-      }
-    };
-
-    if (showBookModal) {
-      fetchClients();
-      fetchTrainingCounsellors();
-    }
-  }, [showBookModal]);
-
-  const fetchAvailableSlots = async () => {
-    try {
-      setSlotsLoading(true);
-      const data = await apiService.getAvailableConsultationSlots();
-      setSlots(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Error fetching available slots:", err);
-      showError("Failed to fetch available slots.");
-      setSlots([]);
-    } finally {
-      setSlotsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (showBookModal && bookingType === "slot") {
-      fetchAvailableSlots();
-    }
-  }, [showBookModal, bookingType]);
-
-  // Open the booking modal pre-filled when arriving from a client's "Book Consultation" action
-  useEffect(() => {
-    if (searchParams.get("bookClientUuid")) {
-      setShowBookModal(true);
-    }
-  }, [searchParams]);
-
+  // Redirect to the booking page when arriving with a client's UUID
   useEffect(() => {
     const bookClientUuid = searchParams.get("bookClientUuid");
-    if (!bookClientUuid || clients.length === 0) return;
-
-    const matchedClient = clients.find(
-      (c) => c.uuid === bookClientUuid || String(c.id) === bookClientUuid,
-    );
-    if (matchedClient) {
-      setBookForm((prev) => ({ ...prev, clientId: matchedClient.id }));
+    if (bookClientUuid) {
+      router.push(`/admin/book-consultation?bookClientUuid=${bookClientUuid}`);
     }
-
-    // Clean the URL so refreshing/closing doesn't keep re-triggering this
-    router.replace("/dashboard/consultations");
-  }, [clients, searchParams, router]);
+  }, [searchParams, router]);
 
   // Helper to parse backend date strings safely in all browsers (including Safari)
   const parseBackendDate = (dateStr) => {
@@ -898,11 +836,7 @@ function ConsultationsManagementPageFixed() {
                   <div className="flex items-center gap-2 ml-4">
                     <button
                       onClick={() => {
-                        setBookForm((prev) => ({
-                          ...prev,
-                          clientId: client.uuid || client.id,
-                        }));
-                        setShowBookModal(true);
+                        router.push(`/admin/book-consultation?bookClientUuid=${client.uuid || client.id}`);
                       }}
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium text-sm flex items-center gap-2"
                     >
@@ -938,9 +872,8 @@ function ConsultationsManagementPageFixed() {
             <p className="text-gray-600 dark:text-[var(--text-secondary)] mb-4">
               There are no consultations matching your current filters.
             </p>
-
             <button
-              onClick={() => setShowBookModal(true)}
+              onClick={() => router.push("/admin/book-consultation")}
               className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium transition-opacity"
               style={{ backgroundColor: "#6f1d56" }}
             >
@@ -1115,11 +1048,10 @@ function ConsultationsManagementPageFixed() {
     <PageGuard menuId="consultations">
       <DashboardLayout>
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
           <DashboardHeader
             actions={
               <button
-                onClick={() => setShowBookModal(true)}
+                onClick={() => router.push("/admin/book-consultation")}
                 className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 transition-opacity"
                 style={{ backgroundColor: "#6f1d56" }}
               >
@@ -1359,340 +1291,6 @@ function ConsultationsManagementPageFixed() {
           </div>
         </div>
 
-        {/* Book Modal */}
-
-        {showBookModal && (
-          <>
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
-              onClick={() => {
-                setShowBookModal(false);
-                setSelectedSlot(null);
-                setBookingType("slot");
-                setActiveBookingTab("existing");
-              }}
-            ></div>
-
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className={`bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl ${activeBookingTab === "new" ? "max-w-4xl" : (bookingType === "slot" ? "max-w-4xl" : "max-w-2xl")} w-full max-h-[90vh] overflow-y-auto`}>
-                <div className="sticky top-0 bg-white dark:bg-[var(--card-bg)] border-b border-gray-200 dark:border-[var(--card-border)] px-6 py-4 flex items-center justify-between z-10">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                    Book New Consultation
-                  </h2>
-
-                  <button
-                    onClick={() => {
-                      setShowBookModal(false);
-                      setSelectedSlot(null);
-                      setBookingType("slot");
-                      setActiveBookingTab("existing");
-                    }}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
-                  >
-                    <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
-                  </button>
-                </div>
-
-                <div className="px-6 pt-4">
-                  <div className="flex rounded-lg border border-gray-300 dark:border-[var(--card-border)] p-1 bg-gray-50 dark:bg-[var(--hover-bg)] w-fit">
-                    <button
-                      type="button"
-                      onClick={() => setActiveBookingTab("existing")}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                        activeBookingTab === "existing"
-                          ? "bg-purple-600 text-white shadow"
-                          : "text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
-                      }`}
-                    >
-                      Book for Existing Client
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveBookingTab("new")}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                        activeBookingTab === "new"
-                          ? "bg-purple-600 text-white shadow"
-                          : "text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
-                      }`}
-                    >
-                      Register New Client & Book
-                    </button>
-                  </div>
-                </div>
-
-                {activeBookingTab === "existing" ? (
-                  <form onSubmit={handleBookSubmit} className="p-6 space-y-4">
-                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-
-                      <div>
-                        <p className="text-sm font-medium text-yellow-900 mb-1">
-                          Payment Required
-                        </p>
-
-                        <p className="text-sm text-yellow-800">
-                          Client must have paid the consultation fee (£13 for
-                          Counselling, £25 for Coaching/Counselling) before
-                          booking.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select Client <span className="text-red-500">*</span>
-                      </label>
-
-                      <SearchableSelect
-                        value={bookForm.clientId}
-                        onChange={(e) =>
-                          setBookForm({ ...bookForm, clientId: e.target.value })
-                        }
-                        options={
-                          Array.isArray(clients)
-                            ? clients.map((client) => ({
-                                value: client.id,
-                                label: `${client.name} - ${client.client_id || client.uuid}`,
-                              }))
-                            : []
-                        }
-                        placeholder="Select a client..."
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Assign Counsellor (Optional)
-                      </label>
-
-                      <SearchableSelect
-                        value={bookForm.tcId}
-                        onChange={(e) =>
-                          setBookForm({ ...bookForm, tcId: e.target.value })
-                        }
-                        options={
-                          Array.isArray(trainingCounsellors)
-                            ? trainingCounsellors.map((tc) => ({
-                                value: tc.id,
-                                label: `${tc.name} - ${tc.tc_id || tc.uuid}`,
-                              }))
-                            : []
-                        }
-                        placeholder="Select a counsellor..."
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-2">
-                        Booking Method
-                      </label>
-                      <div className="flex rounded-lg border border-gray-300 dark:border-[var(--card-border)] p-1 bg-gray-50 dark:bg-[var(--hover-bg)] w-fit mb-4">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBookingType("slot");
-                            setSelectedSlot(null);
-                          }}
-                          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            bookingType === "slot"
-                              ? "bg-purple-600 text-white shadow"
-                              : "text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
-                          }`}
-                        >
-                          Use Available Slot
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBookingType("custom");
-                            setSelectedSlot(null);
-                          }}
-                          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                            bookingType === "custom"
-                              ? "bg-purple-600 text-white shadow"
-                              : "text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
-                          }`}
-                        >
-                          Custom Date & Time
-                        </button>
-                      </div>
-                    </div>
-
-                    {bookingType === "slot" && (
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1">
-                          Select Available Slot <span className="text-red-500">*</span>
-                        </label>
-                        {slotsLoading ? (
-                          <div className="flex justify-center items-center h-32">
-                            <RefreshCw className="h-8 w-8 animate-spin text-purple-600" />
-                          </div>
-                        ) : slots.length === 0 ? (
-                          <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
-                            <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-                            <p className="text-sm text-gray-500">
-                              No available consultation slots found.
-                            </p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              Use "Custom Date & Time" or configure slots in Consultation Slots.
-                            </p>
-                          </div>
-                        ) : (
-                          <CalendarPicker
-                            availableSlots={slots.map((slot) => {
-                              const date = new Date(slot.consultation_datetime);
-                              return {
-                                ...slot,
-                                date: date.toISOString().split("T")[0],
-                                formatted_time: date.toLocaleTimeString("en-GB", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  timeZone: "UTC",
-                                }),
-                                available: !(
-                                  slot.max_slots && slot.booked_slots >= slot.max_slots
-                                ),
-                              };
-                            })}
-                            selectedSlot={selectedSlot}
-                            onSelect={(slot) => setSelectedSlot(slot)}
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    {bookingType === "custom" && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Date <span className="text-red-500">*</span>
-                          </label>
-
-                          <input
-                            type="date"
-                            value={bookForm.date}
-                            min={new Date().toLocaleDateString("en-CA")}
-                            onChange={(e) =>
-                              setBookForm({ ...bookForm, date: e.target.value })
-                            }
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Time <span className="text-red-500">*</span>
-                          </label>
-
-                          <SearchableSelect
-                            value={bookForm.time}
-                            onChange={(e) =>
-                              setBookForm({ ...bookForm, time: e.target.value })
-                            }
-                            options={[
-                              { value: "09:00 AM", label: "09:00 AM" },
-                              { value: "10:00 AM", label: "10:00 AM" },
-                              { value: "11:00 AM", label: "11:00 AM" },
-                              { value: "02:00 PM", label: "02:00 PM" },
-                              { value: "03:00 PM", label: "03:00 PM" },
-                            ]}
-                            placeholder="Select time..."
-                            required
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Notes (Optional)
-                      </label>
-
-                      <textarea
-                        value={bookForm.notes}
-                        onChange={(e) =>
-                          setBookForm({ ...bookForm, notes: e.target.value })
-                        }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
-                        rows={3}
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="sendConfirmation"
-                        checked={bookForm.sendConfirmation}
-                        onChange={(e) =>
-                          setBookForm({
-                            ...bookForm,
-                            sendConfirmation: e.target.checked,
-                          })
-                        }
-                        className="w-4 h-4 text-purple-600 border-gray-300 rounded"
-                      />
-
-                      <label
-                        htmlFor="sendConfirmation"
-                        className="text-sm text-gray-700"
-                      >
-                        Send confirmation email to client
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowBookModal(false);
-                          setSelectedSlot(null);
-                          setBookingType("slot");
-                          setActiveBookingTab("existing");
-                        }}
-                        disabled={actionLoading}
-                        className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Cancel
-                      </button>
-
-                      <button
-                        type="submit"
-                        disabled={actionLoading}
-                        className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        style={{ backgroundColor: "#6f1d56" }}
-                      >
-                        {actionLoading ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                            Booking...
-                          </>
-                        ) : (
-                          "Book Consultation"
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="p-6">
-                    <VanquishClientIntake
-                      isAdminMode={true}
-                      onComplete={async (clientUuid) => {
-                        success("Client registered and consultation booked successfully!");
-                        setShowBookModal(false);
-                        setActiveBookingTab("existing");
-                        setSelectedSlot(null);
-                        setBookingType("slot");
-                        await refreshData();
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
 
         {/* Complete Modal */}
 

@@ -53,7 +53,6 @@ import {
   Building2,
   RefreshCw,
 } from "lucide-react";
-import PhotoUpload from "@/components/PhotoUpload";
 import SearchableSelect from "@/components/SearchableSelect";
 
 function EditClientPageContent() {
@@ -76,7 +75,6 @@ function EditClientPageContent() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [clientPhoto, setClientPhoto] = useState(null);
 
   const [expandedSections, setExpandedSections] = useState({
     personal: true,
@@ -240,7 +238,6 @@ function EditClientPageContent() {
           workingWithAnotherReason: client.working_with_another_reason || "",
           referralType: client.referral_type || "",
         });
-        setClientPhoto(client.photo_url || client.photo || null);
       } catch (err) {
         console.error("Error fetching client:", err);
         setError("Failed to load client data. Please try again.");
@@ -724,42 +721,6 @@ function EditClientPageContent() {
 
                 {expandedSections.personal && (
                   <div className="p-6 space-y-4">
-                    {/* Photo Upload Section - Only show when editing existing client */}
-                    {!isCreating && formData.clientId && (
-                      <div className="flex items-start gap-6 pb-4 border-b border-[var(--border-color)]">
-                        <PhotoUpload
-                          photoUrl={clientPhoto}
-                          entityId={formData.clientId}
-                          entityType="client"
-                          onUpload={async (id, file) => {
-                            const response = await apiService.uploadClientPhoto(
-                              id,
-                              file,
-                            );
-                            setClientPhoto(
-                              response.photo_url || response.photo,
-                            );
-                            return response;
-                          }}
-                          onDelete={async (id) => {
-                            await apiService.deleteClientPhoto(id);
-                            setClientPhoto(null);
-                          }}
-                          size="large"
-                        />
-                        <div className="flex-1">
-                          <h3 className="text-sm font-medium text-[var(--text-primary)] mb-1">
-                            Profile Photo (Optional)
-                          </h3>
-                          <p className="text-xs text-[var(--text-tertiary)]">
-                            Clients don't need a profile photo — their
-                            initials are shown by default. You may
-                            optionally upload one (Admin only).
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">

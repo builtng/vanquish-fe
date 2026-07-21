@@ -201,7 +201,7 @@ export default function PsgPublicAttendancePage() {
         {/* Form Card */}
         <form onSubmit={handleSubmit} className="bg-white dark:bg-[#1e1e1e] rounded-3xl border border-gray-200 dark:border-[#2d2d2d] shadow-xl overflow-hidden">
           {/* Group Header Info */}
-          <div className="bg-gradient-to-r from-[#6f1c56] to-purple-800 p-6 text-white">
+          <div className="bg-gradient-to-r from-[#6f1d56] to-[#4a1339] p-6 text-white">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest bg-white/20 px-2 py-0.5 rounded-md">

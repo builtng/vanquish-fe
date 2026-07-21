@@ -29,6 +29,7 @@ export function StripePaymentForm({
   clientId,
   amount,
   consultationSlotId,
+  returnUrl,
   onSuccess,
   onError,
   onCancel,
@@ -55,7 +56,7 @@ export function StripePaymentForm({
         await stripe.confirmPayment({
           elements,
           confirmParams: {
-            return_url: `${window.location.origin}/payment-success`,
+            return_url: returnUrl || `${window.location.origin}/payment-success`,
           },
           redirect: "if_required",
         });
@@ -87,7 +88,7 @@ export function StripePaymentForm({
           }
         }
         setPaymentStatus("success");
-        if (onSuccess) onSuccess();
+        if (onSuccess) onSuccess(paymentIntent);
       }
     } catch (err) {
       setError(err.message || "An error occurred during payment");
@@ -209,6 +210,7 @@ export function StripePaymentWrapper({
   paymentType = "consultation",
   couponCode,
   consultationSlotId,
+  returnUrl,
   onSuccess,
   onError,
   onCancel,
@@ -341,6 +343,7 @@ export function StripePaymentWrapper({
         clientId={clientId}
         amount={amount}
         consultationSlotId={consultationSlotId}
+        returnUrl={returnUrl}
         onSuccess={onSuccess}
         onError={onError}
         onCancel={onCancel}

@@ -62,7 +62,6 @@ import {
   TrendingUp,
   ClipboardList,
 } from "lucide-react";
-import PhotoUpload from "@/components/PhotoUpload";
 import RichTextEditor from "@/components/RichTextEditor";
 
 /**
@@ -151,7 +150,6 @@ export default function IndividualTCDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tc, setTc] = useState(null);
-  const [tcPhoto, setTcPhoto] = useState(null);
 
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [pendingClients, setPendingClients] = useState([]);
@@ -320,7 +318,6 @@ export default function IndividualTCDetailPage() {
         };
 
         setTc(transformedData);
-        setTcPhoto(data.photo_url || data.photo || null);
         // Initialize status form with current TC data
         setStatusForm({
           status: transformedData.status,
@@ -495,25 +492,13 @@ export default function IndividualTCDetailPage() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-6">
                   <div className="shrink-0 pt-1">
-                    <PhotoUpload
-                      photoUrl={tcPhoto}
-                      initials={tc.name
+                    <div className="w-24 h-24 rounded-full flex items-center justify-center bg-purple-600 text-white text-3xl font-bold tracking-tight shadow-md">
+                      {tc.name
                         .split(" ")
                         .map((n) => n[0])
-                        .join("")}
-                      entityId={tc.uuid || tc.id}
-                      entityType="tc"
-                      onUpload={async (id, file) => {
-                        const response = await apiService.uploadTcPhoto(id, file);
-                        setTcPhoto(response.photo_url || response.photo);
-                        return response;
-                      }}
-                      onDelete={async (id) => {
-                        await apiService.deleteTcPhoto(id);
-                        setTcPhoto(null);
-                      }}
-                      size="medium"
-                    />
+                        .join("")
+                        .toUpperCase()}
+                    </div>
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-end gap-3 flex-wrap">

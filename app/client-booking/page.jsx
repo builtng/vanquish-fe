@@ -261,21 +261,26 @@ function ClientBookingContent() {
     setShowPaymentModal(true);
   };
 
-  const confirmBookingAfterPayment = async () => {
+  const confirmBookingAfterPayment = async (paymentIntent) => {
     if (!pendingBookingData) return;
 
     try {
       setLoading(true);
       setError(null);
 
+      const bookingWithPayment = {
+        ...pendingBookingData,
+        payment_intent_id: paymentIntent?.id,
+      };
+
       let data;
-      if (pendingBookingData.is_single) {
-        const apiData = { ...pendingBookingData };
+      if (bookingWithPayment.is_single) {
+        const apiData = { ...bookingWithPayment };
         delete apiData.is_single;
         data = await apiService.bookSession(apiData);
         toast.success(data.message || "Session booked successfully!");
       } else {
-        data = await apiService.bookBlock(pendingBookingData);
+        data = await apiService.bookBlock(bookingWithPayment);
         toast.success(
           data.message ||
             `Successfully booked ${pendingBookingData.sessions_count} sessions!`,
@@ -312,7 +317,7 @@ function ClientBookingContent() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6f1d56] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -436,7 +441,7 @@ function ClientBookingContent() {
                         setBookingType("block");
                         setShowBookingModal(true);
                       }}
-                      className="mt-3 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                      className="mt-3 px-4 py-2 bg-[#6f1d56] text-white rounded-lg hover:bg-[#5a1745] transition-colors text-sm font-medium"
                     >
                       Book Next Block
                     </button>
@@ -467,7 +472,7 @@ function ClientBookingContent() {
                   Your Counsellor
                 </p>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs">
+                  <div className="w-8 h-8 rounded-full bg-[#fcf6fa] flex items-center justify-center text-[#6f1d56] font-bold text-xs">
                     {client.matched_tc.name.charAt(0)}
                   </div>
                   <p className="font-medium text-gray-900 border-b border-dashed border-gray-300">
@@ -483,7 +488,7 @@ function ClientBookingContent() {
                   Allocated Day & Time
                 </p>
                 <div className="flex items-center gap-2 text-gray-900">
-                  <Clock className="w-4 h-4 text-purple-500" />
+                  <Clock className="w-4 h-4 text-[#6f1d56]" />
                   <p className="font-medium">
                     {client.allocated_day
                       ? client.allocated_day.charAt(0).toUpperCase() +
@@ -556,7 +561,7 @@ function ClientBookingContent() {
                   );
                   setShowBookingModal(true);
                 }}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium flex items-center gap-2"
+                className="px-4 py-2 bg-[#6f1d56] text-white rounded-lg hover:bg-[#5a1745] transition-colors text-sm font-medium flex items-center gap-2"
               >
                 <Calendar className="w-4 h-4" />
                 {client?.service_type === "Low Cost"
@@ -601,7 +606,7 @@ function ClientBookingContent() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="w-5 h-5 text-purple-600" />
+                        <Calendar className="w-5 h-5 text-[#6f1d56]" />
                         <h3 className="font-semibold text-gray-900">
                           {formatDate(session.scheduled_at)}
                         </h3>
@@ -656,7 +661,7 @@ function ClientBookingContent() {
                       onClick={() => setBookingType("single")}
                       className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                         bookingType === "single"
-                          ? "bg-purple-600 text-white"
+                          ? "bg-[#6f1d56] text-white"
                           : "bg-white text-gray-700 hover:bg-gray-50"
                       }`}
                     >
@@ -667,7 +672,7 @@ function ClientBookingContent() {
                       onClick={() => setBookingType("block")}
                       className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                         bookingType === "block"
-                          ? "bg-purple-600 text-white"
+                          ? "bg-[#6f1d56] text-white"
                           : "bg-white text-gray-700 hover:bg-gray-50"
                       }`}
                     >
@@ -678,7 +683,7 @@ function ClientBookingContent() {
 
                 {loadingSlots && (
                   <div className="flex items-center justify-center py-10">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6f1d56]"></div>
                     <p className="ml-3 text-sm text-gray-500">
                       Checking availability…
                     </p>
@@ -708,7 +713,7 @@ function ClientBookingContent() {
                     <>
                       {loadingNextBlockSlots ? (
                         <div className="flex items-center justify-center py-10">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6f1d56]"></div>
                           <p className="ml-3 text-sm text-gray-500">
                             Finding your next available sessions…
                           </p>
@@ -816,7 +821,7 @@ function ClientBookingContent() {
                           onChange={(e) =>
                             setSessionsCount(parseInt(e.target.value))
                           }
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6f1d56] focus:border-transparent"
                         >
                           <option value={2}>2 sessions</option>
                           <option value={3}>3 sessions</option>
@@ -869,7 +874,7 @@ function ClientBookingContent() {
                       (loadingNextBlockSlots ||
                         (nextBlockSlots?.auto && !nextBlockSlots.slots?.length))
                     }
-                    className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-2 bg-[#6f1d56] text-white rounded-lg hover:bg-[#5a1745] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Book{" "}
                     {bookingType === "block"
@@ -961,6 +966,15 @@ function ClientBookingContent() {
                   paymentType={
                     bookingType === "block" ? "session_block" : "session"
                   }
+                  returnUrl={(() => {
+                    const params = new URLSearchParams();
+                    params.append("uuid", clientData.client.uuid);
+                    params.append(
+                      "booking",
+                      JSON.stringify(pendingBookingData),
+                    );
+                    return `${window.location.origin}/client-booking/confirm?${params.toString()}`;
+                  })()}
                   onSuccess={confirmBookingAfterPayment}
                   onError={(err) =>
                     toast.error(err.message || "Payment failed")
@@ -981,7 +995,7 @@ export default function ClientBookingPage() {
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6f1d56] mx-auto mb-4"></div>
             <p className="text-gray-600">Loading...</p>
           </div>
         </div>

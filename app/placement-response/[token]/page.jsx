@@ -77,7 +77,7 @@ export default function PlacementResponsePage() {
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-8">
         {loading && (
           <div className="text-center">
-            <Loader className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+            <Loader className="w-12 h-12 text-[#6f1d56] animate-spin mx-auto mb-4" />
             <h2 className="text-xl font-bold text-gray-900 mb-2">Loading...</h2>
           </div>
         )}
@@ -117,8 +117,8 @@ export default function PlacementResponsePage() {
         {!loading && !error && !submitted && !alreadyResponded && (
           <div>
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <HeartHandshake className="w-8 h-8 text-purple-600" />
+              <div className="w-16 h-16 bg-[#fcf6fa] rounded-full flex items-center justify-center mx-auto mb-4">
+                <HeartHandshake className="w-8 h-8 text-[#6f1d56]" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-1">
                 Confirm Your Placement
@@ -174,7 +174,7 @@ export default function PlacementResponsePage() {
             <button
               onClick={handleSubmit}
               disabled={placementAccepted === null || inductionRsvp === null || submitting}
-              className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full px-6 py-3 bg-[#6f1d56] text-white rounded-lg hover:bg-[#5a1745] font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {submitting ? "Submitting..." : "Submit My Response"}
             </button>
