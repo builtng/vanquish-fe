@@ -582,12 +582,10 @@ export default function VanquishClientIntake() {
     setFormData((prev) => ({
       ...prev,
       availability: {
-        monday: [],
-        tuesday: [],
-        wednesday: [],
-        thursday: [],
-        friday: [],
-        [day]: [slot],
+        ...prev.availability,
+        [day]: prev.availability[day].includes(slot)
+          ? prev.availability[day].filter((s) => s !== slot)
+          : [...prev.availability[day], slot],
       },
     }));
     // Clear error when user makes a selection
@@ -676,6 +674,7 @@ export default function VanquishClientIntake() {
             terms_accepted: formData.termsAccepted,
             discount_code: isDiscountApplied ? formData.discountCode : null,
             consultation_fee: getConsultationFee(),
+            consultation_slot_id: formData.consultationSlotId || null,
             create_client: true,
           }),
         },
@@ -771,26 +770,14 @@ export default function VanquishClientIntake() {
       }
 
       const proceedToRedirect = async () => {
-        if (formData.consultationSlotId && clientUuid) {
-          try {
-            await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/book-consultation`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  client_uuid: clientUuid,
-                  consultation_slot_id: formData.consultationSlotId,
-                }),
-              },
-            );
-          } catch (err) {
-            console.error("Error booking consultation slot:", err);
-          }
-        }
-
+        // Slot booking + confirmation email is triggered by the success page
+        // itself (using these params), so it happens reliably even if this
+        // request never completes (e.g. tab closed mid-redirect).
         const params = new URLSearchParams();
         params.append("uuid", clientUuid);
+        if (formData.consultationSlotId) {
+          params.append("slot", formData.consultationSlotId);
+        }
 
         // Redirect to internal success page instead of JotForm
         window.location.href = `/intake/success?${params.toString()}`;
@@ -798,10 +785,18 @@ export default function VanquishClientIntake() {
 
       if (fee > 0 && clientUuid && currentClientId) {
         // Show payment modal
+        const successParams = new URLSearchParams();
+        successParams.append("uuid", clientUuid);
+        if (formData.consultationSlotId) {
+          successParams.append("slot", formData.consultationSlotId);
+        }
+
         setPaymentProps({
           clientId: currentClientId, // Needs the ID (integer/string ID) for backend, not UUID if backend expects ID
           amount: fee,
           couponCode: isDiscountApplied ? formData.discountCode : null,
+          consultationSlotId: formData.consultationSlotId || null,
+          returnUrl: `${window.location.origin}/intake/success?${successParams.toString()}`,
           onSuccess: proceedToRedirect,
           onError: (err) =>
             toast.error(`Payment failed: ${err.message || "Please try again"}`),
@@ -1928,8 +1923,8 @@ export default function VanquishClientIntake() {
                     className="text-base md:text-lg "
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    Select ONE day and time slot for your recurring weekly
-                    counselling sessions.
+                    Select all day and time slots when you're available to
+                    attend weekly counselling sessions.
                   </p>
                 </div>
 
@@ -1996,15 +1991,14 @@ export default function VanquishClientIntake() {
                                   }}
                                 >
                                   <input
-                                    type="radio"
-                                    name="availability"
+                                    type="checkbox"
                                     checked={formData.availability[
                                       day
                                     ].includes(slot.value)}
                                     onChange={() =>
                                       handleAvailabilityToggle(day, slot.value)
                                     }
-                                    className="w-5 h-5"
+                                    className="w-5 h-5 rounded"
                                     style={{
                                       borderColor: "var(--input-border)",
                                       accentColor: "#6f1d56",
@@ -2925,7 +2919,7 @@ export default function VanquishClientIntake() {
                       className="block text-lg font-medium mb-2"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Telephone Number of Your Emergency Contact:{" "}
+                      Phone Number of Emergency Contact{" "}
                       <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -3380,6 +3374,7 @@ export default function VanquishClientIntake() {
                     amount={paymentProps.amount}
                     paymentType="consultation"
                     couponCode={paymentProps.couponCode}
+                    returnUrl={paymentProps.returnUrl}
                     onSuccess={() => {
                       paymentProps.onSuccess();
                       setShowPaymentModal(false);

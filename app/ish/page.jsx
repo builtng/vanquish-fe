@@ -540,16 +540,29 @@ export default function CoachingIntake() {
           "uuid",
           data.client_uuid || (data.form && data.form.uuid),
         );
+        if (selectedSlot?.id) {
+          params.append("slot", selectedSlot.id);
+        }
         window.location.href = `/intake/success?${params.toString()}`;
       };
 
       const fee = getConsultationFee();
       if (fee > 0 && clientIdFromRes) {
+        const successParams = new URLSearchParams();
+        successParams.append(
+          "uuid",
+          data.client_uuid || (data.form && data.form.uuid),
+        );
+        if (selectedSlot?.id) {
+          successParams.append("slot", selectedSlot.id);
+        }
+
         setPaymentProps({
           clientId: clientIdFromRes,
           amount: fee,
           couponCode: isDiscountApplied ? formData.discountCode : null,
           consultationSlotId: selectedSlot?.id || null,
+          returnUrl: `${window.location.origin}/intake/success?${successParams.toString()}`,
           onSuccess: proceedToSuccess,
           onError: (err) =>
             toast.error(`Payment failed: ${err.message || "Please try again"}`),
@@ -1476,6 +1489,7 @@ export default function CoachingIntake() {
                 amount={paymentProps.amount}
                 paymentType="consultation"
                 consultationSlotId={paymentProps.consultationSlotId}
+                returnUrl={paymentProps.returnUrl}
                 onSuccess={paymentProps.onSuccess}
               />
             </div>

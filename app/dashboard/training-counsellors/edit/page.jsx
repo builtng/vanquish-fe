@@ -9,7 +9,6 @@ import { useToast } from '@/lib/toast';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import DashboardLayout from '@/components/DashboardLayout';
-import PhotoUpload from '@/components/PhotoUpload';
 import SearchableSelect from '@/components/SearchableSelect';
 
 import { 
@@ -30,7 +29,6 @@ function EditTrainingCounsellorContent() {
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [showEditConfirmModal, setShowEditConfirmModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [tcPhoto, setTcPhoto] = useState(null);
   const [holidays, setHolidays] = useState([]);
   const [newHoliday, setNewHoliday] = useState({ start_date: '', end_date: '', reason: '' });
   const [holidayLoading, setHolidayLoading] = useState(false);
@@ -126,8 +124,6 @@ function EditTrainingCounsellorContent() {
           placementLeadEmail: data.placement_lead_email || '',
           placementLeadPhone: data.placement_lead_phone || ''
         });
-        
-        setTcPhoto(data.photo_url || data.photo || null);
       } catch (err) {
         console.error('Error fetching TC:', err);
         setError('Failed to load practitioner details. Please try again.');
@@ -363,31 +359,6 @@ function EditTrainingCounsellorContent() {
             <div className="bg-card rounded-lg border border-border p-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">Personal Information</h2>
               
-              {/* Photo Upload - Only show when editing existing TC */}
-              {tcId && (
-                <div className="flex items-start gap-6 pb-6 border-b border-border mb-6">
-                  <PhotoUpload
-                    photoUrl={tcPhoto}
-                    entityId={tcId}
-                    entityType="tc"
-                    onUpload={async (id, file) => {
-                      const response = await apiService.uploadTcPhoto(id, file);
-                      setTcPhoto(response.photo_url || response.photo);
-                      return response;
-                    }}
-                    onDelete={async (id) => {
-                      await apiService.deleteTcPhoto(id);
-                      setTcPhoto(null);
-                    }}
-                    size="large"
-                  />
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-foreground mb-1">Profile Photo</h3>
-                    <p className="text-xs text-muted-foreground">Upload a photo for this practitioner (Admin only)</p>
-                  </div>
-                </div>
-              )}
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">

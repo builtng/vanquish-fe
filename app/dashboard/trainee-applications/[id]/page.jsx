@@ -31,6 +31,7 @@ import {
   ClipboardCheck,
   History,
   Check,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -307,6 +308,11 @@ export default function TraineeApplicationDetail() {
   const [settings, setSettings] = useState(null);
   const [zoomRoomConfig, setZoomRoomConfig] = useState(null);
   const [emailPreview, setEmailPreview] = useState(null);
+  const [changingStatus, setChangingStatus] = useState(false);
+  const [recordingInterviewAttendance, setRecordingInterviewAttendance] =
+    useState(false);
+  const [recordingInductionAttendance, setRecordingInductionAttendance] =
+    useState(false);
   const { prompt, confirm } = useModal();
 
   const previewAndSend = async (templateType, placeholders, sendFn) => {
@@ -429,17 +435,21 @@ export default function TraineeApplicationDetail() {
   };
 
   const handleAttendance = async (attended) => {
+    if (recordingInterviewAttendance) return;
     const notes = await prompt({
       title: attended ? "Attendance Notes" : "No-Show Notes",
       message: `Enter optional notes for the ${attended ? "attendance" : "no-show"}:`,
       required: false,
     });
+    setRecordingInterviewAttendance(true);
     try {
       await apiService.recordTraineeAttendance(id, attended, notes);
       toast.success("Attendance recorded!");
       fetchApplication();
     } catch {
       toast.error("Failed to record attendance.");
+    } finally {
+      setRecordingInterviewAttendance(false);
     }
   };
 
@@ -518,11 +528,13 @@ export default function TraineeApplicationDetail() {
   };
 
   const handleInductionAttendance = async (attended) => {
+    if (recordingInductionAttendance) return;
     const notes = await prompt({
       title: "Induction Notes",
       message: "Enter induction notes:",
       required: false,
     });
+    setRecordingInductionAttendance(true);
     try {
       await apiService.recordTraineeInductionAttendance(
         id,
@@ -533,6 +545,8 @@ export default function TraineeApplicationDetail() {
       fetchApplication();
     } catch {
       toast.error("An error occurred.");
+    } finally {
+      setRecordingInductionAttendance(false);
     }
   };
 
@@ -700,10 +714,23 @@ export default function TraineeApplicationDetail() {
               <div className="flex items-center gap-3">
                 {nextStage && (
                   <button
-                    onClick={() => handleStatusChange(nextStage)}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all font-bold text-sm shadow-md hover:scale-[1.02] active:scale-95"
+                    onClick={async () => {
+                      setChangingStatus(true);
+                      try {
+                        await handleStatusChange(nextStage);
+                      } finally {
+                        setChangingStatus(false);
+                      }
+                    }}
+                    disabled={changingStatus}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all font-bold text-sm shadow-md hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
-                    <CheckCircle className="w-4 h-4" /> Next Stage: {nextStage}
+                    {changingStatus ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="w-4 h-4" />
+                    )}{" "}
+                    Next Stage: {nextStage}
                   </button>
                 )}
                 <button
@@ -858,12 +885,12 @@ export default function TraineeApplicationDetail() {
                       style={{ flex: 1 }}
                     >
                       <div
-                        className={`w-12 h-12 rounded-full border-4 flex items-center justify-center relative z-10 bg-white dark:bg-[var(--card-bg)] ${
+                        className={`w-12 h-12 rounded-full border-4 flex items-center justify-center relative z-10 ${
                           stage.completed
                             ? "bg-purple-600 border-purple-600"
                             : stage.current
-                              ? "border-purple-600"
-                              : "border-gray-300 dark:border-gray-600"
+                              ? "bg-white dark:bg-[var(--card-bg)] border-purple-600"
+                              : "bg-white dark:bg-[var(--card-bg)] border-gray-300 dark:border-gray-600"
                         }`}
                       >
                         {stage.completed ? (
@@ -1038,13 +1065,20 @@ export default function TraineeApplicationDetail() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <button
                         onClick={() => handleAttendance(true)}
-                        className="flex-1 py-3 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition-all flex items-center justify-center gap-2 shadow-sm"
+                        disabled={recordingInterviewAttendance}
+                        className="flex-1 py-3 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <CheckCircle className="w-4 h-4" /> Candidate Attended
+                        {recordingInterviewAttendance ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4" />
+                        )}{" "}
+                        Candidate Attended
                       </button>
                       <button
                         onClick={() => handleAttendance(false)}
-                        className="flex-1 py-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl font-bold hover:bg-rose-100 transition-all"
+                        disabled={recordingInterviewAttendance}
+                        className="flex-1 py-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl font-bold hover:bg-rose-100 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         Mark as No-Show
                       </button>
@@ -1235,13 +1269,18 @@ export default function TraineeApplicationDetail() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleInductionAttendance(true)}
-                              className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
+                              disabled={recordingInductionAttendance}
+                              className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                             >
+                              {recordingInductionAttendance && (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              )}
                               Mark Attended
                             </button>
                             <button
                               onClick={() => handleInductionAttendance(false)}
-                              className="flex-1 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-50"
+                              disabled={recordingInductionAttendance}
+                              className="flex-1 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               Mark No-Show
                             </button>

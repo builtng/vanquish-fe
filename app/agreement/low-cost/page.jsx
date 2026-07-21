@@ -2,7 +2,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
-import { FileText, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import {
+  FileSignature,
+  ShieldCheck,
+  AlertTriangle,
+  Loader2,
+  Download,
+  ArrowRight,
+  Lock,
+} from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { toast } from "react-toastify";
 import { Suspense } from "react";
@@ -35,6 +43,7 @@ function LowCostAgreementContent() {
   });
 
   const [errors, setErrors] = useState({});
+  const [lockedFields, setLockedFields] = useState({});
 
   useEffect(() => {
     const email = searchParams.get("email");
@@ -45,7 +54,7 @@ function LowCostAgreementContent() {
 
     if (!email && !uuid) {
       setError(
-        "Missing access token. Please use the link provided in your email.",
+        "This agreement link is missing required information. Please use the link provided in your email, or contact us if the problem continues.",
       );
       setLoading(false);
       return;
@@ -82,9 +91,28 @@ function LowCostAgreementContent() {
               gpPracticePhone: clientData.gp_practice_phone || "",
               caseStudyConsent: clientData.case_study_consent || "",
             }));
+
+            const resolvedAddress =
+              clientData.current_address ||
+              (clientData.address
+                ? `${clientData.address}${clientData.postcode ? `, ${clientData.postcode}` : ""}`
+                : "");
+            setLockedFields({
+              fullName: !!clientData.name,
+              currentAddress: !!resolvedAddress,
+              emergencyContactName: !!clientData.emergency_contact_name,
+              emergencyContactPhone: !!clientData.emergency_contact_phone,
+              emergencyContactRelationship:
+                !!clientData.emergency_contact_relationship,
+              gpName: !!clientData.gp_name,
+              gpPracticeName: !!clientData.gp_practice_name,
+              gpPracticePhone: !!clientData.gp_practice_phone,
+              caseStudyConsent: !!clientData.case_study_consent,
+            });
           } else {
-            setClientEmail(email || "");
-            setClientUuid(uuid || "");
+            setError(
+              "This agreement link is invalid or has expired. Please use the link from your original email, or contact us for a new one.",
+            );
           }
         } else {
           setClientEmail(email || "");
@@ -92,8 +120,9 @@ function LowCostAgreementContent() {
         }
       } catch (err) {
         console.error("Error fetching client for agreement:", err);
-        setClientEmail(email || "");
-        setClientUuid(uuid || "");
+        setError(
+          "We couldn't verify this agreement link. Please check your connection and try again, or contact us for assistance.",
+        );
       } finally {
         setLoading(false);
       }
@@ -223,11 +252,11 @@ function LowCostAgreementContent() {
         >
           <div className="text-center">
             <Loader2
-              className="animate-spin h-12 w-12 mx-auto mb-4"
-              style={{ color: "var(--primary)" }}
+              className="animate-spin h-8 w-8 mx-auto mb-4"
+              style={{ color: "var(--accent-color)" }}
             />
-            <p style={{ color: "var(--text-secondary)" }}>
-              Loading agreement form...
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              Loading your agreement&hellip;
             </p>
           </div>
         </div>
@@ -242,26 +271,34 @@ function LowCostAgreementContent() {
           className="min-h-screen flex items-center justify-center p-4"
           style={{ background: "var(--bg-secondary)" }}
         >
-          <div className="card rounded-2xl shadow-xl p-8 max-w-md w-full text-center border">
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-              style={{
-                backgroundColor: "var(--error-bg)",
-                border: "2px solid var(--error-border)",
-              }}
-            >
-              <AlertCircle
-                className="w-12 h-12"
-                style={{ color: "var(--error-primary)" }}
-              />
+          <div
+            className="max-w-md w-full rounded-lg border p-8"
+            style={{
+              backgroundColor: "var(--card-bg)",
+              borderColor: "var(--border-color)",
+            }}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                style={{ backgroundColor: "var(--warning-bg)" }}
+              >
+                <AlertTriangle
+                  className="w-5 h-5"
+                  style={{ color: "var(--warning-primary)" }}
+                />
+              </div>
+              <h2
+                className="text-lg font-semibold pt-2"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Unable to Load Agreement
+              </h2>
             </div>
-            <h2
-              className="text-2xl font-bold mb-3"
-              style={{ color: "var(--text-primary)" }}
+            <p
+              className="text-sm leading-relaxed"
+              style={{ color: "var(--text-secondary)" }}
             >
-              Error Loading Agreement
-            </h2>
-            <p className="mb-6" style={{ color: "var(--text-secondary)" }}>
               {error}
             </p>
           </div>
@@ -278,50 +315,73 @@ function LowCostAgreementContent() {
           className="min-h-screen flex items-center justify-center p-4"
           style={{ background: "var(--bg-secondary)" }}
         >
-          <div className="card rounded-2xl shadow-xl p-8 max-w-md w-full text-center border">
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-              style={{
-                backgroundColor: "var(--success-bg, #dcfce7)",
-                border: "2px solid var(--success-border, #86efac)",
-              }}
-            >
-              <CheckCircle className="w-12 h-12" style={{ color: "#16a34a" }} />
+          <div
+            className="max-w-md w-full rounded-lg border overflow-hidden"
+            style={{
+              backgroundColor: "var(--card-bg)",
+              borderColor: "var(--border-color)",
+            }}
+          >
+            <div className="p-8 text-center">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-5"
+                style={{
+                  backgroundColor: "var(--success-bg)",
+                  border: "1px solid var(--success-border)",
+                }}
+              >
+                <ShieldCheck
+                  className="w-6 h-6"
+                  style={{ color: "var(--success-primary)" }}
+                />
+              </div>
+              <h2
+                className="text-xl font-semibold mb-2"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Agreement Received
+              </h2>
+              <p
+                className="text-sm mb-1"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                Thank you. Your signed service agreement has been recorded.
+              </p>
+              <p
+                className="text-xs font-mono"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                Ref: {submittedUuid.slice(0, 8).toUpperCase()}
+              </p>
             </div>
-            <h2
-              className="text-2xl font-bold mb-3"
-              style={{ color: "var(--text-primary)" }}
+            <div
+              className="p-5 space-y-2"
+              style={{ borderTop: "1px solid var(--border-color)" }}
             >
-              Agreement Signed
-            </h2>
-            <p className="mb-6" style={{ color: "var(--text-secondary)" }}>
-              Thank you. Your signed agreement has been recorded. You can
-              download a PDF copy for your records below.
-            </p>
-            <a
-              href={downloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full py-3 mb-3 rounded-lg text-base font-semibold text-white transition-all"
-              style={{
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              }}
-            >
-              Download PDF Copy
-            </a>
-            <button
-              type="button"
-              onClick={() =>
-                (window.location.href = `/client-booking?uuid=${submittedUuid}`)
-              }
-              className="block w-full py-3 rounded-lg text-base font-semibold"
-              style={{
-                border: "1px solid var(--border-color)",
-                color: "var(--text-primary)",
-              }}
-            >
-              Continue to Book Your Consultation
-            </button>
+              <a
+                href={downloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-md text-sm font-semibold text-white transition-colors bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)]"
+              >
+                <Download className="w-4 h-4" />
+                Download PDF Copy
+              </a>
+              <button
+                type="button"
+                onClick={() =>
+                  (window.location.href = `/client-booking?uuid=${submittedUuid}`)
+                }
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-md text-sm font-semibold border transition-colors"
+                style={{
+                  borderColor: "var(--border-color)",
+                  color: "var(--text-primary)",
+                }}
+              >
+                Continue to Book Your Consultation
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </PublicFormWrapper>
@@ -330,605 +390,394 @@ function LowCostAgreementContent() {
 
   return (
     <PublicFormWrapper>
-      <div
-        className="min-h-screen py-8"
-        style={{ background: "var(--bg-secondary)" }}
-      >
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Header */}
-          <div className="card rounded-2xl shadow-xl p-8 mb-6 border text-center">
-            <div
-              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-              style={{
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              }}
-            >
-              <FileText className="w-12 h-12 text-white" />
+      <div className="min-h-screen" style={{ background: "var(--bg-secondary)" }}>
+        <div className="h-1.5" style={{ backgroundColor: "var(--accent-color)" }} />
+
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+          {/* Document header */}
+          <div
+            className="mb-10 pb-8"
+            style={{ borderBottom: "2px solid var(--text-primary)" }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <FileSignature
+                className="w-4 h-4"
+                style={{ color: "var(--accent-color)" }}
+              />
+              <span
+                className="text-xs font-bold tracking-[0.15em] uppercase"
+                style={{ color: "var(--accent-color)" }}
+              >
+                Service Agreement
+              </span>
             </div>
             <h1
-              className="text-3xl font-bold mb-3"
+              className="text-[26px] sm:text-3xl font-bold mb-2"
               style={{ color: "var(--text-primary)" }}
             >
-              Client Agreement
+              Vanquish Therapies
             </h1>
-            <p
-              className="text-lg mb-2"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              Low-Cost Service Agreement
+            <p className="text-base" style={{ color: "var(--text-secondary)" }}>
+              Low-Cost Counselling &amp; Coaching Service Agreement
             </p>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              Client Email: <strong>{clientEmail}</strong>
-            </p>
-          </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            <div className="card rounded-2xl shadow-xl p-8 mb-6 border">
-              {/* Full Name */}
-              <div className="mb-6">
-                <label
-                  className="block text-base font-semibold mb-2"
+            <div className="flex flex-wrap gap-x-8 gap-y-3 mt-6 text-sm">
+              <div>
+                <span
+                  className="block text-xs uppercase tracking-wide mb-0.5"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  Client Email
+                </span>
+                <span
+                  className="font-medium"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Full Name: <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.fullName}
-                  onChange={(e) =>
-                    handleInputChange("fullName", e.target.value)
-                  }
-                  className="w-full px-4 py-3 rounded-lg border text-base"
-                  style={{
-                    borderColor: errors.fullName
-                      ? "var(--error-primary)"
-                      : "var(--border-color)",
-                    backgroundColor: "var(--bg-primary)",
-                    color: "var(--text-primary)",
-                  }}
-                  placeholder="Enter your full name"
-                />
-                {errors.fullName && (
-                  <p
-                    className="text-sm mt-1"
-                    style={{ color: "var(--error-primary)" }}
-                  >
-                    {errors.fullName}
-                  </p>
-                )}
+                  {clientEmail || "—"}
+                </span>
               </div>
-
-              {/* Full Agreement Text */}
-              <div className="mb-6">
-                <AgreementClauses variant="low-cost" />
-                <label className="flex items-start gap-3 cursor-pointer mt-4">
-                  <input
-                    type="checkbox"
-                    checked={formData.termsAgreed}
-                    onChange={(e) =>
-                      handleInputChange("termsAgreed", e.target.checked)
-                    }
-                    className="mt-1 w-5 h-5 rounded"
-                  />
+              <div>
+                <span
+                  className="block text-xs uppercase tracking-wide mb-0.5"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  Date
+                </span>
+                <span
+                  className="font-medium"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {new Date().toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+              {clientUuid && (
+                <div>
                   <span
-                    className="text-base font-medium"
+                    className="block text-xs uppercase tracking-wide mb-0.5"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
+                    Reference
+                  </span>
+                  <span
+                    className="font-mono font-medium"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    I have read and agree to the terms and conditions above,
-                    including the prohibition against recording any sessions.{" "}
-                    <span className="text-red-500">*</span>
+                    {clientUuid.slice(0, 8).toUpperCase()}
                   </span>
-                </label>
-                {errors.termsAgreed && (
-                  <p
-                    className="text-sm mt-1"
-                    style={{ color: "var(--error-primary)" }}
-                  >
-                    {errors.termsAgreed}
-                  </p>
-                )}
-              </div>
-
-              {/* Case Study Consent */}
-              <div
-                className="mb-6 p-4 rounded-lg"
-                style={{ backgroundColor: "var(--bg-secondary)" }}
-              >
-                <label
-                  className="block text-base font-semibold mb-3"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  Are you willing to be part of an anonymised written case
-                  study? <span className="text-red-500">*</span>
-                </label>
-                <p
-                  className="text-sm mb-4"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  This is a requirement for low-cost counselling as it supports
-                  the training of our counsellors. All identifying information
-                  will be removed to ensure your privacy.
-                </p>
-                <div className="flex gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="caseStudyConsent"
-                      value="yes"
-                      checked={formData.caseStudyConsent === "yes"}
-                      onChange={(e) =>
-                        handleInputChange("caseStudyConsent", e.target.value)
-                      }
-                      className="w-4 h-4"
-                    />
-                    <span style={{ color: "var(--text-primary)" }}>Yes</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="caseStudyConsent"
-                      value="no"
-                      checked={formData.caseStudyConsent === "no"}
-                      onChange={(e) =>
-                        handleInputChange("caseStudyConsent", e.target.value)
-                      }
-                      className="w-4 h-4"
-                    />
-                    <span style={{ color: "var(--text-primary)" }}>No</span>
-                  </label>
                 </div>
-                {errors.caseStudyConsent && (
-                  <p
-                    className="text-sm mt-2"
-                    style={{ color: "var(--error-primary)" }}
-                  >
-                    {errors.caseStudyConsent}
-                  </p>
-                )}
-              </div>
+              )}
+            </div>
+          </div>
 
-              {/* Emergency Contact Section */}
-              <div className="mb-6">
-                <h3
-                  className="text-xl font-bold mb-4"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  Emergency Contact Information
-                </h3>
+          <form onSubmit={handleSubmit}>
+            <Section number="01" title="Your Details">
+              <Field
+                label="Full Name"
+                required
+                value={formData.fullName}
+                onChange={(v) => handleInputChange("fullName", v)}
+                error={errors.fullName}
+                placeholder="Enter your full name"
+                locked={lockedFields.fullName}
+              />
+            </Section>
 
-                <div className="space-y-4">
-                  <div>
-                    <label
-                      className="block text-base font-semibold mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Emergency Contact Name{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.emergencyContactName}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "emergencyContactName",
-                          e.target.value,
-                        )
-                      }
-                      className="w-full px-4 py-3 rounded-lg border text-base"
-                      style={{
-                        borderColor: errors.emergencyContactName
-                          ? "var(--error-primary)"
-                          : "var(--border-color)",
-                        backgroundColor: "var(--bg-primary)",
-                        color: "var(--text-primary)",
-                      }}
-                      placeholder="Enter emergency contact name"
-                    />
-                    {errors.emergencyContactName && (
-                      <p
-                        className="text-sm mt-1"
-                        style={{ color: "var(--error-primary)" }}
-                      >
-                        {errors.emergencyContactName}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      className="block text-base font-semibold mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Relationship To You{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.emergencyContactRelationship}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "emergencyContactRelationship",
-                          e.target.value,
-                        )
-                      }
-                      className="w-full px-4 py-3 rounded-lg border text-base"
-                      style={{
-                        borderColor: errors.emergencyContactRelationship
-                          ? "var(--error-primary)"
-                          : "var(--border-color)",
-                        backgroundColor: "var(--bg-primary)",
-                        color: "var(--text-primary)",
-                      }}
-                    >
-                      <option value="">Select relationship...</option>
-                      <option value="Mother">Mother</option>
-                      <option value="Father">Father</option>
-                      <option value="Partner">Partner</option>
-                      <option value="Spouse">Spouse</option>
-                      <option value="Sibling">Sibling</option>
-                      <option value="Friend">Friend</option>
-                      <option value="Guardian">Guardian</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    {errors.emergencyContactRelationship && (
-                      <p
-                        className="text-sm mt-1"
-                        style={{ color: "var(--error-primary)" }}
-                      >
-                        {errors.emergencyContactRelationship}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      className="block text-base font-semibold mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Contact Number (For the Emergency Contact Person){" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={formData.emergencyContactPhone}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "emergencyContactPhone",
-                          e.target.value,
-                        )
-                      }
-                      className="w-full px-4 py-3 rounded-lg border text-base"
-                      style={{
-                        borderColor: errors.emergencyContactPhone
-                          ? "var(--error-primary)"
-                          : "var(--border-color)",
-                        backgroundColor: "var(--bg-primary)",
-                        color: "var(--text-primary)",
-                      }}
-                      placeholder="Enter phone number"
-                    />
-                    {errors.emergencyContactPhone && (
-                      <p
-                        className="text-sm mt-1"
-                        style={{ color: "var(--error-primary)" }}
-                      >
-                        {errors.emergencyContactPhone}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* GP Information Section */}
-              <div className="mb-6">
-                <h3
-                  className="text-xl font-bold mb-4"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  GP Information
-                </h3>
-
-                <div className="space-y-4">
-                  <div>
-                    <label
-                      className="block text-base font-semibold mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Your GP Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.gpName}
-                      onChange={(e) =>
-                        handleInputChange("gpName", e.target.value)
-                      }
-                      className="w-full px-4 py-3 rounded-lg border text-base"
-                      style={{
-                        borderColor: errors.gpName
-                          ? "var(--error-primary)"
-                          : "var(--border-color)",
-                        backgroundColor: "var(--bg-primary)",
-                        color: "var(--text-primary)",
-                      }}
-                      placeholder="Enter your GP's name"
-                    />
-                    {errors.gpName && (
-                      <p
-                        className="text-sm mt-1"
-                        style={{ color: "var(--error-primary)" }}
-                      >
-                        {errors.gpName}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      className="block text-base font-semibold mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Name of GP Practice{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.gpPracticeName}
-                      onChange={(e) =>
-                        handleInputChange("gpPracticeName", e.target.value)
-                      }
-                      className="w-full px-4 py-3 rounded-lg border text-base"
-                      style={{
-                        borderColor: errors.gpPracticeName
-                          ? "var(--error-primary)"
-                          : "var(--border-color)",
-                        backgroundColor: "var(--bg-primary)",
-                        color: "var(--text-primary)",
-                      }}
-                      placeholder="Enter GP practice name"
-                    />
-                    {errors.gpPracticeName && (
-                      <p
-                        className="text-sm mt-1"
-                        style={{ color: "var(--error-primary)" }}
-                      >
-                        {errors.gpPracticeName}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      className="block text-base font-semibold mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      GP Practice Contact Number{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={formData.gpPracticePhone}
-                      onChange={(e) =>
-                        handleInputChange("gpPracticePhone", e.target.value)
-                      }
-                      className="w-full px-4 py-3 rounded-lg border text-base"
-                      style={{
-                        borderColor: errors.gpPracticePhone
-                          ? "var(--error-primary)"
-                          : "var(--border-color)",
-                        backgroundColor: "var(--bg-primary)",
-                        color: "var(--text-primary)",
-                      }}
-                      placeholder="Enter practice phone number"
-                    />
-                    {errors.gpPracticePhone && (
-                      <p
-                        className="text-sm mt-1"
-                        style={{ color: "var(--error-primary)" }}
-                      >
-                        {errors.gpPracticePhone}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Current Address */}
-              <div className="mb-6">
-                <label
-                  className="block text-base font-semibold mb-2"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  Your Complete Current Address (Where you reside){" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={formData.currentAddress}
+            <Section
+              number="02"
+              title="Terms & Conditions"
+              description="Please read the agreement below in full before confirming your acceptance."
+            >
+              <AgreementClauses variant="low-cost" />
+              <label className="flex items-start gap-3 cursor-pointer mt-5">
+                <input
+                  type="checkbox"
+                  checked={formData.termsAgreed}
                   onChange={(e) =>
-                    handleInputChange("currentAddress", e.target.value)
+                    handleInputChange("termsAgreed", e.target.checked)
                   }
-                  rows={4}
-                  className="w-full px-4 py-3 rounded-lg border text-base"
-                  style={{
-                    borderColor: errors.currentAddress
-                      ? "var(--error-primary)"
-                      : "var(--border-color)",
-                    backgroundColor: "var(--bg-primary)",
-                    color: "var(--text-primary)",
-                  }}
-                  placeholder="Enter your complete current address including postcode"
+                  className="mt-1 w-4 h-4 rounded shrink-0"
+                  style={{ accentColor: "var(--accent-color)" }}
                 />
-                {errors.currentAddress && (
-                  <p
-                    className="text-sm mt-1"
-                    style={{ color: "var(--error-primary)" }}
-                  >
-                    {errors.currentAddress}
-                  </p>
-                )}
-              </div>
-
-              {/* Ongoing Therapy Management */}
-              <div className="mb-6">
-                <h3
-                  className="text-xl font-bold mb-4"
+                <span
+                  className="text-sm leading-relaxed"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Ongoing Therapy Management
-                </h3>
-                <div
-                  className="p-4 rounded-lg space-y-4"
-                  style={{ backgroundColor: "var(--bg-secondary)" }}
+                  I have read and agree to the terms and conditions above,
+                  including the prohibition against recording any sessions.{" "}
+                  <span style={{ color: "var(--warning-primary)" }}>*</span>
+                </span>
+              </label>
+              {errors.termsAgreed && (
+                <p
+                  className="text-xs mt-2"
+                  style={{ color: "var(--warning-primary)" }}
                 >
-                  <div>
-                    <h4
-                      className="font-semibold mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      48-hour booking rule monitoring:
-                    </h4>
-                    <ul
-                      className="list-disc pl-5 space-y-2 text-sm"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      <li>
-                        Client must book sessions 48 hours prior, as after this
-                        time our booking system automatically closes the session
-                        slot for that week.
-                      </li>
-                      <li>System sends reminder.</li>
-                      <li>
-                        If client fails to book a session, creating a gap by
-                        missing a week, penalty applied (3 sessions instead of
-                        4, same payment).
-                      </li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4
-                      className="font-semibold mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Session continuity:
-                    </h4>
-                    <ul
-                      className="list-disc pl-5 space-y-2 text-sm"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      <li>No gaps permitted between session blocks.</li>
-                      <li>Consistent weekly slot maintained.</li>
-                      <li>
-                        Sessions continue until client/counsellor concludes
-                        therapy.
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
+                  {errors.termsAgreed}
+                </p>
+              )}
+            </Section>
 
-              {/* Signature */}
-              <div className="mb-6">
-                <label
-                  className="block text-base font-semibold mb-2"
-                  style={{ color: "var(--text-primary)" }}
+            <Section
+              number="03"
+              title="Case Study Consent"
+              description="This is a requirement for low-cost counselling as it supports the training of our counsellors. All identifying information will be removed to ensure your privacy."
+            >
+              <p
+                className="text-sm font-medium mb-3"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Are you willing to be part of an anonymised written case
+                study? <span style={{ color: "var(--warning-primary)" }}>*</span>
+              </p>
+              <div className="flex gap-6">
+                <RadioOption
+                  name="caseStudyConsent"
+                  checked={formData.caseStudyConsent === "yes"}
+                  onChange={() => handleInputChange("caseStudyConsent", "yes")}
+                  label="Yes"
+                  disabled={lockedFields.caseStudyConsent}
+                />
+                <RadioOption
+                  name="caseStudyConsent"
+                  checked={formData.caseStudyConsent === "no"}
+                  onChange={() => handleInputChange("caseStudyConsent", "no")}
+                  label="No"
+                  disabled={lockedFields.caseStudyConsent}
+                />
+              </div>
+              {errors.caseStudyConsent && (
+                <p
+                  className="text-xs mt-2"
+                  style={{ color: "var(--warning-primary)" }}
                 >
-                  Your Signature <span className="text-red-500">*</span>
-                </label>
-                <div
-                  className="border-2 rounded-lg overflow-hidden"
-                  style={{
-                    borderColor: errors.signature
-                      ? "var(--error-primary)"
-                      : "var(--border-color)",
-                  }}
-                >
-                  <SignatureCanvas
-                    ref={signatureRef}
-                    canvasProps={{
-                      className: "w-full h-48",
-                      style: { backgroundColor: "#ffffff" },
-                    }}
+                  {errors.caseStudyConsent}
+                </p>
+              )}
+            </Section>
+
+            <Section number="04" title="Emergency Contact">
+              <div className="grid sm:grid-cols-2 gap-5">
+                <Field
+                  label="Contact Name"
+                  required
+                  value={formData.emergencyContactName}
+                  onChange={(v) => handleInputChange("emergencyContactName", v)}
+                  error={errors.emergencyContactName}
+                  placeholder="Full name"
+                  locked={lockedFields.emergencyContactName}
+                />
+                <Select
+                  label="Relationship to You"
+                  required
+                  value={formData.emergencyContactRelationship}
+                  onChange={(v) =>
+                    handleInputChange("emergencyContactRelationship", v)
+                  }
+                  error={errors.emergencyContactRelationship}
+                  options={[
+                    "Mother",
+                    "Father",
+                    "Partner",
+                    "Spouse",
+                    "Sibling",
+                    "Friend",
+                    "Guardian",
+                    "Other",
+                  ]}
+                  locked={lockedFields.emergencyContactRelationship}
+                />
+                <div className="sm:col-span-2">
+                  <Field
+                    label="Contact Number"
+                    required
+                    type="tel"
+                    value={formData.emergencyContactPhone}
+                    onChange={(v) =>
+                      handleInputChange("emergencyContactPhone", v)
+                    }
+                    error={errors.emergencyContactPhone}
+                    placeholder="Enter phone number"
+                    locked={lockedFields.emergencyContactPhone}
                   />
                 </div>
+              </div>
+            </Section>
+
+            <Section number="05" title="GP Information">
+              <div className="grid sm:grid-cols-2 gap-5">
+                <Field
+                  label="GP Name"
+                  required
+                  value={formData.gpName}
+                  onChange={(v) => handleInputChange("gpName", v)}
+                  error={errors.gpName}
+                  placeholder="Enter your GP's name"
+                  locked={lockedFields.gpName}
+                />
+                <Field
+                  label="GP Practice Name"
+                  required
+                  value={formData.gpPracticeName}
+                  onChange={(v) => handleInputChange("gpPracticeName", v)}
+                  error={errors.gpPracticeName}
+                  placeholder="Enter practice name"
+                  locked={lockedFields.gpPracticeName}
+                />
+                <div className="sm:col-span-2">
+                  <Field
+                    label="GP Practice Phone"
+                    required
+                    type="tel"
+                    value={formData.gpPracticePhone}
+                    onChange={(v) => handleInputChange("gpPracticePhone", v)}
+                    error={errors.gpPracticePhone}
+                    placeholder="Enter practice phone number"
+                    locked={lockedFields.gpPracticePhone}
+                  />
+                </div>
+              </div>
+            </Section>
+
+            <Section number="06" title="Current Address">
+              <TextArea
+                label="Complete Current Address"
+                required
+                rows={3}
+                value={formData.currentAddress}
+                onChange={(v) => handleInputChange("currentAddress", v)}
+                error={errors.currentAddress}
+                placeholder="Include your postcode"
+                locked={lockedFields.currentAddress}
+              />
+            </Section>
+
+            <Section number="07" title="Ongoing Therapy Management">
+              <div className="space-y-5">
+                <div>
+                  <h4
+                    className="text-sm font-semibold mb-2"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    48-hour booking rule monitoring
+                  </h4>
+                  <ul
+                    className="list-disc pl-5 space-y-1.5 text-sm"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <li>
+                      Sessions must be booked 48 hours in advance &mdash; after
+                      this, the booking system automatically closes the slot
+                      for that week.
+                    </li>
+                    <li>The system will send a reminder ahead of the deadline.</li>
+                    <li>
+                      Missing a week without booking creates a gap: a penalty
+                      applies (3 sessions instead of 4, for the same payment).
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h4
+                    className="text-sm font-semibold mb-2"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Session continuity
+                  </h4>
+                  <ul
+                    className="list-disc pl-5 space-y-1.5 text-sm"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <li>No gaps are permitted between session blocks.</li>
+                    <li>A consistent weekly slot is maintained throughout.</li>
+                    <li>
+                      Sessions continue until the client or counsellor
+                      concludes therapy.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </Section>
+
+            <Section
+              number="08"
+              title="Signature"
+              description="Sign using your mouse, trackpad, or touchscreen below."
+              last
+            >
+              <div
+                className="rounded-md overflow-hidden border-2"
+                style={{
+                  borderColor: errors.signature
+                    ? "var(--warning-primary)"
+                    : "var(--border-color)",
+                }}
+              >
+                <SignatureCanvas
+                  ref={signatureRef}
+                  canvasProps={{
+                    className: "w-full h-40",
+                    style: { backgroundColor: "#ffffff" },
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-2">
                 <button
                   type="button"
                   onClick={clearSignature}
-                  className="mt-2 px-4 py-2 rounded-lg text-sm font-medium"
+                  className="text-xs font-medium px-3 py-1.5 rounded-md border transition-colors"
                   style={{
-                    backgroundColor: "var(--bg-secondary)",
-                    color: "var(--text-primary)",
-                    border: "1px solid var(--border-color)",
+                    borderColor: "var(--border-color)",
+                    color: "var(--text-secondary)",
                   }}
                 >
                   Clear Signature
                 </button>
-                {errors.signature && (
-                  <p
-                    className="text-sm mt-1"
-                    style={{ color: "var(--error-primary)" }}
-                  >
-                    {errors.signature}
-                  </p>
-                )}
-              </div>
-
-              {/* Signature Date (auto-generated, not editable) */}
-              <div className="mb-6">
-                <label
-                  className="block text-base font-semibold mb-2"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  Date of signing
-                </label>
-                <p
-                  className="w-full px-4 py-3 rounded-lg border text-base"
-                  style={{
-                    borderColor: "var(--border-color)",
-                    backgroundColor: "var(--bg-secondary)",
-                    color: "var(--text-primary)",
-                  }}
-                >
+                <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                  Signed on{" "}
                   {new Date(formData.signatureDate).toLocaleDateString("en-GB", {
                     day: "2-digit",
                     month: "2-digit",
                     year: "numeric",
                   })}
-                </p>
+                </span>
               </div>
+              {errors.signature && (
+                <p
+                  className="text-xs mt-2"
+                  style={{ color: "var(--warning-primary)" }}
+                >
+                  {errors.signature}
+                </p>
+              )}
+            </Section>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-4 rounded-lg text-lg font-semibold text-white transition-all"
-                style={{
-                  background: submitting
-                    ? "var(--bg-secondary)"
-                    : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  cursor: submitting ? "not-allowed" : "pointer",
-                  opacity: submitting ? 0.6 : 1,
-                }}
-              >
-                {submitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="animate-spin h-5 w-5" />
-                    Submitting Agreement...
-                  </span>
-                ) : (
-                  "Submit Agreement"
-                )}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3.5 rounded-md text-base font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)]"
+            >
+              {submitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="animate-spin h-4 w-4" />
+                  Submitting Agreement&hellip;
+                </span>
+              ) : (
+                "Sign & Submit Agreement"
+              )}
+            </button>
           </form>
 
-          {/* Footer Note */}
-          <div className="text-center">
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              By submitting this form, you agree to the terms and conditions
-              outlined in the agreement.
-              <br />
-              Your information will be kept confidential and secure.
-            </p>
-          </div>
+          <p
+            className="text-xs text-center mt-6 leading-relaxed"
+            style={{ color: "var(--text-tertiary)" }}
+          >
+            By submitting this form you agree to the terms and conditions
+            outlined above. Your information is kept confidential and secure.
+          </p>
         </div>
       </div>
     </PublicFormWrapper>
@@ -939,12 +788,180 @@ export default function LowCostAgreementPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-          <Loader2 className="animate-spin h-12 w-12 text-[#6366f1]" />
+        <div
+          className="min-h-screen flex items-center justify-center"
+          style={{ background: "var(--bg-secondary, #fafbfc)" }}
+        >
+          <Loader2
+            className="animate-spin h-8 w-8"
+            style={{ color: "var(--accent-color, #6f1d56)" }}
+          />
         </div>
       }
     >
       <LowCostAgreementContent />
     </Suspense>
+  );
+}
+
+// Shared presentational helpers for the agreement document layout.
+
+function Section({ number, title, description, children, last = false }) {
+  return (
+    <section
+      className="mb-10 pb-10"
+      style={last ? undefined : { borderBottom: "1px solid var(--border-color)" }}
+    >
+      <div className="flex items-baseline gap-3">
+        <span
+          className="text-xs font-mono font-semibold"
+          style={{ color: "var(--accent-color)" }}
+        >
+          {number}
+        </span>
+        <h2
+          className="text-base font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
+          {title}
+        </h2>
+      </div>
+      <div className="ml-7 mt-3">
+        {description && (
+          <p
+            className="text-sm mb-4"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {description}
+          </p>
+        )}
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function FieldLabel({ label, required, locked }) {
+  return (
+    <label
+      className="flex items-center gap-1.5 text-sm font-medium mb-1.5"
+      style={{ color: "var(--text-primary)" }}
+    >
+      {label} {required && <span style={{ color: "var(--warning-primary)" }}>*</span>}
+      {locked && (
+        <span
+          className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
+          style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-tertiary)" }}
+        >
+          <Lock className="w-2.5 h-2.5" />
+          On file
+        </span>
+      )}
+    </label>
+  );
+}
+
+function Field({ label, required, value, onChange, error, type = "text", placeholder, locked = false }) {
+  return (
+    <div>
+      <FieldLabel label={label} required={required} locked={locked} />
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        readOnly={locked}
+        className="w-full px-3.5 py-2.5 rounded-md border text-sm outline-none transition-colors focus:border-[var(--accent-color)] focus:ring-4 focus:ring-[var(--accent-color)]/10"
+        style={{
+          borderColor: error ? "var(--warning-primary)" : "var(--border-color)",
+          backgroundColor: locked ? "var(--bg-secondary)" : "var(--input-bg)",
+          color: locked ? "var(--text-secondary)" : "var(--input-text)",
+          cursor: locked ? "default" : "text",
+        }}
+      />
+      {error && (
+        <p className="text-xs mt-1.5" style={{ color: "var(--warning-primary)" }}>
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Select({ label, required, value, onChange, error, options, locked = false }) {
+  return (
+    <div>
+      <FieldLabel label={label} required={required} locked={locked} />
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={locked}
+        className="w-full px-3.5 py-2.5 rounded-md border text-sm outline-none transition-colors focus:border-[var(--accent-color)] focus:ring-4 focus:ring-[var(--accent-color)]/10 disabled:cursor-default"
+        style={{
+          borderColor: error ? "var(--warning-primary)" : "var(--border-color)",
+          backgroundColor: locked ? "var(--bg-secondary)" : "var(--input-bg)",
+          color: locked ? "var(--text-secondary)" : "var(--input-text)",
+        }}
+      >
+        <option value="">Select relationship&hellip;</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+      {error && (
+        <p className="text-xs mt-1.5" style={{ color: "var(--warning-primary)" }}>
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function TextArea({ label, required, value, onChange, error, rows = 3, placeholder, locked = false }) {
+  return (
+    <div>
+      <FieldLabel label={label} required={required} locked={locked} />
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rows}
+        placeholder={placeholder}
+        readOnly={locked}
+        className="w-full px-3.5 py-2.5 rounded-md border text-sm outline-none transition-colors resize-none focus:border-[var(--accent-color)] focus:ring-4 focus:ring-[var(--accent-color)]/10"
+        style={{
+          borderColor: error ? "var(--warning-primary)" : "var(--border-color)",
+          backgroundColor: locked ? "var(--bg-secondary)" : "var(--input-bg)",
+          color: locked ? "var(--text-secondary)" : "var(--input-text)",
+          cursor: locked ? "default" : "text",
+        }}
+      />
+      {error && (
+        <p className="text-xs mt-1.5" style={{ color: "var(--warning-primary)" }}>
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function RadioOption({ name, checked, onChange, label, disabled = false }) {
+  return (
+    <label
+      className={`flex items-center gap-2 text-sm ${disabled ? "cursor-default" : "cursor-pointer"}`}
+      style={{ color: disabled ? "var(--text-secondary)" : "var(--text-primary)" }}
+    >
+      <input
+        type="radio"
+        name={name}
+        checked={checked}
+        onChange={onChange}
+        disabled={disabled}
+        className="w-4 h-4"
+        style={{ accentColor: "var(--accent-color)" }}
+      />
+      {label}
+    </label>
   );
 }

@@ -1,13 +1,34 @@
 "use client";
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, Calendar, Mail, Phone } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const uuid = searchParams.get("uuid");
+  const slot = searchParams.get("slot");
+  const hasTriggeredBooking = useRef(false);
+
+  useEffect(() => {
+    if (!uuid || !slot || hasTriggeredBooking.current) return;
+    hasTriggeredBooking.current = true;
+
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/client/book-consultation`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_uuid: uuid,
+          consultation_slot_id: slot,
+        }),
+      },
+    ).catch((err) => {
+      console.error("Error confirming consultation booking:", err);
+    });
+  }, [uuid, slot]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -17,66 +38,30 @@ function SuccessContent() {
         </div>
 
         <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">
-          Payment Successful!
+          Thank you for booking your consultation with us.
         </h1>
-
-        <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-          Thank you for completing your intake form. Please check your email
-          for a confirmation message.
-        </p>
 
         <div className="space-y-4 mb-10">
           <div className="bg-purple-50 rounded-2xl p-6 border border-purple-100 text-left">
-            <h3 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Next Steps
-            </h3>
-            <ul className="space-y-3 text-sm md:text-base text-purple-800">
-              <li className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold">
-                  1
-                </div>
-                <p>Check your email for a confirmation message.</p>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-purple-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold">
-                  2
-                </div>
-                <p>
-                  Please check your <strong>Spam/Junk folder</strong> if you
-                  don't see it in your inbox.
-                </p>
-              </li>
-            </ul>
+            <p className="text-sm md:text-base text-purple-800">
+              Please remember to check your{" "}
+              <strong>Spam/Junk folder</strong> in case the booking
+              confirmation email does not appear in your inbox.
+            </p>
           </div>
 
           <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100 text-left">
-            <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
-              <Mail className="w-5 h-5" />
-              Need Assistance?
-            </h3>
             <p className="text-sm text-blue-800">
-              If you have any questions or haven't received a confirmation email
-              within 24 hours, please contact us.
+              If you have not received a confirmation email, it is important
+              that you contact us at least 48 hours before your consultation
+              so we can assist in confirming your booking.
             </p>
-            <div className="mt-4 flex flex-wrap gap-4">
-              <a
-                href="mailto:help@vanquishtherapies.co.uk"
-                className="flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900 transition-colors"
-              >
-                <Mail className="w-4 h-4" />
-                Email Support
-              </a>
-              <a
-                href="tel:+447700900000"
-                className="flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900 transition-colors"
-              >
-                <Phone className="w-4 h-4" />
-                07700 900000
-              </a>
-            </div>
           </div>
         </div>
+
+        <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+          We look forward to connecting with you.
+        </p>
 
         <p className="mt-12 text-xs text-gray-400">
           © {new Date().getFullYear()} Vanquish Therapies. All rights reserved.
