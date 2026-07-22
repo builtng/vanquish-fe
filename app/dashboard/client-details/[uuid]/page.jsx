@@ -231,15 +231,25 @@ export default function IndividualClientDetailPage() {
           },
         ];
 
-        // Determine current stage based on the last completed stage or the client.stage if it matches
-        const currentStageName = data.stage;
+        // Determine effective current stage name
+        let effectiveStage = data.stage;
+        if ((data.matched_tc || data.matched_tc_id) && !["Sessions Booked", "Active Therapy", "Completed"].includes(effectiveStage)) {
+          effectiveStage = "Matched With Counsellor";
+        }
+
+        const isCurrentStage = (stageName) => {
+          if (stageName === effectiveStage) return true;
+          if (stageName === "Matched With Counsellor" && (effectiveStage === "Matched with TC" || effectiveStage === "Matched With Counsellor")) return true;
+          if (stageName === "Agreement Signed" && (effectiveStage === "Agreement Signed" || effectiveStage === "Awaiting Matching" || effectiveStage === "Pending Match")) return true;
+          return false;
+        };
 
         return stages.map((s, index) => ({
           stage: s.name,
           date: s.date ? new Date(s.date).toLocaleDateString("en-GB") : null,
           completed: s.isCompleted,
           current:
-            s.name === currentStageName ||
+            isCurrentStage(s.name) ||
             (s.isCompleted &&
               index === stages.length - 1 &&
               !stages.slice(index + 1).some((next) => next.isCompleted)),
