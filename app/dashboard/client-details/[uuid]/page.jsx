@@ -434,12 +434,12 @@ export default function IndividualClientDetailPage() {
       feedbackCount: data.feedback_count || 0,
       lastFeedbackSentAt: data.last_feedback_sent_at || null,
       lastFeedbackDate: data.last_feedback_date || null,
-      agreement: data.agreement_status
+      agreement: (data.agreement_status || data.agreement_signed_at || data.stage === "Agreement Signed")
         ? {
             status:
-              data.agreement_status === "signed"
+              data.agreement_status === "signed" || data.agreement_signed_at || data.stage === "Agreement Signed" || data.stage === "Matched with TC"
                 ? "Signed"
-                : data.agreement_status === "sent"
+                : data.agreement_status === "sent" || data.agreement_sent_at
                   ? "Sent"
                   : "Not Sent",
             sentDate: data.agreement_sent_at
@@ -460,6 +460,7 @@ export default function IndividualClientDetailPage() {
               : null,
             jotformId: data.agreement_jotform_id || null,
             signatureUrl: data.agreement_signature_url || null,
+            downloadUrl: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/client-agreement/download/${data.uuid || data.id}`,
           }
         : null,
       emergencyContact:
@@ -789,12 +790,17 @@ export default function IndividualClientDetailPage() {
     }
   };
 
-  const handleDownloadAgreement = () => {
-    if (!client?.agreement?.documentUrl) {
-      showNotification("Agreement document not available", "error");
-      return;
+  const handleDownloadAgreement = async () => {
+    try {
+      setActionLoading(true);
+      await apiService.downloadAgreementPdf(client?.uuid || uuid);
+      success("Agreement downloaded successfully!");
+    } catch (error) {
+      console.error("Error downloading agreement:", error);
+      showError(error?.message || "Failed to download agreement PDF");
+    } finally {
+      setActionLoading(false);
     }
-    window.open(client.agreement.documentUrl, "_blank");
   };
 
   const handleResendAgreement = async () => {
@@ -2397,18 +2403,16 @@ export default function IndividualClientDetailPage() {
                             </div>
                           )}
                           <div className="flex items-center gap-3 mt-4">
-                            {client.agreement.status === "Signed" &&
-                              client.agreement.jotformId && (
-                                <a
-                                  href={`https://form.jotform.com/231635798225060`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-2"
-                                >
-                                  <Download className="w-4 h-4" />
-                                  View Agreement Form
-                                </a>
-                              )}
+                            {client.agreement.status === "Signed" && (
+                              <button
+                                onClick={handleDownloadAgreement}
+                                disabled={actionLoading}
+                                className="px-4 py-2 border border-green-300 text-green-700 bg-green-50 rounded-lg hover:bg-green-100 font-medium flex items-center gap-2 shadow-sm cursor-pointer disabled:opacity-50"
+                              >
+                                <Download className="w-4 h-4" />
+                                {actionLoading ? "Downloading..." : "Download PDF Copy of Agreement"}
+                              </button>
+                            )}
                             {client.agreement.status !== "Signed" && (
                               <button
                                 onClick={handleResendAgreement}

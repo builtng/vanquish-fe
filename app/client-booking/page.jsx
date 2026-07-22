@@ -588,7 +588,9 @@ function ClientBookingContent() {
                 </p>
               )}
               <p className="text-sm text-gray-500 mt-3">
-                Therapy session booking will open after your agreement is signed and you are matched with a counsellor.
+                {client?.agreement_status === "signed" || client?.agreement_signed_at
+                  ? "Your agreement is signed. Therapy session booking will open as soon as you are matched with a practitioner."
+                  : "Therapy session booking will open after your agreement is signed and you are matched with a counsellor."}
               </p>
             </div>
           ) : upcomingSessions.length === 0 ? (

@@ -58,10 +58,15 @@ function InternalChooseCounsellor() {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             You're All Set!
           </h2>
-          <p className="text-gray-600">
-            We've sent your service agreement to your email. Please review and
-            sign it, and you'll then be able to book your sessions.
+          <p className="text-gray-600 mb-6">
+            Your practitioner choice has been saved! You can now proceed to book your sessions.
           </p>
+          <a
+            href={`/client-booking?uuid=${uuid}`}
+            className="inline-block px-6 py-3 bg-[#6f1d56] text-white font-bold rounded-lg hover:bg-[#581744] transition-colors"
+          >
+            Go to Booking Portal
+          </a>
         </div>
       </div>
     );
