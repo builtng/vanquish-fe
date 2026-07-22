@@ -60,6 +60,7 @@ export default function DashboardSidebar() {
   });
   const [pendingMatchesCount, setPendingMatchesCount] = useState(0);
   const [traineeAppsCount, setTraineeAppsCount] = useState(0);
+  const [timeOffPendingCount, setTimeOffPendingCount] = useState(0);
   const [menuPrivileges, setMenuPrivileges] = useState([]);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -116,7 +117,7 @@ export default function DashboardSidebar() {
       const userRole = user?.role;
       const canFetchStaffData = userRole === "admin" || userRole === "super_admin" || userRole === "staff" || userRole === "consultation_staff" || userRole === "compliance_officer";
 
-      const [consultationsData, pendingCount, traineeCount, privilegesData, unreadCountRes] =
+      const [consultationsData, pendingCount, traineeCount, pendingHolidays, privilegesData, unreadCountRes] =
         await Promise.all([
           canFetchStaffData
             ? apiService.getConsultations()
@@ -127,10 +128,13 @@ export default function DashboardSidebar() {
           canFetchStaffData
             ? apiService.getTraineeApplicationsCount()
             : Promise.resolve(0),
+          canFetchStaffData
+            ? apiService.getPendingHolidays()
+            : Promise.resolve([]),
           // Admins get full list; staff/counsellors fetch their role-specific allowed menu IDs
           isAdmin
             ? apiService.getMenuPrivileges()
-            : userRole 
+            : userRole
               ? apiService.getMenuPrivilegesForRole(userRole)
               : Promise.resolve([]),
           apiService.getUnreadMessageCount(),
@@ -162,6 +166,7 @@ export default function DashboardSidebar() {
       });
       setPendingMatchesCount(pendingCount || 0);
       setTraineeAppsCount(traineeCount || 0);
+      setTimeOffPendingCount(Array.isArray(pendingHolidays) ? pendingHolidays.length : 0);
       setMenuPrivileges(privilegesData || []);
       setUnreadMessageCount(unreadCountRes?.count || 0);
 
@@ -359,6 +364,7 @@ export default function DashboardSidebar() {
           label: "Time Off Requests",
           icon: CalendarDays,
           href: "/dashboard/time-off-requests",
+          badge: timeOffPendingCount,
         },
       ],
     },
