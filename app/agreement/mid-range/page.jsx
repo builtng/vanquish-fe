@@ -107,9 +107,15 @@ function MidRangeAgreementContent() {
               gpPracticePhone: !!clientData.gp_practice_phone,
             });
           } else {
-            setError(
-              "This agreement link is invalid or has expired. Please use the link from your original email, or contact us for a new one.",
-            );
+            const errJson = await response.json().catch(() => ({}));
+            if (errJson.already_signed) {
+              setSubmittedUuid(uuid);
+              setError("You have already signed your service agreement. No further action is required.");
+            } else {
+              setError(
+                errJson.message || "This agreement link is invalid or has expired. Please use the link from your original email, or contact us for a new one.",
+              );
+            }
           }
         } else {
           setClientEmail(email || "");

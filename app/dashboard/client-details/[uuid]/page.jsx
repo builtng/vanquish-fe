@@ -163,9 +163,9 @@ export default function IndividualClientDetailPage() {
       address: data.address || null,
       postcode: data.postcode || null,
       age: data.age || null,
-      gender: data.gender || null,
-      ethnicity: data.ethnicity || null,
-      sexualOrientation: data.sexual_orientation || null,
+      gender: data.gender || data.intake_form?.gender || "Not provided",
+      ethnicity: data.ethnicity || data.intake_form?.ethnicity || "Not specified",
+      sexualOrientation: data.sexual_orientation || data.intake_form?.sexual_orientation || "Not specified",
       stage: data.stage || "Consultation Booked",
       status: data.status || "active",
       daysInSystem: data.submitted_date
@@ -174,8 +174,8 @@ export default function IndividualClientDetailPage() {
               (1000 * 60 * 60 * 24),
           )
         : 0,
-      voicemailPermission: data.voicemail_permission || null,
-      howHeardAbout: data.how_heard_about || null,
+      voicemailPermission: data.voicemail_permission || (data.intake_form?.voicemail_ok !== undefined ? (data.intake_form.voicemail_ok ? "Yes" : "No") : "Not specified"),
+      howHeardAbout: data.how_heard_about || data.hear_about_us || data.intake_form?.hear_about_us || "Not specified",
       journey: (() => {
         const stages = [
           {
@@ -1547,7 +1547,7 @@ export default function IndividualClientDetailPage() {
                             Residential Address
                           </p>
                           <p className="text-base font-bold text-[var(--text-primary)]">
-                            {client.address}, {client.postcode}
+                            {[client.address, client.postcode].filter(Boolean).join(", ") || "Not provided"}
                           </p>
                         </div>
 
