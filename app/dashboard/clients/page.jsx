@@ -97,8 +97,10 @@ export default function ViewAllClients() {
         name: client.name || "Unknown",
         age: client.age || null,
         email: client.email || "",
-        phone: client.phone || "",
-        stage: client.stage || "Consultation Booked",
+        stage:
+          client.stage === "Matched with TC"
+            ? "Matched With Counsellor"
+            : client.stage || "Consultation Booked",
         matchedTC: client.matched_tc
           ? client.matched_tc.name || client.matched_tc.full_name
           : null,
@@ -167,6 +169,7 @@ export default function ViewAllClients() {
       case "Consultation Completed":
         return "bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200";
       case "Matched With Counsellor":
+      case "Matched with TC":
         return "bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200";
       case "Agreement Sent":
         return "bg-orange-100 dark:bg-orange-900/20 text-orange-800 dark:text-orange-200";

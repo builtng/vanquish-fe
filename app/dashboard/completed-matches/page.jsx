@@ -99,7 +99,10 @@ export default function CompletedMatchesPage() {
         age: client.age || null,
         email: client.email || "",
         phone: client.phone || "",
-        stage: client.stage || "Consultation Booked",
+        stage:
+          client.stage === "Matched with TC"
+            ? "Matched With Counsellor"
+            : client.stage || "Consultation Booked",
         matchedTC: client.matched_tc
           ? client.matched_tc.name || client.matched_tc.full_name
           : null,
@@ -217,6 +220,7 @@ export default function CompletedMatchesPage() {
   // Filter for completed matches logic
   const completedStages = [
     "Matched With Counsellor",
+    "Matched with TC",
     "Agreement Sent",
     "Agreement Signed",
     "Sessions Booked",
@@ -226,7 +230,7 @@ export default function CompletedMatchesPage() {
 
   const filteredClients = allClients
     .filter((client) => {
-      const isCompletedMatch = completedStages.includes(client.stage);
+      const isCompletedMatch = completedStages.includes(client.stage) || !!client.matchedTC || !!client.matchedTcId;
       if (!isCompletedMatch) return false;
 
       const matchesSearch =

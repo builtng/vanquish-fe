@@ -172,8 +172,8 @@ function BookConsultationPage() {
       <div className="flex-1 flex flex-col overflow-y-auto bg-gray-50 dark:bg-[var(--background)]">
         <DashboardHeader title="Book Consultation" />
         
-        <div className="p-6 max-w-4xl mx-auto w-full">
-          <div className="mb-4">
+        <div className="p-6 w-full max-w-6xl space-y-4">
+          <div className="mb-2">
             <button
               onClick={() => router.push("/dashboard/consultations")}
               className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900 dark:hover:text-[var(--text-primary)] transition-colors"
@@ -192,7 +192,7 @@ function BookConsultationPage() {
 
             {loading ? (
               <div className="p-12 flex justify-center items-center">
-                <RefreshCw className="w-8 h-8 animate-spin text-purple-600" />
+                <RefreshCw className="w-8 h-8 animate-spin text-[#6f1d56]" />
               </div>
             ) : (
               <form onSubmit={handleBookSubmit} className="p-6 space-y-6">
@@ -266,7 +266,7 @@ function BookConsultationPage() {
                       }}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                         bookingType === "slot"
-                          ? "bg-purple-600 text-white shadow"
+                          ? "bg-[#6f1d56] text-white shadow hover:bg-[#5a1745]"
                           : "text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
                       }`}
                     >
@@ -280,7 +280,7 @@ function BookConsultationPage() {
                       }}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                         bookingType === "custom"
-                          ? "bg-purple-600 text-white shadow"
+                          ? "bg-[#6f1d56] text-white shadow hover:bg-[#5a1745]"
                           : "text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
                       }`}
                     >
@@ -296,7 +296,7 @@ function BookConsultationPage() {
                     </label>
                     {slotsLoading ? (
                       <div className="flex justify-center items-center h-32">
-                        <RefreshCw className="h-8 w-8 animate-spin text-purple-600" />
+                        <RefreshCw className="h-8 w-8 animate-spin text-[#6f1d56]" />
                       </div>
                     ) : slots.length === 0 ? (
                       <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg bg-gray-50 dark:bg-[var(--hover-bg)]">
@@ -342,7 +342,7 @@ function BookConsultationPage() {
                         onChange={(e) =>
                           setBookForm({ ...bookForm, date: e.target.value })
                         }
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-transparent dark:text-white rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-transparent dark:text-white rounded-lg focus:ring-2 focus:ring-[#6f1d56] focus:border-transparent"
                         required
                       />
                     </div>
@@ -379,7 +379,7 @@ function BookConsultationPage() {
                     onChange={(e) =>
                       setBookForm({ ...bookForm, notes: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-transparent dark:text-white rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-transparent dark:text-white rounded-lg focus:ring-2 focus:ring-[#6f1d56] focus:border-transparent resize-none"
                     rows={4}
                   />
                 </div>
@@ -395,7 +395,7 @@ function BookConsultationPage() {
                         sendConfirmation: e.target.checked,
                       })
                     }
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded"
+                    className="w-4 h-4 accent-[#6f1d56] text-[#6f1d56] border-gray-300 rounded focus:ring-[#6f1d56]"
                   />
                   <label
                     htmlFor="sendConfirmation"
@@ -418,8 +418,7 @@ function BookConsultationPage() {
                   <button
                     type="submit"
                     disabled={actionLoading}
-                    className="px-6 py-2.5 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 flex items-center gap-2"
-                    style={{ backgroundColor: "#6f1d56" }}
+                    className="px-6 py-2.5 bg-[#6f1d56] text-white rounded-lg hover:bg-[#5a1745] font-medium disabled:opacity-50 flex items-center gap-2 transition-all shadow-sm"
                   >
                     {actionLoading ? (
                       <>

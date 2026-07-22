@@ -90,7 +90,7 @@ const SearchableSelect = ({
       boxShadow: hasError
         ? '0 0 0 1px rgba(239, 68, 68, 0.5)'
         : state.isFocused 
-        ? '0 0 0 2px rgba(99, 102, 241, 0.5)' 
+        ? '0 0 0 2px rgba(111, 29, 86, 0.5)' 
         : 'none',
       '&:hover': {
         borderColor: hasError 
