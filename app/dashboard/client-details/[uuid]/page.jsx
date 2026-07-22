@@ -2990,12 +2990,26 @@ export default function IndividualClientDetailPage() {
                           disabled={
                             downloadingReport || client.status === "archived"
                           }
-                          className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                          {downloadingReport
-                            ? "Downloading..."
-                            : "Download Report"}
+                          <Download className="w-4 h-4 text-gray-600" />
+                          <span>
+                            {downloadingReport
+                              ? "Downloading..."
+                              : "Download Report"}
+                          </span>
                         </button>
+
+                        {client.agreement?.status === "Signed" && (
+                          <button
+                            onClick={handleDownloadAgreement}
+                            disabled={actionLoading}
+                            className="w-full py-2 border border-green-300 text-green-700 bg-green-50 rounded-lg hover:bg-green-100 font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Download className="w-4 h-4 text-green-700" />
+                            <span>Download Signed Agreement</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
