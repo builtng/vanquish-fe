@@ -36,6 +36,7 @@ import {
   ToggleRight,
   Calendar,
   CreditCard,
+  CheckCircle,
 } from "lucide-react";
 import MenuPrivilegesSettings from "@/components/MenuPrivilegesSettings";
 import CompanyBrandingSettings from "@/components/CompanyBrandingSettings";

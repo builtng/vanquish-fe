@@ -62,7 +62,7 @@ function InternalChooseCounsellor() {
             Your practitioner choice has been saved! You can now proceed to book your sessions.
           </p>
           <a
-            href={`/client-booking?uuid=${uuid}`}
+            href={`/client-booking?uuid=${encodeURIComponent(clientUuid)}`}
             className="inline-block px-6 py-3 bg-[#6f1d56] text-white font-bold rounded-lg hover:bg-[#581744] transition-colors"
           >
             Go to Booking Portal

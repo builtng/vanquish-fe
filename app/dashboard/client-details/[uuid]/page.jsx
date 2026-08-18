@@ -137,6 +137,7 @@ export default function IndividualClientDetailPage() {
     useState(false);
   const [showDeleteSessionConfirmModal, setShowDeleteSessionConfirmModal] =
     useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
   const [noteToDelete, setNoteToDelete] = useState(null);
   const [nextStage, setNextStage] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);

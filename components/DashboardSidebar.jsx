@@ -120,24 +120,24 @@ export default function DashboardSidebar() {
       const [consultationsData, pendingCount, traineeCount, pendingHolidays, privilegesData, unreadCountRes] =
         await Promise.all([
           canFetchStaffData
-            ? apiService.getConsultations()
+            ? apiService.getConsultations().catch((e) => { console.warn("Sidebar consultations fetch failed:", e); return []; })
             : Promise.resolve([]),
           canFetchStaffData
-            ? apiService.getPendingMatchesCount()
+            ? apiService.getPendingMatchesCount().catch((e) => { console.warn("Sidebar pending matches count failed:", e); return 0; })
             : Promise.resolve(0),
           canFetchStaffData
-            ? apiService.getTraineeApplicationsCount()
+            ? apiService.getTraineeApplicationsCount().catch((e) => { console.warn("Sidebar trainee count failed:", e); return 0; })
             : Promise.resolve(0),
           canFetchStaffData
-            ? apiService.getPendingHolidays()
+            ? apiService.getPendingHolidays().catch((e) => { console.warn("Sidebar pending holidays failed:", e); return []; })
             : Promise.resolve([]),
           // Admins get full list; staff/counsellors fetch their role-specific allowed menu IDs
           isAdmin
-            ? apiService.getMenuPrivileges()
+            ? apiService.getMenuPrivileges().catch((e) => { console.warn("Sidebar menu privileges failed:", e); return []; })
             : userRole
-              ? apiService.getMenuPrivilegesForRole(userRole)
+              ? apiService.getMenuPrivilegesForRole(userRole).catch((e) => { console.warn("Sidebar role privileges failed:", e); return []; })
               : Promise.resolve([]),
-          apiService.getUnreadMessageCount(),
+          apiService.getUnreadMessageCount().catch((e) => { console.warn("Sidebar unread message count failed:", e); return { count: 0 }; }),
         ]);
 
       // Transform consultations data

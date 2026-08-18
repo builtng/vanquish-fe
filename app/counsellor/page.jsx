@@ -1315,7 +1315,7 @@ export default function VanquishTCApplication() {
                   <div className="relative">
                     <input
                       type="file"
-                      onChange={(e) => handleFileChange("insurance", e.target.files[0])}
+                      onChange={(e) => handleFileUpload("insurance", e.target.files)}
                       className="hidden"
                       id="insurance"
                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"

@@ -86,7 +86,7 @@ function TraineeApplicationsDashboardContent() {
       });
       if (date) updateStatus(id, newStatus, date);
     } else {
-      updateStatus(id, newStatus);x
+      updateStatus(id, newStatus);
     }
   };
   const toggleSelectAll = () => {
