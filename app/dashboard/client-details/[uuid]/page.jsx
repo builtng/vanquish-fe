@@ -1255,16 +1255,17 @@ export default function IndividualClientDetailPage() {
                 </div>
 
                 {/* Client Header Content */}
-                <div className="px-8 py-8 lg:py-10 bg-gradient-to-br from-white via-transparent to-transparent">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                    <div className="flex items-start gap-6">
-                      {/* Avatar Section */}
-                      <div className="relative group">
+                <div className="px-6 py-5 lg:px-8 lg:py-6 bg-gradient-to-r from-white via-slate-50/50 to-white dark:from-gray-900 dark:via-gray-900/60 dark:to-gray-900 border-b border-[var(--border-color)] shadow-sm">
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+                    {/* Left: Avatar + Client Name + Meta in one unified cohesive layout */}
+                    <div className="flex items-center gap-4 sm:gap-5 min-w-0">
+                      {/* Avatar */}
+                      <div className="relative group shrink-0">
                         <div
-                          className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-extrabold shadow-2xl transition-all duration-300 group-hover:scale-105"
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-white text-xl sm:text-2xl font-extrabold shadow-lg transition-all duration-300 group-hover:scale-105"
                           style={{
                             background: "linear-gradient(135deg, #6f1d56 0%, #a21b5e 100%)",
-                            boxShadow: '0 8px 16px -4px rgba(111, 29, 86, 0.3)'
+                            boxShadow: "0 6px 14px -3px rgba(111, 29, 86, 0.35)",
                           }}
                         >
                           {client.name
@@ -1278,30 +1279,32 @@ export default function IndividualClientDetailPage() {
                       </div>
 
                       {/* Header Main Info */}
-                      <div className="space-y-3 pt-1">
-                        <div className="flex flex-wrap items-end gap-3">
-                          <h1 className="text-4xl font-black tracking-tight text-[var(--text-primary)]">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-[var(--text-primary)] whitespace-nowrap">
                             {client.name}
                           </h1>
-                          <div className="flex items-center gap-2 mb-1.5 px-3 py-1 bg-white border border-[var(--border-color)] rounded-full text-sm font-medium text-[var(--text-secondary)] shadow-sm">
-                            <span>{client.age} yrs</span>
-                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                            <span className="text-xs font-mono opacity-60">ID: {client.id?.substring(0, 8)}...</span>
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-white dark:bg-gray-800 border border-[var(--border-color)] rounded-full text-xs font-medium text-[var(--text-secondary)] shadow-xs">
+                            <span>{client.age || "—"} yrs</span>
+                            <span className="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></span>
+                            <span className="font-mono opacity-70">ID: {client.id?.substring(0, 8)}...</span>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-4">
-                          <div className="flex items-center gap-2 pr-4 border-r border-[var(--border-color)]">
-                            <span className={`w-3 h-3 rounded-full animate-pulse ${getStatusColor(client.status)}`}></span>
-                            <span className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase ${getStageBadgeColor(client.stage)} shadow-sm`}>
+                        <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs">
+                          <div className="inline-flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full animate-pulse ${getStatusColor(client.status)}`}></span>
+                            <span className={`px-2.5 py-0.5 rounded-full font-bold tracking-wide uppercase ${getStageBadgeColor(client.stage)} shadow-xs`}>
                               {client.stage}
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
-                            <Clock className="w-4 h-4 opacity-50" />
+                          <span className="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full hidden sm:inline-block"></span>
+
+                          <div className="inline-flex items-center gap-1 text-[var(--text-secondary)]">
+                            <Clock className="w-3.5 h-3.5 opacity-50" />
                             <span>Last active:</span>
-                            <span className="text-[var(--text-primary)]">
+                            <span className="text-[var(--text-primary)] font-medium">
                               {client.updatedAt
                                 ? (() => {
                                     const diff = new Date() - new Date(client.updatedAt);
@@ -1318,70 +1321,70 @@ export default function IndividualClientDetailPage() {
                       </div>
                     </div>
 
-                    {/* Quick Actions Restructured */}
-                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row xl:items-center gap-3">
+                    {/* Right: Quick Actions in one sleek horizontal row */}
+                    <div className="flex items-center flex-wrap gap-2.5 shrink-0">
                       {/* Contact Group */}
-                      <div className="flex items-center gap-2 bg-indigo-50/50 p-1.5 rounded-xl border border-indigo-100">
+                      <div className="inline-flex items-center gap-1 bg-indigo-50/70 dark:bg-indigo-950/30 p-1 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
                         <button
                           onClick={handleSendEmail}
                           disabled={actionLoading || client.status === "archived"}
-                          className="p-2.5 bg-white text-indigo-600 rounded-lg hover:bg-white/80 shadow-sm border border-indigo-100/50 transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                          className="p-2 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-50 shadow-xs border border-indigo-100/60 dark:border-indigo-800/40 transition-all hover:-translate-y-0.5 disabled:opacity-50"
                           title="Send Email"
                         >
-                          <Mail className="w-5 h-5" />
+                          <Mail className="w-4 h-4" />
                         </button>
                         <button
                           onClick={handleCall}
                           disabled={client.status === "archived"}
-                          className="p-2.5 bg-white text-indigo-600 rounded-lg hover:bg-white/80 shadow-sm border border-indigo-100/50 transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                          className="p-2 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-50 shadow-xs border border-indigo-100/60 dark:border-indigo-800/40 transition-all hover:-translate-y-0.5 disabled:opacity-50"
                           title="Call Client"
                         >
-                          <Phone className="w-5 h-5" />
+                          <Phone className="w-4 h-4" />
                         </button>
                         <Link
                           href={`/dashboard/contacts/client/${uuid}/inbox`}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md transition-all hover:-translate-y-0.5"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm font-semibold text-xs transition-all hover:-translate-y-0.5 whitespace-nowrap"
                         >
-                          <Mail className="w-5 h-5" />
-                          <span className="font-semibold text-sm">Inbox</span>
+                          <Mail className="w-4 h-4" />
+                          <span>Inbox</span>
                         </Link>
                       </div>
 
                       {/* Resources Group */}
-                      <div className="flex items-center gap-2 bg-purple-50/50 p-1.5 rounded-xl border border-purple-100">
+                      <div className="inline-flex items-center gap-1 bg-purple-50/70 dark:bg-purple-950/30 p-1 rounded-xl border border-purple-100 dark:border-purple-900/40">
                         <Link
                           href={`/dashboard/contacts/client/${uuid}/files`}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-white text-purple-700 rounded-lg hover:bg-purple-50 shadow-sm border border-purple-200 transition-all font-semibold text-sm hover:-translate-y-0.5"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-800 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 shadow-xs border border-purple-200 dark:border-purple-800/60 transition-all font-semibold text-xs hover:-translate-y-0.5 whitespace-nowrap"
                         >
-                          <Files className="w-5 h-5" />
+                          <Files className="w-4 h-4" />
                           <span>Files</span>
                         </Link>
                         <Link
                           href={`/dashboard/contacts/client/${uuid}/internal-form`}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-white text-amber-700 rounded-lg hover:bg-amber-50 shadow-sm border border-amber-200 transition-all font-semibold text-sm hover:-translate-y-0.5 whitespace-nowrap"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 shadow-xs border border-amber-200 dark:border-amber-800/60 transition-all font-semibold text-xs hover:-translate-y-0.5 whitespace-nowrap"
                         >
-                          <FileText className="w-5 h-5" />
+                          <FileText className="w-4 h-4" />
                           <span>Internal Form</span>
                         </Link>
                       </div>
 
                       {/* Repeat Booking Portal Link Group */}
-                      <div className="flex items-center gap-1.5 bg-emerald-50/70 dark:bg-emerald-950/30 p-1.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800/40">
+                      <div className="inline-flex items-center gap-1 bg-emerald-50/70 dark:bg-emerald-950/30 p-1 rounded-xl border border-emerald-200/80 dark:border-emerald-800/40">
                         <a
                           href={getClientBookingUrl() || `/client-booking?uuid=${uuid}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm font-semibold text-xs transition-all hover:-translate-y-0.5"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm font-semibold text-xs transition-all hover:-translate-y-0.5 whitespace-nowrap"
                           title="Open client's dedicated repeat booking portal in a new tab"
                         >
                           <CalendarPlus className="w-4 h-4" />
-                          <span className="whitespace-nowrap">Repeat Booking Link</span>
+                          <span>Repeat Booking Link</span>
                           <ExternalLink className="w-3 h-3 opacity-80" />
                         </a>
                         <button
                           onClick={handleCopyBookingLink}
                           disabled={actionLoading || client.status === "archived"}
-                          className="p-2.5 bg-white dark:bg-[var(--card-bg)] text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/30 shadow-sm border border-emerald-200 dark:border-emerald-800 transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                          className="p-2 bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/30 shadow-xs border border-emerald-200 dark:border-emerald-800 transition-all hover:-translate-y-0.5 disabled:opacity-50"
                           title="Copy dedicated repeat booking link"
                         >
                           {copiedBookingLink ? (
@@ -1393,25 +1396,25 @@ export default function IndividualClientDetailPage() {
                       </div>
 
                       {/* Management Group */}
-                      <div className="flex items-center gap-2">
+                      <div className="inline-flex items-center gap-1.5">
                         <Link
                           href={`/dashboard/clients/edit?id=${uuid}`}
-                          className={`p-2.5 bg-white text-slate-600 rounded-xl hover:bg-slate-50 border border-slate-200 shadow-sm transition-all hover:-translate-y-0.5 ${client.status === "archived" ? "opacity-50 pointer-events-none" : ""}`}
+                          className={`p-2 bg-white dark:bg-gray-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-700 border border-slate-200 dark:border-gray-700 shadow-xs transition-all hover:-translate-y-0.5 ${client.status === "archived" ? "opacity-50 pointer-events-none" : ""}`}
                           title="Edit Profile"
                         >
-                          <Edit className="w-5 h-5" />
+                          <Edit className="w-4 h-4" />
                         </Link>
                         <button
                           onClick={client.status === "archived" ? handleUnarchive : handleArchive}
                           disabled={actionLoading || (client.status === "archived" && user?.role !== "admin")}
-                          className={`p-2.5 rounded-xl border shadow-sm transition-all hover:-translate-y-0.5 disabled:opacity-50 ${
+                          className={`p-2 rounded-xl border shadow-xs transition-all hover:-translate-y-0.5 disabled:opacity-50 ${
                             client.status === "archived"
-                              ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
-                              : "bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100"
+                              ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100"
+                              : "bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800 hover:bg-rose-100"
                           }`}
                           title={client.status === "archived" ? "Unarchive" : "Archive"}
                         >
-                          <Archive className="w-5 h-5" />
+                          <Archive className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
