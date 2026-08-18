@@ -16,6 +16,7 @@ import {
 import apiService from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
+import { THERAPY_TOPICS } from "@/lib/constants";
 
 export default function VanquishTCApplication() {
   const [formData, setFormData] = useState({
@@ -135,36 +136,7 @@ export default function VanquishTCApplication() {
   ];
 
   // Comprehensive list of therapy topics/issues
-  const therapyTopics = [
-    "Abuse (Physical, Emotional, Sexual)",
-    "Addiction & Substance Misuse",
-    "Anger Management",
-    "Anxiety & Panic Attacks",
-    "Bereavement & Grief",
-    "Body Image Issues",
-    "Childhood Trauma",
-    "Depression",
-    "Domestic Violence",
-    "Eating Disorders",
-    "Family Conflicts",
-    "Gender Identity Issues",
-    "Health Anxiety",
-    "Infidelity",
-    "LGBTQ+ Issues",
-    "Low Self-Esteem",
-    "OCD (Obsessive Compulsive Disorder)",
-    "Parenting Issues",
-    "Phobias",
-    "PTSD (Post-Traumatic Stress Disorder)",
-    "Racial & Cultural Identity",
-    "Relationship Issues",
-    "Self-Harm",
-    "Sexual Abuse/Assault",
-    "Social Anxiety",
-    "Stress Management",
-    "Suicidal Ideation",
-    "Work-Related Stress",
-  ];
+  const therapyTopics = THERAPY_TOPICS;
 
   // Hourly time slots - Mon-Thu last slot 6pm-7pm, Fri last slot 5pm-6pm
   const timeSlots = [

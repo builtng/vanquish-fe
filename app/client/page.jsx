@@ -19,6 +19,7 @@ import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { toast } from "react-toastify";
 import apiService from "@/lib/api";
 import { useBranding } from "@/contexts/BrandingContext";
+import { SUPPORT_AREAS } from "@/lib/constants";
 
 export default function VanquishClientIntake() {
   const { branding, loading: brandingLoading } = useBranding();
@@ -212,22 +213,7 @@ export default function VanquishClientIntake() {
     }
   };
 
-  const supportAreasList = [
-    "Communication problems",
-    "People pleasing",
-    "Loneliness",
-    "Discrimination & Racism",
-    "Low mood",
-    "Stress",
-    "Low confidence",
-    "Family issues",
-    "Fear of intimacy",
-    "Personal development",
-    "Self-defeating behaviour",
-    "Low self-esteem",
-    "Relationship problems",
-    "High sensitivity",
-  ];
+  const supportAreasList = SUPPORT_AREAS;
 
   const core34Questions = [
     "I have felt terribly alone and isolated",

@@ -22,6 +22,15 @@ function formatDate(dateValue) {
   });
 }
 
+function getMinTimeOffDate() {
+  const d = new Date();
+  d.setDate(d.getDate() + 28); // 4 weeks in advance
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function TimeOffPageContent() {
   const { success, error: showError } = useToast();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -30,6 +39,8 @@ function TimeOffPageContent() {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({ start_date: "", end_date: "", reason: "" });
+
+  const minDate = getMinTimeOffDate();
 
   useEffect(() => {
     loadData();
@@ -53,6 +64,10 @@ function TimeOffPageContent() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.start_date < minDate) {
+      showError("Time-off requests must be submitted at least 4 weeks in advance");
+      return;
+    }
     if (new Date(formData.end_date) < new Date(formData.start_date)) {
       showError("End date must be on or after the start date");
       return;
@@ -158,6 +173,12 @@ function TimeOffPageContent() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 rounded-lg text-xs text-purple-900 dark:text-purple-200">
+                <p className="font-semibold">4 Weeks Advance Notice Required</p>
+                <p className="mt-0.5 text-purple-700 dark:text-purple-300">
+                  Time-off requests must be submitted at least 4 weeks in advance. Earliest selectable date is {formatDate(minDate)}.
+                </p>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
                   Start Date <span className="text-red-500">*</span>
@@ -166,7 +187,7 @@ function TimeOffPageContent() {
                   type="date"
                   required
                   value={formData.start_date}
-                  min={new Date().toLocaleDateString("en-CA")}
+                  min={minDate}
                   onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] rounded-lg focus:ring-2 focus:ring-[#6f1d56] focus:border-transparent outline-none transition-shadow"
                 />
@@ -179,7 +200,7 @@ function TimeOffPageContent() {
                   type="date"
                   required
                   value={formData.end_date}
-                  min={formData.start_date || new Date().toLocaleDateString("en-CA")}
+                  min={formData.start_date || minDate}
                   onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] rounded-lg focus:ring-2 focus:ring-[#6f1d56] focus:border-transparent outline-none transition-shadow"
                 />

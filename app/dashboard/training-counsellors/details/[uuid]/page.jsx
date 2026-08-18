@@ -258,6 +258,23 @@ export default function IndividualTCDetailPage() {
           gender: data.gender || null,
           ethnicity: data.ethnicity || null,
           pronouns: data.pronouns || null,
+          sexualOrientation: data.sexual_orientation || null,
+          dateOfBirth: data.date_of_birth || null,
+          address: data.address || null,
+
+          // Qualified Counsellor Fields
+          legalFirstName: data.legal_first_name || null,
+          legalLastName: data.legal_last_name || null,
+          registeredAddress: data.registered_address || null,
+          registeredCity: data.registered_city || null,
+          registeredPostcode: data.registered_postcode || null,
+          hasSupervisor: data.has_supervisor || null,
+          previousVanquishWork: data.previous_vanquish_work || null,
+          areasToImprove: data.areas_to_improve || null,
+          uniqueTrait: data.unique_trait || null,
+          counsellorTrainingDetails: data.counsellor_training_details || null,
+          qualifiedToWorkWith: data.qualified_to_work_with || [],
+          challengingCases: data.challenging_cases || null,
 
           // Professional Information
           course: data.course || "",
@@ -892,7 +909,7 @@ export default function IndividualTCDetailPage() {
                         Personal Information
                       </h2>
                       <Link
-                        href={`/dashboard/training-counsellors/details/${uuid}`}
+                        href={`/dashboard/training-counsellors/edit?id=${uuid}`}
                         className="text-[var(--purple-primary)] hover:text-[var(--purple-primary)]/80 text-sm font-medium flex items-center gap-1"
                       >
                         <Edit className="w-4 h-4" />
@@ -967,6 +984,36 @@ export default function IndividualTCDetailPage() {
                           </p>
                         </div>
                       )}
+                      {tc.sexualOrientation && (
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">
+                            Sexual Orientation
+                          </p>
+                          <p className="text-sm font-medium text-foreground">
+                            {tc.sexualOrientation}
+                          </p>
+                        </div>
+                      )}
+                      {tc.dateOfBirth && (
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-1">
+                            Date of Birth
+                          </p>
+                          <p className="text-sm font-medium text-foreground">
+                            {tc.dateOfBirth}
+                          </p>
+                        </div>
+                      )}
+                      {tc.address && (
+                        <div className="col-span-2">
+                          <p className="text-sm text-muted-foreground mb-1">
+                            Address
+                          </p>
+                          <p className="text-sm font-medium text-foreground">
+                            {tc.address}
+                          </p>
+                        </div>
+                      )}
                       {tc.joinedDate && (
                         <div>
                           <p className="text-sm text-muted-foreground mb-1">
@@ -981,6 +1028,87 @@ export default function IndividualTCDetailPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Qualified Counsellor Practice Details */}
+                  {tc.counsellor_type === "Qualified" && (
+                    <div className="bg-card rounded-lg border border-border p-6">
+                      <h2 className="text-lg font-semibold text-foreground mb-4">
+                        Qualified Practice & Registration
+                      </h2>
+                      <div className="grid grid-cols-2 gap-4">
+                        {(tc.legalFirstName || tc.legalLastName) && (
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              Legal Name
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {`${tc.legalFirstName || ""} ${tc.legalLastName || ""}`.trim()}
+                            </p>
+                          </div>
+                        )}
+                        {tc.registeredAddress && (
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              Registered Address
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {[tc.registeredAddress, tc.registeredCity, tc.registeredPostcode].filter(Boolean).join(", ")}
+                            </p>
+                          </div>
+                        )}
+                        {tc.hasSupervisor && (
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              Clinical Supervisor
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {tc.hasSupervisor}
+                            </p>
+                          </div>
+                        )}
+                        {tc.previousVanquishWork && (
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              Previous Vanquish Work
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {tc.previousVanquishWork}
+                            </p>
+                          </div>
+                        )}
+                        {tc.uniqueTrait && (
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              Unique Trait
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {tc.uniqueTrait}
+                            </p>
+                          </div>
+                        )}
+                        {tc.areasToImprove && (
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              Areas to Improve
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {tc.areasToImprove}
+                            </p>
+                          </div>
+                        )}
+                        {tc.counsellorTrainingDetails && (
+                          <div className="col-span-2">
+                            <p className="text-sm text-muted-foreground mb-1">
+                              Training & Accreditations
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {tc.counsellorTrainingDetails}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Professional Information */}
                   {(tc.course || tc.institution || tc.modality) && (

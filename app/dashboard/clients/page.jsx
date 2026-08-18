@@ -40,6 +40,9 @@ import {
   Star,
   Send,
   CalendarDays,
+  CalendarPlus,
+  ExternalLink,
+  Repeat,
 } from "lucide-react";
 
 export default function ViewAllClients() {
@@ -120,6 +123,7 @@ export default function ViewAllClients() {
         feedbackCount: client.feedback_count || 0,
         lastFeedbackSentAt: client.last_feedback_sent_at || null,
         lastFeedbackDate: client.last_feedback_date || null,
+        totalCasesForPerson: client.total_cases_for_person || 1,
         createdAt: client.created_at || null,
       }));
 
@@ -721,14 +725,25 @@ export default function ViewAllClients() {
                               {getInitials(client.name) || "?"}
                             </div>
                             <div>
-                              <Link
-                                href={`/dashboard/client-details/${client.uuid || client.id}`}
-                                className="font-medium text-gray-900 dark:text-[var(--text-primary)] hover:text-purple-600 dark:hover:text-purple-400"
-                              >
-                                {client.name}
-                              </Link>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <Link
+                                  href={`/dashboard/client-details/${client.uuid || client.id}`}
+                                  className="font-medium text-gray-900 dark:text-[var(--text-primary)] hover:text-purple-600 dark:hover:text-purple-400"
+                                >
+                                  {client.name}
+                                </Link>
+                                {client.totalCasesForPerson > 1 && (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
+                                    title={`${client.totalCasesForPerson} total cases submitted under ${client.email}`}
+                                  >
+                                    <Repeat className="w-2.5 h-2.5" />
+                                    {client.totalCasesForPerson} Cases
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
-                                {client.age} years old
+                                {client.client_id ? `${client.client_id} • ` : ""}{client.age} years old
                               </p>
                             </div>
                           </div>
@@ -796,6 +811,20 @@ export default function ViewAllClients() {
                             >
                               <Eye className="w-4 h-4 text-purple-600" />
                             </Link>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const url = `${window.location.origin}/client-booking?uuid=${encodeURIComponent(client.uuid || client.id)}`;
+                                navigator.clipboard.writeText(url);
+                                success(
+                                  `Repeat booking link for ${client.name} copied to clipboard!`,
+                                );
+                              }}
+                              className="p-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors text-emerald-600 dark:text-emerald-400"
+                              title="Copy Repeat Booking Link"
+                            >
+                              <CalendarPlus className="w-4 h-4" />
+                            </button>
                             {/* <button className="p-2 hover:bg-blue-100 rounded-lg transition-colors" title="Send Email">
                         <Mail className="w-4 h-4 text-blue-600" />
                       </button> */}

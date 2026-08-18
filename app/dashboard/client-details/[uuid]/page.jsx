@@ -16,6 +16,7 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import DashboardLayout from "@/components/DashboardLayout";
 import RichTextEditor from "@/components/RichTextEditor";
+import SearchableSelect from "@/components/SearchableSelect";
 
 import {
   Users,
@@ -56,7 +57,13 @@ import {
   CalendarDays,
   RefreshCw,
   ClipboardList,
-  Files
+  Files,
+  Copy,
+  ExternalLink,
+  CalendarPlus,
+  Repeat,
+  Sliders,
+  Sparkles,
 } from "lucide-react";
 
 const core34Questions = [
@@ -133,9 +140,72 @@ export default function IndividualClientDetailPage() {
   const [noteToDelete, setNoteToDelete] = useState(null);
   const [nextStage, setNextStage] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
-  const [sessionToDelete, setSessionToDelete] = useState(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [showAssessment, setShowAssessment] = useState(false);
+  const [copiedBookingLink, setCopiedBookingLink] = useState(false);
+  const [showEditPreferencesModal, setShowEditPreferencesModal] = useState(false);
+  const [preferencesForm, setPreferencesForm] = useState({
+    genderPreference: "No preference",
+    agePreference: "No preference",
+    ethnicityPreference: "No preference",
+    orientationPreference: "No preference",
+  });
+  const [savingPreferences, setSavingPreferences] = useState(false);
+
+  const getClientBookingUrl = () => {
+    const clientUuid = client?.uuid || uuid;
+    if (!clientUuid) return "";
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/client-booking?uuid=${encodeURIComponent(clientUuid)}`;
+    }
+    return `/client-booking?uuid=${encodeURIComponent(clientUuid)}`;
+  };
+
+  const handleCopyBookingLink = (e) => {
+    if (e) e.stopPropagation();
+    const url = getClientBookingUrl();
+    if (!url) {
+      showError("Client booking link is not available");
+      return;
+    }
+    navigator.clipboard.writeText(url);
+    setCopiedBookingLink(true);
+    success("Dedicated repeat booking link copied to clipboard!");
+    setTimeout(() => setCopiedBookingLink(false), 3000);
+  };
+
+  const openEditPreferencesModal = () => {
+    if (!client) return;
+    setPreferencesForm({
+      genderPreference: client.genderPreference || "No preference",
+      agePreference: client.agePreference || "No preference",
+      ethnicityPreference: client.ethnicityPreference || "No preference",
+      orientationPreference: client.orientationPreference || "No preference",
+    });
+    setShowEditPreferencesModal(true);
+  };
+
+  const handleSavePreferences = async (e) => {
+    e.preventDefault();
+    setSavingPreferences(true);
+    try {
+      await apiService.updateClient(client.uuid || client.id || uuid, {
+        gender_preference: preferencesForm.genderPreference,
+        age_preference: preferencesForm.agePreference,
+        ethnicity_preference: preferencesForm.ethnicityPreference,
+        orientation_preference: preferencesForm.orientationPreference,
+      });
+      success("Counsellor preferences updated successfully!");
+      setShowEditPreferencesModal(false);
+      const updated = await apiService.getClient(uuid);
+      setClient(transformClientData(updated));
+    } catch (err) {
+      console.error("Error saving preferences:", err);
+      showError(err.message || "Failed to update counsellor preferences.");
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
 
   // Show notification and auto-hide
   const showNotification = (message, type = "success") => {
@@ -152,6 +222,7 @@ export default function IndividualClientDetailPage() {
 
   // Transform API data to frontend structure
   const transformClientData = (data) => {
+    const intake = Array.isArray(data.intake_form) ? data.intake_form[0] : (data.intake_form || {});
     return {
       id: data.uuid || data.id,
       uuid: data.uuid || data.id,
@@ -163,9 +234,13 @@ export default function IndividualClientDetailPage() {
       address: data.address || null,
       postcode: data.postcode || null,
       age: data.age || null,
-      gender: data.gender || data.intake_form?.gender || "Not provided",
-      ethnicity: data.ethnicity || data.intake_form?.ethnicity || "Not specified",
-      sexualOrientation: data.sexual_orientation || data.intake_form?.sexual_orientation || "Not specified",
+      gender: data.gender || intake?.gender || "Not provided",
+      ethnicity: data.ethnicity || intake?.ethnicity || "Not specified",
+      sexualOrientation: data.sexual_orientation || intake?.sexual_orientation || "Not specified",
+      genderPreference: data.gender_preference || intake?.gender_preference || "No preference",
+      agePreference: data.age_preference || intake?.age_preference || "No preference",
+      ethnicityPreference: data.ethnicity_preference || intake?.ethnicity_preference || "No preference",
+      orientationPreference: data.orientation_preference || intake?.orientation_preference || "No preference",
       stage: data.stage || "Consultation Booked",
       status: data.status || "active",
       daysInSystem: data.submitted_date
@@ -174,8 +249,9 @@ export default function IndividualClientDetailPage() {
               (1000 * 60 * 60 * 24),
           )
         : 0,
-      voicemailPermission: data.voicemail_permission || (data.intake_form?.voicemail_ok !== undefined ? (data.intake_form.voicemail_ok ? "Yes" : "No") : "Not specified"),
-      howHeardAbout: data.how_heard_about || data.hear_about_us || data.intake_form?.hear_about_us || "Not specified",
+      voicemailPermission: data.voicemail_permission || (intake?.voicemail_ok !== undefined ? (intake.voicemail_ok ? "Yes" : "No") : "Not specified"),
+      howHeardAbout: data.how_heard_about || data.hear_about_us || intake?.hear_about_us || "Not specified",
+      relatedCases: data.related_cases || [],
       journey: (() => {
         const stages = [
           {
@@ -474,10 +550,11 @@ export default function IndividualClientDetailPage() {
           }
         : null,
       emergencyContact:
-        data.emergency_contact_name || data.emergency_contact_phone
+        data.emergency_contact_name || data.emergency_contact_phone || data.emergency_contact_email
           ? {
               name: data.emergency_contact_name || null,
               phone: data.emergency_contact_phone || null,
+              email: data.emergency_contact_email || intake?.emergency_contact_email || null,
               relationship: data.emergency_contact_relationship || null,
             }
           : null,
@@ -1287,6 +1364,33 @@ export default function IndividualClientDetailPage() {
                         </Link>
                       </div>
 
+                      {/* Repeat Booking Portal Link Group */}
+                      <div className="flex items-center gap-1.5 bg-emerald-50/70 dark:bg-emerald-950/30 p-1.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800/40">
+                        <a
+                          href={getClientBookingUrl() || `/client-booking?uuid=${uuid}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-sm font-semibold text-xs transition-all hover:-translate-y-0.5"
+                          title="Open client's dedicated repeat booking portal in a new tab"
+                        >
+                          <CalendarPlus className="w-4 h-4" />
+                          <span className="whitespace-nowrap">Repeat Booking Link</span>
+                          <ExternalLink className="w-3 h-3 opacity-80" />
+                        </a>
+                        <button
+                          onClick={handleCopyBookingLink}
+                          disabled={actionLoading || client.status === "archived"}
+                          className="p-2.5 bg-white dark:bg-[var(--card-bg)] text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/30 shadow-sm border border-emerald-200 dark:border-emerald-800 transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                          title="Copy dedicated repeat booking link"
+                        >
+                          {copiedBookingLink ? (
+                            <Check className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+
                       {/* Management Group */}
                       <div className="flex items-center gap-2">
                         <Link
@@ -1319,6 +1423,67 @@ export default function IndividualClientDetailPage() {
 
             <div className="flex-1 overflow-y-auto">
               <div className="p-6 space-y-6">
+                {/* Person Cases Banner (if client has multiple cases under same email) */}
+                {client.relatedCases && client.relatedCases.length > 0 && (
+                  <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/30 dark:via-indigo-950/30 dark:to-blue-950/30 border border-purple-200 dark:border-purple-800/50 rounded-2xl p-5 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2.5 bg-purple-600 text-white rounded-xl shadow-sm shrink-0">
+                          <Repeat className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-base font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                              Multiple Cases for this Person
+                            </h3>
+                            <span className="px-2.5 py-0.5 bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 rounded-full text-xs font-semibold">
+                              {client.relatedCases.length + 1} Submissions
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 dark:text-[var(--text-secondary)] mt-0.5">
+                            Rejoining client submissions for <span className="font-semibold text-gray-800 dark:text-gray-200">{client.email}</span> are stored as separate independent cases with preserved history.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-purple-200/60 dark:border-purple-800/40 flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1">
+                        Switch Case:
+                      </span>
+                      {/* Current Case Badge */}
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-bold shadow-sm">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Case {client.client_id || "Current"}</span>
+                        <span className="opacity-80 font-normal">({client.stage})</span>
+                        <span className="bg-purple-700 px-1.5 py-0.2 rounded text-[10px]">Active</span>
+                      </span>
+
+                      {/* Related Cases */}
+                      {client.relatedCases.map((otherCase) => (
+                        <Link
+                          key={otherCase.id}
+                          href={`/dashboard/client-details/${otherCase.uuid || otherCase.id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-gray-800 dark:text-gray-200 border border-purple-200 dark:border-purple-800 rounded-lg text-xs font-medium transition-all hover:scale-105 shadow-sm"
+                        >
+                          <span className="font-bold text-purple-700 dark:text-purple-400">
+                            Case {otherCase.client_id}
+                          </span>
+                          <span className="text-gray-500">•</span>
+                          <span>{otherCase.stage}</span>
+                          {otherCase.service_type && (
+                            <>
+                              <span className="text-gray-500">•</span>
+                              <span className="text-gray-500 text-[11px]">{otherCase.service_type}</span>
+                            </>
+                          )}
+                          <ExternalLink className="w-3 h-3 text-purple-500 ml-0.5" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Overview Cards */}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -1611,6 +1776,127 @@ export default function IndividualClientDetailPage() {
                             {client.howHeardAbout}
                           </p>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Counsellor Preferences Card (Matching Logic) */}
+                    <div className="bg-white rounded-2xl border border-[var(--border-color)] p-8 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700">
+                            <Sliders className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight">
+                                Counsellor Preferences
+                              </h2>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                <Sparkles className="w-3 h-3 text-purple-500" />
+                                Feeds Matching Logic
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              Preferences captured during client onboarding to match with suitable practitioners.
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={openEditPreferencesModal}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold rounded-xl border border-purple-200 transition-colors self-start sm:self-auto"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          Edit Preferences
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Gender Preference */}
+                        <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
+                            Gender Preference
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold ${
+                                client.genderPreference && client.genderPreference !== "No preference"
+                                  ? "bg-purple-100 text-purple-800 border border-purple-200"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}
+                            >
+                              {client.genderPreference || "No preference"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Age Preference */}
+                        <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
+                            Age Preference
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold ${
+                                client.agePreference && client.agePreference !== "No preference"
+                                  ? "bg-purple-100 text-purple-800 border border-purple-200"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}
+                            >
+                              {client.agePreference || "No preference"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Ethnicity Preference */}
+                        <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
+                            Ethnicity Preference
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold ${
+                                client.ethnicityPreference && client.ethnicityPreference !== "No preference"
+                                  ? "bg-purple-100 text-purple-800 border border-purple-200"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}
+                            >
+                              {client.ethnicityPreference || "No preference"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Sexual Orientation Preference */}
+                        <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
+                            Orientation Preference
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold ${
+                                client.orientationPreference && client.orientationPreference !== "No preference"
+                                  ? "bg-purple-100 text-purple-800 border border-purple-200"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}
+                            >
+                              {client.orientationPreference || "No preference"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                        <span className="flex items-center gap-1.5">
+                          <span>💡</span>
+                          <span>The matching algorithm checks these preferences against practitioner demographics when generating match scores.</span>
+                        </span>
+                        <Link
+                          href={`/dashboard/clients/edit?id=${client.uuid || client.id || uuid}`}
+                          className="font-bold text-purple-600 hover:text-purple-700 hover:underline flex items-center gap-1"
+                        >
+                          Full Client Edit Form <ChevronRight className="w-3 h-3" />
+                        </Link>
                       </div>
                     </div>
 
@@ -2096,22 +2382,56 @@ export default function IndividualClientDetailPage() {
                     {/* Session History */}
 
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-gray-900">
-                          Session History
-                        </h2>
+                      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                        <div>
+                          <h2 className="text-lg font-semibold text-gray-900">
+                            Session History
+                          </h2>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Client can book recurring sessions via their dedicated booking link
+                          </p>
+                        </div>
 
-                        <button
-                          onClick={() => setShowAddSessionModal(true)}
-                          disabled={
-                            actionLoading || client.status === "archived"
-                          }
-                          className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ backgroundColor: "#6f1d56" }}
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add Session
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={handleCopyBookingLink}
+                            disabled={actionLoading || client.status === "archived"}
+                            className="px-3 py-2 border border-emerald-200 hover:bg-emerald-50 text-emerald-700 bg-emerald-50/50 rounded-lg font-medium flex items-center gap-1.5 text-sm transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                            title="Copy client's dedicated repeat booking link"
+                          >
+                            {copiedBookingLink ? (
+                              <>
+                                <Check className="w-4 h-4 text-emerald-600" />
+                                <span>Copied Link!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-4 h-4" />
+                                <span>Copy Repeat Booking Link</span>
+                              </>
+                            )}
+                          </button>
+                          <a
+                            href={getClientBookingUrl() || `/client-booking?uuid=${uuid}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium flex items-center transition-colors"
+                            title="Open client's booking portal in a new tab"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                          <button
+                            onClick={() => setShowAddSessionModal(true)}
+                            disabled={
+                              actionLoading || client.status === "archived"
+                            }
+                            className="px-4 py-2 text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ backgroundColor: "#6f1d56" }}
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add Session
+                          </button>
+                        </div>
                       </div>
 
                       <div className="overflow-x-auto">
@@ -2299,7 +2619,8 @@ export default function IndividualClientDetailPage() {
                     {/* Emergency Contact - Prominently Displayed */}
                     {client.emergencyContact &&
                       (client.emergencyContact.name ||
-                        client.emergencyContact.phone) && (
+                        client.emergencyContact.phone ||
+                        client.emergencyContact.email) && (
                         <div className="bg-red-50 rounded-lg border-2 border-red-200 p-6">
                           <div className="flex items-start gap-3">
                             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
@@ -2335,6 +2656,17 @@ export default function IndividualClientDetailPage() {
                                       className="text-sm font-medium text-red-900 hover:text-red-700 underline"
                                     >
                                       {client.emergencyContact.phone}
+                                    </a>
+                                  </div>
+                                )}
+                                {client.emergencyContact.email && (
+                                  <div className="flex items-center gap-2">
+                                    <Mail className="w-4 h-4 text-red-600" />
+                                    <a
+                                      href={`mailto:${client.emergencyContact.email}`}
+                                      className="text-sm font-medium text-red-900 hover:text-red-700 underline break-all"
+                                    >
+                                      {client.emergencyContact.email}
                                     </a>
                                   </div>
                                 )}
@@ -2969,6 +3301,58 @@ export default function IndividualClientDetailPage() {
                         </div>
                       </div>
 
+                      {/* Dedicated Repeat Booking Link */}
+                      <div className="mt-6 p-4 bg-gradient-to-br from-purple-50 via-indigo-50/50 to-pink-50/30 rounded-xl border border-purple-200 shadow-sm space-y-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 bg-purple-600 text-white rounded-lg shadow-sm">
+                            <CalendarPlus className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-gray-900">
+                              Repeat Booking Link
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                              For client recurring & block bookings
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="bg-white border border-purple-200/80 rounded-lg p-2.5 flex items-center justify-between gap-2 shadow-inner">
+                          <span className="text-xs text-gray-600 font-mono truncate select-all">
+                            {getClientBookingUrl() || `/client-booking?uuid=${uuid}`}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={handleCopyBookingLink}
+                            disabled={actionLoading || client.status === "archived"}
+                            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 rounded-lg text-xs font-semibold shadow-sm transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {copiedBookingLink ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-green-600" />
+                                <span>Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copy Link</span>
+                              </>
+                            )}
+                          </button>
+                          <a
+                            href={getClientBookingUrl() || `/client-booking?uuid=${uuid}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-1.5 py-2 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all hover:-translate-y-0.5 text-center"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>Open Portal</span>
+                          </a>
+                        </div>
+                      </div>
+
                       {/* Quick Actions */}
 
                       <div className="mt-6 space-y-2">
@@ -3112,6 +3496,161 @@ export default function IndividualClientDetailPage() {
               setSelectedClinicalNoteId(null);
             }} 
           />
+
+          {/* Edit Counsellor Preferences Modal */}
+          {showEditPreferencesModal && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700">
+                      <Sliders className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">
+                        Edit Counsellor Preferences
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        Updates client profile & matching algorithm parameters
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowEditPreferencesModal(false)}
+                    className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSavePreferences} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Gender Preference
+                    </label>
+                    <SearchableSelect
+                      value={preferencesForm.genderPreference}
+                      onChange={(e) =>
+                        setPreferencesForm((prev) => ({
+                          ...prev,
+                          genderPreference: e.target.value,
+                        }))
+                      }
+                      options={[
+                        { value: "No preference", label: "No preference" },
+                        { value: "Female", label: "Female" },
+                        { value: "Male", label: "Male" },
+                        { value: "Non-binary", label: "Non-binary" },
+                        { value: "Other", label: "Other" },
+                      ]}
+                      placeholder="Select gender preference"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Age Preference
+                    </label>
+                    <SearchableSelect
+                      value={preferencesForm.agePreference}
+                      onChange={(e) =>
+                        setPreferencesForm((prev) => ({
+                          ...prev,
+                          agePreference: e.target.value,
+                        }))
+                      }
+                      options={[
+                        { value: "No preference", label: "No preference" },
+                        { value: "20-30", label: "20 - 30 years old" },
+                        { value: "30-40", label: "30 - 40 years old" },
+                        { value: "40-50", label: "40 - 50 years old" },
+                        { value: "50+", label: "50+ years old" },
+                      ]}
+                      placeholder="Select age preference"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Ethnicity Preference
+                    </label>
+                    <SearchableSelect
+                      value={preferencesForm.ethnicityPreference}
+                      onChange={(e) =>
+                        setPreferencesForm((prev) => ({
+                          ...prev,
+                          ethnicityPreference: e.target.value,
+                        }))
+                      }
+                      options={[
+                        { value: "No preference", label: "No preference" },
+                        { value: "White", label: "White" },
+                        { value: "Asian / Asian British", label: "Asian / Asian British" },
+                        {
+                          value: "Black / African / Caribbean / Black British",
+                          label: "Black / African / Caribbean / Black British",
+                        },
+                        {
+                          value: "Mixed / Multiple ethnic groups",
+                          label: "Mixed / Multiple ethnic groups",
+                        },
+                        { value: "Other ethnic group", label: "Other ethnic group" },
+                      ]}
+                      placeholder="Select ethnicity preference"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Sexual Orientation Preference
+                    </label>
+                    <SearchableSelect
+                      value={preferencesForm.orientationPreference}
+                      onChange={(e) =>
+                        setPreferencesForm((prev) => ({
+                          ...prev,
+                          orientationPreference: e.target.value,
+                        }))
+                      }
+                      options={[
+                        { value: "No preference", label: "No preference" },
+                        { value: "Heterosexual / Straight", label: "Heterosexual / Straight" },
+                        { value: "Gay / Lesbian", label: "Gay / Lesbian" },
+                        { value: "Bisexual", label: "Bisexual" },
+                        { value: "Queer", label: "Queer" },
+                        { value: "Other", label: "Other" },
+                      ]}
+                      placeholder="Select sexual orientation preference"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPreferencesModal(false)}
+                      className="px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingPreferences}
+                      className="px-5 py-2 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                    >
+                      {savingPreferences ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          <span>Saving...</span>
+                        </>
+                      ) : (
+                        <span>Save Preferences</span>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </DashboardLayout>
     </PageGuard>

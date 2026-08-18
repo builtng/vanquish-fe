@@ -43,7 +43,14 @@ const SearchableSelect = ({
         ? formattedOptions.filter(opt => value.includes(opt.value))
         : formattedOptions.filter(opt => opt.value === value);
     } else {
-      selectedValue = formattedOptions.find(opt => opt.value === value || opt.value === String(value));
+      selectedValue = formattedOptions.find(
+        opt =>
+          opt.value === value ||
+          opt.value === String(value) ||
+          opt.label === value ||
+          (typeof opt.value === 'string' && typeof value === 'string' && opt.value.toLowerCase() === value.toLowerCase()) ||
+          (typeof opt.label === 'string' && typeof value === 'string' && opt.label.toLowerCase() === value.toLowerCase())
+      );
     }
   }
 
@@ -148,6 +155,10 @@ const SearchableSelect = ({
       borderColor: themeColors.menuBorder,
       zIndex: 9999,
     }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 99999,
+    }),
   };
 
   return (
@@ -164,6 +175,8 @@ const SearchableSelect = ({
       className={`react-select-container ${className}`}
       classNamePrefix="react-select"
       styles={customStyles}
+      menuPortalTarget={mounted && typeof document !== 'undefined' ? document.body : null}
+      menuPosition="fixed"
       {...props}
     />
   );

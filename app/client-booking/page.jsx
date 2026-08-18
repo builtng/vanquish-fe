@@ -386,54 +386,39 @@ function ClientBookingContent() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Booking Deadline Alert (Low Cost) */}
+        {/* Block End Reminder Alert (Low Cost) */}
         {client?.service_type === "Low Cost" &&
           client?.next_booking_deadline && (
             <div
-              className={`mb-6 rounded-lg p-4 border-2 ${
+              className={`mb-6 rounded-lg p-4 border ${
                 daysUntilDeadline !== null && daysUntilDeadline <= 2
-                  ? "bg-red-50 border-red-300"
-                  : daysUntilDeadline !== null && daysUntilDeadline <= 7
-                    ? "bg-yellow-50 border-yellow-300"
-                    : "bg-blue-50 border-blue-300"
+                  ? "bg-amber-50/70 border-amber-200"
+                  : "bg-blue-50/70 border-blue-200"
               }`}
             >
               <div className="flex items-start gap-3">
                 <AlertCircle
                   className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
                     daysUntilDeadline !== null && daysUntilDeadline <= 2
-                      ? "text-red-600"
-                      : daysUntilDeadline !== null && daysUntilDeadline <= 7
-                        ? "text-yellow-600"
-                        : "text-blue-600"
+                      ? "text-amber-600"
+                      : "text-blue-600"
                   }`}
                 />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">
-                    Booking Deadline:{" "}
-                    {new Date(client.next_booking_deadline).toLocaleDateString(
-                      "en-GB",
-                      {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      },
-                    )}
-                  </h3>
-                  <p className="text-sm text-gray-700 mb-2">
-                    {daysUntilDeadline !== null && daysUntilDeadline <= 0
-                      ? "Your booking deadline has passed. Please book immediately."
-                      : daysUntilDeadline !== null && daysUntilDeadline <= 2
-                        ? `⚠️ Only ${daysUntilDeadline} day(s) remaining! Book now to secure 4 sessions.`
-                        : daysUntilDeadline !== null
-                          ? `You have ${daysUntilDeadline} day(s) to book your next block of sessions.`
-                          : "Please book your next block of sessions."}
-                  </p>
-                  <p className="text-xs text-gray-600">
-                    {daysUntilDeadline !== null && daysUntilDeadline <= 0
-                      ? "If you don't book now, you will automatically receive 3 sessions instead of 4 (same price)."
-                      : "If you don't book in time, you will automatically receive 3 sessions instead of 4 (same price)."}
+                  <p className="text-sm text-gray-800 leading-relaxed">
+                    <span className="font-semibold">Please note:</span> Your current block of sessions will come to an end on{" "}
+                    <span className="font-semibold">
+                      {new Date(client.next_booking_deadline).toLocaleDateString(
+                        "en-GB",
+                        {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        },
+                      )}
+                    </span>
+                    . To help ensure your space remains secured with your counsellor, please book your next block of sessions at least 48 hours prior to your next session.
                   </p>
                   {client?.service_type === "Low Cost" && (
                     <button
@@ -529,12 +514,9 @@ function ClientBookingContent() {
               </div>
 
               <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
-                <div className="flex justify-between items-center mb-1">
+                <div className="mb-1">
                   <span className="text-xs font-bold text-blue-800 uppercase">
                     Therapy Sessions Fee
-                  </span>
-                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full uppercase">
-                    Pay as you go
                   </span>
                 </div>
                 <p className="text-sm text-blue-700">

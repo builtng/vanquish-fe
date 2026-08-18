@@ -46,10 +46,10 @@ export default function AcceptInductionPage() {
     }
   };
 
-  const formatDateTime = (dateTimeString) => {
+  const formatDateTime = (dateTimeString, endDateTimeString) => {
     if (!dateTimeString) return 'N/A';
     const date = new Date(dateTimeString);
-    return date.toLocaleString('en-GB', {
+    const startFormatted = date.toLocaleString('en-GB', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -57,6 +57,13 @@ export default function AcceptInductionPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+    if (!endDateTimeString) return startFormatted;
+    const endDate = new Date(endDateTimeString);
+    const endTimeFormatted = endDate.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return `${startFormatted} - ${endTimeFormatted}`;
   };
 
   return (
@@ -82,8 +89,10 @@ export default function AcceptInductionPage() {
               <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
                 <h3 className="font-semibold text-gray-900 mb-3">Induction Details:</h3>
                 <div className="space-y-2 text-sm text-gray-700">
-                  <p><strong>Conducted by:</strong> {induction.training_counsellor?.name || 'N/A'}</p>
-                  <p><strong>Date & Time:</strong> {formatDateTime(induction.scheduled_at)}</p>
+                  {induction.training_counsellor?.name && (
+                    <p><strong>Conducted by:</strong> {induction.training_counsellor.name}</p>
+                  )}
+                  <p><strong>Date & Time:</strong> {formatDateTime(induction.scheduled_at, induction.scheduled_end_at)}</p>
                   {induction.location && (
                     <p><strong>Location:</strong> {induction.location}</p>
                   )}

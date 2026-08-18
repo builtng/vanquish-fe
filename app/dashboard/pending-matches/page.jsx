@@ -1,7 +1,7 @@
 "use client";
 import PageGuard from "@/components/PageGuard";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import apiService from "@/lib/api";
@@ -12,6 +12,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import { formatName, getCounsellorPrefixType } from "@/lib/nameFormatter";
 import { formatTimeSlotDisplay } from "@/lib/timeFormatter";
+import { computeOverlapSchedule, DAYS_OF_WEEK } from "@/lib/availabilityMatcher";
 import {
   Users,
   Search,
@@ -53,6 +54,7 @@ import {
 
 const MATCH_STEPS = [
   { label: "Checking availability", icon: Calendar },
+  { label: "Evaluating counsellor preferences", icon: UserCheck },
   { label: "Matching clinical issues", icon: Shield },
   { label: "Aligning therapy modality", icon: RefreshCw },
   { label: "Balancing caseload", icon: Star },
@@ -61,6 +63,7 @@ const MATCH_STEPS = [
 const STEP_DELAY_MS = 450;
 
 function transformPendingMatchClient(client) {
+  const intake = Array.isArray(client.intake_form) ? client.intake_form[0] : (client.intake_form || {});
   return {
     id: client.uuid || client.id,
     uuid: client.uuid || client.id,
@@ -70,6 +73,10 @@ function transformPendingMatchClient(client) {
     email: client.email,
     phone: client.phone || null,
     serviceType: client.service_type || null,
+    genderPreference: client.gender_preference || intake?.gender_preference || "No preference",
+    agePreference: client.age_preference || intake?.age_preference || "No preference",
+    ethnicityPreference: client.ethnicity_preference || intake?.ethnicity_preference || "No preference",
+    orientationPreference: client.orientation_preference || intake?.orientation_preference || "No preference",
     submittedDate: client.submitted_date || null,
     daysWaiting: client.days_waiting || 0,
     waitingText: client.waiting_days_text,
@@ -125,7 +132,7 @@ function computeSuggestedTCs(client, trainingCounsellors) {
       const breakdown = {};
       const flags = [];
 
-      // 1. Availability Overlap (50 points)
+      // 1. Availability Overlap (40 points)
       const clientAvailability = client.rawAvailability || {};
       let commonSlots = 0;
       let totalClientSlots = 0;
@@ -145,11 +152,11 @@ function computeSuggestedTCs(client, trainingCounsellors) {
         });
       }
       const availabilityScore =
-        totalClientSlots > 0 ? (commonSlots / totalClientSlots) * 50 : 0;
+        totalClientSlots > 0 ? (commonSlots / totalClientSlots) * 40 : 0;
       breakdown.availability = {
         score: Math.round(availabilityScore),
-        max: 50,
-        percentage: Math.round((availabilityScore / 50) * 100),
+        max: 40,
+        percentage: Math.round((availabilityScore / 40) * 100),
         matched: totalClientSlots === 0 || commonSlots > 0,
         detail:
           totalClientSlots > 0
@@ -160,19 +167,19 @@ function computeSuggestedTCs(client, trainingCounsellors) {
         flags.push("No overlapping availability with this client");
       }
 
-      // 2. Modality/Specialism Match (25 points)
+      // 2. Modality/Specialism Match (20 points)
       const recommendedModality = client.recommendedModality;
       const modalityMatched =
         !!recommendedModality && tc.modality === recommendedModality;
       const modalityScore = modalityMatched
-        ? 25
+        ? 20
         : !recommendedModality
-          ? 15 // Neutral if no recommendation on file
+          ? 12 // Neutral if no recommendation on file
           : 0;
       breakdown.modalityMatch = {
         score: Math.round(modalityScore),
-        max: 25,
-        percentage: Math.round((modalityScore / 25) * 100),
+        max: 20,
+        percentage: Math.round((modalityScore / 20) * 100),
         matched: modalityMatched || !recommendedModality,
         detail: recommendedModality
           ? modalityMatched
@@ -219,7 +226,77 @@ function computeSuggestedTCs(client, trainingCounsellors) {
         );
       }
 
-      // 4. Caseload Balance (10 points)
+      // 4. Counsellor Preferences Match (15 points)
+      const genderPref = client.genderPreference && client.genderPreference !== "No preference" ? client.genderPreference : null;
+      const agePref = client.agePreference && client.agePreference !== "No preference" ? client.agePreference : null;
+      const ethnicityPref = client.ethnicityPreference && client.ethnicityPreference !== "No preference" ? client.ethnicityPreference : null;
+      const orientationPref = client.orientationPreference && client.orientationPreference !== "No preference" ? client.orientationPreference : null;
+
+      const activePrefs = [];
+      if (genderPref) activePrefs.push({ type: "gender", label: "Gender", clientVal: genderPref, tcVal: tc.gender });
+      if (agePref) activePrefs.push({ type: "age", label: "Age", clientVal: agePref, tcVal: tc.age });
+      if (ethnicityPref) activePrefs.push({ type: "ethnicity", label: "Ethnicity", clientVal: ethnicityPref, tcVal: tc.ethnicity });
+      if (orientationPref) activePrefs.push({ type: "orientation", label: "Orientation", clientVal: orientationPref, tcVal: tc.sexual_orientation || tc.sexualOrientation });
+
+      let prefScore = 15;
+      const prefDetails = [];
+      let matchedCount = 0;
+
+      if (activePrefs.length === 0) {
+        prefScore = 15;
+        prefDetails.push("No specific demographic preferences specified by client");
+      } else {
+        const pointsPerPref = 15 / activePrefs.length;
+        prefScore = 0;
+
+        activePrefs.forEach((pref) => {
+          let isMatch = false;
+          if (pref.type === "gender") {
+            isMatch = !!pref.tcVal && pref.tcVal.toLowerCase().trim() === pref.clientVal.toLowerCase().trim();
+          } else if (pref.type === "age") {
+            const tcAge = parseInt(pref.tcVal);
+            if (!isNaN(tcAge)) {
+              if (pref.clientVal === "20-30" && tcAge >= 20 && tcAge <= 30) isMatch = true;
+              else if (pref.clientVal === "30-40" && tcAge >= 30 && tcAge <= 40) isMatch = true;
+              else if (pref.clientVal === "40-50" && tcAge >= 40 && tcAge <= 50) isMatch = true;
+              else if (pref.clientVal === "50+" && tcAge >= 50) isMatch = true;
+            }
+          } else if (pref.type === "ethnicity") {
+            if (pref.tcVal) {
+              const tcEth = pref.tcVal.toLowerCase();
+              const clEth = pref.clientVal.toLowerCase();
+              isMatch = tcEth.includes(clEth) || clEth.includes(tcEth);
+            }
+          } else if (pref.type === "orientation") {
+            if (pref.tcVal) {
+              const tcOri = pref.tcVal.toLowerCase();
+              const clOri = pref.clientVal.toLowerCase();
+              isMatch = tcOri.includes(clOri) || clOri.includes(tcOri);
+            }
+          }
+
+          if (isMatch) {
+            prefScore += pointsPerPref;
+            matchedCount++;
+            prefDetails.push(`${pref.label}: Matched (${pref.clientVal})`);
+          } else {
+            prefDetails.push(`${pref.label}: Mismatched (Client wanted ${pref.clientVal}, practitioner is ${pref.tcVal || "unspecified"})`);
+            flags.push(
+              `Client requested ${pref.label.toLowerCase()} "${pref.clientVal}" (practitioner is ${pref.tcVal || "unspecified"})`
+            );
+          }
+        });
+      }
+
+      breakdown.counsellorPreferences = {
+        score: Math.round(prefScore),
+        max: 15,
+        percentage: Math.round((prefScore / 15) * 100),
+        matched: activePrefs.length === 0 || matchedCount === activePrefs.length,
+        detail: prefDetails.join(" • "),
+      };
+
+      // 5. Caseload Balance (10 points)
       const maxCaseload = tc.max_clients || 6;
       const currentCaseload = tc.current_clients || 0;
       const utilization = maxCaseload > 0 ? currentCaseload / maxCaseload : 1;
@@ -239,6 +316,7 @@ function computeSuggestedTCs(client, trainingCounsellors) {
         breakdown.availability.score +
         breakdown.modalityMatch.score +
         breakdown.clinicalIssues.score +
+        breakdown.counsellorPreferences.score +
         breakdown.caseloadBalance.score;
 
       return {
@@ -252,6 +330,7 @@ function computeSuggestedTCs(client, trainingCounsellors) {
         currentClients: currentCaseload,
         counsellorType: tc.counsellor_type,
         availability: utilization < 0.8 ? "High" : "Low",
+        rawAvailability: tc.availability || {},
       };
     })
     .sort((a, b) => b.matchScore - a.matchScore)
@@ -262,6 +341,7 @@ const BREAKDOWN_LABELS = {
   availability: "Availability",
   modalityMatch: "Modality Match",
   clinicalIssues: "Clinical Issues",
+  counsellorPreferences: "Counsellor Preferences",
   caseloadBalance: "Caseload Balance",
 };
 
@@ -295,7 +375,17 @@ const PendingMatchRow = ({
 
   const openAssignModal = (tc) => {
     setSelectedClient({ ...client, suggestedTCs: matchResult || [] });
-    if (tc) setSelectedTC(tc);
+    if (tc) {
+      const fullTC = trainingCounsellors.find(
+        (t) => t.id === tc.id || t.uuid === tc.id || t.uuid === tc.uuid,
+      );
+      setSelectedTC({
+        ...tc,
+        rawAvailability: fullTC?.availability || tc.rawAvailability || {},
+      });
+    } else {
+      setSelectedTC(null);
+    }
     setShowAssignModal(true);
   };
 
@@ -456,9 +546,31 @@ const PendingMatchRow = ({
                     Preferences & Issues
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
-                    <span className="px-2 py-0.5 bg-[var(--purple-bg)] text-[var(--purple-primary)] text-[10px] rounded-full font-medium border border-[var(--purple-border)]">
-                      Prefers: {client.preferredModality}
-                    </span>
+                    {client.preferredModality && (
+                      <span className="px-2 py-0.5 bg-[var(--purple-bg)] text-[var(--purple-primary)] text-[10px] rounded-full font-medium border border-[var(--purple-border)]">
+                        Modality: {client.preferredModality}
+                      </span>
+                    )}
+                    {client.genderPreference && client.genderPreference !== "No preference" && (
+                      <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] rounded-full font-medium border border-purple-200">
+                        Gender: {client.genderPreference}
+                      </span>
+                    )}
+                    {client.agePreference && client.agePreference !== "No preference" && (
+                      <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] rounded-full font-medium border border-purple-200">
+                        Age: {client.agePreference}
+                      </span>
+                    )}
+                    {client.ethnicityPreference && client.ethnicityPreference !== "No preference" && (
+                      <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] rounded-full font-medium border border-purple-200">
+                        Ethnicity: {client.ethnicityPreference}
+                      </span>
+                    )}
+                    {client.orientationPreference && client.orientationPreference !== "No preference" && (
+                      <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] rounded-full font-medium border border-purple-200">
+                        Orientation: {client.orientationPreference}
+                      </span>
+                    )}
                     {client.primaryIssues.map((issue) => (
                       <span
                         key={issue}
@@ -692,6 +804,50 @@ export default function PendingMatchesPage() {
   const [assignLoading, setAssignLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [matchesByClient, setMatchesByClient] = useState({});
+
+  // Pro Modal Slot Scheduling State
+  const [selectedSlot, setSelectedSlot] = useState(null); // { day: 'Monday', slot: '10am-1050am', label: '10:00 AM - 10:50 AM' }
+  const [tcSlotBookings, setTcSlotBookings] = useState({});
+  const [loadingSlotBookings, setLoadingSlotBookings] = useState(false);
+  const [slotFilter, setSlotFilter] = useState("all"); // 'all' | 'overlap_only'
+  const [activeDayTab, setActiveDayTab] = useState("all"); // 'all' | 'monday' | 'tuesday' | ...
+
+  // Calculate Overlap between client availability and selected TC availability
+  const overlapSchedule = useMemo(() => {
+    if (!selectedClient || !selectedTC) return null;
+    const clientAvail = selectedClient.rawAvailability || {};
+    const tcAvail = selectedTC.rawAvailability || selectedTC.availability || {};
+    return computeOverlapSchedule(
+      clientAvail,
+      typeof tcAvail === "object" ? tcAvail : {},
+    );
+  }, [selectedClient, selectedTC]);
+
+  // Fetch TC slot bookings / caseload when a TC is selected in the modal
+  useEffect(() => {
+    if (selectedTC && showAssignModal) {
+      const fetchBookings = async () => {
+        try {
+          setLoadingSlotBookings(true);
+          const data = await apiService.getTCSlotBookings(
+            selectedTC.uuid || selectedTC.id,
+          );
+          setTcSlotBookings(data?.slots || {});
+        } catch (e) {
+          console.error("Failed to load TC slot bookings:", e);
+          setTcSlotBookings({});
+        } finally {
+          setLoadingSlotBookings(false);
+        }
+      };
+      fetchBookings();
+    } else {
+      setTcSlotBookings({});
+      setSelectedSlot(null);
+      setSlotFilter("all");
+      setActiveDayTab("all");
+    }
+  }, [selectedTC, showAssignModal]);
 
   const handleMarkReady = async (client) => {
     try {
@@ -1077,7 +1233,7 @@ export default function PendingMatchesPage() {
           </div>
         </div>
 
-        {/* Assign Modal */}
+        {/* Pro Assign & Scheduling Modal */}
         {showAssignModal && selectedClient && (
           <>
             <div
@@ -1086,164 +1242,501 @@ export default function PendingMatchesPage() {
                 setShowAssignModal(false);
                 setSelectedClient(null);
                 setSelectedTC(null);
+                setSelectedSlot(null);
               }}
             ></div>
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg shadow-2xl max-w-2xl w-full">
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                    Assign{" "}
-                    {selectedClient.serviceType !== "Low Cost"
-                      ? "Qualified"
-                      : "Trainee"}{" "}
-                    Counsellor
-                  </h2>
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col border border-gray-200 dark:border-[var(--card-border)] overflow-hidden">
+                {/* Modal Header */}
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between bg-gray-50/80 dark:bg-[var(--bg-secondary)] flex-shrink-0">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-[var(--text-primary)] flex items-center gap-2">
+                      <UserCheck className="w-5 h-5 text-[var(--purple-primary)]" />
+                      Assign & Schedule Match
+                    </h2>
+                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-0.5">
+                      Match client with a counsellor and allocate their weekly recurring session time
+                    </p>
+                  </div>
 
                   <button
                     onClick={() => {
                       setShowAssignModal(false);
                       setSelectedClient(null);
                       setSelectedTC(null);
+                      setSelectedSlot(null);
                     }}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-[var(--hover-bg)] rounded-lg transition-colors"
                   >
                     <X className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
                   </button>
                 </div>
 
-                <div className="p-6">
-                  <div className="p-4 bg-[var(--purple-bg)] rounded-lg border border-[var(--purple-border)] mb-4">
-                    <p className="font-semibold text-[var(--purple-primary)] mb-1">
-                      {formatName(selectedClient.name, "client")}
-                    </p>
-                    <p className="text-sm text-[var(--purple-primary)]">
-                      {selectedClient.age} years old •{" "}
-                      {selectedClient.serviceType}
-                    </p>
-                    <p className="text-xs text-[var(--purple-primary)] mt-1">
-                      Primary Issues: {selectedClient.primaryIssues.join(", ")}
-                    </p>
+                {/* Modal Body - Scrollable */}
+                <div className="p-6 overflow-y-auto space-y-6 flex-1">
+                  {/* Client Summary Banner */}
+                  <div className="p-4 bg-[var(--purple-bg)] rounded-xl border border-[var(--purple-border)]">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-base text-[var(--purple-primary)]">
+                          {formatName(selectedClient.name, "client")}
+                        </span>
+                        <span className="text-xs px-2.5 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-[var(--purple-primary)] font-semibold rounded-full">
+                          {selectedClient.serviceType}
+                        </span>
+                        <span className="text-xs text-gray-600 dark:text-[var(--text-secondary)]">
+                          {selectedClient.age ? `${selectedClient.age} yrs` : ""}
+                        </span>
+                      </div>
+                      {selectedClient.primaryIssues?.length > 0 && (
+                        <div className="text-xs text-gray-600 dark:text-[var(--text-secondary)]">
+                          Issues: <span className="font-medium text-gray-800 dark:text-[var(--text-primary)]">{selectedClient.primaryIssues.join(", ")}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Client's Submitted Availability Summary */}
+                    <div className="mt-2 pt-2 border-t border-[var(--purple-border)]/50">
+                      <p className="text-xs font-semibold text-[var(--purple-primary)] mb-1.5 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        Client's Submitted Availability:
+                      </p>
+                      {selectedClient.availability?.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedClient.availability.map((availStr, idx) => (
+                            <span
+                              key={idx}
+                              className="text-[11px] px-2 py-0.5 rounded-md bg-white/80 dark:bg-[var(--card-bg)] text-gray-700 dark:text-[var(--text-secondary)] border border-[var(--purple-border)] font-medium"
+                            >
+                              {availStr}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500 italic">No specific availability slots submitted on intake form.</p>
+                      )}
+                    </div>
                   </div>
 
-                  {selectedTC ? (
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 mb-4">
-                      <p className="font-semibold text-green-900 dark:text-green-200 mb-1">
-                        {formatName(selectedTC.name, "tc")}
-                      </p>
-                      <p className="text-sm text-green-700 dark:text-green-300">
-                        {selectedTC.modality} • Match Score:{" "}
-                        {selectedTC.matchScore}%
-                      </p>
-                      <p className="text-xs text-green-600 mt-1">
-                        Current Clients: {selectedTC.currentClients} •
-                        Availability: {selectedTC.availability}
-                      </p>
+                  {/* Counsellor Selection Card */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                        {selectedClient.serviceType !== "Low Cost" ? "Qualified Counsellor" : "Trainee Counsellor"}
+                      </label>
+                      {selectedTC && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedTC(null);
+                            setSelectedSlot(null);
+                          }}
+                          className="text-xs font-medium text-[var(--purple-primary)] hover:underline"
+                        >
+                          Change Counsellor
+                        </button>
+                      )}
                     </div>
-                  ) : null}
 
-                  {selectedTC &&
-                    (selectedTC.flags || []).length > 0 && (
-                      <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                        <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-2 mb-2">
-                          <AlertTriangle className="w-4 h-4" />
-                          The algorithm flagged this match
-                        </p>
-                        <ul className="space-y-1">
-                          {selectedTC.flags.map((flag) => (
-                            <li
-                              key={flag}
-                              className="text-xs text-amber-800 dark:text-amber-300"
-                            >
-                              • {flag}
-                            </li>
-                          ))}
-                        </ul>
-                        <p className="text-xs text-amber-800 dark:text-amber-300 mt-2">
-                          You can still assign this practitioner, but you must
-                          explain why below.
-                        </p>
+                    {selectedTC ? (
+                      <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-base">
+                              {formatName(selectedTC.name, "tc")}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-semibold rounded-full">
+                              {selectedTC.modality}
+                            </span>
+                            {selectedTC.matchScore && (
+                              <span className="text-xs px-2 py-0.5 bg-[var(--purple-bg)] text-[var(--purple-primary)] border border-[var(--purple-border)] font-bold rounded-full">
+                                {selectedTC.matchScore}% Match
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 dark:text-[var(--text-secondary)]">
+                            Active Caseload: <span className="font-semibold text-gray-900 dark:text-[var(--text-primary)]">{selectedTC.currentClients ?? 0}</span> / 6 clients
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <SearchableSelect
+                          value={selectedTC?.id || ""}
+                          onChange={(e) => {
+                            const tcId = e.target.value;
+                            if (tcId) {
+                              const tc =
+                                selectedClient.suggestedTCs.find((t) => t.id === tcId || t.uuid === tcId) ||
+                                trainingCounsellors.find((t) => t.id === tcId || t.uuid === tcId);
+                              if (tc) {
+                                setSelectedTC({
+                                  id: tc.uuid || tc.id,
+                                  uuid: tc.uuid || tc.id,
+                                  name: tc.name,
+                                  modality: tc.modality || "N/A",
+                                  matchScore: tc.matchScore || null,
+                                  matchBreakdown: tc.matchBreakdown || null,
+                                  flags: tc.flags || [],
+                                  currentClients: tc.currentClients ?? tc.current_clients ?? 0,
+                                  availability: tc.availability || "N/A",
+                                  rawAvailability: tc.availability || tc.rawAvailability || {},
+                                });
+                                setSelectedSlot(null);
+                              }
+                            } else {
+                              setSelectedTC(null);
+                              setSelectedSlot(null);
+                            }
+                          }}
+                          options={(selectedClient.suggestedTCs.length > 0
+                            ? selectedClient.suggestedTCs
+                            : trainingCounsellors.filter(
+                                (tc) =>
+                                  tc.status === "Active" &&
+                                  tc.current_clients < (tc.max_clients || 6) &&
+                                  ((selectedClient.serviceType === "Low Cost" && tc.counsellor_type === "Trainee") ||
+                                    (selectedClient.serviceType !== "Low Cost" && tc.counsellor_type === "Qualified")),
+                              )
+                          ).map((tc) => ({
+                            value: tc.uuid || tc.id,
+                            label: `${tc.name} (${tc.modality})${tc.matchScore ? ` - ${tc.matchScore}% match` : ""}`,
+                          }))}
+                          placeholder="Choose a Counsellor..."
+                        />
+
+                        {/* Quick select suggested TCs */}
+                        {selectedClient.suggestedTCs?.length > 0 && (
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mb-2 font-medium">
+                              Top Algorithm Recommendations:
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              {selectedClient.suggestedTCs.map((tc) => (
+                                <button
+                                  key={tc.uuid || tc.id}
+                                  type="button"
+                                  onClick={() => {
+                                    const fullTC = trainingCounsellors.find((t) => t.id === tc.id || t.uuid === tc.id || t.uuid === tc.uuid);
+                                    setSelectedTC({
+                                      ...tc,
+                                      rawAvailability: fullTC?.availability || tc.rawAvailability || {},
+                                    });
+                                    setSelectedSlot(null);
+                                  }}
+                                  className="p-3 text-left border border-gray-200 dark:border-[var(--card-border)] rounded-lg hover:border-[var(--purple-primary)] hover:bg-purple-50/40 dark:hover:bg-purple-950/20 transition-all group"
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <span className="font-semibold text-xs text-gray-900 dark:text-[var(--text-primary)] group-hover:text-[var(--purple-primary)]">
+                                      {tc.name}
+                                    </span>
+                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-[var(--purple-primary)]">
+                                      {tc.matchScore}%
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-gray-500 mt-1">{tc.modality}</p>
+                                  <p className="text-[10px] text-gray-400 mt-0.5">{tc.currentClients ?? 0} active clients</p>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
+                  </div>
 
-                  {!selectedTC && (
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select{" "}
-                        {selectedClient.serviceType !== "Low Cost"
-                          ? "Qualified"
-                          : "Trainee"}{" "}
-                        Counsellor
-                      </label>
-
-                      <SearchableSelect
-                        value={selectedTC?.id || ""}
-                        onChange={(e) => {
-                          const tcId = e.target.value;
-                          if (tcId) {
-                            // Find the TC from suggestedTCs or trainingCounsellors
-                            const tc =
-                              selectedClient.suggestedTCs.find(
-                                (t) => t.id === tcId || t.uuid === tcId,
-                              ) ||
-                              trainingCounsellors.find(
-                                (t) => t.id === tcId || t.uuid === tcId,
-                              );
-                            if (tc) {
-                              setSelectedTC({
-                                id: tc.uuid || tc.id,
-                                uuid: tc.uuid || tc.id,
-                                name: tc.name,
-                                modality: tc.modality || "N/A",
-                                matchScore: tc.matchScore || null,
-                                matchBreakdown: tc.matchBreakdown || null,
-                                flags: tc.flags || [],
-                                currentClients:
-                                  tc.currentClients ?? tc.current_clients ?? 0,
-                                availability: tc.availability || "N/A",
-                              });
-                            }
-                          } else {
-                            setSelectedTC(null);
-                          }
-                        }}
-                        options={(selectedClient.suggestedTCs.length > 0
-                          ? selectedClient.suggestedTCs
-                          : trainingCounsellors.filter(
-                              (tc) =>
-                                tc.status === "Active" &&
-                                tc.current_clients < (tc.max_clients || 6) &&
-                                ((selectedClient.serviceType === "Low Cost" &&
-                                  tc.counsellor_type === "Trainee") ||
-                                  (selectedClient.serviceType !== "Low Cost" &&
-                                    tc.counsellor_type === "Qualified")),
-                            )
-                        ).map((tc) => ({
-                          value: tc.uuid || tc.id,
-                          label: `${tc.name} (${tc.modality})${tc.matchScore ? ` - ${tc.matchScore}% match` : ""}`,
-                        }))}
-                        placeholder="Choose a TC..."
-                      />
+                  {/* Flagged Mismatch Alert */}
+                  {selectedTC && (selectedTC.flags || []).length > 0 && (
+                    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                      <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-2 mb-1.5">
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        The algorithm flagged this match
+                      </p>
+                      <ul className="space-y-1 ml-5 list-disc text-xs text-amber-800 dark:text-amber-300">
+                        {selectedTC.flags.map((flag, idx) => (
+                          <li key={idx}>{flag}</li>
+                        ))}
+                      </ul>
+                      <p className="text-xs text-amber-800 dark:text-amber-300 mt-2 font-medium">
+                        You can still assign this practitioner, but you must provide a written justification below.
+                      </p>
                     </div>
                   )}
 
-                  {/* Allocated Day/Time section removed - clients now select their own session slots */}
+                  {/* WEEKLY SESSION SLOT ALLOCATION (PRO SCHEDULER & CONFLICT INSPECTOR) */}
+                  {selectedTC && (
+                    <div className="space-y-4 pt-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 dark:border-[var(--card-border)] pb-3">
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)] flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-[var(--purple-primary)]" />
+                            Weekly Session Day & Time Allocation
+                          </h3>
+                          <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">
+                            Select one recurring weekly slot for the client's sessions based on overlapping availability
+                          </p>
+                        </div>
 
-                  <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <span className="font-semibold">
-                        ℹ️ Session Booking:{" "}
-                      </span>
-                      The client will receive an email with a link to choose
-                      their own session slot from the counsellor's available
-                      times.
-                    </p>
-                  </div>
+                        {/* Filter Toggles */}
+                        {overlapSchedule && (
+                          <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[var(--bg-secondary)] p-1 rounded-lg">
+                            <button
+                              type="button"
+                              onClick={() => setSlotFilter("overlap_only")}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                                slotFilter === "overlap_only"
+                                  ? "bg-white dark:bg-[var(--card-bg)] text-[var(--purple-primary)] shadow-sm"
+                                  : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
+                              }`}
+                            >
+                              ⭐ Overlapping Only ({overlapSchedule.totalOverlapCount})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSlotFilter("all")}
+                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                                slotFilter === "all"
+                                  ? "bg-white dark:bg-[var(--card-bg)] text-gray-900 dark:text-[var(--text-primary)] shadow-sm"
+                                  : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
+                              }`}
+                            >
+                              All Slots ({overlapSchedule.totalTCSlots})
+                            </button>
+                          </div>
+                        )}
+                      </div>
 
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {/* Overlap Summary Alert Banner */}
+                      {overlapSchedule && (
+                        <div>
+                          {overlapSchedule.hasOverlap ? (
+                            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg flex items-center justify-between text-xs text-emerald-900 dark:text-emerald-200">
+                              <span className="flex items-center gap-1.5 font-medium">
+                                ⭐ <strong>{overlapSchedule.totalOverlapCount} overlapping weekly slot(s) found</strong> ({overlapSchedule.overlapPercentage}% overlap match).
+                              </span>
+                              <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-normal">
+                                Pick from the highlighted slots below
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-900 dark:text-amber-200">
+                              ⚠️ <strong>No direct overlapping slots</strong> between the client's submitted times and counsellor's current schedule. You may still choose an available counsellor slot below after agreeing with the client.
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Day Tabs */}
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setActiveDayTab("all")}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                            activeDayTab === "all"
+                              ? "bg-[var(--purple-primary)] text-white shadow-sm"
+                              : "bg-gray-100 dark:bg-[var(--bg-secondary)] text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-200"
+                          }`}
+                        >
+                          All Days
+                        </button>
+                        {overlapSchedule?.days.map((day) => {
+                          const hasOverlap = day.overlapCount > 0;
+                          return (
+                            <button
+                              key={day.key}
+                              type="button"
+                              onClick={() => setActiveDayTab(day.key)}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-all ${
+                                activeDayTab === day.key
+                                  ? "bg-[var(--purple-primary)] text-white shadow-sm"
+                                  : "bg-gray-100 dark:bg-[var(--bg-secondary)] text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-200"
+                              }`}
+                            >
+                              {day.label}
+                              {hasOverlap && (
+                                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${activeDayTab === day.key ? "bg-white text-[var(--purple-primary)]" : "bg-emerald-100 text-emerald-800"}`}>
+                                  {day.overlapCount} ⭐
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Slots List by Day */}
+                      <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
+                        {loadingSlotBookings ? (
+                          <div className="py-8 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
+                            <RefreshCw className="w-4 h-4 animate-spin text-[var(--purple-primary)]" />
+                            Loading counsellor schedule & active bookings...
+                          </div>
+                        ) : (
+                          overlapSchedule?.days
+                            .filter((day) => activeDayTab === "all" || activeDayTab === day.key)
+                            .map((day) => {
+                              const slotsToRender = day.slots.filter((slot) => {
+                                if (slotFilter === "overlap_only") return slot.isOverlap;
+                                return slot.isTCAvailable || slot.isClientAvailable;
+                              });
+
+                              if (slotsToRender.length === 0) {
+                                if (activeDayTab !== "all") {
+                                  return (
+                                    <div key={day.key} className="py-6 text-center text-xs text-gray-400 italic">
+                                      No {slotFilter === "overlap_only" ? "overlapping" : "available"} slots on {day.label}.
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }
+
+                              return (
+                                <div key={day.key} className="border border-gray-200 dark:border-[var(--card-border)] rounded-xl p-3.5 bg-gray-50/40 dark:bg-[var(--card-bg)]">
+                                  <div className="flex items-center justify-between mb-2.5">
+                                    <h4 className="text-xs font-bold text-gray-900 dark:text-[var(--text-primary)] uppercase tracking-wider">
+                                      {day.label}
+                                    </h4>
+                                    <span className="text-[11px] text-gray-500">
+                                      {day.overlapCount > 0 ? `${day.overlapCount} overlapping slot(s)` : "No overlap"}
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                                    {slotsToRender.map((slot) => {
+                                      const isSelected =
+                                        selectedSlot?.day?.toLowerCase() === day.label.toLowerCase() &&
+                                        selectedSlot?.slot === slot.value;
+
+                                      // Booked clients lookup from slot bookings endpoint
+                                      const bookings = tcSlotBookings[day.key]?.[slot.value] || [];
+                                      const bookedCount = bookings.length;
+
+                                      return (
+                                        <div
+                                          key={slot.value}
+                                          onClick={() => {
+                                            setSelectedSlot({
+                                              day: day.label,
+                                              slot: slot.value,
+                                              label: slot.label,
+                                              category: slot.category,
+                                              bookedCount,
+                                              bookings,
+                                            });
+                                          }}
+                                          className={`relative p-3 rounded-xl border transition-all cursor-pointer select-none flex flex-col justify-between gap-2 ${
+                                            isSelected
+                                              ? "border-[var(--purple-primary)] bg-purple-50/80 dark:bg-purple-950/40 shadow-sm ring-2 ring-[var(--purple-primary)]"
+                                              : slot.isOverlap
+                                                ? "border-emerald-300 dark:border-emerald-700/60 bg-emerald-50/30 dark:bg-emerald-950/10 hover:border-emerald-400 hover:bg-emerald-50/60"
+                                                : "border-gray-200 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] hover:border-[var(--purple-border)]"
+                                          }`}
+                                        >
+                                          {/* Slot Time & Overlap Badge */}
+                                          <div>
+                                            <div className="flex items-start justify-between gap-1 mb-1">
+                                              <span className="font-bold text-xs text-gray-900 dark:text-[var(--text-primary)]">
+                                                {slot.label}
+                                              </span>
+                                              <input
+                                                type="radio"
+                                                name="selected_weekly_slot"
+                                                checked={isSelected}
+                                                onChange={() => {}}
+                                                className="w-4 h-4 text-[var(--purple-primary)] accent-[var(--purple-primary)] cursor-pointer mt-0.5"
+                                              />
+                                            </div>
+
+                                            {/* Status Badge */}
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                              {slot.isOverlap && (
+                                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-bold flex items-center gap-1">
+                                                  ⭐ Overlap Match
+                                                </span>
+                                              )}
+                                              {!slot.isOverlap && slot.isTCAvailable && (
+                                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                                                  Counsellor Free
+                                                </span>
+                                              )}
+                                              {!slot.isTCAvailable && slot.isClientAvailable && (
+                                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-gray-100 text-gray-600 font-medium">
+                                                  Client Requested
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {/* Caseload / Conflict Badge */}
+                                          <div className="pt-2 border-t border-gray-100 dark:border-[var(--card-border)] text-[11px]">
+                                            {bookedCount > 0 ? (
+                                              <div className="space-y-1">
+                                                <div className="flex items-center gap-1 text-amber-700 dark:text-amber-400 font-semibold">
+                                                  <Users className="w-3 h-3 text-amber-600" />
+                                                  <span>Already booked with {bookedCount} {bookedCount === 1 ? "client" : "clients"}</span>
+                                                </div>
+                                                <div className="text-[10px] text-gray-500 dark:text-[var(--text-secondary)] truncate">
+                                                  {bookings.map((b) => b.name).join(", ")}
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <div className="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium">
+                                                <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                                <span>0 booked (Fully Available)</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })
+                        )}
+                      </div>
+
+                      {/* Selected Slot Confirmation Summary */}
+                      {selectedSlot ? (
+                        <div className="p-3.5 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-[var(--purple-border)] flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <p className="text-xs font-bold text-[var(--purple-primary)] flex items-center gap-1.5">
+                              <CheckCircle className="w-4 h-4 text-emerald-600" />
+                              Assigned Weekly Slot: {selectedSlot.day} at {selectedSlot.label}
+                            </p>
+                            {selectedSlot.bookedCount > 0 && (
+                              <p className="text-[11px] text-amber-700 dark:text-amber-400 font-medium">
+                                ⚠️ Notice: {selectedTC?.name} already has {selectedSlot.bookedCount} active client(s) booked at this day and time ({selectedSlot.bookings?.map(b => b.name).join(", ")}).
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedSlot(null)}
+                            className="text-xs text-gray-500 hover:text-red-600 font-medium ml-2"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      ) : (
+                        selectedClient.serviceType === "Low Cost" && (
+                          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                            <span>
+                              <strong>Required:</strong> Please click and select a weekly day & time slot above to schedule this Low Cost client.
+                            </span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+
+                  {/* Assignment Notes */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
                       Assignment Notes{" "}
                       {(selectedTC?.flags || []).length > 0 ? (
-                        <span className="text-amber-600">
+                        <span className="text-amber-600 font-semibold">
                           (Required — explain the flagged mismatch)
                         </span>
                       ) : (
@@ -1252,56 +1745,70 @@ export default function PendingMatchesPage() {
                     </label>
                     <textarea
                       id="assignmentNotes"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
-                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--card-border)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none bg-white dark:bg-[var(--card-bg)] text-gray-900 dark:text-[var(--text-primary)] text-sm"
+                      rows={2}
                       placeholder={
                         (selectedTC?.flags || []).length > 0
                           ? "Explain why you're assigning this practitioner despite the flagged concerns..."
-                          : "Add any notes about this assignment..."
+                          : "Add any notes or context about this assignment..."
                       }
                     />
                   </div>
 
-                  <div className="flex items-center gap-2 mb-4">
+                  {/* Notification Checkbox */}
+                  <div className="flex items-center gap-2.5">
                     <input
                       type="checkbox"
                       id="sendNotification"
                       defaultChecked
-                      className="w-4 h-4 text-purple-600 border-gray-300 rounded"
+                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                     />
                     <label
                       htmlFor="sendNotification"
-                      className="text-sm text-gray-700"
+                      className="text-xs text-gray-700 dark:text-[var(--text-secondary)] font-medium cursor-pointer"
                     >
-                      Send notifications and agreement link to client and TC
+                      Send confirmation email and session agreement link to client and counsellor
                     </label>
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                {/* Modal Footer */}
+                <div className="px-6 py-4 border-t border-gray-200 dark:border-[var(--card-border)] bg-gray-50/80 dark:bg-[var(--bg-secondary)] flex items-center justify-between flex-shrink-0">
+                  <div className="text-xs text-gray-500">
+                    {selectedClient.serviceType === "Low Cost" && !selectedSlot && selectedTC ? (
+                      <span className="text-amber-600 font-medium">Select a weekly slot above to proceed</span>
+                    ) : null}
+                  </div>
+
+                  <div className="flex items-center gap-3">
                     <button
+                      type="button"
                       onClick={() => {
                         setShowAssignModal(false);
                         setSelectedClient(null);
                         setSelectedTC(null);
+                        setSelectedSlot(null);
                       }}
                       disabled={assignLoading}
-                      className="px-6 py-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-5 py-2 border border-gray-300 dark:border-[var(--card-border)] text-gray-700 dark:text-[var(--text-primary)] rounded-lg hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] text-sm font-medium transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <button
+                      type="button"
                       onClick={async () => {
                         if (!selectedTC) {
-                          showError(
-                            "Please select a Trainee Counsellor before assigning.",
-                          );
+                          showError("Please select a Counsellor before assigning.");
+                          return;
+                        }
+
+                        if (selectedClient.serviceType === "Low Cost" && !selectedSlot) {
+                          showError("Please select a specific day and time slot for this Low Cost client.");
                           return;
                         }
 
                         const assignmentNotes =
-                          document
-                            .getElementById("assignmentNotes")
-                            ?.value.trim() || "";
+                          document.getElementById("assignmentNotes")?.value.trim() || "";
                         const flags = selectedTC.flags || [];
 
                         if (flags.length > 0 && !assignmentNotes) {
@@ -1322,28 +1829,27 @@ export default function PendingMatchesPage() {
                             flags,
                             assignment_notes: assignmentNotes,
                             send_notification:
-                              document.getElementById("sendNotification")
-                                ?.checked ?? true,
+                              document.getElementById("sendNotification")?.checked ?? true,
+                            allocated_day: selectedSlot?.day || null,
+                            allocated_time: selectedSlot?.slot || null,
                           });
+
                           success(
-                            `Client "${selectedClient.name}" assigned to "${selectedTC.name}" successfully!`,
+                            `Client "${selectedClient.name}" assigned to "${selectedTC.name}"${selectedSlot ? ` on ${selectedSlot.day}s at ${selectedSlot.label}` : ""} successfully!`,
                           );
                           setShowAssignModal(false);
                           setSelectedClient(null);
                           setSelectedTC(null);
-                          // Refresh data
+                          setSelectedSlot(null);
+
+                          // Refresh pending matches list
                           const params = {};
                           if (searchTerm) params.search = searchTerm;
-                          if (filterService !== "all")
-                            params.service_type = filterService;
-                          if (filterUrgency !== "all")
-                            params.urgency = filterUrgency;
+                          if (filterService !== "all") params.service_type = filterService;
+                          if (filterUrgency !== "all") params.urgency = filterUrgency;
                           if (sortBy) params.sort_by = sortBy;
-                          const data =
-                            await apiService.getPendingMatches(params);
-                          setPendingMatches(
-                            data.map(transformPendingMatchClient),
-                          );
+                          const data = await apiService.getPendingMatches(params);
+                          setPendingMatches(data.map(transformPendingMatchClient));
                           setMatchesByClient((prev) => {
                             const next = { ...prev };
                             delete next[selectedClient.id];
@@ -1352,15 +1858,18 @@ export default function PendingMatchesPage() {
                         } catch (err) {
                           console.error("Error assigning match:", err);
                           showError(
-                            err.message ||
-                              "Failed to assign client. Please try again.",
+                            err.message || "Failed to assign client. Please try again.",
                           );
                         } finally {
                           setAssignLoading(false);
                         }
                       }}
-                      disabled={assignLoading || !selectedTC}
-                      className="px-6 py-2 text-white rounded-lg hover:opacity-90 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      disabled={
+                        assignLoading ||
+                        !selectedTC ||
+                        (selectedClient.serviceType === "Low Cost" && !selectedSlot)
+                      }
+                      className="px-6 py-2 text-white rounded-lg hover:opacity-90 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm transition-all"
                       style={{ backgroundColor: "#6f1d56" }}
                     >
                       {assignLoading ? (
@@ -1369,7 +1878,7 @@ export default function PendingMatchesPage() {
                           Assigning...
                         </>
                       ) : (
-                        "Assign Client"
+                        "Assign & Set Schedule"
                       )}
                     </button>
                   </div>

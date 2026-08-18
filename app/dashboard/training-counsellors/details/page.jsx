@@ -171,33 +171,18 @@ export default function IndividualTCDetailPage() {
     // Clinical Expertise
 
     topicsWithExperience: [
-
-      'Anxiety',
-
+      'Anxiety & Panic Attacks',
       'Depression',
-
-      'Work Stress',
-
+      'Work-Related Stress',
       'Relationship Issues',
-
-      'Low Self-esteem',
-
-      'Grief & Loss',
-
-      'Life Transitions',
-
-      'Communication Problems'
-
+      'Low Self-Esteem',
+      'Bereavement & Grief',
+      'Stress Management'
     ],
-
     topicsNotReadyFor: [
-
-      'Sexual Abuse',
-
+      'Sexual Abuse/Assault',
       'Domestic Violence',
-
       'Suicidal Ideation'
-
     ],
 
     

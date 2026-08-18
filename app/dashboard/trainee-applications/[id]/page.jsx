@@ -32,6 +32,7 @@ import {
   History,
   Check,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -441,15 +442,56 @@ export default function TraineeApplicationDetail() {
       message: `Enter optional notes for the ${attended ? "attendance" : "no-show"}:`,
       required: false,
     });
-    setRecordingInterviewAttendance(true);
-    try {
-      await apiService.recordTraineeAttendance(id, attended, notes);
-      toast.success("Attendance recorded!");
-      fetchApplication();
-    } catch {
-      toast.error("Failed to record attendance.");
-    } finally {
-      setRecordingInterviewAttendance(false);
+
+    const submitAttendance = async () => {
+      setRecordingInterviewAttendance(true);
+      try {
+        await apiService.recordTraineeAttendance(id, attended, notes);
+        toast.success(
+          attended
+            ? "Attendance recorded!"
+            : "Interview marked as not attended. Notification email sent.",
+        );
+
+        if (!attended) {
+          const deleteNow = await confirm({
+            title: "GDPR Compliance: Delete Candidate Data?",
+            message:
+              "The interview not attended email has been sent informing the applicant that their information has been deleted to comply with GDPR regulations.\n\nWould you like to manually delete this candidate's application data now?",
+            confirmText: "Delete Data Now",
+            cancelText: "Keep for Now",
+            type: "danger",
+          });
+          if (deleteNow) {
+            try {
+              await apiService.deleteTraineeApplication(id);
+              toast.success("Candidate data deleted successfully.");
+              router.push("/dashboard/trainee-applications");
+              return;
+            } catch {
+              toast.error("Failed to delete application.");
+            }
+          }
+        }
+
+        fetchApplication();
+      } catch {
+        toast.error("Failed to record attendance.");
+      } finally {
+        setRecordingInterviewAttendance(false);
+      }
+    };
+
+    if (!attended) {
+      previewAndSend(
+        "trainee_interview_not_attended",
+        {
+          first_name: application.first_name,
+        },
+        submitAttendance,
+      );
+    } else {
+      submitAttendance();
     }
   };
 
@@ -534,19 +576,60 @@ export default function TraineeApplicationDetail() {
       message: "Enter induction notes:",
       required: false,
     });
-    setRecordingInductionAttendance(true);
-    try {
-      await apiService.recordTraineeInductionAttendance(
-        id,
-        attended,
-        notes || "",
+
+    const submitInductionAttendance = async () => {
+      setRecordingInductionAttendance(true);
+      try {
+        await apiService.recordTraineeInductionAttendance(
+          id,
+          attended,
+          notes || "",
+        );
+        toast.success(
+          attended
+            ? "Induction Attended recorded!"
+            : "Induction marked as not attended. Notification email sent.",
+        );
+
+        if (!attended) {
+          const deleteNow = await confirm({
+            title: "GDPR Compliance: Delete Candidate Data?",
+            message:
+              "The induction not attended email has been sent informing the applicant that their information has been deleted to comply with GDPR regulations.\n\nWould you like to manually delete this candidate's application data now?",
+            confirmText: "Delete Data Now",
+            cancelText: "Keep for Now",
+            type: "danger",
+          });
+          if (deleteNow) {
+            try {
+              await apiService.deleteTraineeApplication(id);
+              toast.success("Candidate data deleted successfully.");
+              router.push("/dashboard/trainee-applications");
+              return;
+            } catch {
+              toast.error("Failed to delete application.");
+            }
+          }
+        }
+
+        fetchApplication();
+      } catch {
+        toast.error("An error occurred.");
+      } finally {
+        setRecordingInductionAttendance(false);
+      }
+    };
+
+    if (!attended) {
+      previewAndSend(
+        "trainee_induction_not_attended",
+        {
+          first_name: application.first_name,
+        },
+        submitInductionAttendance,
       );
-      toast.success(`Induction ${attended ? "Attended" : "No-Show"} recorded`);
-      fetchApplication();
-    } catch {
-      toast.error("An error occurred.");
-    } finally {
-      setRecordingInductionAttendance(false);
+    } else {
+      submitInductionAttendance();
     }
   };
 
@@ -853,6 +936,38 @@ export default function TraineeApplicationDetail() {
                 )}
               </div>
             </div>
+
+            {/* GDPR Notice Banner for Not Attended Candidates */}
+            {(application.status === "Interview No Show" ||
+              application.status === "Induction No-Show") && (
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg text-amber-800 dark:text-amber-300 shrink-0">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                      GDPR Notice:{" "}
+                      {application.status === "Interview No Show"
+                        ? "Interview"
+                        : "Induction"}{" "}
+                      Not Attended
+                    </h3>
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                      The applicant has been notified that their information is
+                      deleted in compliance with GDPR regulations. You can
+                      manually delete their application record now.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={deleteApplication}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 shadow-sm"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete Candidate Data (GDPR)
+                </button>
+              </div>
+            )}
 
             {/* Journey Timeline */}
             <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-100 dark:border-[var(--card-border)] p-6 mb-6 shadow-sm">

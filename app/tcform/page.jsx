@@ -12,6 +12,7 @@ import {
 
 import apiService from "@/lib/api";
 import { toast } from "react-toastify";
+import { THERAPY_TOPICS } from "@/lib/constants";
 
 export default function TCProfileForm() {
   const [formData, setFormData] = useState({
@@ -91,23 +92,7 @@ export default function TCProfileForm() {
     "Family Therapy",
   ];
 
-  const sensitiveTopics = [
-    "Domestic Violence",
-    "Sexual Abuse",
-    "Child Abuse",
-    "Self-Harm",
-    "Suicidal Ideation",
-    "Eating Disorders",
-    "Substance Abuse",
-    "Trauma/PTSD",
-    "Grief and Bereavement",
-    "Relationship Issues",
-    "Anxiety Disorders",
-    "Depression",
-    "Obsessive-Compulsive Disorder (OCD)",
-    "Personality Disorders",
-    "Psychosis",
-  ];
+  const sensitiveTopics = THERAPY_TOPICS;
 
   const timeBlocks = ["morning", "afternoon", "evening"];
   const days = [

@@ -31,12 +31,30 @@ export default function InductionsPage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const [createForm, setCreateForm] = useState({
-    tc_id: '',
     scheduled_at: '',
+    duration_minutes: '60',
     location: '',
     notes: '',
     attendee_tc_ids: [],
   });
+
+  const durationOptions = [
+    ...Array.from({ length: 60 }, (_, i) => i + 1).map((m) => ({
+      value: String(m),
+      label: `${m} min${m > 1 ? 's' : ''}`
+    })),
+    { value: '75', label: '75 mins (1 hr 15 mins)' },
+    { value: '90', label: '90 mins (1 hr 30 mins)' },
+    { value: '105', label: '105 mins (1 hr 45 mins)' },
+    { value: '120', label: '120 mins (2 hrs)' }
+  ];
+
+  const calculateEndTime = (startTimeStr, durationMins) => {
+    if (!startTimeStr || !durationMins) return null;
+    const start = new Date(startTimeStr);
+    if (isNaN(start.getTime())) return null;
+    return new Date(start.getTime() + parseInt(durationMins, 10) * 60000);
+  };
 
   useEffect(() => {
     fetchInductions();
@@ -72,18 +90,28 @@ export default function InductionsPage() {
     try {
       setActionLoading(true);
       
-      if (!createForm.tc_id || !createForm.scheduled_at || createForm.attendee_tc_ids.length === 0) {
+      if (!createForm.scheduled_at || !createForm.duration_minutes || createForm.attendee_tc_ids.length === 0) {
         showError('Please fill in all required fields and select at least one attendee.');
         setActionLoading(false);
         return;
       }
 
-      await apiService.createInduction(createForm);
+      const endDate = calculateEndTime(createForm.scheduled_at, createForm.duration_minutes);
+      const payload = {
+        scheduled_at: createForm.scheduled_at,
+        scheduled_end_at: endDate ? new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000).toISOString().slice(0, 19).replace('T', ' ') : null,
+        duration_minutes: parseInt(createForm.duration_minutes, 10),
+        location: createForm.location,
+        notes: createForm.notes,
+        attendee_tc_ids: createForm.attendee_tc_ids,
+      };
+
+      await apiService.createInduction(payload);
       success('Induction created successfully! Invitation emails have been sent.');
       setShowCreateModal(false);
       setCreateForm({
-        tc_id: '',
         scheduled_at: '',
+        duration_minutes: '60',
         location: '',
         notes: '',
         attendee_tc_ids: [],
@@ -113,8 +141,8 @@ export default function InductionsPage() {
       setShowAddAttendeesModal(false);
       setSelectedInduction(null);
       setCreateForm({
-        tc_id: '',
         scheduled_at: '',
+        duration_minutes: '60',
         location: '',
         notes: '',
         attendee_tc_ids: [],
@@ -156,9 +184,10 @@ export default function InductionsPage() {
     }
   };
 
-  const formatDateTime = (dateTimeString) => {
+  const formatDateTime = (dateTimeString, endDateTimeString) => {
+    if (!dateTimeString) return 'N/A';
     const date = new Date(dateTimeString);
-    return date.toLocaleString('en-GB', {
+    const startFormatted = date.toLocaleString('en-GB', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -166,6 +195,13 @@ export default function InductionsPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+    if (!endDateTimeString) return startFormatted;
+    const endDate = new Date(endDateTimeString);
+    const endTimeFormatted = endDate.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return `${startFormatted} - ${endTimeFormatted}`;
   };
 
   return (
@@ -259,12 +295,8 @@ export default function InductionsPage() {
                       </div>
                       <div className="space-y-2 text-sm text-gray-600 dark:text-[var(--text-secondary)]">
                         <div className="flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          <span><strong>Conducted by:</strong> {formatName(induction.training_counsellor?.name || 'Unknown', getCounsellorPrefixType(induction.training_counsellor?.counsellor_type))}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
-                          <span><strong>Date & Time:</strong> {formatDateTime(induction.scheduled_at)}</span>
+                          <span><strong>Date & Time:</strong> {formatDateTime(induction.scheduled_at, induction.scheduled_end_at)}</span>
                         </div>
                         {induction.location && (
                           <div className="flex items-center gap-2">
@@ -351,28 +383,10 @@ export default function InductionsPage() {
               </div>
 
               <form onSubmit={handleCreateInduction} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] mb-2">
-                    Conducted By (TC) <span className="text-red-500">*</span>
-                  </label>
-                  <SearchableSelect
-                    value={createForm.tc_id}
-                    onChange={(e) => setCreateForm({...createForm, tc_id: e.target.value})}
-                    options={trainingCounsellors.map(tc => ({
-                      value: tc.id,
-                      label: `${formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type))}${tc.modality ? ` (${tc.modality})` : ''}`
-                    }))}
-                    placeholder="Select a trainee counsellor..."
-                    isMulti={false}
-                    required={true}
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] mb-2">
-                      Date & Time <span className="text-red-500">*</span>
+                      Date & Start Time <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="datetime-local"
@@ -384,16 +398,43 @@ export default function InductionsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] mb-2">
-                      Location
+                      Duration <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={createForm.location}
-                      onChange={(e) => setCreateForm({...createForm, location: e.target.value})}
+                    <select
+                      value={createForm.duration_minutes}
+                      onChange={(e) => setCreateForm({...createForm, duration_minutes: e.target.value})}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                      placeholder="e.g., Online, Office Address"
-                    />
+                      required
+                    >
+                      {durationOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+                </div>
+
+                {createForm.scheduled_at && createForm.duration_minutes && (
+                  <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg text-sm text-purple-900 dark:text-purple-200 flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                    <span>
+                      <strong>Session Time:</strong> {formatDateTime(createForm.scheduled_at, calculateEndTime(createForm.scheduled_at, createForm.duration_minutes))}
+                    </span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] mb-2">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={createForm.location}
+                    onChange={(e) => setCreateForm({...createForm, location: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="e.g., Online, Office Address"
+                  />
                 </div>
 
                 <div>

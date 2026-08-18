@@ -10,6 +10,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import DashboardLayout from '@/components/DashboardLayout';
 import SearchableSelect from '@/components/SearchableSelect';
+import { THERAPY_TOPICS } from '@/lib/constants';
 
 import { 
   Edit, Trash2, X, Save, ChevronRight, User, Mail, Phone, 
@@ -38,6 +39,12 @@ function EditTrainingCounsellorContent() {
     email: '',
     phone: '',
     modality: '',
+    gender: '',
+    ethnicity: '',
+    sexual_orientation: '',
+    age: '',
+    date_of_birth: '',
+    address: '',
     status: 'Active',
     counsellor_type: 'Trainee',
     session_price: '',
@@ -62,23 +69,35 @@ function EditTrainingCounsellorContent() {
     tutorPhone: '',
     placementLeadName: '',
     placementLeadEmail: '',
-    placementLeadPhone: ''
+    placementLeadPhone: '',
+    // Qualified Counsellor Fields
+    legal_first_name: '',
+    legal_last_name: '',
+    registered_address: '',
+    registered_city: '',
+    registered_postcode: '',
+    has_supervisor: '',
+    previous_vanquish_work: '',
+    areas_to_improve: '',
+    unique_trait: '',
+    counsellor_training_details: '',
+    qualified_to_work_with: [],
+    challenging_cases: ''
   });
 
   const timeSlots = [
-    { value: 'morning-early', label: '10-11am' },
-    { value: 'morning-late', label: '11am-1pm' },
-    { value: 'afternoon-early', label: '1-4pm' },
-    { value: 'afternoon-late', label: '4-5pm' },
-    { value: 'evening', label: '5-7pm' }
+    { value: '10am-1050am', label: '10:00 AM - 10:50 AM' },
+    { value: '11am-1150am', label: '11:00 AM - 11:50 AM' },
+    { value: '12pm-1250pm', label: '12:00 PM - 12:50 PM' },
+    { value: '1pm-150pm', label: '1:00 PM - 1:50 PM' },
+    { value: '2pm-250pm', label: '2:00 PM - 2:50 PM' },
+    { value: '3pm-350pm', label: '3:00 PM - 3:50 PM' },
+    { value: '4pm-450pm', label: '4:00 PM - 4:50 PM' },
+    { value: '5pm-550pm', label: '5:00 PM - 5:50 PM' },
+    { value: '6pm-650pm', label: '6:00 PM - 6:50 PM' },
   ];
 
-  const commonTopics = [
-    'Anxiety', 'Depression', 'Stress', 'Relationship Issues', 'Grief & Loss',
-    'Trauma', 'Self-Esteem', 'Anger Management', 'Addiction', 'Eating Disorders',
-    'OCD', 'PTSD', 'Bipolar Disorder', 'ADHD', 'Autism', 'LGBTQ+ Issues',
-    'Workplace Issues', 'Family Therapy', 'Couples Therapy', 'Child Therapy'
-  ];
+  const commonTopics = THERAPY_TOPICS;
 
   useEffect(() => {
     const fetchTc = async () => {
@@ -92,37 +111,75 @@ function EditTrainingCounsellorContent() {
         setLoading(true);
         setError(null);
         const data = await apiService.getTrainingCounsellorDetails(tcId);
+        const intake = Array.isArray(data.intake_form) 
+          ? data.intake_form[0] 
+          : (data.intake_form || (Array.isArray(data.intakeForm) ? data.intakeForm[0] : (data.intakeForm || {})));
         
+        const tcAvail = (data.availability && Object.keys(data.availability).length > 0)
+          ? data.availability
+          : (intake?.availability || {
+              Monday: [],
+              Tuesday: [],
+              Wednesday: [],
+              Thursday: [],
+              Friday: []
+            });
+
         setFormData({
-          name: data.name || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          modality: data.modality || '',
+          name: data.name || intake?.name || '',
+          email: data.email || intake?.email || '',
+          phone: data.phone || intake?.phone || '',
+          modality: data.modality || intake?.modality || '',
+          gender: data.gender || intake?.gender || '',
+          ethnicity: data.ethnicity || intake?.ethnicity || '',
+          sexual_orientation: data.sexual_orientation || intake?.sexual_orientation || '',
+          age: data.age !== null && data.age !== undefined ? String(data.age) : (intake?.age ? String(intake.age) : ''),
+          date_of_birth: data.date_of_birth || intake?.date_of_birth || '',
+          address: data.address || intake?.address || '',
           status: data.status || 'Active',
           counsellor_type: data.counsellor_type || 'Trainee',
           session_price: data.session_price ?? '',
           bio: data.bio || '',
           offers_mid_range: !!data.offers_mid_range,
           offers_coaching: !!data.offers_coaching,
-          availability: data.availability || {
-            Monday: [],
-            Tuesday: [],
-            Wednesday: [],
-            Thursday: [],
-            Friday: []
+          availability: {
+            Monday: tcAvail?.Monday || [],
+            Tuesday: tcAvail?.Tuesday || [],
+            Wednesday: tcAvail?.Wednesday || [],
+            Thursday: tcAvail?.Thursday || [],
+            Friday: tcAvail?.Friday || [],
+            Saturday: tcAvail?.Saturday || [],
+            Sunday: tcAvail?.Sunday || []
           },
-          topicsWithExperience: data.topics_with_experience || [],
-          topicsNotReadyFor: data.topics_not_ready_for || [],
+          topicsWithExperience: (Array.isArray(data.topics_with_experience) && data.topics_with_experience.length > 0)
+            ? data.topics_with_experience
+            : (intake?.topics_with_experience || []),
+          topicsNotReadyFor: (Array.isArray(data.topics_not_ready_for) && data.topics_not_ready_for.length > 0)
+            ? data.topics_not_ready_for
+            : (intake?.topics_not_ready_for || []),
           // Professional Info
-          course: data.course_title || data.course || '',
-          institution: data.training_org_name || data.institution || '',
+          course: data.course_title || data.course || intake?.course || '',
+          institution: data.training_org_name || data.institution || intake?.institution || '',
           trainingOrgAddress: data.training_org_address || '',
           tutorName: data.tutor_name || '',
           tutorEmail: data.tutor_email || '',
           tutorPhone: data.tutor_phone || '',
           placementLeadName: data.placement_lead_name || '',
           placementLeadEmail: data.placement_lead_email || '',
-          placementLeadPhone: data.placement_lead_phone || ''
+          placementLeadPhone: data.placement_lead_phone || '',
+          // Qualified Counsellor Fields
+          legal_first_name: data.legal_first_name || '',
+          legal_last_name: data.legal_last_name || '',
+          registered_address: data.registered_address || '',
+          registered_city: data.registered_city || '',
+          registered_postcode: data.registered_postcode || '',
+          has_supervisor: data.has_supervisor || '',
+          previous_vanquish_work: data.previous_vanquish_work || '',
+          areas_to_improve: data.areas_to_improve || '',
+          unique_trait: data.unique_trait || '',
+          counsellor_training_details: data.counsellor_training_details || '',
+          qualified_to_work_with: data.qualified_to_work_with || [],
+          challenging_cases: data.challenging_cases || ''
         });
       } catch (err) {
         console.error('Error fetching TC:', err);
@@ -178,25 +235,27 @@ function EditTrainingCounsellorContent() {
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleAvailabilityChange = (day, slots) => {
     setFormData(prev => ({
       ...prev,
-      availability: {
-        ...prev.availability,
-        [day]: slots
-      }
+      [field]: value
     }));
   };
 
-  const toggleTimeSlot = (day, slot) => {
-    const currentSlots = formData.availability[day] || [];
-    const newSlots = currentSlots.includes(slot)
-      ? currentSlots.filter(s => s !== slot)
-      : [...currentSlots, slot];
-    handleAvailabilityChange(day, newSlots);
+  const handleAvailabilityToggle = (day, slot) => {
+    setFormData(prev => {
+      const currentSlots = prev.availability[day] || [];
+      const newSlots = currentSlots.includes(slot)
+        ? currentSlots.filter(s => s !== slot)
+        : [...currentSlots, slot];
+
+      return {
+        ...prev,
+        availability: {
+          ...prev.availability,
+          [day]: newSlots
+        }
+      };
+    });
   };
 
   const handleTopicToggle = (topic, list) => {
@@ -224,6 +283,12 @@ function EditTrainingCounsellorContent() {
         name: formData.name,
         email: formData.email,
         phone: formData.phone || null,
+        gender: formData.gender || null,
+        ethnicity: formData.ethnicity || null,
+        sexual_orientation: formData.sexual_orientation || null,
+        age: formData.age ? parseInt(formData.age) : null,
+        date_of_birth: formData.date_of_birth || null,
+        address: formData.address || null,
         modality: formData.modality || null,
         status: formData.status,
         counsellor_type: formData.counsellor_type,
@@ -242,10 +307,22 @@ function EditTrainingCounsellorContent() {
         tutor_phone: formData.tutorPhone,
         placement_lead_name: formData.placementLeadName,
         placement_lead_email: formData.placementLeadEmail,
-        placement_lead_phone: formData.placementLeadPhone
+        placement_lead_phone: formData.placementLeadPhone,
+        legal_first_name: formData.legal_first_name || null,
+        legal_last_name: formData.legal_last_name || null,
+        registered_address: formData.registered_address || null,
+        registered_city: formData.registered_city || null,
+        registered_postcode: formData.registered_postcode || null,
+        has_supervisor: formData.has_supervisor || null,
+        previous_vanquish_work: formData.previous_vanquish_work || null,
+        areas_to_improve: formData.areas_to_improve || null,
+        unique_trait: formData.unique_trait || null,
+        counsellor_training_details: formData.counsellor_training_details || null,
+        qualified_to_work_with: formData.qualified_to_work_with || [],
+        challenging_cases: formData.challenging_cases || null
       });
 
-      success('Trainee Counsellor updated successfully!');
+      success('Practitioner updated successfully!');
       router.push(`/dashboard/training-counsellors/details/${tcId}`);
     } catch (err) {
       console.error('Error updating TC:', err);
@@ -412,6 +489,85 @@ function EditTrainingCounsellorContent() {
                     placeholder="Select Modality"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Gender</label>
+                  <SearchableSelect
+                    value={formData.gender}
+                    onChange={(e) => handleInputChange('gender', e.target.value)}
+                    options={[
+                      { value: '', label: 'Not specified' },
+                      { value: 'Female', label: 'Female' },
+                      { value: 'Male', label: 'Male' },
+                      { value: 'Non-binary', label: 'Non-binary' },
+                      { value: 'Other', label: 'Other' }
+                    ]}
+                    placeholder="Select Gender"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Ethnicity</label>
+                  <SearchableSelect
+                    value={formData.ethnicity}
+                    onChange={(e) => handleInputChange('ethnicity', e.target.value)}
+                    options={[
+                      { value: '', label: 'Not specified' },
+                      { value: 'White', label: 'White' },
+                      { value: 'Asian / Asian British', label: 'Asian / Asian British' },
+                      { value: 'Black / African / Caribbean / Black British', label: 'Black / African / Caribbean / Black British' },
+                      { value: 'Mixed / Multiple ethnic groups', label: 'Mixed / Multiple ethnic groups' },
+                      { value: 'Other ethnic group', label: 'Other ethnic group' }
+                    ]}
+                    placeholder="Select Ethnicity"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Sexual Orientation</label>
+                  <SearchableSelect
+                    value={formData.sexual_orientation}
+                    onChange={(e) => handleInputChange('sexual_orientation', e.target.value)}
+                    options={[
+                      { value: '', label: 'Not specified' },
+                      { value: 'Heterosexual / Straight', label: 'Heterosexual / Straight' },
+                      { value: 'Gay / Lesbian', label: 'Gay / Lesbian' },
+                      { value: 'Bisexual', label: 'Bisexual' },
+                      { value: 'Queer', label: 'Queer' },
+                      { value: 'Other', label: 'Other' }
+                    ]}
+                    placeholder="Select Orientation"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Age</label>
+                  <input
+                    type="number"
+                    min="18"
+                    max="120"
+                    value={formData.age}
+                    onChange={(e) => handleInputChange('age', e.target.value)}
+                    className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                    placeholder="e.g. 35"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Date of Birth</label>
+                  <input
+                    type="text"
+                    value={formData.date_of_birth}
+                    onChange={(e) => handleInputChange('date_of_birth', e.target.value)}
+                    className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                    placeholder="DD/MM/YYYY or YYYY-MM-DD"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">Residential Address</label>
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                    placeholder="Enter practitioner's address"
+                  />
+                </div>
               </div>
             </div>
 
@@ -495,6 +651,117 @@ function EditTrainingCounsellorContent() {
                       className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
                       placeholder="Shown to clients choosing a practitioner"
                     />
+                  </div>
+
+                  <div className="pt-4 border-t border-border space-y-4">
+                    <h3 className="text-sm font-semibold text-foreground">Qualified Practitioner Registration & Practice Details</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">Legal First Name</label>
+                        <input
+                          type="text"
+                          value={formData.legal_first_name}
+                          onChange={(e) => handleInputChange('legal_first_name', e.target.value)}
+                          className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                          placeholder="Legal First Name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">Legal Last Name</label>
+                        <input
+                          type="text"
+                          value={formData.legal_last_name}
+                          onChange={(e) => handleInputChange('legal_last_name', e.target.value)}
+                          className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                          placeholder="Legal Last Name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">Registered Address</label>
+                        <input
+                          type="text"
+                          value={formData.registered_address}
+                          onChange={(e) => handleInputChange('registered_address', e.target.value)}
+                          className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                          placeholder="Practice / Registered Address"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">City</label>
+                          <input
+                            type="text"
+                            value={formData.registered_city}
+                            onChange={(e) => handleInputChange('registered_city', e.target.value)}
+                            className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                            placeholder="City"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">Postcode</label>
+                          <input
+                            type="text"
+                            value={formData.registered_postcode}
+                            onChange={(e) => handleInputChange('registered_postcode', e.target.value)}
+                            className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                            placeholder="Postcode"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">Has Clinical Supervisor?</label>
+                        <SearchableSelect
+                          value={formData.has_supervisor}
+                          onChange={(e) => handleInputChange('has_supervisor', e.target.value)}
+                          options={[
+                            { value: '', label: 'Select' },
+                            { value: 'Yes', label: 'Yes' },
+                            { value: 'No', label: 'No' },
+                          ]}
+                          placeholder="Select"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">Previous Vanquish Work</label>
+                        <input
+                          type="text"
+                          value={formData.previous_vanquish_work}
+                          onChange={(e) => handleInputChange('previous_vanquish_work', e.target.value)}
+                          className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                          placeholder="e.g. Yes / No / Trainee alumni"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">Counsellor Training & Background Details</label>
+                        <textarea
+                          value={formData.counsellor_training_details}
+                          onChange={(e) => handleInputChange('counsellor_training_details', e.target.value)}
+                          rows={2}
+                          className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                          placeholder="Details of qualifications and accredited bodies"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">Unique Trait</label>
+                        <input
+                          type="text"
+                          value={formData.unique_trait}
+                          onChange={(e) => handleInputChange('unique_trait', e.target.value)}
+                          className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                          placeholder="e.g. Specialises in neurodiversity"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">Areas to Improve</label>
+                        <input
+                          type="text"
+                          value={formData.areas_to_improve}
+                          onChange={(e) => handleInputChange('areas_to_improve', e.target.value)}
+                          className="w-full px-4 py-2 border border-input bg-input-bg text-input-text rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                          placeholder="e.g. Couples work"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -585,7 +852,7 @@ function EditTrainingCounsellorContent() {
                           <button
                             key={slot.value}
                             type="button"
-                            onClick={() => toggleTimeSlot(day, slot.value)}
+                            onClick={() => handleAvailabilityToggle(day, slot.value)}
                             className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                               isSelected
                                 ? 'bg-[var(--purple-primary)] text-white'

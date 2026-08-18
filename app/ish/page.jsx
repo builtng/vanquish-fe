@@ -16,6 +16,7 @@ import CalendarPicker from "@/components/CalendarPicker";
 import { toast } from "react-toastify";
 import { useBranding } from "@/contexts/BrandingContext";
 import apiService from "@/lib/api";
+import { SUPPORT_AREAS } from "@/lib/constants";
 
 export default function CoachingIntake() {
   const { branding, loading: brandingLoading } = useBranding();
@@ -198,22 +199,7 @@ export default function CoachingIntake() {
     fetchSlots();
   }, [currentStep, availableSlots.length, loadingSlots]);
 
-  const supportAreasList = [
-    "Communication problems",
-    "People pleasing",
-    "Loneliness",
-    "Discrimination & Racism",
-    "Low mood",
-    "Stress",
-    "Low confidence",
-    "Family issues",
-    "Fear of intimacy",
-    "Personal development",
-    "Self-defeating behaviour",
-    "Low self-esteem",
-    "Relationship problems",
-    "High sensitivity",
-  ];
+  const supportAreasList = SUPPORT_AREAS;
 
   const ISH_SCHEDULE = {
     monday: ["12pm-1pm", "5pm-6pm"],

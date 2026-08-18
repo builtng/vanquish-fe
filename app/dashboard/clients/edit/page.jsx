@@ -9,6 +9,7 @@ import { useToast } from "@/lib/toast";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SUPPORT_AREAS } from "@/lib/constants";
 
 import {
   Users,
@@ -78,24 +79,20 @@ function EditClientPageContent() {
 
   const [expandedSections, setExpandedSections] = useState({
     personal: true,
-
+    emergency: true,
+    gp: true,
+    preferences: true,
     service: true,
-
     clinical: true,
-
     availability: true,
-
     referral: true,
-
     adminNotes: true,
   });
 
   // Client form data - loaded from API
   const [formData, setFormData] = useState({
     // Client ID (read-only)
-
     clientId: "",
-
     clientName: "",
 
     // Personal Information
@@ -115,12 +112,19 @@ function EditClientPageContent() {
     // Emergency Contact
     emergencyContactName: "",
     emergencyContactPhone: "",
+    emergencyContactEmail: "",
     emergencyContactRelationship: "",
 
     // GP Information
     gpName: "",
     gpPracticeName: "",
     gpPracticePhone: "",
+
+    // Counsellor Preferences
+    genderPreference: "No preference",
+    agePreference: "No preference",
+    ethnicityPreference: "No preference",
+    orientationPreference: "No preference",
 
     // Service Selection
     serviceType: "Low Cost Counselling",
@@ -162,6 +166,7 @@ function EditClientPageContent() {
     partnerPhone: "",
     workingWithAnotherReason: "",
     referralType: "",
+    locationOfResidence: "",
   });
 
   // Determine if we're creating or editing
@@ -181,62 +186,84 @@ function EditClientPageContent() {
         setLoading(true);
         setError(null);
         const client = await apiService.getClient(clientId);
+        const intake = Array.isArray(client.intake_form) 
+          ? client.intake_form[0] 
+          : (client.intake_form || (Array.isArray(client.intakeForm) ? client.intakeForm[0] : (client.intakeForm || {})));
+
+        const clientAvail = (client.availability && Object.keys(client.availability).length > 0) 
+          ? client.availability 
+          : (intake?.availability || {});
 
         // Transform API data to form structure
         setFormData({
           clientId: client.client_id || client.uuid || client.id || clientId,
-          clientName: client.name || "",
+          clientName: client.name || `${intake?.first_name || ""} ${intake?.last_name || ""}`.trim() || "",
           photo: client.photo || null,
-          firstName: client.first_name || client.name?.split(" ")[0] || "",
+          firstName: client.first_name || intake?.first_name || client.name?.split(" ")[0] || "",
           lastName:
             client.last_name ||
+            intake?.last_name ||
             client.name?.split(" ").slice(1).join(" ") ||
             "",
-          email: client.email || "",
-          phone: client.phone || "",
-          age: client.age?.toString() || "",
-          gender: client.gender || "",
-          ethnicity: client.ethnicity || "",
-          sexualOrientation: client.sexual_orientation || "",
-          address: client.address || "",
-          postcode: client.postcode || "",
-          voicemailPermission: client.voicemail_permission || "Yes",
-          currentlyInTherapy: client.currently_in_therapy || "No",
-          emergencyContactName: client.emergency_contact_name || "",
-          emergencyContactPhone: client.emergency_contact_phone || "",
-          emergencyContactRelationship: client.emergency_contact_relationship || "",
-          gpName: client.gp_name || "",
-          gpPracticeName: client.gp_practice_name || "",
-          gpPracticePhone: client.gp_practice_phone || "",
-          serviceType: client.service_type || "Low Cost Counselling",
-          onMedication: client.on_medication || "No",
-          medicationDetails: client.medication_details || "",
-          disabilities: client.disabilities || "None",
-          concernsSelected: client.primary_issues || [],
-          additionalConcernDetails: client.additional_details || "",
-          riskIssues: client.risk_issues || "None reported",
+          email: client.email || intake?.email || "",
+          phone: client.phone || intake?.phone || "",
+          age: client.age?.toString() || intake?.age?.toString() || "",
+          gender: client.gender || intake?.gender || "",
+          ethnicity: client.ethnicity || intake?.ethnicity || "",
+          sexualOrientation: client.sexual_orientation || intake?.sexual_orientation || "",
+          address: client.address || intake?.address || "",
+          postcode: client.postcode || intake?.postcode || "",
+          voicemailPermission: client.voicemail_permission || (intake?.voicemail_ok !== undefined ? (intake.voicemail_ok ? "Yes" : "No") : "Yes"),
+          currentlyInTherapy: client.currently_in_therapy || (intake?.currently_in_therapy !== undefined ? (intake.currently_in_therapy ? "Yes" : "No") : "No"),
+          emergencyContactName: client.emergency_contact_name || intake?.emergency_contact_name || "",
+          emergencyContactPhone: client.emergency_contact_phone || intake?.emergency_contact_phone || "",
+          emergencyContactEmail: client.emergency_contact_email || intake?.emergency_contact_email || "",
+          emergencyContactRelationship: client.emergency_contact_relationship || intake?.emergency_contact_relationship || "",
+          gpName: client.gp_name || intake?.gp_name || "",
+          gpPracticeName: client.gp_practice_name || intake?.gp_practice_name || "",
+          gpPracticePhone: client.gp_practice_phone || intake?.gp_practice_phone || "",
+          genderPreference: client.gender_preference || intake?.gender_preference || "No preference",
+          agePreference: client.age_preference || intake?.age_preference || "No preference",
+          ethnicityPreference: client.ethnicity_preference || intake?.ethnicity_preference || "No preference",
+          orientationPreference: client.orientation_preference || intake?.orientation_preference || "No preference",
+          serviceType: (() => {
+            const val = client.service_type || intake?.service_type;
+            if (!val) return "Low Cost Counselling";
+            const s = String(val).toLowerCase().trim();
+            if (s.includes("coach") || s.includes("counselling & coaching")) return "Counselling & Coaching Services";
+            if (s.includes("mid")) return "Mid Range Counselling";
+            if (s.includes("low")) return "Low Cost Counselling";
+            return val;
+          })(),
+          onMedication: client.on_medication || (intake?.on_medication !== undefined ? (intake.on_medication ? "Yes" : "No") : "No"),
+          medicationDetails: client.medication_details || intake?.medication_details || "",
+          disabilities: client.disabilities || intake?.disabilities || "None",
+          concernsSelected: (Array.isArray(client.primary_issues) && client.primary_issues.length > 0) ? client.primary_issues : (intake?.support_areas || []),
+          additionalConcernDetails: client.additional_details || intake?.concerns_details || "",
+          riskIssues: client.risk_issues || intake?.risk_issues || "None reported",
           availability: {
-            Monday: client.availability?.Monday || [],
-            Tuesday: client.availability?.Tuesday || [],
-            Wednesday: client.availability?.Wednesday || [],
-            Thursday: client.availability?.Thursday || [],
-            Friday: client.availability?.Friday || [],
-            Saturday: client.availability?.Saturday || [],
-            Sunday: client.availability?.Sunday || [],
+            Monday: clientAvail?.Monday || [],
+            Tuesday: clientAvail?.Tuesday || [],
+            Wednesday: clientAvail?.Wednesday || [],
+            Thursday: clientAvail?.Thursday || [],
+            Friday: clientAvail?.Friday || [],
+            Saturday: clientAvail?.Saturday || [],
+            Sunday: clientAvail?.Sunday || [],
           },
-          howHeardAbout: client.how_heard_about || "",
-          referralReasons: client.referral_reasons || "N/A",
-          referralName: client.referral_name || "N/A",
-          referralPhone: client.referral_phone || "N/A",
-          organizationName: client.organization_name || "N/A",
-          organizationEmail: client.organization_email || "N/A",
+          howHeardAbout: client.how_heard_about || intake?.hear_about_us || "",
+          referralReasons: client.referral_reasons || intake?.referral_reason || "N/A",
+          referralName: client.referral_name || intake?.referrer_name || "N/A",
+          referralPhone: client.referral_phone || intake?.referrer_phone || "N/A",
+          organizationName: client.organization_name || intake?.referrer_org || "N/A",
+          organizationEmail: client.organization_email || intake?.referrer_email || "N/A",
           adminNotes: client.admin_notes || "",
-          paymentStatus: client.payment_status || "Pending",
-          whatsappAgreement: client.whatsapp_agreement || "No",
-          partnerEmail: client.partner_email || "",
-          partnerPhone: client.partner_phone || "",
-          workingWithAnotherReason: client.working_with_another_reason || "",
-          referralType: client.referral_type || "",
+          paymentStatus: client.payment_status || intake?.payment_status || "Pending",
+          whatsappAgreement: client.whatsapp_agreement || intake?.whatsapp_agreement || "No",
+          partnerEmail: client.partner_email || intake?.partner_email || "",
+          partnerPhone: client.partner_phone || intake?.partner_phone || "",
+          workingWithAnotherReason: client.working_with_another_reason || intake?.working_with_another_reason || "",
+          referralType: client.referral_type || intake?.referral_type || "",
+          locationOfResidence: client.location_of_residence || intake?.location_of_residence || "",
         });
       } catch (err) {
         console.error("Error fetching client:", err);
@@ -263,63 +290,7 @@ function EditClientPageContent() {
     { value: "6pm-650pm", label: "6:00 PM - 6:50 PM" },
   ];
 
-  const concernsOptions = [
-    "Communication problems",
-
-    "People pleasing",
-
-    "Loneliness",
-
-    "Discrimination & Racism",
-
-    "Low mood",
-
-    "Stress",
-
-    "Low confidence",
-
-    "Family issues",
-
-    "Fear of intimacy",
-
-    "Personal development",
-
-    "Self-defeating behaviour",
-
-    "Low self-esteem",
-
-    "Relationship problems",
-
-    "High sensitivity",
-
-    "Anxiety",
-
-    "Depression",
-
-    "Trauma",
-
-    "PTSD",
-
-    "Grief & Loss",
-
-    "Anger Management",
-
-    "Eating Disorders",
-
-    "OCD",
-
-    "Self-Harm",
-
-    "Suicidal Ideation",
-
-    "Sexual Abuse/Assault",
-
-    "Domestic Violence",
-
-    "Substance Abuse",
-
-    "Work Stress",
-  ];
+  const concernsOptions = SUPPORT_AREAS;
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
@@ -412,12 +383,17 @@ function EditClientPageContent() {
           gender: formData.gender,
           ethnicity: formData.ethnicity,
           sexual_orientation: formData.sexualOrientation,
+          gender_preference: formData.genderPreference,
+          age_preference: formData.agePreference,
+          ethnicity_preference: formData.ethnicityPreference,
+          orientation_preference: formData.orientationPreference,
           address: formData.address,
           postcode: formData.postcode,
           voicemail_permission: formData.voicemailPermission,
           currently_in_therapy: formData.currentlyInTherapy,
           emergency_contact_name: formData.emergencyContactName,
           emergency_contact_phone: formData.emergencyContactPhone,
+          emergency_contact_email: formData.emergencyContactEmail,
           emergency_contact_relationship: formData.emergencyContactRelationship,
           gp_name: formData.gpName,
           gp_practice_name: formData.gpPracticeName,
@@ -443,6 +419,7 @@ function EditClientPageContent() {
           partner_phone: formData.partnerPhone,
           working_with_another_reason: formData.workingWithAnotherReason,
           referral_type: formData.referralType,
+          location_of_residence: formData.locationOfResidence,
           stage: "Consultation Booked",
           status: "active",
         });
@@ -481,12 +458,17 @@ function EditClientPageContent() {
         gender: pendingFormData.gender,
         ethnicity: pendingFormData.ethnicity,
         sexual_orientation: pendingFormData.sexualOrientation,
+        gender_preference: pendingFormData.genderPreference,
+        age_preference: pendingFormData.agePreference,
+        ethnicity_preference: pendingFormData.ethnicityPreference,
+        orientation_preference: pendingFormData.orientationPreference,
         address: pendingFormData.address,
         postcode: pendingFormData.postcode,
         voicemail_permission: pendingFormData.voicemailPermission,
         currently_in_therapy: pendingFormData.currentlyInTherapy,
         emergency_contact_name: pendingFormData.emergencyContactName,
         emergency_contact_phone: pendingFormData.emergencyContactPhone,
+        emergency_contact_email: pendingFormData.emergencyContactEmail,
         emergency_contact_relationship: pendingFormData.emergencyContactRelationship,
         gp_name: pendingFormData.gpName,
         gp_practice_name: pendingFormData.gpPracticeName,
@@ -512,6 +494,7 @@ function EditClientPageContent() {
         partner_phone: pendingFormData.partnerPhone,
         working_with_another_reason: pendingFormData.workingWithAnotherReason,
         referral_type: pendingFormData.referralType,
+        location_of_residence: pendingFormData.locationOfResidence,
       });
 
       success("Client updated successfully!");
@@ -712,7 +695,7 @@ function EditClientPageContent() {
 
               {/* Personal Information Section */}
 
-              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
+              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6">
                 <SectionHeader
                   title="Personal Information"
                   section="personal"
@@ -952,7 +935,7 @@ function EditClientPageContent() {
               </div>
 
               {/* Emergency Contact Section */}
-              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
+              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6">
                 <SectionHeader
                   title="Emergency Contact"
                   section="emergency"
@@ -989,26 +972,129 @@ function EditClientPageContent() {
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                        Relationship to Client
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.emergencyContactRelationship}
-                        onChange={(e) =>
-                          handleInputChange("emergencyContactRelationship", e.target.value)
-                        }
-                        className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                        placeholder="e.g., Mother, Partner, Friend"
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                          Relationship to Client
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.emergencyContactRelationship}
+                          onChange={(e) =>
+                            handleInputChange("emergencyContactRelationship", e.target.value)
+                          }
+                          className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                          placeholder="e.g., Mother, Partner, Friend"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                          Contact Email
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.emergencyContactEmail}
+                          onChange={(e) =>
+                            handleInputChange("emergencyContactEmail", e.target.value)
+                          }
+                          className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                          placeholder="emergency@example.com"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Counsellor Preferences Section */}
+              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6">
+                <SectionHeader
+                  title="Counsellor Preferences (Matching Logic)"
+                  section="preferences"
+                />
+                {expandedSections.preferences && (
+                  <div className="p-6 space-y-4">
+                    <p className="text-xs text-[var(--text-tertiary)] mb-4">
+                      These preferences feed directly into the matching algorithm to score and suggest the best suited practitioners for this client.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                          Gender Preference
+                        </label>
+                        <SearchableSelect
+                          value={formData.genderPreference}
+                          onChange={(e) => handleInputChange("genderPreference", e.target.value)}
+                          options={[
+                            { value: "No preference", label: "No preference" },
+                            { value: "Female", label: "Female" },
+                            { value: "Male", label: "Male" },
+                            { value: "Non-binary", label: "Non-binary" },
+                            { value: "Other", label: "Other" },
+                          ]}
+                          placeholder="Select gender preference"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                          Age Preference
+                        </label>
+                        <SearchableSelect
+                          value={formData.agePreference}
+                          onChange={(e) => handleInputChange("agePreference", e.target.value)}
+                          options={[
+                            { value: "No preference", label: "No preference" },
+                            { value: "20-30", label: "20 - 30 years old" },
+                            { value: "30-40", label: "30 - 40 years old" },
+                            { value: "40-50", label: "40 - 50 years old" },
+                            { value: "50+", label: "50+ years old" },
+                          ]}
+                          placeholder="Select age preference"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                          Ethnicity Preference
+                        </label>
+                        <SearchableSelect
+                          value={formData.ethnicityPreference}
+                          onChange={(e) => handleInputChange("ethnicityPreference", e.target.value)}
+                          options={[
+                            { value: "No preference", label: "No preference" },
+                            { value: "White", label: "White" },
+                            { value: "Asian / Asian British", label: "Asian / Asian British" },
+                            { value: "Black / African / Caribbean / Black British", label: "Black / African / Caribbean / Black British" },
+                            { value: "Mixed / Multiple ethnic groups", label: "Mixed / Multiple ethnic groups" },
+                            { value: "Other ethnic group", label: "Other ethnic group" },
+                          ]}
+                          placeholder="Select ethnicity preference"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                          Sexual Orientation Preference
+                        </label>
+                        <SearchableSelect
+                          value={formData.orientationPreference}
+                          onChange={(e) => handleInputChange("orientationPreference", e.target.value)}
+                          options={[
+                            { value: "No preference", label: "No preference" },
+                            { value: "Heterosexual / Straight", label: "Heterosexual / Straight" },
+                            { value: "Gay / Lesbian", label: "Gay / Lesbian" },
+                            { value: "Bisexual", label: "Bisexual" },
+                            { value: "Queer", label: "Queer" },
+                            { value: "Other", label: "Other" },
+                          ]}
+                          placeholder="Select sexual orientation preference"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
 
               {/* GP Information Section */}
-              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
+              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6">
                 <SectionHeader
                   title="GP Information"
                   section="gp"
@@ -1065,7 +1151,7 @@ function EditClientPageContent() {
 
               {/* Service Selection Section */}
 
-              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
+              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6">
                 <SectionHeader
                   title="Service Selection"
                   section="service"
@@ -1094,7 +1180,7 @@ function EditClientPageContent() {
 
               {/* Clinical Information Section */}
 
-              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
+              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6">
                 <SectionHeader
                   title="Clinical Information"
                   section="clinical"
@@ -1252,7 +1338,7 @@ function EditClientPageContent() {
 
               {/* Availability Section */}
 
-              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
+              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6">
                 <SectionHeader
                   title="Availability Schedule"
                   section="availability"
@@ -1346,7 +1432,7 @@ function EditClientPageContent() {
 
               {/* Referral Information Section */}
 
-              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
+              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6">
                 <SectionHeader
                   title="Referral Information"
                   section="referral"
@@ -1487,7 +1573,7 @@ function EditClientPageContent() {
 
               {/* Admin Notes Section */}
 
-              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6 overflow-hidden">
+              <div className="bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)] mb-6">
                 <SectionHeader
                   title="Admin Notes & Payment"
                   section="adminNotes"

@@ -12,6 +12,7 @@ import {
 import apiService from "@/lib/api";
 import { toast } from "react-toastify";
 import { useBranding } from "@/contexts/BrandingContext";
+import { SUPPORT_AREAS } from "@/lib/constants";
 
 export default function ClientInformationSheet() {
   const { branding, loading: brandingLoading } = useBranding();
@@ -103,27 +104,7 @@ export default function ClientInformationSheet() {
     checkStatus();
   }, []);
 
-  const issues = [
-    "Domestic Violence",
-    "Sexual Abuse",
-    "Child Abuse",
-    "Self-Harm",
-    "Suicidal Ideation",
-    "Eating Disorders",
-    "Substance Abuse",
-    "Trauma/PTSD",
-    "Grief and Bereavement",
-    "Relationship Issues",
-    "Anxiety Disorders",
-    "Depression",
-    "Obsessive-Compulsive Disorder (OCD)",
-    "Personality Disorders",
-    "Psychosis",
-    "Stress Management",
-    "Work-Life Balance",
-    "Identity Issues",
-    "Low Self-Esteem",
-  ];
+  const issues = SUPPORT_AREAS;
 
   const modalities = [
     "Person-Centred Counselling",
