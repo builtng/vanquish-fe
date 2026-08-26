@@ -106,8 +106,18 @@ function InternalChooseCounsellor() {
                 className="bg-white rounded-lg shadow-sm p-6 flex flex-col"
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-semibold">
-                    <User className="w-6 h-6" />
+                  <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 border-2 border-purple-100 bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-lg shadow-xs">
+                    {tc.photo_url || tc.photo ? (
+                      <img
+                        src={apiService.getStorageUrl(tc.photo_url || tc.photo)}
+                        alt={tc.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : tc.name ? (
+                      tc.name.charAt(0).toUpperCase()
+                    ) : (
+                      <User className="w-6 h-6" />
+                    )}
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">

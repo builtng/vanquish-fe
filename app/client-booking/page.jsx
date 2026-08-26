@@ -457,8 +457,16 @@ function ClientBookingContent() {
                   Your Counsellor
                 </p>
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-[#fcf6fa] flex items-center justify-center text-[#6f1d56] font-bold text-xs">
-                    {client.matched_tc.name.charAt(0)}
+                  <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-[#fcf6fa] border border-purple-100 flex items-center justify-center text-[#6f1d56] font-bold text-xs">
+                    {client.matched_tc.photo_url || client.matched_tc.photo ? (
+                      <img
+                        src={apiService.getStorageUrl(client.matched_tc.photo_url || client.matched_tc.photo)}
+                        alt={client.matched_tc.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      client.matched_tc.name.charAt(0)
+                    )}
                   </div>
                   <p className="font-medium text-gray-900 border-b border-dashed border-gray-300">
                     {client.matched_tc.name}

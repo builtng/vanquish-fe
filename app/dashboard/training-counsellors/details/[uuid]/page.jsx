@@ -509,13 +509,21 @@ export default function IndividualTCDetailPage() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-6">
                   <div className="shrink-0 pt-1">
-                    <div className="w-24 h-24 rounded-full flex items-center justify-center bg-purple-600 text-white text-3xl font-bold tracking-tight shadow-md">
-                      {tc.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()}
-                    </div>
+                    {tc.photo ? (
+                      <img
+                        src={resolveDocUrl(tc.photo, tc.uuid, "photo")}
+                        alt={tc.name}
+                        className="w-24 h-24 rounded-full object-cover border-4 border-purple-100 dark:border-purple-900/30 shadow-md"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full flex items-center justify-center bg-purple-600 text-white text-3xl font-bold tracking-tight shadow-md">
+                        {tc.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-end gap-3 flex-wrap">

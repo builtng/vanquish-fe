@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useTheme } from "next-themes";
+import apiService from "@/lib/api";
 
 export default function CounsellorSidebar({ unreadCount = 0 }) {
   const pathname = usePathname();
@@ -374,9 +375,50 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
 
       {/* Settings & Logout */}
       <div className="p-4 border-t border-gray-200 dark:border-[var(--sidebar-border)] space-y-1">
+        {/* User Card Link */}
         <Link
           href="/counsellor-portal/profile"
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+          className={`w-full flex items-center gap-3 px-2.5 py-2 rounded-lg transition-colors mb-1 ${
+            pathname === "/counsellor-portal/profile"
+              ? "bg-purple-50 dark:bg-purple-900/20 text-[#6f1d56] dark:text-purple-300 font-semibold"
+              : "text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
+          }`}
+        >
+          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-purple-200 dark:border-purple-800 bg-purple-100 dark:bg-purple-950 flex items-center justify-center text-xs font-bold text-[#6f1d56] dark:text-purple-300">
+            {user?.photo_url || user?.photo ? (
+              <img
+                src={apiService.getStorageUrl(user.photo_url || user.photo)}
+                alt={user.name || "Practitioner"}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span>
+                {user?.name
+                  ? user.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .substring(0, 2)
+                      .toUpperCase()
+                  : "TC"}
+              </span>
+            )}
+          </div>
+          {sidebarOpen && (
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-xs font-bold text-gray-900 dark:text-[var(--text-primary)] truncate">
+                {user?.name || "Practitioner"}
+              </p>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500 capitalize truncate">
+                {user?.role || "Counsellor"}
+              </p>
+            </div>
+          )}
+        </Link>
+
+        <Link
+          href="/counsellor-portal/profile"
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
             pathname === "/counsellor-portal/profile"
               ? "text-white font-semibold"
               : "text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
@@ -388,9 +430,9 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
           }
         >
           <Settings
-            className={`w-5 h-5 flex-shrink-0 ${pathname === "/counsellor-portal/profile" ? "text-white" : "text-gray-400"}`}
+            className={`w-4 h-4 flex-shrink-0 ${pathname === "/counsellor-portal/profile" ? "text-white" : "text-gray-400"}`}
           />
-          {sidebarOpen && <span className="text-sm font-medium">Settings</span>}
+          {sidebarOpen && <span className="text-xs font-medium">Settings</span>}
         </Link>
         <button
           onClick={logout}

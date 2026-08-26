@@ -29,6 +29,8 @@ export function StripePaymentForm({
   clientId,
   amount,
   consultationSlotId,
+  consultationWithTcUuid,
+  consultationDatetime,
   returnUrl,
   onSuccess,
   onError,
@@ -80,6 +82,8 @@ export function StripePaymentForm({
                   payment_intent_id: paymentIntent.id,
                   client_id: clientId,
                   consultation_slot_id: consultationSlotId || undefined,
+                  consultation_with_tc_uuid: consultationWithTcUuid || undefined,
+                  consultation_datetime: consultationDatetime || undefined,
                 }),
               },
             );
@@ -210,6 +214,8 @@ export function StripePaymentWrapper({
   paymentType = "consultation",
   couponCode,
   consultationSlotId,
+  consultationWithTcUuid,
+  consultationDatetime,
   returnUrl,
   onSuccess,
   onError,
@@ -343,6 +349,8 @@ export function StripePaymentWrapper({
         clientId={clientId}
         amount={amount}
         consultationSlotId={consultationSlotId}
+        consultationWithTcUuid={consultationWithTcUuid}
+        consultationDatetime={consultationDatetime}
         returnUrl={returnUrl}
         onSuccess={onSuccess}
         onError={onError}

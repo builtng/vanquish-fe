@@ -782,12 +782,20 @@ export default function ViewAllTrainingCounsellorsPage() {
 
                 <div className="flex items-start gap-4 mb-4">
                   <div
-                    className={`w-16 h-16 rounded-full ${getInitialsColor(tc.name)} flex items-center justify-center text-xl font-bold flex-shrink-0`}
+                    className={`w-16 h-16 rounded-full overflow-hidden ${getInitialsColor(tc.name)} flex items-center justify-center text-xl font-bold flex-shrink-0 shadow-xs`}
                   >
-                    {tc.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+                    {tc.photo_url || tc.photo ? (
+                      <img
+                        src={apiService.getStorageUrl(tc.photo_url || tc.photo)}
+                        alt={tc.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      tc.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                    )}
                   </div>
 
                   <div className="flex-1 min-w-0">

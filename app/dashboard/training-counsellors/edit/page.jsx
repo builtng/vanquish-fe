@@ -58,6 +58,13 @@ function EditTrainingCounsellorContent() {
       Thursday: [],
       Friday: []
     },
+    consultationAvailability: {
+      Monday: [],
+      Tuesday: [],
+      Wednesday: [],
+      Thursday: [],
+      Friday: []
+    },
     topicsWithExperience: [],
     topicsNotReadyFor: [],
     // Professional Info
@@ -125,6 +132,16 @@ function EditTrainingCounsellorContent() {
               Friday: []
             });
 
+        const tcConsultationAvail = data.consultation_availability && Object.keys(data.consultation_availability).length > 0
+          ? data.consultation_availability
+          : {
+              Monday: [],
+              Tuesday: [],
+              Wednesday: [],
+              Thursday: [],
+              Friday: []
+            };
+
         setFormData({
           name: data.name || intake?.name || '',
           email: data.email || intake?.email || '',
@@ -150,6 +167,15 @@ function EditTrainingCounsellorContent() {
             Friday: tcAvail?.Friday || [],
             Saturday: tcAvail?.Saturday || [],
             Sunday: tcAvail?.Sunday || []
+          },
+          consultationAvailability: {
+            Monday: tcConsultationAvail?.Monday || [],
+            Tuesday: tcConsultationAvail?.Tuesday || [],
+            Wednesday: tcConsultationAvail?.Wednesday || [],
+            Thursday: tcConsultationAvail?.Thursday || [],
+            Friday: tcConsultationAvail?.Friday || [],
+            Saturday: tcConsultationAvail?.Saturday || [],
+            Sunday: tcConsultationAvail?.Sunday || []
           },
           topicsWithExperience: (Array.isArray(data.topics_with_experience) && data.topics_with_experience.length > 0)
             ? data.topics_with_experience
@@ -258,6 +284,23 @@ function EditTrainingCounsellorContent() {
     });
   };
 
+  const handleConsultationAvailabilityToggle = (day, slot) => {
+    setFormData(prev => {
+      const currentSlots = prev.consultationAvailability[day] || [];
+      const newSlots = currentSlots.includes(slot)
+        ? currentSlots.filter(s => s !== slot)
+        : [...currentSlots, slot];
+
+      return {
+        ...prev,
+        consultationAvailability: {
+          ...prev.consultationAvailability,
+          [day]: newSlots
+        }
+      };
+    });
+  };
+
   const handleTopicToggle = (topic, list) => {
     const currentList = formData[list] || [];
     const newList = currentList.includes(topic)
@@ -297,6 +340,7 @@ function EditTrainingCounsellorContent() {
         offers_mid_range: formData.offers_mid_range,
         offers_coaching: formData.offers_coaching,
         availability: formData.availability,
+        consultation_availability: formData.consultationAvailability,
         topics_with_experience: formData.topicsWithExperience,
         topics_not_ready_for: formData.topicsNotReadyFor,
         course: formData.course,
@@ -868,6 +912,45 @@ function EditTrainingCounsellorContent() {
                 ))}
               </div>
             </div>
+
+            {/* Consultation Availability (Qualified counsellors only) */}
+            {formData.counsellor_type === 'Qualified' && (
+              <div className="bg-card rounded-lg border border-border p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-1">Consultation Availability</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Separate from the weekly session schedule above — these are the 15-minute
+                  initial-consultation slots shown to Mid Range / Coaching &amp; Counselling
+                  clients when this counsellor's "Show clients my consultation availability"
+                  toggle is enabled in their portal.
+                </p>
+                <div className="space-y-4">
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => (
+                    <div key={day} className="border border-border rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-foreground mb-3">{day}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {timeSlots.map(slot => {
+                          const isSelected = (formData.consultationAvailability[day] || []).includes(slot.value);
+                          return (
+                            <button
+                              key={slot.value}
+                              type="button"
+                              onClick={() => handleConsultationAvailabilityToggle(day, slot.value)}
+                              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                                isSelected
+                                  ? 'bg-[var(--purple-primary)] text-white'
+                                  : 'bg-muted text-foreground hover:bg-muted/80'
+                              }`}
+                            >
+                              {slot.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Professional Information */}
             <div className="bg-card rounded-lg border border-border p-6">
