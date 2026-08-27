@@ -676,33 +676,39 @@ export default function MidRangeIntakeForm() {
      PROGRESS BAR
   ════════════════════════════════════════════ */
   const ProgressBar = () => (
-    <div className="hidden md:flex items-center gap-0 overflow-x-auto">
+    <div className="hidden md:flex items-center justify-between gap-1 overflow-x-auto py-2">
       {STEPS.map((s, idx) => {
         const done    = completedSteps.has(s.n);
         const current = currentStep === s.n;
         const Icon    = s.icon;
         return (
           <React.Fragment key={s.n}>
-            <div className="flex flex-col items-center flex-1 min-w-0">
+            <div className="flex flex-col items-center flex-1 min-w-[54px] sm:min-w-[62px]">
               <button
                 type="button"
                 onClick={() => goToStep(s.n)}
+                title={`Step ${s.n}: ${s.title}`}
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-all text-xs font-bold shrink-0 ${
-                  done    ? "bg-green-500 text-white"
+                  done    ? "bg-green-500 text-white cursor-pointer hover:opacity-90"
                   : current ? "text-white ring-2 ring-offset-2 ring-[#6f1d56]"
-                  :          "bg-gray-200 text-gray-400"
+                  :          "bg-gray-200 text-gray-400 cursor-pointer hover:bg-gray-300"
                 }`}
                 style={(current && !done) ? { backgroundColor: "#6f1d56" } : {}}
               >
                 {done && !current ? <CheckCircle className="w-4 h-4" /> : s.n}
               </button>
-              <span className={`text-[10px] mt-1 text-center truncate w-full px-1 ${current || done ? "text-[#6f1d56] font-semibold" : "text-gray-400"}`}>
+              <span
+                title={s.title}
+                className={`text-[10px] sm:text-[11px] mt-1.5 text-center leading-tight whitespace-normal break-words max-w-[68px] ${
+                  current || done ? "text-[#6f1d56] font-bold" : "text-gray-500"
+                }`}
+              >
                 {s.title}
               </span>
             </div>
             {idx < STEPS.length - 1 && (
               <div
-                className="h-0.5 flex-1 mx-1 rounded shrink-0 min-w-[8px] transition-colors"
+                className="h-0.5 flex-1 mx-0.5 rounded shrink-0 min-w-[6px] transition-colors mt-[-16px]"
                 style={{ backgroundColor: currentStep > s.n ? "#6f1d56" : "#e5e7eb" }}
               />
             )}
