@@ -88,8 +88,8 @@ export default function VanquishServicesLanding() {
         path: "/low-cost-intake"
       },
       secondaryLinks: [
-        { label: "Service Agreement", path: "/agreement/low-cost", icon: FileSignature },
-        { label: "Book Sessions", path: "/client-booking", icon: CalendarCheck }
+        { label: "Mid-Range Private Therapy", path: "/mid-range-intake", icon: Brain },
+        { label: "Coaching Direction", path: "/coaching", icon: Compass }
       ],
       keywords: ["low-cost", "low cost", "subsidized", "trainee", "intake", "therapy", "counselling", "student"]
     },
@@ -115,8 +115,8 @@ export default function VanquishServicesLanding() {
         path: "/mid-range-intake"
       },
       secondaryLinks: [
-        { label: "Service Agreement", path: "/agreement/mid-range", icon: FileSignature },
-        { label: "Session Booking", path: "/client-booking", icon: CalendarCheck }
+        { label: "Low-Cost Counselling", path: "/low-cost-intake", icon: HeartHandshake },
+        { label: "Coaching Direction", path: "/coaching", icon: Compass }
       ],
       keywords: ["mid-range", "mid range", "private therapy", "registered", "qualified", "counsellor", "intake"]
     },
@@ -169,7 +169,7 @@ export default function VanquishServicesLanding() {
       },
       secondaryLinks: user
         ? [{ label: "Caseload Matching", path: "/dashboard/pending-matches", icon: CheckCircle2 }]
-        : [{ label: "Practitioner Login", path: "/counsellor-login", icon: LogIn }],
+        : [{ label: "Staff Sign In", path: "/login", icon: LogIn }],
       keywords: ["login", "admin", "dashboard", "staff", "management", "portal", "supervisor"]
     },
     {
@@ -194,91 +194,10 @@ export default function VanquishServicesLanding() {
         path: "/coaching"
       },
       secondaryLinks: [
-        { label: "Service Agreement", path: "/agreement/mid-range", icon: FileSignature },
-        { label: "Mid-Range Intake Option", path: "/mid-range-intake?service=coaching", icon: Brain }
+        { label: "Mid-Range Intake Option", path: "/mid-range-intake?service=coaching", icon: Brain },
+        { label: "Low-Cost Counselling", path: "/low-cost-intake", icon: HeartHandshake }
       ],
       keywords: ["coaching", "executive coaching", "career", "personal growth", "direction", "mentoring"]
-    },
-    {
-      id: "client-booking",
-      title: "Client Self-Booking Portal",
-      category: "portals",
-      badge: "Live Calendar",
-      badgeColor: "indigo",
-      isPrimaryPublic: false,
-      icon: CalendarCheck,
-      headline: "Online reservation and session schedule management for active clients",
-      description:
-        "Select your weekly consultation slot, manage upcoming appointments, confirm your allocated therapist, and complete secure session fee settlements.",
-      directPath: "/client-booking",
-      meta: [
-        { label: "Scheduling", value: "Real-Time Slot Confirmation" },
-        { label: "Payment", value: "Integrated Stripe Checkout" },
-        { label: "Availability", value: "24/7 Self-Service" }
-      ],
-      primaryAction: {
-        label: "Access Booking Calendar",
-        path: "/client-booking"
-      },
-      secondaryLinks: [
-        { label: "Low-Cost Agreement", path: "/agreement/low-cost", icon: FileSignature },
-        { label: "Mid-Range Agreement", path: "/agreement/mid-range", icon: FileSignature }
-      ],
-      keywords: ["booking", "client booking", "calendar", "schedule", "appointments", "sessions"]
-    },
-    {
-      id: "trainee-application",
-      title: "Trainee Counsellor Placement",
-      category: "practitioners",
-      badge: "Clinical Hours",
-      badgeColor: "rose",
-      isPrimaryPublic: false,
-      icon: GraduationCap,
-      headline: "Supervised clinical placement program for qualifying counsellors",
-      description:
-        "Gain verifiable clinical placement hours with regular client matching, dedicated administrative support, peer group supervision, and structured case management.",
-      directPath: "/trainee-application",
-      meta: [
-        { label: "Supervision", value: "Clinical Oversight Included" },
-        { label: "Client Allocation", value: "Active Matching Queue" },
-        { label: "Requirement", value: "Enrolled in Level 4+ Course" }
-      ],
-      primaryAction: {
-        label: "Apply for Placement",
-        path: "/trainee-application"
-      },
-      secondaryLinks: [
-        { label: "Interview Slot Booking", path: "/trainee-interview-booking", icon: CalendarCheck },
-        { label: "Express Form (/tcform)", path: "/tcform", icon: FileText }
-      ],
-      keywords: ["trainee", "placement", "internship", "clinical hours", "counsellor", "application"]
-    },
-    {
-      id: "qualified-counsellor-form",
-      title: "Qualified Counsellor Network",
-      category: "practitioners",
-      badge: "Accredited Network",
-      badgeColor: "teal",
-      isPrimaryPublic: false,
-      icon: Award,
-      headline: "Join our UK clinical registry and receive tailored client referrals",
-      description:
-        "Open to qualified, insured members of BACP, UKCP, NCS, or equivalent professional bodies. Access our clinical workflow tools, automated invoicing, and caseload portal.",
-      directPath: "/qualified-counsellor-form",
-      meta: [
-        { label: "Accreditation", value: "BACP / UKCP / NCS Registered" },
-        { label: "Platform", value: "Dedicated Practitioner Portal" },
-        { label: "Remuneration", value: "Competitive Session Rates" }
-      ],
-      primaryAction: {
-        label: "Register as Practitioner",
-        path: "/qualified-counsellor-form"
-      },
-      secondaryLinks: [
-        { label: "Practitioner Login", path: "/counsellor-login", icon: LogIn },
-        { label: "Caseload Portal", path: "/counsellor-portal", icon: ExternalLink }
-      ],
-      keywords: ["qualified", "counsellor", "therapist", "practitioner", "registration", "bacp", "ukcp"]
     }
   ], [user]);
 
@@ -399,11 +318,16 @@ export default function VanquishServicesLanding() {
               Direct URLs
             </a>
             <Link
-              href="/client-booking"
-              className="px-3.5 py-2 rounded-lg hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all flex items-center gap-1.5"
+              href="/mid-range-intake"
+              className="px-3.5 py-2 rounded-lg hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all"
             >
-              <CalendarCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              Book Session
+              Mid-Range
+            </Link>
+            <Link
+              href="/low-cost-intake"
+              className="px-3.5 py-2 rounded-lg hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all"
+            >
+              Low-Cost
             </Link>
           </nav>
 
@@ -421,13 +345,6 @@ export default function VanquishServicesLanding() {
               </Link>
             ) : (
               <div className="flex items-center gap-2">
-                <Link
-                  href="/counsellor-login"
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <Award className="w-4 h-4 text-slate-500" />
-                  Practitioner
-                </Link>
                 <Link
                   href="/login"
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#6f1d56] hover:bg-[#591444] text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
@@ -458,7 +375,7 @@ export default function VanquishServicesLanding() {
 
           <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 leading-relaxed font-normal mb-8 max-w-3xl mx-auto">
             Choose your dedicated pathway below. Access confidential low-cost counselling, qualified private psychotherapy, 
-            practitioner placements, or administrative gateways with verified direct links.
+            professional coaching, or administrative clinical gateways with verified direct links.
           </p>
 
           {/* Quick Direct Access Spotlight Bar (The 4 Core Links Requested by User) */}
@@ -534,10 +451,9 @@ export default function VanquishServicesLanding() {
             <div className="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
               {[
                 { id: "all", label: "All Services", count: services.length },
-                { id: "clients", label: "Client Intakes", count: 3 },
-                { id: "coaching", label: "Coaching", count: 1 },
-                { id: "practitioners", label: "Practitioners & Trainees", count: 2 },
-                { id: "portals", label: "Portals & Booking", count: 2 },
+                { id: "clients", label: "Client Intakes", count: services.filter((s) => s.category === "clients").length },
+                { id: "coaching", label: "Coaching", count: services.filter((s) => s.category === "coaching").length },
+                { id: "portals", label: "Staff Portal", count: services.filter((s) => s.category === "portals").length },
               ].map((tab) => {
                 const isActive = activeCategory === tab.id;
                 return (
@@ -825,36 +741,6 @@ export default function VanquishServicesLanding() {
                   path: "/login",
                   audience: "Internal Staff & Admins",
                   notes: "Access clinical records, caseload allocations, and management dashboards."
-                },
-                {
-                  label: "Client Session Self-Booking",
-                  path: "/client-booking",
-                  audience: "Active Clients",
-                  notes: "Manage session reservations, payments, and allocated counsellor slots."
-                },
-                {
-                  label: "Trainee Counsellor Application",
-                  path: "/trainee-application",
-                  audience: "Trainee Counsellors",
-                  notes: "Clinical placement application form for university course credit hours."
-                },
-                {
-                  label: "Qualified Counsellor Registration",
-                  path: "/qualified-counsellor-form",
-                  audience: "Accredited Therapists",
-                  notes: "Practitioner onboarding form for registered BACP / UKCP clinicians."
-                },
-                {
-                  label: "Low-Cost Service Agreement",
-                  path: "/agreement/low-cost",
-                  audience: "Low-Cost Clients",
-                  notes: "Standard agreement and case study consent form."
-                },
-                {
-                  label: "Mid-Range Service Agreement",
-                  path: "/agreement/mid-range",
-                  audience: "Mid-Range Clients",
-                  notes: "Private practice service agreement and policies."
                 }
               ].map((route, idx) => {
                 const isCopied = copiedId === `table-${route.path}`;
