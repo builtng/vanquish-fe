@@ -6,6 +6,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import apiService from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
+import { useAuth } from "@/contexts/AuthContext";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import SearchableSelect from "@/components/SearchableSelect";
 import { formatName } from "@/lib/nameFormatter";
 import { getInitials } from "@/lib/utils";
@@ -49,7 +51,11 @@ export default function ViewAllClients() {
   const pathname = usePathname();
   const router = useRouter();
   const { success, error: showError } = useToast();
+  const { user: authUser } = useAuth();
   const [selectedClient, setSelectedClient] = useState(null);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStage, setFilterStage] = useState("all");
   const [filterTC, setFilterTC] = useState("all");
@@ -67,6 +73,32 @@ export default function ViewAllClients() {
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   // Fetch clients from API
+  const handleDeleteClient = (client, e) => {
+    if (e) e.stopPropagation();
+    setClientToDelete(client);
+    setShowDeleteConfirmModal(true);
+  };
+
+  const confirmDeleteClient = async () => {
+    if (!clientToDelete) return;
+
+    try {
+      setDeleteLoading(true);
+      await apiService.deleteClient(clientToDelete.uuid || clientToDelete.id);
+      success("Client deleted successfully!");
+      setShowDeleteConfirmModal(false);
+      if (selectedClient?.id === clientToDelete.id) {
+        setSelectedClient(null);
+      }
+      setClientToDelete(null);
+      fetchClients();
+    } catch (err) {
+      showError(err.message || "Failed to delete client");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const fetchClients = async () => {
     try {
       setLoading(true);
@@ -478,6 +510,15 @@ export default function ViewAllClients() {
           <button className="w-full py-3 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 font-medium">
             Archive Client
           </button>
+          {authUser?.role === "admin" && (
+            <button
+              onClick={() => handleDeleteClient(client)}
+              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors shadow-sm"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete Client
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -867,9 +908,15 @@ export default function ViewAllClients() {
                                 <Send className="w-4 h-4 text-green-600" />
                               </button>
                             )}
-                            {/* <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="More">
-                        <MoreVertical className="w-4 h-4 text-gray-600" />
-                      </button> */}
+                            {authUser?.role === "admin" && (
+                              <button
+                                onClick={(e) => handleDeleteClient(client, e)}
+                                className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors text-red-600 dark:text-red-400"
+                                title="Delete Client"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -944,6 +991,22 @@ export default function ViewAllClients() {
             />
           </>
         )}
+
+        {/* Delete Client Confirmation Modal */}
+        <DeleteConfirmationModal
+          isOpen={showDeleteConfirmModal}
+          onClose={() => {
+            setShowDeleteConfirmModal(false);
+            setClientToDelete(null);
+          }}
+          onConfirm={confirmDeleteClient}
+          title="Delete Client"
+          message={`Are you sure you want to delete ${clientToDelete?.name}? This action cannot be undone and will permanently remove this client record.`}
+          itemName={clientToDelete?.name}
+          confirmText="Delete Client"
+          cancelText="Cancel"
+          loading={deleteLoading}
+        />
       </DashboardLayout>
     </PageGuard>
   );

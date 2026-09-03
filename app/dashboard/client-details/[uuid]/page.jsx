@@ -3,7 +3,7 @@ import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useParams } from "next/navigation";
+import { usePathname, useParams, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useAuth } from "@/contexts/AuthContext";
 import apiService from "@/lib/api";
@@ -107,6 +107,7 @@ export default function IndividualClientDetailPage() {
   const pathname = usePathname();
   const params = useParams();
   const uuid = params?.uuid;
+  const router = useRouter();
   const { success, error: showError } = useToast();
   const { user } = useAuth();
 
@@ -138,6 +139,8 @@ export default function IndividualClientDetailPage() {
   const [showDeleteSessionConfirmModal, setShowDeleteSessionConfirmModal] =
     useState(false);
   const [sessionToDelete, setSessionToDelete] = useState(null);
+  const [showDeleteClientModal, setShowDeleteClientModal] = useState(false);
+  const [deletingClient, setDeletingClient] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState(null);
   const [nextStage, setNextStage] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -817,6 +820,24 @@ export default function IndividualClientDetailPage() {
     }
   };
 
+  const handleDeleteClient = () => {
+    setShowDeleteClientModal(true);
+  };
+
+  const confirmDeleteClient = async () => {
+    try {
+      setDeletingClient(true);
+      await apiService.deleteClient(uuid);
+      success("Client deleted successfully");
+      setShowDeleteClientModal(false);
+      router.push("/dashboard/clients");
+    } catch (err) {
+      showError(err.message || "Failed to delete client");
+    } finally {
+      setDeletingClient(false);
+    }
+  };
+
   const handleAddSession = async (sessionData) => {
     try {
       setActionLoading(true);
@@ -1416,6 +1437,16 @@ export default function IndividualClientDetailPage() {
                         >
                           <Archive className="w-4 h-4" />
                         </button>
+                        {user?.role === "admin" && (
+                          <button
+                            onClick={handleDeleteClient}
+                            disabled={actionLoading || deletingClient}
+                            className="p-2 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-800 shadow-xs transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                            title="Delete Client"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -3491,6 +3522,19 @@ export default function IndividualClientDetailPage() {
             confirmText="Delete Session"
             cancelText="Cancel"
             loading={actionLoading}
+          />
+
+          {/* Delete Client Confirmation Modal */}
+          <DeleteConfirmationModal
+            isOpen={showDeleteClientModal}
+            onClose={() => setShowDeleteClientModal(false)}
+            onConfirm={confirmDeleteClient}
+            title="Delete Client"
+            message={`Are you sure you want to delete ${client?.name || "this client"}? This action cannot be undone and will permanently remove this client record and all associated consultations, sessions, and files.`}
+            itemName={client?.name}
+            confirmText="Delete Client"
+            cancelText="Cancel"
+            loading={deletingClient}
           />
           <SessionNoteDetailsModal 
             noteId={selectedClinicalNoteId} 
