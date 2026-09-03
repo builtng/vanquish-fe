@@ -31,7 +31,9 @@ import {
   X,
   Building2,
   HelpCircle,
-  FileSignature
+  FileSignature,
+  ChevronDown,
+  Menu
 } from "lucide-react";
 
 export default function VanquishServicesLanding() {
@@ -43,6 +45,7 @@ export default function VanquishServicesLanding() {
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedId, setCopiedId] = useState(null);
   const [origin, setOrigin] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -231,37 +234,37 @@ export default function VanquishServicesLanding() {
         <div className="absolute top-10 right-1/4 w-[400px] h-[260px] bg-blue-500/8 dark:bg-blue-600/15 rounded-full blur-3xl" />
       </div>
 
-      {/* Modern Navigation Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/85 dark:bg-[#0b0f17]/85 border-b border-slate-200/80 dark:border-slate-800/80 transition-all duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      {/* Modern Responsive Navigation Header */}
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/90 dark:bg-[#0b0f17]/90 border-b border-slate-200/80 dark:border-slate-800/80 transition-all duration-200">
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Brand Identity */}
-          <Link href="/" className="flex items-center gap-3.5 group">
+          <Link href="/" className="flex items-center gap-2.5 sm:gap-3.5 group min-w-0">
             {branding?.platform_logo_url ? (
               <img
                 src={branding.platform_logo_url}
                 alt={branding?.company_name || "Vanquish Therapies"}
-                className="h-10 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+                className="h-8 sm:h-10 w-auto object-contain transition-transform duration-200 group-hover:scale-105 shrink-0"
               />
             ) : (
               <div
-                className="w-10 h-10 rounded-xl text-white font-bold text-lg flex items-center justify-center shadow-md shadow-[#6f1d56]/20 transition-transform duration-200 group-hover:scale-105"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl text-white font-bold text-base sm:text-lg flex items-center justify-center shadow-md shadow-[#6f1d56]/20 transition-transform duration-200 group-hover:scale-105 shrink-0"
                 style={{ backgroundColor: "#6f1d56" }}
               >
                 {branding?.company_name?.substring(0, 2).toUpperCase() || "VT"}
               </div>
             )}
-            <div className="flex flex-col">
-              <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white group-hover:text-[#6f1d56] dark:group-hover:text-pink-400 transition-colors">
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold text-base sm:text-lg tracking-tight text-slate-900 dark:text-white group-hover:text-[#6f1d56] dark:group-hover:text-pink-400 transition-colors truncate max-w-[140px] xs:max-w-[200px] sm:max-w-none">
                 {branding?.company_name || "Vanquish Therapies"}
               </span>
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+              <span className="hidden xs:block text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
                 Clinical Services Portal
               </span>
             </div>
           </Link>
 
-          {/* Center Navigation Badges */}
+          {/* Center Navigation Badges (Desktop) */}
           <nav className="hidden md:flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
             <a
               href="#primary-services"
@@ -290,72 +293,138 @@ export default function VanquishServicesLanding() {
           </nav>
 
           {/* Action Controls */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <ThemeToggle />
 
             {user ? (
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#6f1d56] hover:bg-[#5a1645] text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+                className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl bg-[#6f1d56] hover:bg-[#5a1645] text-white text-xs sm:text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
               >
                 <span>Dashboard</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Link>
             ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/login"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#6f1d56] hover:bg-[#591444] text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Staff Sign In</span>
-                </Link>
-              </div>
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#6f1d56] hover:bg-[#591444] text-white text-xs sm:text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                <Lock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <span className="hidden sm:inline">Staff </span>
+                <span>Sign In</span>
+              </Link>
             )}
+
+            {/* Mobile Menu Toggle Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#0b0f17] px-4 py-3 space-y-1 shadow-lg">
+            <a
+              href="#primary-services"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Services Catalog
+            </a>
+            <a
+              href="#direct-directory"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Direct URLs Directory
+            </a>
+            <Link
+              href="/low-cost-intake"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Low-Cost Intake Form
+            </Link>
+            <Link
+              href="/mid-range-intake"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Mid-Range Intake Form
+            </Link>
+            <Link
+              href="/coaching"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Coaching Intake
+            </Link>
+            <Link
+              href="/therapy-form"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Clinical Therapy Form
+            </Link>
+          </div>
+        )}
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
-        
-        {/* Hero Section with Professional Brand Background Drop */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#6f1d56]/[0.08] via-white/80 to-white dark:from-[#6f1d56]/25 dark:via-[#0c1018]/95 dark:to-[#0b0f17] border border-[#6f1d56]/15 dark:border-[#6f1d56]/30 shadow-xl shadow-[#6f1d56]/5 p-6 sm:p-10 mb-8 text-center">
-          {/* Ambient Lighting & Pattern Overlay */}
-          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[260px] bg-[#6f1d56]/20 dark:bg-[#6f1d56]/35 rounded-full blur-3xl pointer-events-none -z-10" />
-          <div className="absolute top-1/2 right-1/4 w-[300px] h-[180px] bg-purple-500/10 dark:bg-purple-600/15 rounded-full blur-3xl pointer-events-none -z-10" />
-          <div className="absolute inset-0 bg-[radial-gradient(#6f1d56_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.06] dark:opacity-[0.12] pointer-events-none" />
+      {/* Full-Screen Edge-to-Edge Hero Backdrop */}
+      <section className="relative w-full min-h-[calc(100svh-4rem)] sm:min-h-[calc(100vh-5rem)] flex flex-col justify-center items-center overflow-hidden border-b border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-b from-[#6f1d56]/[0.14] via-white/80 to-slate-50 dark:from-[#6f1d56]/30 dark:via-[#0c1018] dark:to-[#0b0f17]">
+        {/* Immersive Brand Lighting & Ambient Elements */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-[#6f1d56]/20 dark:bg-[#6f1d56]/35 rounded-full blur-[140px] pointer-events-none -z-10" />
+        <div className="absolute top-1/3 right-10 w-[450px] h-[350px] bg-[#8d256e]/10 dark:bg-[#8d256e]/20 rounded-full blur-[100px] pointer-events-none -z-10" />
+        <div className="absolute bottom-10 left-10 w-[400px] h-[300px] bg-[#5a1645]/10 dark:bg-[#5a1645]/20 rounded-full blur-[110px] pointer-events-none -z-10" />
 
+        {/* Full-bleed Geometric Grid Pattern with Radial Mask */}
+        <div
+          className="absolute inset-0 bg-[radial-gradient(#6f1d56_1.2px,transparent_1.2px)] [background-size:24px_24px] sm:[background-size:28px_28px] opacity-[0.08] dark:opacity-[0.16] pointer-events-none"
+          style={{
+            maskImage:
+              "radial-gradient(ellipse 70% 60% at 50% 45%, black 30%, transparent 80%)",
+            WebkitMaskImage:
+              "radial-gradient(ellipse 70% 60% at 50% 45%, black 30%, transparent 80%)",
+          }}
+        />
+
+        {/* Hero Content Container */}
+        <div className="max-w-4xl mx-auto px-3.5 sm:px-6 lg:px-8 py-10 sm:py-16 md:py-20 text-center relative z-10 w-full flex flex-col items-center justify-center">
           {/* Eyebrow badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-[#6f1d56]/25 dark:border-[#6f1d56]/40 text-[#6f1d56] dark:text-pink-300 text-xs font-semibold tracking-wide mb-4 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-[#6f1d56] dark:bg-pink-400 animate-pulse" />
-            <span>Vanquish Therapies · Clinical Intake &amp; Services Portal</span>
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-[#6f1d56]/25 dark:border-[#6f1d56]/40 text-[#6f1d56] dark:text-pink-300 text-[11px] sm:text-xs font-semibold tracking-wide mb-4 sm:mb-6 shadow-xs max-w-full">
+            <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-[#6f1d56] dark:bg-pink-400 animate-pulse shrink-0" />
+            <span className="truncate">Vanquish Therapies · Clinical Intake &amp; Services Portal</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15] mb-3">
+          <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.18] sm:leading-[1.12] mb-3 sm:mb-5 max-w-3xl mx-auto break-words">
             Direct Access to Professional Therapy &amp; Clinical Portals
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-normal mb-6 max-w-2xl mx-auto">
+          <p className="text-xs xs:text-sm sm:text-base md:text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-normal mb-5 sm:mb-8 max-w-2xl mx-auto px-1">
             Select your dedicated pathway below. Access confidential low-cost counselling, qualified private psychotherapy, 
             professional coaching, or staff gateways with verified direct links.
           </p>
 
           {/* Prominent Quick Search */}
-          <div className="max-w-xl mx-auto">
-            <div className="relative flex items-center shadow-md shadow-[#6f1d56]/10 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 focus-within:border-[#6f1d56] focus-within:ring-2 focus-within:ring-[#6f1d56]/20 transition-all">
-              <Search className="w-4 h-4 text-[#6f1d56] dark:text-pink-400 ml-4 shrink-0" />
+          <div className="max-w-xl w-full mx-auto mb-4 sm:mb-6">
+            <div className="relative flex items-center shadow-lg shadow-[#6f1d56]/10 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700/80 focus-within:border-[#6f1d56] focus-within:ring-2 sm:focus-within:ring-3 focus-within:ring-[#6f1d56]/20 transition-all backdrop-blur-sm">
+              <Search className="w-4 h-4 text-[#6f1d56] dark:text-pink-400 ml-3.5 sm:ml-4 shrink-0" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Quick search: low-cost, mid-range, coaching, triage..."
-                className="w-full px-3 py-3 text-xs sm:text-sm bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
+                className="w-full px-2.5 sm:px-3 py-3 sm:py-3.5 text-base sm:text-sm bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="p-1.5 mr-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="p-2 mr-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   aria-label="Clear search"
                 >
                   <X className="w-4 h-4" />
@@ -364,8 +433,8 @@ export default function VanquishServicesLanding() {
             </div>
 
             {/* Quick Filter Tags */}
-            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3 text-xs">
-              <span className="text-slate-400 text-[11px] font-medium mr-1">Quick Filter:</span>
+            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 mt-3 sm:mt-3.5 text-xs">
+              <span className="text-slate-400 text-[11px] font-medium mr-0.5">Quick Filter:</span>
               {[
                 { label: "All", category: "all", query: "" },
                 { label: "Low-Cost", category: "clients", query: "low-cost" },
@@ -388,11 +457,13 @@ export default function VanquishServicesLanding() {
                         setSearchQuery("");
                         setActiveCategory(chip.category);
                       }
+                      const el = document.getElementById("primary-services");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
                     }}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                    className={`px-2.5 sm:px-3 py-1 sm:py-1.2 rounded-lg text-[11px] sm:text-xs font-medium transition-all ${
                       isSelected
-                        ? "bg-[#6f1d56] text-white font-semibold shadow-xs"
-                        : "bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-[#6f1d56]/10 hover:text-[#6f1d56] dark:hover:text-pink-300 border border-slate-200/80 dark:border-slate-700/60"
+                        ? "bg-[#6f1d56] text-white font-semibold shadow-sm"
+                        : "bg-white/85 dark:bg-slate-800/85 text-slate-600 dark:text-slate-300 hover:bg-[#6f1d56]/10 hover:text-[#6f1d56] dark:hover:text-pink-300 border border-slate-200/80 dark:border-slate-700/60 shadow-2xs"
                     }`}
                   >
                     {chip.label}
@@ -401,13 +472,27 @@ export default function VanquishServicesLanding() {
               })}
             </div>
           </div>
-        </section>
 
+          {/* Scroll Down Indicator */}
+          <div className="mt-5 sm:mt-8 flex items-center justify-center">
+            <a
+              href="#primary-services"
+              className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-semibold text-slate-500 hover:text-[#6f1d56] dark:text-slate-400 dark:hover:text-pink-300 transition-colors"
+            >
+              <span>Explore Services Catalog</span>
+              <ChevronDown className="w-4 h-4 animate-bounce text-[#6f1d56] dark:text-pink-400" />
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-8 sm:py-12 w-full">
         {/* Services Directory Section */}
-        <section id="primary-services" className="pt-2 pb-12">
+        <section id="primary-services" className="pt-2 pb-10 sm:pb-12">
           {/* Controls Bar: Category Filter Pills */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 sm:mb-6 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 sm:pb-0 scrollbar-none touch-pan-x -mx-3.5 px-3.5 sm:mx-0 sm:px-0">
               {[
                 { id: "all", label: "All Gateways", count: services.length },
                 { id: "clients", label: "Client Intakes", count: services.filter((s) => s.category === "clients").length },
@@ -422,7 +507,7 @@ export default function VanquishServicesLanding() {
                       setActiveCategory(tab.id);
                       setSearchQuery("");
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 shrink-0 ${
                       isActive
                         ? "bg-[#6f1d56] text-white shadow-xs"
                         : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
@@ -444,7 +529,7 @@ export default function VanquishServicesLanding() {
             </div>
 
             {searchQuery && (
-              <div className="flex items-center gap-2 text-xs text-slate-500">
+              <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
                 <span>
                   Filtering for &ldquo;<span className="font-semibold text-[#6f1d56] dark:text-pink-300">{searchQuery}</span>&rdquo; ({filteredServices.length} found)
                 </span>
@@ -460,7 +545,7 @@ export default function VanquishServicesLanding() {
 
           {/* Compact Streamlined Cards Grid */}
           {filteredServices.length === 0 ? (
-            <div className="text-center py-12 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="text-center py-12 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 px-4">
               <HelpCircle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                 No matching service found
@@ -479,7 +564,7 @@ export default function VanquishServicesLanding() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4.5">
               {filteredServices.map((service) => {
                 const IconComponent = service.icon;
                 const isCopied = copiedId === service.id;
@@ -517,7 +602,7 @@ export default function VanquishServicesLanding() {
                 return (
                   <div
                     key={service.id}
-                    className={`bg-white dark:bg-slate-900/90 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group p-4 sm:p-4.5 ${currentColors.borderHighlight} hover:-translate-y-0.5`}
+                    className={`bg-white dark:bg-slate-900/90 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group p-3.5 sm:p-4.5 ${currentColors.borderHighlight} hover:-translate-y-0.5`}
                   >
                     <div>
                       {/* Top Header Row */}
@@ -571,7 +656,7 @@ export default function VanquishServicesLanding() {
 
                     {/* Bottom Action Row */}
                     <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-mono text-[#6f1d56] dark:text-pink-400 font-semibold truncate">
+                      <span className="text-[10px] sm:text-[11px] font-mono text-[#6f1d56] dark:text-pink-400 font-semibold truncate max-w-[150px] xs:max-w-[200px] sm:max-w-[140px] md:max-w-[170px] lg:max-w-[150px]">
                         {service.directPath}
                       </span>
 
@@ -593,12 +678,12 @@ export default function VanquishServicesLanding() {
         {/* Direct URLs Quick Reference Directory Section */}
         <section
           id="direct-directory"
-          className="pt-10 pb-16 border-t border-slate-200/80 dark:border-slate-800/80"
+          className="pt-8 sm:pt-10 pb-12 sm:pb-16 border-t border-slate-200/80 dark:border-slate-800/80"
         >
           <div className="max-w-4xl mx-auto">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-5 sm:mb-6">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                   Direct Canonical Service Routes
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -607,14 +692,14 @@ export default function VanquishServicesLanding() {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                <span className="text-[11px] sm:text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg truncate max-w-full">
                   Domain: {origin || "https://vqtmanagement.com"}
                 </span>
               </div>
             </div>
 
             {/* Structured Route Cards */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden shadow-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden shadow-xs sm:shadow-sm">
               {[
                 {
                   label: "Mid-Range Intake",
@@ -651,10 +736,10 @@ export default function VanquishServicesLanding() {
                 return (
                   <div
                     key={idx}
-                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                    className="p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2.5 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-sm text-slate-900 dark:text-white">
                           {route.label}
                         </span>
@@ -670,10 +755,10 @@ export default function VanquishServicesLanding() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800/80 shrink-0">
                       <button
                         onClick={(e) => handleCopyLink(route.path, `table-${route.path}`, e)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                       >
                         {isCopied ? (
                           <>
@@ -690,7 +775,7 @@ export default function VanquishServicesLanding() {
 
                       <Link
                         href={route.path}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#6f1d56] hover:bg-[#591444] text-white text-xs font-semibold shadow-sm transition-all"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#6f1d56] hover:bg-[#591444] text-white text-xs font-semibold shadow-xs transition-all"
                       >
                         <span>Visit</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
@@ -704,19 +789,19 @@ export default function VanquishServicesLanding() {
         </section>
 
         {/* Clinical Governance & Trust Assurance */}
-        <section className="py-12 bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200 dark:border-slate-800 px-6 sm:px-10 mb-12">
-          <div className="max-w-3xl mx-auto text-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+        <section className="py-8 sm:py-12 bg-white dark:bg-slate-900/60 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 px-4 sm:px-8 lg:px-10 mb-8 sm:mb-12">
+          <div className="max-w-3xl mx-auto text-center mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
               Clinical Quality &amp; Governance
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
               Vanquish operates under strict clinical oversight ensuring confidentiality, ethical standards, and data security.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
-              <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-6 text-center">
+            <div className="p-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+              <ShieldCheck className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
               <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">
                 BACP Ethical Framework
               </h3>
@@ -725,8 +810,8 @@ export default function VanquishServicesLanding() {
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
-              <Lock className="w-8 h-8 text-[#6f1d56] dark:text-pink-400 mx-auto mb-2" />
+            <div className="p-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+              <Lock className="w-7 h-7 sm:w-8 sm:h-8 text-[#6f1d56] dark:text-pink-400 mx-auto mb-2" />
               <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">
                 Confidential &amp; Encrypted
               </h3>
@@ -735,8 +820,8 @@ export default function VanquishServicesLanding() {
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
-              <Users className="w-8 h-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+            <div className="p-4 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+              <Users className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
               <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">
                 Dedicated Clinical Supervision
               </h3>
@@ -748,8 +833,8 @@ export default function VanquishServicesLanding() {
         </section>
 
         {/* Immediate Crisis Assistance Notice */}
-        <section className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-2xl p-5 mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
+        <section className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-xl sm:rounded-2xl p-4 sm:p-5 mb-8 sm:mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3 sm:gap-3.5">
             <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 shrink-0">
               <HelpCircle className="w-5 h-5" />
             </div>
@@ -763,14 +848,14 @@ export default function VanquishServicesLanding() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0 text-xs font-semibold">
-            <span className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0 text-xs font-semibold">
+            <span className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
               NHS: <strong>111</strong>
             </span>
-            <span className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+            <span className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
               Samaritans: <strong>116 123</strong>
             </span>
-            <span className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+            <span className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
               Emergency: <strong>999</strong>
             </span>
           </div>
@@ -778,13 +863,13 @@ export default function VanquishServicesLanding() {
       </main>
 
       {/* Global Footer */}
-      <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-slate-950/60 py-10 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
+      <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-slate-950/60 py-8 sm:py-10 mt-auto">
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
           <div>
             &copy; {new Date().getFullYear()} {branding?.company_name || "Vanquish Therapies"}. All rights reserved. Registered in England &amp; Wales.
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-5 gap-y-2">
             <Link href="/low-cost-intake" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
               Low-Cost Intake
             </Link>
