@@ -144,6 +144,7 @@ export default function NewMessageNotifier() {
     if (!user?.id) return;
 
     const checkNewMessages = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       if (isPollingRef.current) return;
       isPollingRef.current = true;
       try {
@@ -173,8 +174,19 @@ export default function NewMessageNotifier() {
     // Initial check to set baseline count
     checkNewMessages();
 
-    const interval = setInterval(checkNewMessages, 20000);
-    return () => clearInterval(interval);
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        checkNewMessages();
+      }
+    };
+
+    const interval = setInterval(checkNewMessages, 30000);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [user?.id, triggerMessageNudge]);
 
   if (!toasts.length) return null;

@@ -103,6 +103,10 @@ export default function DashboardSidebar() {
       return;
     }
 
+    if (typeof document !== "undefined" && document.hidden) {
+      return;
+    }
+
     // Throttle: minimum 5 seconds between requests
     const now = Date.now();
     const timeSinceLastFetch = now - lastFetchRef.current;
@@ -229,6 +233,13 @@ export default function DashboardSidebar() {
     // Refresh counts every 30 seconds
     const interval = setInterval(fetchSidebarData, 30000);
 
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        fetchSidebarData();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     // Custom event for immediate refresh from other components
     const handleRefresh = () => {
       // Clear fetch throttle for this specific manual refresh if needed, 
@@ -240,6 +251,7 @@ export default function DashboardSidebar() {
 
     return () => {
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("refresh-sidebar-data", handleRefresh);
     };
   }, [isAdmin, user?.role]);

@@ -55,6 +55,7 @@ export default function StaffNoteNotifier() {
     if (!user) return;
 
     const checkNotes = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       if (checkingRef.current) return;
       checkingRef.current = true;
       try {
@@ -71,8 +72,20 @@ export default function StaffNoteNotifier() {
     };
 
     checkNotes();
+
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        checkNotes();
+      }
+    };
+
     const interval = setInterval(checkNotes, 30000);
-    return () => clearInterval(interval);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [user]);
 
   // ── Real-time Echo listener ───────────────────────────────────────────────
