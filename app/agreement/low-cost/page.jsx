@@ -373,20 +373,6 @@ function LowCostAgreementContent() {
                 <Download className="w-4 h-4" />
                 Download PDF Copy
               </a>
-              <button
-                type="button"
-                onClick={() =>
-                  (window.location.href = `/client-booking?uuid=${submittedUuid}`)
-                }
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-md text-sm font-semibold border transition-colors"
-                style={{
-                  borderColor: "var(--border-color)",
-                  color: "var(--text-primary)",
-                }}
-              >
-                Continue to Book Your Consultation
-                <ArrowRight className="w-4 h-4" />
-              </button>
             </div>
           </div>
         </div>
