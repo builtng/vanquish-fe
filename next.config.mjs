@@ -48,6 +48,26 @@ const nextConfig = {
       },
     ];
   },
+
+  async redirects() {
+    return [
+      {
+        source: "/client",
+        destination: "/low-cost-intake",
+        permanent: true,
+      },
+      {
+        source: "/low-cost",
+        destination: "/low-cost-intake",
+        permanent: true,
+      },
+      {
+        source: "/ish",
+        destination: "/coaching",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

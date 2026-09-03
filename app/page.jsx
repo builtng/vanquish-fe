@@ -1,799 +1,1015 @@
-"use client"
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { useBranding } from '@/contexts/BrandingContext';
-import { useTheme } from 'next-themes';
-import { Users, Calendar, Clock, CheckCircle, AlertCircle, Search, BarChart3, Settings, ChevronDown, ChevronUp, X, Check, AlertTriangle, Menu, Home, UserCheck, FileText, DollarSign, Bell, LogOut, Plus } from 'lucide-react';
+"use client";
 
-export default function VanquishAdminDashboard() {
+import React, { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { useBranding } from "@/contexts/BrandingContext";
+import ThemeToggle from "@/components/ThemeToggle";
+import {
+  HeartHandshake,
+  Brain,
+  Compass,
+  FileText,
+  GraduationCap,
+  Award,
+  CalendarCheck,
+  ShieldCheck,
+  ArrowUpRight,
+  ArrowRight,
+  Copy,
+  Check,
+  Search,
+  Lock,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+  Users,
+  LogIn,
+  ExternalLink,
+  ChevronRight,
+  X,
+  Building2,
+  HelpCircle,
+  FileSignature
+} from "lucide-react";
+
+export default function VanquishServicesLanding() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const { branding } = useBranding();
-  const { theme } = useTheme();
-  const [currentPage, setCurrentPage] = useState('pending-matches');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [expandedConsultant, setExpandedConsultant] = useState(null);
+  
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [copiedId, setCopiedId] = useState(null);
+  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
-    if (!isLoading) {
-      if (user) {
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
-      }
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin);
     }
-  }, [user, isLoading, router]);
+  }, []);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center mb-4 animate-pulse">
-            {branding.platform_logo_url ? (
+  const handleCopyLink = async (path, id, e) => {
+    if (e) e.preventDefault();
+    const fullUrl = `${origin || "https://vqtmanagement.com"}${path}`;
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      setCopiedId(id);
+      setTimeout(() => {
+        setCopiedId((current) => (current === id ? null : current));
+      }, 2200);
+    } catch (err) {
+      console.error("Failed to copy URL:", err);
+    }
+  };
+
+  // Master Services Catalog
+  const services = useMemo(() => [
+    {
+      id: "low-cost-intake",
+      title: "Low-Cost Counselling",
+      category: "clients",
+      badge: "Subsidized Support",
+      badgeColor: "emerald",
+      isPrimaryPublic: true,
+      icon: HeartHandshake,
+      headline: "Accessible, weekly 1-to-1 therapy with supervised trainee counsellors",
+      description:
+        "Structured for clients requiring affordable therapy. Delivered by advanced placement practitioners under strict clinical supervision in line with the BACP Ethical Framework.",
+      directPath: "/low-cost-intake",
+      meta: [
+        { label: "Session Type", value: "Weekly 50-minute slots" },
+        { label: "Practitioners", value: "Supervised Trainees" },
+        { label: "Cost", value: "Subsidized Tier" }
+      ],
+      primaryAction: {
+        label: "Complete Low-Cost Intake",
+        path: "/low-cost-intake"
+      },
+      secondaryLinks: [
+        { label: "Service Agreement", path: "/agreement/low-cost", icon: FileSignature },
+        { label: "Book Sessions", path: "/client-booking", icon: CalendarCheck }
+      ],
+      keywords: ["low-cost", "low cost", "subsidized", "trainee", "intake", "therapy", "counselling", "student"]
+    },
+    {
+      id: "mid-range-intake",
+      title: "Mid-Range Private Therapy",
+      category: "clients",
+      badge: "Qualified Therapists",
+      badgeColor: "purple",
+      isPrimaryPublic: true,
+      icon: Brain,
+      headline: "Dedicated psychological sessions with registered, experienced counsellors",
+      description:
+        "Comprehensive clinical care for depression, anxiety, trauma, and relationship support. Matched to an accredited therapist aligned with your availability and modality preferences.",
+      directPath: "/mid-range-intake",
+      meta: [
+        { label: "Session Type", value: "Weekly continuity" },
+        { label: "Practitioners", value: "Qualified & Registered" },
+        { label: "Starting", value: "From £40/session" }
+      ],
+      primaryAction: {
+        label: "Start Mid-Range Intake",
+        path: "/mid-range-intake"
+      },
+      secondaryLinks: [
+        { label: "Service Agreement", path: "/agreement/mid-range", icon: FileSignature },
+        { label: "Session Booking", path: "/client-booking", icon: CalendarCheck }
+      ],
+      keywords: ["mid-range", "mid range", "private therapy", "registered", "qualified", "counsellor", "intake"]
+    },
+    {
+      id: "therapy-form",
+      title: "General Therapy Form",
+      category: "clients",
+      badge: "Clinical Gateway",
+      badgeColor: "blue",
+      isPrimaryPublic: true,
+      icon: FileText,
+      headline: "Direct clinical assessment questionnaire and triage intake",
+      description:
+        "A standardized clinical referral form designed for rapid review and appropriate pathway allocation across our clinical specialist teams.",
+      directPath: "/therapy-form",
+      meta: [
+        { label: "Format", value: "Comprehensive Questionnaire" },
+        { label: "Triage Time", value: "Within 24–48 Business Hours" },
+        { label: "Data Security", value: "256-bit Encrypted" }
+      ],
+      primaryAction: {
+        label: "Open Therapy Form",
+        path: "/therapy-form"
+      },
+      secondaryLinks: [
+        { label: "Alternative Low-Cost Intake", path: "/low-cost-intake", icon: HeartHandshake }
+      ],
+      keywords: ["therapy form", "jotform", "general intake", "questionnaire", "assessment", "referral"]
+    },
+    {
+      id: "login",
+      title: "Staff & Clinician Portal",
+      category: "portals",
+      badge: "Authorized Access",
+      badgeColor: "slate",
+      isPrimaryPublic: true,
+      icon: ShieldCheck,
+      headline: "Central operational management, clinical matching, and supervisor dashboard",
+      description:
+        "Authorized portal access for clinical managers, staff administrators, and placement supervisors to review intake queues, oversee client allocations, and manage caseloads.",
+      directPath: "/login",
+      meta: [
+        { label: "Authentication", value: "Encrypted Credentials" },
+        { label: "Capabilities", value: "Clinical Matching & Records" },
+        { label: "Access Tier", value: "Staff & Management" }
+      ],
+      primaryAction: {
+        label: user ? "Enter Admin Dashboard" : "Sign In to Staff Portal",
+        path: user ? "/dashboard" : "/login"
+      },
+      secondaryLinks: user
+        ? [{ label: "Caseload Matching", path: "/dashboard/pending-matches", icon: CheckCircle2 }]
+        : [{ label: "Practitioner Login", path: "/counsellor-login", icon: LogIn }],
+      keywords: ["login", "admin", "dashboard", "staff", "management", "portal", "supervisor"]
+    },
+    {
+      id: "coaching-intake",
+      title: "Coaching & Professional Direction",
+      category: "coaching",
+      badge: "Performance & Growth",
+      badgeColor: "amber",
+      isPrimaryPublic: false,
+      icon: Compass,
+      headline: "Focused personal and professional coaching for milestone achievement",
+      description:
+        "Tailored sessions targeting career transitions, executive mindset, resilience, and personal clarity. Separate from clinical therapy, designed for direct strategic progress.",
+      directPath: "/coaching",
+      meta: [
+        { label: "Focus", value: "Goal & Strategy Alignment" },
+        { label: "Structure", value: "Block or Ongoing Engagements" },
+        { label: "Format", value: "Online 1-to-1 Video" }
+      ],
+      primaryAction: {
+        label: "Book Coaching Intake",
+        path: "/coaching"
+      },
+      secondaryLinks: [
+        { label: "Service Agreement", path: "/agreement/mid-range", icon: FileSignature },
+        { label: "Mid-Range Intake Option", path: "/mid-range-intake?service=coaching", icon: Brain }
+      ],
+      keywords: ["coaching", "executive coaching", "career", "personal growth", "direction", "mentoring"]
+    },
+    {
+      id: "client-booking",
+      title: "Client Self-Booking Portal",
+      category: "portals",
+      badge: "Live Calendar",
+      badgeColor: "indigo",
+      isPrimaryPublic: false,
+      icon: CalendarCheck,
+      headline: "Online reservation and session schedule management for active clients",
+      description:
+        "Select your weekly consultation slot, manage upcoming appointments, confirm your allocated therapist, and complete secure session fee settlements.",
+      directPath: "/client-booking",
+      meta: [
+        { label: "Scheduling", value: "Real-Time Slot Confirmation" },
+        { label: "Payment", value: "Integrated Stripe Checkout" },
+        { label: "Availability", value: "24/7 Self-Service" }
+      ],
+      primaryAction: {
+        label: "Access Booking Calendar",
+        path: "/client-booking"
+      },
+      secondaryLinks: [
+        { label: "Low-Cost Agreement", path: "/agreement/low-cost", icon: FileSignature },
+        { label: "Mid-Range Agreement", path: "/agreement/mid-range", icon: FileSignature }
+      ],
+      keywords: ["booking", "client booking", "calendar", "schedule", "appointments", "sessions"]
+    },
+    {
+      id: "trainee-application",
+      title: "Trainee Counsellor Placement",
+      category: "practitioners",
+      badge: "Clinical Hours",
+      badgeColor: "rose",
+      isPrimaryPublic: false,
+      icon: GraduationCap,
+      headline: "Supervised clinical placement program for qualifying counsellors",
+      description:
+        "Gain verifiable clinical placement hours with regular client matching, dedicated administrative support, peer group supervision, and structured case management.",
+      directPath: "/trainee-application",
+      meta: [
+        { label: "Supervision", value: "Clinical Oversight Included" },
+        { label: "Client Allocation", value: "Active Matching Queue" },
+        { label: "Requirement", value: "Enrolled in Level 4+ Course" }
+      ],
+      primaryAction: {
+        label: "Apply for Placement",
+        path: "/trainee-application"
+      },
+      secondaryLinks: [
+        { label: "Interview Slot Booking", path: "/trainee-interview-booking", icon: CalendarCheck },
+        { label: "Express Form (/tcform)", path: "/tcform", icon: FileText }
+      ],
+      keywords: ["trainee", "placement", "internship", "clinical hours", "counsellor", "application"]
+    },
+    {
+      id: "qualified-counsellor-form",
+      title: "Qualified Counsellor Network",
+      category: "practitioners",
+      badge: "Accredited Network",
+      badgeColor: "teal",
+      isPrimaryPublic: false,
+      icon: Award,
+      headline: "Join our UK clinical registry and receive tailored client referrals",
+      description:
+        "Open to qualified, insured members of BACP, UKCP, NCS, or equivalent professional bodies. Access our clinical workflow tools, automated invoicing, and caseload portal.",
+      directPath: "/qualified-counsellor-form",
+      meta: [
+        { label: "Accreditation", value: "BACP / UKCP / NCS Registered" },
+        { label: "Platform", value: "Dedicated Practitioner Portal" },
+        { label: "Remuneration", value: "Competitive Session Rates" }
+      ],
+      primaryAction: {
+        label: "Register as Practitioner",
+        path: "/qualified-counsellor-form"
+      },
+      secondaryLinks: [
+        { label: "Practitioner Login", path: "/counsellor-login", icon: LogIn },
+        { label: "Caseload Portal", path: "/counsellor-portal", icon: ExternalLink }
+      ],
+      keywords: ["qualified", "counsellor", "therapist", "practitioner", "registration", "bacp", "ukcp"]
+    }
+  ], [user]);
+
+  // Filtered Services
+  const filteredServices = useMemo(() => {
+    return services.filter((service) => {
+      // Category filter
+      if (activeCategory !== "all" && service.category !== activeCategory) {
+        return false;
+      }
+      // Search query filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const matchesTitle = service.title.toLowerCase().includes(query);
+        const matchesHeadline = service.headline.toLowerCase().includes(query);
+        const matchesDesc = service.description.toLowerCase().includes(query);
+        const matchesPath = service.directPath.toLowerCase().includes(query);
+        const matchesKeywords = service.keywords?.some((k) => k.toLowerCase().includes(query));
+        return matchesTitle || matchesHeadline || matchesDesc || matchesPath || matchesKeywords;
+      }
+      return true;
+    });
+  }, [services, activeCategory, searchQuery]);
+
+  // Primary 4 Public Links spotlighted
+  const primaryLinks = useMemo(() => {
+    return [
+      {
+        title: "Mid-Range Intake",
+        path: "/mid-range-intake",
+        tag: "Experienced Counsellors",
+        description: "12-step guided clinical intake for tailored therapist matching.",
+        icon: Brain,
+        color: "text-purple-600 dark:text-purple-400",
+        border: "hover:border-purple-500/50"
+      },
+      {
+        title: "Low-Cost Intake",
+        path: "/low-cost-intake",
+        tag: "Subsidized Sessions",
+        description: "Accessible therapy delivered by supervised trainee counsellors.",
+        icon: HeartHandshake,
+        color: "text-emerald-600 dark:text-emerald-400",
+        border: "hover:border-emerald-500/50"
+      },
+      {
+        title: "Therapy Form",
+        path: "/therapy-form",
+        tag: "Standard Triage",
+        description: "Structured clinical assessment form for initial evaluation.",
+        icon: FileText,
+        color: "text-blue-600 dark:text-blue-400",
+        border: "hover:border-blue-500/50"
+      },
+      {
+        title: "Staff Login",
+        path: user ? "/dashboard" : "/login",
+        tag: user ? "Active Session" : "Staff & Admin",
+        description: user ? "Access your operational clinic management dashboard." : "Secure login for clinical directors, staff, and supervisors.",
+        icon: ShieldCheck,
+        color: "text-[#6f1d56] dark:text-pink-400",
+        border: "hover:border-[#6f1d56]/50"
+      }
+    ];
+  }, [user]);
+
+  return (
+    <div className="min-h-screen bg-[#fafbfc] dark:bg-[#0b0f17] text-slate-900 dark:text-slate-100 transition-colors duration-300 flex flex-col font-sans selection:bg-[#6f1d56]/20 selection:text-[#6f1d56] dark:selection:bg-[#6f1d56]/40 dark:selection:text-pink-300">
+      
+      {/* Top Ambient Glow Effect */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[420px] pointer-events-none -z-10 overflow-hidden">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[360px] bg-[#6f1d56]/12 dark:bg-[#6f1d56]/25 rounded-full blur-3xl" />
+        <div className="absolute top-10 right-1/4 w-[400px] h-[260px] bg-blue-500/8 dark:bg-blue-600/15 rounded-full blur-3xl" />
+      </div>
+
+      {/* Modern Navigation Header */}
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/85 dark:bg-[#0b0f17]/85 border-b border-slate-200/80 dark:border-slate-800/80 transition-all duration-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+          
+          {/* Brand Identity */}
+          <Link href="/" className="flex items-center gap-3.5 group">
+            {branding?.platform_logo_url ? (
               <img
-                src={
-                  theme === "dark" && branding.platform_logo_dark_url
-                    ? branding.platform_logo_dark_url
-                    : branding.platform_logo_url
-                }
-                alt={branding.company_name}
-                className="max-h-16 object-contain"
+                src={branding.platform_logo_url}
+                alt={branding?.company_name || "Vanquish Therapies"}
+                className="h-10 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
               />
             ) : (
               <div
-                className="w-16 h-16 rounded-2xl text-white font-bold text-2xl flex items-center justify-center"
+                className="w-10 h-10 rounded-xl text-white font-bold text-lg flex items-center justify-center shadow-md shadow-[#6f1d56]/20 transition-transform duration-200 group-hover:scale-105"
                 style={{ backgroundColor: "#6f1d56" }}
               >
-                {branding.company_name?.substring(0, 2).toUpperCase() || "VT"}
+                {branding?.company_name?.substring(0, 2).toUpperCase() || "VT"}
               </div>
             )}
-          </div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-
-  // Mock data
-  const pendingBookings = [
-    {
-      id: 'BK001',
-      clientName: 'Sarah Johnson',
-      age: 32,
-      gender: 'Female',
-      ethnicity: 'Asian',
-      orientation: 'Heterosexual',
-      issues: ['Anxiety Disorders', 'Depression'],
-      modality: 'CBT - Cognitive Behavioral Therapy',
-      selectedDay: 'Monday',
-      selectedTimeBlock: 'afternoon',
-      paymentStatus: 'Paid',
-      amount: '£85',
-      bookedAt: '2 hours ago',
-      preferences: {
-        gender: 'No preference',
-        age: 'No preference',
-        ethnicity: 'Prefer same',
-        orientation: 'No preference'
-      },
-      suggestedConsultants: [
-        { 
-          name: 'Dr. Lisa Chen', 
-          age: 35,
-          gender: 'Female',
-          ethnicity: 'Asian',
-          orientation: 'Heterosexual',
-          lgbtqSpecialist: false,
-          matchScore: 96, 
-          specialties: 'CBT, Anxiety', 
-          available: true, 
-          experience: '8 years',
-          notReadyFor: ['Sexual Abuse'],
-          matching: {
-            availability: { match: true, reason: 'Available Monday afternoon' },
-            modality: { match: true, reason: 'Specializes in CBT' },
-            gender: { match: true, reason: 'Female (no preference specified)' },
-            ethnicity: { match: true, reason: 'Asian (client prefers same ethnicity)', weight: 'High Priority' },
-            orientation: { match: true, reason: 'No preference required' },
-            age: { match: true, reason: 'Age 35 (no preference specified)' },
-            sensitiveTopics: { match: true, reason: 'Ready to handle all client issues' }
-          }
-        },
-        { 
-          name: 'Dr. Priya Patel', 
-          age: 38,
-          gender: 'Female',
-          ethnicity: 'Asian',
-          orientation: 'Bisexual',
-          lgbtqSpecialist: true,
-          matchScore: 94, 
-          specialties: 'CBT, Depression', 
-          available: true, 
-          experience: '5 years',
-          notReadyFor: ['Domestic Violence'],
-          matching: {
-            availability: { match: true, reason: 'Available Monday afternoon' },
-            modality: { match: true, reason: 'Specializes in CBT' },
-            gender: { match: true, reason: 'Female (no preference specified)' },
-            ethnicity: { match: true, reason: 'Asian (client prefers same ethnicity)', weight: 'High Priority' },
-            orientation: { match: true, reason: 'No preference required' },
-            age: { match: true, reason: 'Age 38 (no preference specified)' },
-            sensitiveTopics: { match: true, reason: 'Ready to handle all client issues' }
-          }
-        },
-        { 
-          name: 'Dr. James Wilson', 
-          age: 45,
-          gender: 'Male',
-          ethnicity: 'White',
-          orientation: 'Heterosexual',
-          lgbtqSpecialist: false,
-          matchScore: 78, 
-          specialties: 'CBT, Trauma', 
-          available: true, 
-          experience: '12 years',
-          notReadyFor: ['Eating Disorders'],
-          matching: {
-            availability: { match: true, reason: 'Available Monday afternoon' },
-            modality: { match: true, reason: 'Specializes in CBT' },
-            gender: { match: true, reason: 'Male (no preference specified)' },
-            ethnicity: { match: false, reason: 'White (client prefers same ethnicity - Asian)', weight: 'High Priority Mismatch' },
-            orientation: { match: true, reason: 'No preference required' },
-            age: { match: true, reason: 'Age 45 (no preference specified)' },
-            sensitiveTopics: { match: true, reason: 'Ready to handle all client issues' }
-          }
-        }
-      ]
-    },
-    {
-      id: 'BK002',
-      clientName: 'Michael Brown',
-      age: 28,
-      gender: 'Male',
-      ethnicity: 'Black',
-      orientation: 'Gay',
-      issues: ['Relationship Issues', 'Identity Issues', 'Anxiety Disorders'],
-      modality: 'Person-Centered Therapy',
-      selectedDay: 'Wednesday',
-      selectedTimeBlock: 'morning',
-      paymentStatus: 'Paid',
-      amount: '£95',
-      bookedAt: '5 hours ago',
-      preferences: {
-        gender: 'No preference',
-        age: '25-35',
-        ethnicity: 'No preference',
-        orientation: 'Prefer LGBTQ+ specialist'
-      },
-      suggestedConsultants: [
-        { 
-          name: 'Alex Martinez', 
-          age: 31,
-          gender: 'Non-binary',
-          ethnicity: 'Hispanic',
-          orientation: 'Queer',
-          lgbtqSpecialist: true,
-          matchScore: 95, 
-          specialties: 'Person-Centered, LGBTQ+', 
-          available: true, 
-          experience: '6 years',
-          notReadyFor: ['Substance Abuse'],
-          matching: {
-            availability: { match: true, reason: 'Available Wednesday morning' },
-            modality: { match: true, reason: 'Specializes in Person-Centered Therapy' },
-            gender: { match: true, reason: 'Non-binary (no preference specified)' },
-            ethnicity: { match: true, reason: 'No preference required' },
-            orientation: { match: true, reason: 'LGBTQ+ specialist (client preferred)', weight: 'High Priority' },
-            age: { match: true, reason: 'Age 31 (within client range 25-35)', weight: 'Medium Priority' },
-            sensitiveTopics: { match: true, reason: 'Ready to handle all client issues' }
-          }
-        }
-      ]
-    },
-    {
-      id: 'BK003',
-      clientName: 'Emma Davis',
-      age: 45,
-      gender: 'Female',
-      ethnicity: 'White',
-      orientation: 'Bisexual',
-      issues: ['Sexual Abuse', 'Trauma/PTSD', 'Depression'],
-      modality: 'Psychodynamic Therapy',
-      selectedDay: 'Thursday',
-      selectedTimeBlock: 'evening',
-      paymentStatus: 'Paid',
-      amount: '£110',
-      bookedAt: '1 day ago',
-      preferences: {
-        gender: 'Prefer Female',
-        age: '40-55',
-        ethnicity: 'No preference',
-        orientation: 'No preference'
-      },
-      suggestedConsultants: [
-        { 
-          name: 'Dr. Rachel Green', 
-          age: 48,
-          gender: 'Female',
-          ethnicity: 'White',
-          orientation: 'Heterosexual',
-          lgbtqSpecialist: false,
-          matchScore: 93, 
-          specialties: 'Psychodynamic, Relationships', 
-          available: true, 
-          experience: '15 years',
-          notReadyFor: ['Eating Disorders'],
-          matching: {
-            availability: { match: true, reason: 'Available Thursday evening' },
-            modality: { match: true, reason: 'Specializes in Psychodynamic Therapy' },
-            gender: { match: true, reason: 'Female (client preferred)', weight: 'Medium Priority' },
-            ethnicity: { match: true, reason: 'No preference required' },
-            orientation: { match: true, reason: 'No preference required' },
-            age: { match: true, reason: 'Age 48 (within client range 40-55)', weight: 'Medium Priority' },
-            sensitiveTopics: { match: true, reason: 'Ready to handle all client issues' }
-          }
-        },
-        { 
-          name: 'Dr. Thomas Anderson', 
-          age: 58,
-          gender: 'Male',
-          ethnicity: 'White',
-          orientation: 'Heterosexual',
-          lgbtqSpecialist: false,
-          matchScore: 75, 
-          specialties: 'Psychodynamic, Trauma', 
-          available: true, 
-          experience: '20 years',
-          notReadyFor: ['Sexual Abuse', 'Child Abuse'],
-          matching: {
-            availability: { match: true, reason: 'Available Thursday evening' },
-            modality: { match: true, reason: 'Specializes in Psychodynamic Therapy' },
-            gender: { match: false, reason: 'Male (client prefers Female)', weight: 'Medium Priority Mismatch' },
-            ethnicity: { match: true, reason: 'No preference required' },
-            orientation: { match: true, reason: 'No preference required' },
-            age: { match: false, reason: 'Age 58 (outside client range 40-55)', weight: 'Low Impact' },
-            sensitiveTopics: { match: false, reason: 'NOT ready for: Sexual Abuse (client has this issue)', weight: 'CRITICAL FLAG' }
-          }
-        }
-      ]
-    }
-  ];
-
-  const stats = {
-    pendingMatches: 3,
-    completedToday: 5,
-    totalRevenue: '£425',
-    activeConsultants: 12
-  };
-
-  const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'pending-matches', label: 'Pending Matches', icon: AlertCircle, badge: stats.pendingMatches },
-    { id: 'completed-matches', label: 'Completed Matches', icon: CheckCircle },
-    { id: 'consultants', label: 'Manage Consultants', icon: Users },
-    { id: 'reports', label: 'Reports & Analytics', icon: BarChart3 },
-    { id: 'payments', label: 'Payments', icon: DollarSign },
-    { id: 'settings', label: 'Settings', icon: Settings },
-  ];
-
-  const toggleConsultant = (index) => {
-    setExpandedConsultant(expandedConsultant === index ? null : index);
-  };
-
-  return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className={`bg-gray-900 text-white transition-all duration-300 flex flex-col ${
-        sidebarCollapsed ? 'w-20' : 'w-64'
-      }`}>
-        {/* Logo & Toggle */}
-        <div className="p-6 flex items-center justify-between border-b border-gray-800">
-          {!sidebarCollapsed && (
-            <div>
-              <h1 className="text-xl font-bold">Vanquish</h1>
-              <p className="text-xs text-gray-400">Admin Portal</p>
+            <div className="flex flex-col">
+              <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white group-hover:text-[#6f1d56] dark:group-hover:text-pink-400 transition-colors">
+                {branding?.company_name || "Vanquish Therapies"}
+              </span>
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+                Clinical Services Portal
+              </span>
             </div>
-          )}
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-        </div>
+          </Link>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
-          {navigationItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setCurrentPage(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                currentPage === item.id
-                  ? 'bg-purple-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800'
-              }`}
+          {/* Center Navigation Badges */}
+          <nav className="hidden md:flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
+            <a
+              href="#primary-services"
+              className="px-3.5 py-2 rounded-lg hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all"
             >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              {!sidebarCollapsed && (
-                <>
-                  <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
-                  {item.badge && (
-                    <span className="px-2 py-0.5 bg-orange-500 text-white text-xs rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
-          ))}
-        </nav>
+              Services
+            </a>
+            <a
+              href="#direct-directory"
+              className="px-3.5 py-2 rounded-lg hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all"
+            >
+              Direct URLs
+            </a>
+            <Link
+              href="/client-booking"
+              className="px-3.5 py-2 rounded-lg hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all flex items-center gap-1.5"
+            >
+              <CalendarCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              Book Session
+            </Link>
+          </nav>
 
-        {/* User Profile */}
-        <div className="p-4 border-t border-gray-800">
-          <div className={`flex items-center gap-3 ${sidebarCollapsed ? 'justify-center' : ''}`}>
-            <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
-              AD
-            </div>
-            {!sidebarCollapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">Admin User</p>
-                <p className="text-xs text-gray-400 truncate">admin@vanquish.com</p>
+          {/* Action Controls */}
+          <div className="flex items-center gap-2.5">
+            <ThemeToggle />
+
+            {user ? (
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#6f1d56] hover:bg-[#5a1645] text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                <span>Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/counsellor-login"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Award className="w-4 h-4 text-slate-500" />
+                  Practitioner
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#6f1d56] hover:bg-[#591444] text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Staff Sign In</span>
+                </Link>
               </div>
             )}
           </div>
-          {!sidebarCollapsed && (
-            <button className="w-full mt-3 flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
-              <LogOut className="w-4 h-4" />
-              Logout
-            </button>
-          )}
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Bar */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {navigationItems.find(item => item.id === currentPage)?.label || 'Dashboard'}
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">Manage your therapy matching system</p>
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+        
+        {/* Hero Section */}
+        <section className="text-center pt-6 pb-12 sm:pt-10 sm:pb-16 max-w-4xl mx-auto">
+          {/* Eyebrow badge */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-semibold tracking-wide mb-6">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            UK Supervised & Regulated Clinical Practice
+          </div>
+
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15] mb-6">
+            Direct Access to Professional Therapy &amp; Clinical Portals
+          </h1>
+
+          <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 leading-relaxed font-normal mb-8 max-w-3xl mx-auto">
+            Choose your dedicated pathway below. Access confidential low-cost counselling, qualified private psychotherapy, 
+            practitioner placements, or administrative gateways with verified direct links.
+          </p>
+
+          {/* Quick Direct Access Spotlight Bar (The 4 Core Links Requested by User) */}
+          <div className="pt-2 pb-6">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4 flex items-center justify-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#6f1d56] dark:text-pink-400" />
+              <span>Core Public Service Gateways</span>
             </div>
-            <div className="flex items-center gap-4">
-              <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search bookings..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent w-64"
-                />
-                <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
-              </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-left">
+              {primaryLinks.map((item) => {
+                const IconComponent = item.icon;
+                const isCopied = copiedId === `spotlight-${item.path}`;
+                return (
+                  <div
+                    key={item.title}
+                    className={`p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm ${item.border} transition-all duration-200 flex flex-col justify-between group hover:shadow-md`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className={`p-2 rounded-xl bg-slate-100 dark:bg-slate-800 ${item.color}`}>
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                          {item.tag}
+                        </span>
+                      </div>
+                      <h2 className="font-bold text-slate-900 dark:text-white text-base mb-1">
+                        {item.title}
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-3">
+                        {item.description}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                      <Link
+                        href={item.path}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6f1d56] dark:text-pink-400 hover:text-[#52133e] dark:hover:text-pink-300 transition-colors"
+                      >
+                        <span>Open Direct Link</span>
+                        <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      </Link>
+                      
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopyLink(item.path, `spotlight-${item.path}`, e)}
+                        className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        title="Copy direct URL"
+                        aria-label={`Copy link for ${item.title}`}
+                      >
+                        {isCopied ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </header>
+        </section>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto">
-          {/* Dashboard Page */}
-          {currentPage === 'dashboard' && (
-            <div className="p-8">
-              <div className="grid grid-cols-4 gap-6 mb-8">
-                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-orange-100 rounded-lg">
-                      <AlertCircle className="w-6 h-6 text-orange-600" />
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">{stats.pendingMatches}</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Pending Matches</p>
-                  <p className="text-xs text-gray-500 mt-1">Requires attention</p>
-                </div>
-                
-                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-green-100 rounded-lg">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">{stats.completedToday}</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Completed Today</p>
-                  <p className="text-xs text-gray-500 mt-1">Successfully matched</p>
-                </div>
-
-                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <DollarSign className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">{stats.totalRevenue}</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Today's Revenue</p>
-                  <p className="text-xs text-gray-500 mt-1">From bookings</p>
-                </div>
-
-                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-purple-100 rounded-lg">
-                      <Users className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <span className="text-2xl font-bold text-gray-900">{stats.activeConsultants}</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Active Consultants</p>
-                  <p className="text-xs text-gray-500 mt-1">Available for booking</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <button 
-                    onClick={() => setCurrentPage('pending-matches')}
-                    className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-600 hover:bg-purple-50 transition-colors text-left"
+        {/* Services Directory Section */}
+        <section id="primary-services" className="pt-8 pb-16">
+          
+          {/* Controls Bar: Category Filter Pills + Instant Search */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-200/80 dark:border-slate-800/80">
+            
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+              {[
+                { id: "all", label: "All Services", count: services.length },
+                { id: "clients", label: "Client Intakes", count: 3 },
+                { id: "coaching", label: "Coaching", count: 1 },
+                { id: "practitioners", label: "Practitioners & Trainees", count: 2 },
+                { id: "portals", label: "Portals & Booking", count: 2 },
+              ].map((tab) => {
+                const isActive = activeCategory === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveCategory(tab.id)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold tracking-wide whitespace-nowrap transition-all duration-200 flex items-center gap-2 ${
+                      isActive
+                        ? "bg-[#6f1d56] text-white shadow-sm"
+                        : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
+                    }`}
                   >
-                    <AlertCircle className="w-8 h-8 text-purple-600 mb-2" />
-                    <p className="font-medium text-gray-900">Review Pending</p>
-                    <p className="text-sm text-gray-500">Match clients now</p>
+                    <span>{tab.label}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
                   </button>
-                  <button 
-                    onClick={() => setCurrentPage('consultants')}
-                    className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-600 hover:bg-purple-50 transition-colors text-left"
-                  >
-                    <Users className="w-8 h-8 text-purple-600 mb-2" />
-                    <p className="font-medium text-gray-900">Manage TCs</p>
-                    <p className="text-sm text-gray-500">View consultants</p>
-                  </button>
-                  <button 
-                    onClick={() => setCurrentPage('reports')}
-                    className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-600 hover:bg-purple-50 transition-colors text-left"
-                  >
-                    <BarChart3 className="w-8 h-8 text-purple-600 mb-2" />
-                    <p className="font-medium text-gray-900">View Reports</p>
-                    <p className="text-sm text-gray-500">Analytics dashboard</p>
-                  </button>
-                </div>
-              </div>
+                );
+              })}
             </div>
-          )}
 
-          {/* Pending Matches Page */}
-          {currentPage === 'pending-matches' && (
-            <div className="p-8">
-              <div className="flex gap-8 h-full">
-                {/* Bookings List - Left Side */}
-                <div className="w-96 flex-shrink-0">
-                  <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900">New Bookings</h3>
-                      <span className="px-3 py-1 bg-orange-100 text-orange-700 text-sm font-medium rounded-full">
-                        {pendingBookings.length} pending
-                      </span>
-                    </div>
-                    <div className="space-y-3 max-h-[calc(100vh-280px)] overflow-y-auto">
-                      {pendingBookings.map((booking) => (
-                        <div
-                          key={booking.id}
-                          onClick={() => {
-                            setSelectedBooking(booking);
-                            setExpandedConsultant(null);
-                          }}
-                          className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                            selectedBooking?.id === booking.id
-                              ? 'border-purple-600 bg-purple-50 shadow-md'
-                              : 'border-gray-200 hover:border-purple-300 bg-white'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h4 className="font-semibold text-gray-900">{booking.clientName}</h4>
-                              <p className="text-xs text-gray-500">{booking.id}</p>
-                            </div>
-                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">
-                              PAID
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-700 mb-2">
-                            <Calendar className="w-4 h-4 text-purple-600" />
-                            <span className="capitalize font-medium">{booking.selectedDay} {booking.selectedTimeBlock}</span>
-                          </div>
-                          <p className="text-xs text-gray-600 mb-2">{booking.modality}</p>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-500">{booking.issues.length} concern(s)</span>
-                            <span className="text-gray-500">{booking.bookedAt}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+            {/* Instant Search Bar */}
+            <div className="relative min-w-[260px] sm:min-w-[300px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search services, URLs, or keywords..."
+                className="w-full pl-10 pr-9 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6f1d56]/30 focus:border-[#6f1d56] transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
 
-                {/* Booking Details - Right Side */}
-                <div className="flex-1">
-                  {selectedBooking ? (
-                    <div className="space-y-6">
-                      {/* Client Info Card */}
-                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Client Information</h3>
-                        <div className="grid grid-cols-3 gap-6 mb-6">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Full Name</p>
-                            <p className="font-semibold text-gray-900">{selectedBooking.clientName}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Age & Gender</p>
-                            <p className="font-semibold text-gray-900">{selectedBooking.age} • {selectedBooking.gender}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Payment</p>
-                            <p className="font-semibold text-green-600">{selectedBooking.amount}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Ethnicity</p>
-                            <p className="font-semibold text-gray-900">{selectedBooking.ethnicity}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Orientation</p>
-                            <p className="font-semibold text-gray-900">{selectedBooking.orientation}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Booking ID</p>
-                            <p className="font-semibold text-gray-900">{selectedBooking.id}</p>
-                          </div>
-                        </div>
+          {/* Cards Grid */}
+          {filteredServices.length === 0 ? (
+            <div className="text-center py-16 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <HelpCircle className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+              <p className="text-base font-semibold text-slate-800 dark:text-slate-200">
+                No matching service found
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Try searching for “low-cost”, “intake”, “booking”, or clear your filters.
+              </p>
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setActiveCategory("all");
+                }}
+                className="mt-4 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                Reset Filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredServices.map((service) => {
+                const IconComponent = service.icon;
+                const isCopied = copiedId === service.id;
 
-                        <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-200">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-2">Session Schedule</p>
-                            <div className="flex items-center gap-2 bg-purple-50 px-4 py-3 rounded-lg">
-                              <Clock className="w-5 h-5 text-purple-600" />
-                              <div>
-                                <p className="font-semibold text-gray-900 capitalize">
-                                  {selectedBooking.selectedDay}s • {selectedBooking.selectedTimeBlock}
-                                </p>
-                                <p className="text-xs text-gray-600">Recurring weekly</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-2">Therapy Type</p>
-                            <div className="bg-blue-50 px-4 py-3 rounded-lg">
-                              <p className="font-semibold text-gray-900">{selectedBooking.modality}</p>
-                            </div>
-                          </div>
-                        </div>
+                // Color accent map
+                const colorMap = {
+                  emerald: {
+                    badge: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60",
+                    iconBg: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400",
+                    borderHighlight: "group-hover:border-emerald-500/40",
+                  },
+                  purple: {
+                    badge: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60",
+                    iconBg: "bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400",
+                    borderHighlight: "group-hover:border-purple-500/40",
+                  },
+                  blue: {
+                    badge: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60",
+                    iconBg: "bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400",
+                    borderHighlight: "group-hover:border-blue-500/40",
+                  },
+                  amber: {
+                    badge: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60",
+                    iconBg: "bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400",
+                    borderHighlight: "group-hover:border-amber-500/40",
+                  },
+                  rose: {
+                    badge: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60",
+                    iconBg: "bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400",
+                    borderHighlight: "group-hover:border-rose-500/40",
+                  },
+                  teal: {
+                    badge: "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/60",
+                    iconBg: "bg-teal-50 text-teal-600 dark:bg-teal-950/60 dark:text-teal-400",
+                    borderHighlight: "group-hover:border-teal-500/40",
+                  },
+                  indigo: {
+                    badge: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60",
+                    iconBg: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400",
+                    borderHighlight: "group-hover:border-indigo-500/40",
+                  },
+                  slate: {
+                    badge: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+                    iconBg: "bg-slate-100 text-[#6f1d56] dark:bg-slate-800 dark:text-pink-400",
+                    borderHighlight: "group-hover:border-[#6f1d56]/40",
+                  }
+                };
 
-                        <div className="pt-6 border-t border-gray-200 mt-6">
-                          <p className="text-xs text-gray-500 mb-3">Primary Concerns</p>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedBooking.issues.map((issue, idx) => (
-                              <span key={idx} className="px-3 py-1.5 bg-orange-100 text-orange-700 text-sm font-medium rounded-lg">
-                                {issue}
-                              </span>
-                            ))}
-                          </div>
+                const currentColors = colorMap[service.badgeColor] || colorMap.slate;
+
+                return (
+                  <div
+                    key={service.id}
+                    className={`bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden ${currentColors.borderHighlight} hover:-translate-y-1`}
+                  >
+                    {/* Top Subtle Gradient Border Highlight */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#6f1d56]/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                    <div className="p-6">
+                      {/* Header Row: Icon + Badge + Copy Link */}
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div className={`p-3 rounded-2xl ${currentColors.iconBg} shadow-sm transition-transform duration-300 group-hover:scale-105`}>
+                          <IconComponent className="w-6 h-6" />
                         </div>
 
-                        <div className="pt-6 border-t border-gray-200 mt-6">
-                          <p className="text-xs text-gray-500 mb-3">Client Preferences</p>
-                          <div className="grid grid-cols-4 gap-3">
-                            <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                              <p className="text-xs text-gray-600 mb-0.5">Gender</p>
-                              <p className="text-sm font-medium text-gray-900">{selectedBooking.preferences.gender}</p>
-                            </div>
-                            <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                              <p className="text-xs text-gray-600 mb-0.5">Age</p>
-                              <p className="text-sm font-medium text-gray-900">{selectedBooking.preferences.age}</p>
-                            </div>
-                            <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                              <p className="text-xs text-gray-600 mb-0.5">Ethnicity</p>
-                              <p className="text-sm font-medium text-gray-900">{selectedBooking.preferences.ethnicity}</p>
-                            </div>
-                            <div className="bg-gray-50 px-3 py-2 rounded-lg">
-                              <p className="text-xs text-gray-600 mb-0.5">Orientation</p>
-                              <p className="text-sm font-medium text-gray-900">{selectedBooking.preferences.orientation}</p>
-                            </div>
-                          </div>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${currentColors.badge}`}
+                          >
+                            {service.badge}
+                          </span>
+
+                          <button
+                            onClick={(e) => handleCopyLink(service.directPath, service.id, e)}
+                            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            title="Copy direct link"
+                            aria-label={`Copy link for ${service.title}`}
+                          >
+                            {isCopied ? (
+                              <Check className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
+                          </button>
                         </div>
                       </div>
 
-                      {/* Suggested Consultants */}
-                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Suggested Consultants</h3>
-                        <div className="space-y-4">
-                          {selectedBooking.suggestedConsultants.map((consultant, index) => {
-                            const hasCriticalFlag = Object.values(consultant.matching).some(
-                              m => m.weight === 'CRITICAL FLAG'
-                            );
-                            
+                      {/* Card Title & Headline */}
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-2 group-hover:text-[#6f1d56] dark:group-hover:text-pink-400 transition-colors">
+                        {service.title}
+                      </h3>
+
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug mb-2.5">
+                        {service.headline}
+                      </p>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
+                        {service.description}
+                      </p>
+
+                      {/* Key Meta Specifications */}
+                      <div className="space-y-1.5 py-3 border-y border-slate-100 dark:border-slate-800/80 mb-5">
+                        {service.meta.map((m, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-xs">
+                            <span className="text-slate-500 dark:text-slate-400">{m.label}</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{m.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="px-6 pb-6 pt-0 bg-transparent flex flex-col gap-3">
+                      
+                      {/* Direct Canonical Path Pill */}
+                      <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-1.5 border border-slate-200/60 dark:border-slate-700/60">
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 truncate">
+                            {service.directPath}
+                          </span>
+                        </div>
+                        <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">
+                          {isCopied ? "Copied" : "Direct Link"}
+                        </span>
+                      </div>
+
+                      {/* Primary Action Button */}
+                      <Link
+                        href={service.primaryAction.path}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#6f1d56] hover:bg-[#5a1645] text-white text-xs font-bold tracking-wide shadow-sm hover:shadow-md transition-all duration-200"
+                      >
+                        <span>{service.primaryAction.label}</span>
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </Link>
+
+                      {/* Secondary Quick Links */}
+                      {service.secondaryLinks && service.secondaryLinks.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          {service.secondaryLinks.map((sec, sIdx) => {
+                            const SecIcon = sec.icon || ArrowUpRight;
                             return (
-                              <div key={index} className={`border-2 rounded-xl overflow-hidden transition-all ${
-                                hasCriticalFlag ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'
-                              }`}>
-                                <div className="p-5">
-                                  <div className="flex items-start justify-between mb-4">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-3 flex-wrap mb-2">
-                                        <h5 className="text-lg font-semibold text-gray-900">{consultant.name}</h5>
-                                        <span className={`px-3 py-1 text-sm font-bold rounded-lg ${
-                                          consultant.matchScore >= 90 ? 'bg-green-100 text-green-700' :
-                                          consultant.matchScore >= 80 ? 'bg-blue-100 text-blue-700' :
-                                          'bg-yellow-100 text-yellow-700'
-                                        }`}>
-                                          {consultant.matchScore}% Match
-                                        </span>
-                                        {consultant.lgbtqSpecialist && (
-                                          <span className="px-3 py-1 text-sm font-medium rounded-lg bg-purple-100 text-purple-700">
-                                            LGBTQ+ Specialist
-                                          </span>
-                                        )}
-                                        {hasCriticalFlag && (
-                                          <span className="px-3 py-1 text-sm font-bold rounded-lg bg-red-100 text-red-700 flex items-center gap-1">
-                                            <AlertTriangle className="w-4 h-4" />
-                                            CRITICAL FLAG
-                                          </span>
-                                        )}
-                                      </div>
-                                      <p className="text-sm text-gray-600 mb-1">{consultant.specialties}</p>
-                                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                                        <span>{consultant.experience}</span>
-                                        <span>•</span>
-                                        <span>{consultant.age} yrs • {consultant.gender}</span>
-                                        <span>•</span>
-                                        <span>{consultant.ethnicity}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  <button
-                                    onClick={() => toggleConsultant(index)}
-                                    className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-700 font-semibold"
-                                  >
-                                    {expandedConsultant === index ? (
-                                      <>
-                                        <ChevronUp className="w-4 h-4" />
-                                        Hide Details
-                                      </>
-                                    ) : (
-                                      <>
-                                        <ChevronDown className="w-4 h-4" />
-                                        View Match Breakdown
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-
-                                {expandedConsultant === index && (
-                                  <div className="bg-gray-50 px-5 py-4 border-t-2 border-gray-200">
-                                    <h6 className="text-xs font-bold text-gray-700 mb-4 uppercase tracking-wide">
-                                      Match Analysis - 7 Criteria
-                                    </h6>
-                                    <div className="grid grid-cols-2 gap-4">
-                                      {Object.entries(consultant.matching).map(([criterion, details]) => (
-                                        <div key={criterion} className="bg-white rounded-lg p-3 border border-gray-200">
-                                          <div className="flex items-start gap-3">
-                                            <div className="mt-0.5">
-                                              {details.match ? (
-                                                <Check className="w-5 h-5 text-green-600" />
-                                              ) : (
-                                                details.weight === 'CRITICAL FLAG' ? (
-                                                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                                                ) : (
-                                                  <X className="w-5 h-5 text-red-600" />
-                                                )
-                                              )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <div className="flex items-start justify-between gap-2 mb-1">
-                                                <span className="font-semibold text-sm text-gray-900 capitalize">
-                                                  {criterion.replace(/([A-Z])/g, ' $1').trim()}
-                                                </span>
-                                                {details.weight && (
-                                                  <span className={`text-xs px-2 py-0.5 rounded font-semibold whitespace-nowrap ${
-                                                    details.weight === 'CRITICAL FLAG'
-                                                      ? 'bg-red-100 text-red-700'
-                                                      : details.weight.includes('High') 
-                                                      ? details.match ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                                      : details.weight.includes('Medium')
-                                                      ? 'bg-orange-100 text-orange-700'
-                                                      : 'bg-gray-100 text-gray-600'
-                                                  }`}>
-                                                    {details.weight}
-                                                  </span>
-                                                )}
-                                              </div>
-                                              <p className="text-xs text-gray-600">{details.reason}</p>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-
-                                    {consultant.notReadyFor.length > 0 && (
-                                      <div className="mt-4 pt-4 border-t border-gray-200">
-                                        <p className="text-xs font-semibold text-gray-700 mb-2">TC Not Ready For:</p>
-                                        <div className="flex flex-wrap gap-2">
-                                          {consultant.notReadyFor.map((topic, idx) => {
-                                            const isClientIssue = selectedBooking.issues.includes(topic);
-                                            return (
-                                              <span 
-                                                key={idx} 
-                                                className={`px-3 py-1 text-xs rounded-lg font-medium ${
-                                                  isClientIssue 
-                                                    ? 'bg-red-100 text-red-700 font-bold' 
-                                                    : 'bg-gray-100 text-gray-600'
-                                                }`}
-                                              >
-                                                {topic} {isClientIssue && '⚠️'}
-                                              </span>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                <div className="p-5 pt-0">
-                                  <button 
-                                    className={`w-full mt-4 px-6 py-3 rounded-lg transition-colors text-sm font-bold ${
-                                      hasCriticalFlag
-                                        ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                                        : 'bg-purple-600 hover:bg-purple-700 text-white'
-                                    }`}
-                                  >
-                                    {hasCriticalFlag ? '⚠️ Assign Anyway (Override Warning)' : `✓ Assign ${consultant.name.split(' ')[0]} to Client`}
-                                  </button>
-                                </div>
-                              </div>
+                              <Link
+                                key={sIdx}
+                                href={sec.path}
+                                className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 hover:text-[#6f1d56] dark:hover:text-pink-400 transition-colors"
+                              >
+                                <SecIcon className="w-3 h-3" />
+                                <span>{sec.label}</span>
+                              </Link>
                             );
                           })}
                         </div>
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Booking Selected</h3>
-                        <p className="text-gray-500">Select a booking from the list to view details and suggested consultants</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                );
+              })}
             </div>
           )}
+        </section>
 
-          {/* Other Pages Placeholder */}
-          {currentPage !== 'dashboard' && currentPage !== 'pending-matches' && (
-            <div className="p-8">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  {navigationItems.find(item => item.id === currentPage)?.icon && 
-                    React.createElement(navigationItems.find(item => item.id === currentPage).icon, {
-                      className: "w-8 h-8 text-purple-600"
-                    })
-                  }
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {navigationItems.find(item => item.id === currentPage)?.label}
-                </h3>
-                <p className="text-gray-500">This page is under construction</p>
+        {/* Direct URLs Quick Reference Directory Section */}
+        <section
+          id="direct-directory"
+          className="pt-10 pb-16 border-t border-slate-200/80 dark:border-slate-800/80"
+        >
+          <div className="max-w-4xl mx-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  Direct Canonical Service Routes
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Copy or visit direct links across all Vanquish public endpoints and internal clinical forms.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                  Domain: {origin || "https://vqtmanagement.com"}
+                </span>
               </div>
             </div>
-          )}
-        </main>
-      </div>
+
+            {/* Structured Route Cards */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden shadow-sm">
+              {[
+                {
+                  label: "Mid-Range Intake",
+                  path: "/mid-range-intake",
+                  audience: "General Clients",
+                  notes: "12-Step clinical matching intake for experienced therapists."
+                },
+                {
+                  label: "Coaching & Direction",
+                  path: "/coaching",
+                  audience: "Coaching Clients",
+                  notes: "Goal-oriented personal clarity and professional coaching intake."
+                },
+                {
+                  label: "Low-Cost Counselling Intake",
+                  path: "/low-cost-intake",
+                  audience: "Subsidized Clients",
+                  notes: "One-to-one therapy with supervised advanced trainee counsellors."
+                },
+                {
+                  label: "Clinical Therapy Form",
+                  path: "/therapy-form",
+                  audience: "General Referrals",
+                  notes: "Structured clinical intake and triage submission form."
+                },
+                {
+                  label: "Staff & Management Login",
+                  path: "/login",
+                  audience: "Internal Staff & Admins",
+                  notes: "Access clinical records, caseload allocations, and management dashboards."
+                },
+                {
+                  label: "Client Session Self-Booking",
+                  path: "/client-booking",
+                  audience: "Active Clients",
+                  notes: "Manage session reservations, payments, and allocated counsellor slots."
+                },
+                {
+                  label: "Trainee Counsellor Application",
+                  path: "/trainee-application",
+                  audience: "Trainee Counsellors",
+                  notes: "Clinical placement application form for university course credit hours."
+                },
+                {
+                  label: "Qualified Counsellor Registration",
+                  path: "/qualified-counsellor-form",
+                  audience: "Accredited Therapists",
+                  notes: "Practitioner onboarding form for registered BACP / UKCP clinicians."
+                },
+                {
+                  label: "Low-Cost Service Agreement",
+                  path: "/agreement/low-cost",
+                  audience: "Low-Cost Clients",
+                  notes: "Standard agreement and case study consent form."
+                },
+                {
+                  label: "Mid-Range Service Agreement",
+                  path: "/agreement/mid-range",
+                  audience: "Mid-Range Clients",
+                  notes: "Private practice service agreement and policies."
+                }
+              ].map((route, idx) => {
+                const isCopied = copiedId === `table-${route.path}`;
+                return (
+                  <div
+                    key={idx}
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="font-bold text-sm text-slate-900 dark:text-white">
+                          {route.label}
+                        </span>
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[#6f1d56] dark:text-pink-400 font-semibold">
+                          {route.path}
+                        </span>
+                        <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                          {route.audience}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        {route.notes}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={(e) => handleCopyLink(route.path, `table-${route.path}`, e)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        {isCopied ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-emerald-600">Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy URL</span>
+                          </>
+                        )}
+                      </button>
+
+                      <Link
+                        href={route.path}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#6f1d56] hover:bg-[#591444] text-white text-xs font-semibold shadow-sm transition-all"
+                      >
+                        <span>Visit</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Clinical Governance & Trust Assurance */}
+        <section className="py-12 bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200 dark:border-slate-800 px-6 sm:px-10 mb-12">
+          <div className="max-w-3xl mx-auto text-center mb-8">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              Clinical Quality &amp; Governance
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+              Vanquish operates under strict clinical oversight ensuring confidentiality, ethical standards, and data security.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+              <ShieldCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">
+                BACP Ethical Framework
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                All sessions and supervised placement hours comply with UK professional counselling standards.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+              <Lock className="w-8 h-8 text-[#6f1d56] dark:text-pink-400 mx-auto mb-2" />
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">
+                Confidential &amp; Encrypted
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                All client intake records and agreements are encrypted in transit and at rest per GDPR guidelines.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+              <Users className="w-8 h-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-1">
+                Dedicated Clinical Supervision
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Trainee counsellors receive regular senior supervisor reviews and clinical development oversight.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Immediate Crisis Assistance Notice */}
+        <section className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 rounded-2xl p-5 mb-12 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 shrink-0">
+              <HelpCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-200">
+                Immediate Crisis &amp; Emergency Support
+              </h3>
+              <p className="text-xs text-amber-800 dark:text-amber-300/90 mt-0.5">
+                Vanquish is not an emergency crisis response service. If you are experiencing acute distress or thoughts of self-harm:
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 text-xs font-semibold">
+            <span className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+              NHS: <strong>111</strong>
+            </span>
+            <span className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+              Samaritans: <strong>116 123</strong>
+            </span>
+            <span className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200">
+              Emergency: <strong>999</strong>
+            </span>
+          </div>
+        </section>
+      </main>
+
+      {/* Global Footer */}
+      <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-slate-950/60 py-10 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
+          <div>
+            &copy; {new Date().getFullYear()} {branding?.company_name || "Vanquish Therapies"}. All rights reserved. Registered in England &amp; Wales.
+          </div>
+
+          <div className="flex items-center gap-5">
+            <Link href="/low-cost-intake" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+              Low-Cost Intake
+            </Link>
+            <Link href="/mid-range-intake" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+              Mid-Range Intake
+            </Link>
+            <Link href="/therapy-form" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+              Therapy Form
+            </Link>
+            <Link href="/login" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+              Staff Login
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
