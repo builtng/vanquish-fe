@@ -37,10 +37,12 @@ import {
   Calendar,
   CreditCard,
   CheckCircle,
+  Trash2,
 } from "lucide-react";
 import MenuPrivilegesSettings from "@/components/MenuPrivilegesSettings";
 import CompanyBrandingSettings from "@/components/CompanyBrandingSettings";
 import SystemModuleToggleSettings from "@/components/SystemModuleToggleSettings";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 
 export default function SettingsPage() {
   const pathname = usePathname();
@@ -85,6 +87,22 @@ export default function SettingsPage() {
   const [twoFactorQRCode, setTwoFactorQRCode] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [backupCodes, setBackupCodes] = useState([]);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    try {
+      setDeletingAccount(true);
+      await apiService.deleteAccount();
+      success("Your account has been deleted successfully.");
+      setShowDeleteAccountModal(false);
+      logout();
+    } catch (err) {
+      showError(err.message || "Failed to delete account");
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   // Load user profile data
   useEffect(() => {
@@ -608,6 +626,44 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+
+              {/* Danger Zone - Account Deletion */}
+              {authUser && authUser.role === "admin" && (
+                <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-red-200 dark:border-red-900/40 p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-red-600 dark:text-red-400">
+                        Danger Zone
+                      </h2>
+                      <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-0.5">
+                        Irreversible account actions
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-red-100 dark:border-red-900/30">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">
+                        Delete Account
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">
+                        Permanently delete your account and remove all associated access. This action cannot be undone.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteAccountModal(true)}
+                      className="px-4 py-2 border border-red-300 dark:border-red-800 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/40 text-red-700 dark:text-red-400 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Account
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -970,6 +1026,19 @@ export default function SettingsPage() {
             </div>
           </>
         )}
+
+        {/* Delete Account Confirmation Modal */}
+        <DeleteConfirmationModal
+          isOpen={showDeleteAccountModal}
+          onClose={() => setShowDeleteAccountModal(false)}
+          onConfirm={handleDeleteAccount}
+          title="Delete Account"
+          message="Are you sure you want to delete your account? This action is permanent and cannot be undone. All your permissions, settings, and active sessions will be terminated immediately."
+          itemName={profile.name || authUser?.name || "your account"}
+          confirmText="Delete Account"
+          cancelText="Cancel"
+          loading={deletingAccount}
+        />
       </DashboardLayout>
     </PageGuard>
   );

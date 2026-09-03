@@ -26,7 +26,7 @@ import {
 import SearchableSelect from "@/components/SearchableSelect";
 
 export default function UsersPage() {
-  const { user: authUser } = useAuth();
+  const { user: authUser, logout } = useAuth();
   const { success, error: showError } = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -125,10 +125,6 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = (user) => {
-    if (user.id === authUser?.id) {
-      showError("You cannot delete your own account.");
-      return;
-    }
     setSelectedUser(user);
     setShowDeleteModal(true);
   };
@@ -279,18 +275,20 @@ export default function UsersPage() {
   const deleteUser = async () => {
     if (!selectedUser) return;
 
-    if (selectedUser.id === authUser?.id) {
-      showError("You cannot delete your own account.");
-      setShowDeleteModal(false);
-      return;
-    }
-
     try {
       setDeleting(true);
       await apiService.deleteUser(selectedUser.id);
       success("User deleted successfully!");
       setShowDeleteModal(false);
+
+      const wasSelf = selectedUser.id === authUser?.id;
       setSelectedUser(null);
+
+      if (wasSelf) {
+        logout();
+        return;
+      }
+
       loadUsers();
       loadUserCount();
     } catch (err) {
@@ -459,15 +457,13 @@ export default function UsersPage() {
                             >
                               <Edit className="w-4 h-4" />
                             </button>
-                            {user.id !== authUser?.id && (
-                              <button
-                                onClick={() => handleDeleteUser(user)}
-                                className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                                title="Delete user"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => handleDeleteUser(user)}
+                              className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                              title={user.id === authUser?.id ? "Delete your account" : "Delete user"}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -666,10 +662,14 @@ export default function UsersPage() {
           isOpen={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
           onConfirm={deleteUser}
-          title="Delete User"
-          message={`Are you sure you want to delete ${selectedUser?.name} (${selectedUser?.email})? This action cannot be undone.`}
+          title={selectedUser?.id === authUser?.id ? "Delete Your Account" : "Delete User"}
+          message={
+            selectedUser?.id === authUser?.id
+              ? `Are you sure you want to delete your own account (${selectedUser?.name} - ${selectedUser?.email})? This action cannot be undone and you will be immediately logged out.`
+              : `Are you sure you want to delete ${selectedUser?.name} (${selectedUser?.email})? This action cannot be undone.`
+          }
           itemName={selectedUser?.name}
-          confirmText="Delete User"
+          confirmText={selectedUser?.id === authUser?.id ? "Delete My Account" : "Delete User"}
           cancelText="Cancel"
           loading={deleting}
         />
