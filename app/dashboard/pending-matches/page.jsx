@@ -133,37 +133,59 @@ function computeSuggestedTCs(client, trainingCounsellors) {
       const flags = [];
 
       // 1. Availability Overlap (40 points)
-      const clientAvailability = client.rawAvailability || {};
-      let commonSlots = 0;
-      let totalClientSlots = 0;
-      if (tc.availability) {
-        Object.keys(clientAvailability).forEach((day) => {
-          const slots = clientAvailability[day];
-          if (Array.isArray(slots)) {
-            totalClientSlots += slots.length;
-            if (tc.availability[day]) {
-              slots.forEach((slot) => {
-                if (tc.availability[day].includes(slot)) {
-                  commonSlots++;
-                }
-              });
-            }
-          }
-        });
-      }
-      const availabilityScore =
-        totalClientSlots > 0 ? (commonSlots / totalClientSlots) * 40 : 0;
+      const clientAvail =
+        client.rawAvailability && !Array.isArray(client.rawAvailability)
+          ? client.rawAvailability
+          : !Array.isArray(client.availability)
+            ? client.availability || {}
+            : {};
+      const tcAvail = tc.availability || tc.rawAvailability || {};
+
+      const parsedClientAvail =
+        typeof clientAvail === "string"
+          ? (() => {
+              try {
+                return JSON.parse(clientAvail);
+              } catch {
+                return {};
+              }
+            })()
+          : clientAvail && typeof clientAvail === "object"
+            ? clientAvail
+            : {};
+
+      const parsedTcAvail =
+        typeof tcAvail === "string"
+          ? (() => {
+              try {
+                return JSON.parse(tcAvail);
+              } catch {
+                return {};
+              }
+            })()
+          : tcAvail && typeof tcAvail === "object"
+            ? tcAvail
+            : {};
+
+      const overlap = computeOverlapSchedule(parsedClientAvail, parsedTcAvail);
+      const hasClientSlots = overlap.totalClientSlots > 0;
+
+      const availPercentage = hasClientSlots ? overlap.overlapPercentage : 100;
+      const availabilityScore = (availPercentage / 100) * 40;
+      const availMatched = !hasClientSlots || overlap.hasOverlap;
+      const availDetail = hasClientSlots
+        ? `${overlap.totalOverlapCount} overlapping weekly slot(s) found (${availPercentage}% match)`
+        : "No client availability on record to compare";
+
       breakdown.availability = {
         score: Math.round(availabilityScore),
         max: 40,
-        percentage: Math.round((availabilityScore / 40) * 100),
-        matched: totalClientSlots === 0 || commonSlots > 0,
-        detail:
-          totalClientSlots > 0
-            ? `${commonSlots}/${totalClientSlots} preferred slots overlap`
-            : "No client availability on record to compare",
+        percentage: Math.round(availPercentage),
+        matched: availMatched,
+        detail: availDetail,
       };
-      if (totalClientSlots > 0 && commonSlots === 0) {
+
+      if (hasClientSlots && !overlap.hasOverlap) {
         flags.push("No overlapping availability with this client");
       }
 
