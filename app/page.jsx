@@ -222,48 +222,6 @@ export default function VanquishServicesLanding() {
     });
   }, [services, activeCategory, searchQuery]);
 
-  // Primary 4 Public Links spotlighted
-  const primaryLinks = useMemo(() => {
-    return [
-      {
-        title: "Mid-Range Intake",
-        path: "/mid-range-intake",
-        tag: "Experienced Counsellors",
-        description: "12-step guided clinical intake for tailored therapist matching.",
-        icon: Brain,
-        color: "text-purple-600 dark:text-purple-400",
-        border: "hover:border-purple-500/50"
-      },
-      {
-        title: "Low-Cost Intake",
-        path: "/low-cost-intake",
-        tag: "Subsidized Sessions",
-        description: "Accessible therapy delivered by supervised trainee counsellors.",
-        icon: HeartHandshake,
-        color: "text-emerald-600 dark:text-emerald-400",
-        border: "hover:border-emerald-500/50"
-      },
-      {
-        title: "Therapy Form",
-        path: "/therapy-form",
-        tag: "Standard Triage",
-        description: "Structured clinical assessment form for initial evaluation.",
-        icon: FileText,
-        color: "text-blue-600 dark:text-blue-400",
-        border: "hover:border-blue-500/50"
-      },
-      {
-        title: "Staff Login",
-        path: user ? "/dashboard" : "/login",
-        tag: user ? "Active Session" : "Staff & Admin",
-        description: user ? "Access your operational clinic management dashboard." : "Secure login for clinical directors, staff, and supervisors.",
-        icon: ShieldCheck,
-        color: "text-[#6f1d56] dark:text-pink-400",
-        border: "hover:border-[#6f1d56]/50"
-      }
-    ];
-  }, [user]);
-
   return (
     <div className="min-h-screen bg-[#fafbfc] dark:bg-[#0b0f17] text-slate-900 dark:text-slate-100 transition-colors duration-300 flex flex-col font-sans selection:bg-[#6f1d56]/20 selection:text-[#6f1d56] dark:selection:bg-[#6f1d56]/40 dark:selection:text-pink-300">
       
@@ -361,80 +319,84 @@ export default function VanquishServicesLanding() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
         
-        {/* Hero Section */}
-        <section className="text-center pt-6 pb-12 sm:pt-10 sm:pb-16 max-w-4xl mx-auto">
+        {/* Hero Section with Professional Brand Background Drop */}
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#6f1d56]/[0.08] via-white/80 to-white dark:from-[#6f1d56]/25 dark:via-[#0c1018]/95 dark:to-[#0b0f17] border border-[#6f1d56]/15 dark:border-[#6f1d56]/30 shadow-xl shadow-[#6f1d56]/5 p-6 sm:p-10 mb-8 text-center">
+          {/* Ambient Lighting & Pattern Overlay */}
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[260px] bg-[#6f1d56]/20 dark:bg-[#6f1d56]/35 rounded-full blur-3xl pointer-events-none -z-10" />
+          <div className="absolute top-1/2 right-1/4 w-[300px] h-[180px] bg-purple-500/10 dark:bg-purple-600/15 rounded-full blur-3xl pointer-events-none -z-10" />
+          <div className="absolute inset-0 bg-[radial-gradient(#6f1d56_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.06] dark:opacity-[0.12] pointer-events-none" />
+
           {/* Eyebrow badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-semibold tracking-wide mb-6">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            UK Supervised & Regulated Clinical Practice
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-[#6f1d56]/25 dark:border-[#6f1d56]/40 text-[#6f1d56] dark:text-pink-300 text-xs font-semibold tracking-wide mb-4 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-[#6f1d56] dark:bg-pink-400 animate-pulse" />
+            <span>Vanquish Therapies · Clinical Intake &amp; Services Portal</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15] mb-6">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15] mb-3">
             Direct Access to Professional Therapy &amp; Clinical Portals
           </h1>
 
-          <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 leading-relaxed font-normal mb-8 max-w-3xl mx-auto">
-            Choose your dedicated pathway below. Access confidential low-cost counselling, qualified private psychotherapy, 
-            professional coaching, or administrative clinical gateways with verified direct links.
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-normal mb-6 max-w-2xl mx-auto">
+            Select your dedicated pathway below. Access confidential low-cost counselling, qualified private psychotherapy, 
+            professional coaching, or staff gateways with verified direct links.
           </p>
 
-          {/* Quick Direct Access Spotlight Bar (The 4 Core Links Requested by User) */}
-          <div className="pt-2 pb-6">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-4 flex items-center justify-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#6f1d56] dark:text-pink-400" />
-              <span>Core Public Service Gateways</span>
+          {/* Prominent Quick Search */}
+          <div className="max-w-xl mx-auto">
+            <div className="relative flex items-center shadow-md shadow-[#6f1d56]/10 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 focus-within:border-[#6f1d56] focus-within:ring-2 focus-within:ring-[#6f1d56]/20 transition-all">
+              <Search className="w-4 h-4 text-[#6f1d56] dark:text-pink-400 ml-4 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Quick search: low-cost, mid-range, coaching, triage..."
+                className="w-full px-3 py-3 text-xs sm:text-sm bg-transparent text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="p-1.5 mr-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-left">
-              {primaryLinks.map((item) => {
-                const IconComponent = item.icon;
-                const isCopied = copiedId === `spotlight-${item.path}`;
+            {/* Quick Filter Tags */}
+            <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3 text-xs">
+              <span className="text-slate-400 text-[11px] font-medium mr-1">Quick Filter:</span>
+              {[
+                { label: "All", category: "all", query: "" },
+                { label: "Low-Cost", category: "clients", query: "low-cost" },
+                { label: "Mid-Range", category: "clients", query: "mid-range" },
+                { label: "Coaching", category: "coaching", query: "coaching" },
+                { label: "Therapy Form", category: "clients", query: "therapy" },
+                { label: "Staff Sign In", category: "portals", query: "login" }
+              ].map((chip) => {
+                const isSelected =
+                  (chip.query && searchQuery.toLowerCase() === chip.query) ||
+                  (!chip.query && !searchQuery && activeCategory === chip.category);
                 return (
-                  <div
-                    key={item.title}
-                    className={`p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm ${item.border} transition-all duration-200 flex flex-col justify-between group hover:shadow-md`}
+                  <button
+                    key={chip.label}
+                    onClick={() => {
+                      if (chip.query) {
+                        setSearchQuery(searchQuery.toLowerCase() === chip.query ? "" : chip.query);
+                        setActiveCategory("all");
+                      } else {
+                        setSearchQuery("");
+                        setActiveCategory(chip.category);
+                      }
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                      isSelected
+                        ? "bg-[#6f1d56] text-white font-semibold shadow-xs"
+                        : "bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-[#6f1d56]/10 hover:text-[#6f1d56] dark:hover:text-pink-300 border border-slate-200/80 dark:border-slate-700/60"
+                    }`}
                   >
-                    <div>
-                      <div className="flex items-center justify-between mb-2.5">
-                        <div className={`p-2 rounded-xl bg-slate-100 dark:bg-slate-800 ${item.color}`}>
-                          <IconComponent className="w-5 h-5" />
-                        </div>
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                          {item.tag}
-                        </span>
-                      </div>
-                      <h2 className="font-bold text-slate-900 dark:text-white text-base mb-1">
-                        {item.title}
-                      </h2>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-3">
-                        {item.description}
-                      </p>
-                    </div>
-
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
-                      <Link
-                        href={item.path}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6f1d56] dark:text-pink-400 hover:text-[#52133e] dark:hover:text-pink-300 transition-colors"
-                      >
-                        <span>Open Direct Link</span>
-                        <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                      </Link>
-                      
-                      <button
-                        type="button"
-                        onClick={(e) => handleCopyLink(item.path, `spotlight-${item.path}`, e)}
-                        className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        title="Copy direct URL"
-                        aria-label={`Copy link for ${item.title}`}
-                      >
-                        {isCopied ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
+                    {chip.label}
+                  </button>
                 );
               })}
             </div>
@@ -442,33 +404,33 @@ export default function VanquishServicesLanding() {
         </section>
 
         {/* Services Directory Section */}
-        <section id="primary-services" className="pt-8 pb-16">
-          
-          {/* Controls Bar: Category Filter Pills + Instant Search */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-200/80 dark:border-slate-800/80">
-            
-            {/* Category Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+        <section id="primary-services" className="pt-2 pb-12">
+          {/* Controls Bar: Category Filter Pills */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
               {[
-                { id: "all", label: "All Services", count: services.length },
+                { id: "all", label: "All Gateways", count: services.length },
                 { id: "clients", label: "Client Intakes", count: services.filter((s) => s.category === "clients").length },
                 { id: "coaching", label: "Coaching", count: services.filter((s) => s.category === "coaching").length },
                 { id: "portals", label: "Staff Portal", count: services.filter((s) => s.category === "portals").length },
               ].map((tab) => {
-                const isActive = activeCategory === tab.id;
+                const isActive = activeCategory === tab.id && !searchQuery;
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveCategory(tab.id)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold tracking-wide whitespace-nowrap transition-all duration-200 flex items-center gap-2 ${
+                    onClick={() => {
+                      setActiveCategory(tab.id);
+                      setSearchQuery("");
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 ${
                       isActive
-                        ? "bg-[#6f1d56] text-white shadow-sm"
+                        ? "bg-[#6f1d56] text-white shadow-xs"
                         : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
                     }`}
                   >
                     <span>{tab.label}</span>
                     <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                         isActive
                           ? "bg-white/20 text-white"
                           : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
@@ -481,95 +443,72 @@ export default function VanquishServicesLanding() {
               })}
             </div>
 
-            {/* Instant Search Bar */}
-            <div className="relative min-w-[260px] sm:min-w-[300px]">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search services, URLs, or keywords..."
-                className="w-full pl-10 pr-9 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6f1d56]/30 focus:border-[#6f1d56] transition-all"
-              />
-              {searchQuery && (
+            {searchQuery && (
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span>
+                  Filtering for &ldquo;<span className="font-semibold text-[#6f1d56] dark:text-pink-300">{searchQuery}</span>&rdquo; ({filteredServices.length} found)
+                </span>
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                  aria-label="Clear search"
+                  className="text-xs font-medium text-[#6f1d56] dark:text-pink-400 hover:underline"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  Clear
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          {/* Cards Grid */}
+          {/* Compact Streamlined Cards Grid */}
           {filteredServices.length === 0 ? (
-            <div className="text-center py-16 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <HelpCircle className="w-10 h-10 text-slate-400 mx-auto mb-3" />
-              <p className="text-base font-semibold text-slate-800 dark:text-slate-200">
+            <div className="text-center py-12 bg-white dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <HelpCircle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                 No matching service found
               </p>
               <p className="text-xs text-slate-500 mt-1">
-                Try searching for “low-cost”, “intake”, “booking”, or clear your filters.
+                Try searching for “low-cost”, “mid-range”, or clear your search.
               </p>
               <button
                 onClick={() => {
                   setSearchQuery("");
                   setActiveCategory("all");
                 }}
-                className="mt-4 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="mt-3 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               >
-                Reset Filters
+                Reset Search
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredServices.map((service) => {
                 const IconComponent = service.icon;
                 const isCopied = copiedId === service.id;
 
-                // Color accent map
                 const colorMap = {
                   emerald: {
                     badge: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60",
                     iconBg: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400",
-                    borderHighlight: "group-hover:border-emerald-500/40",
+                    borderHighlight: "hover:border-emerald-500/40",
                   },
                   purple: {
                     badge: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60",
                     iconBg: "bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400",
-                    borderHighlight: "group-hover:border-purple-500/40",
+                    borderHighlight: "hover:border-purple-500/40",
                   },
                   blue: {
                     badge: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60",
                     iconBg: "bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400",
-                    borderHighlight: "group-hover:border-blue-500/40",
+                    borderHighlight: "hover:border-blue-500/40",
                   },
                   amber: {
                     badge: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60",
                     iconBg: "bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400",
-                    borderHighlight: "group-hover:border-amber-500/40",
-                  },
-                  rose: {
-                    badge: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60",
-                    iconBg: "bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400",
-                    borderHighlight: "group-hover:border-rose-500/40",
-                  },
-                  teal: {
-                    badge: "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/60",
-                    iconBg: "bg-teal-50 text-teal-600 dark:bg-teal-950/60 dark:text-teal-400",
-                    borderHighlight: "group-hover:border-teal-500/40",
-                  },
-                  indigo: {
-                    badge: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60",
-                    iconBg: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400",
-                    borderHighlight: "group-hover:border-indigo-500/40",
+                    borderHighlight: "hover:border-amber-500/40",
                   },
                   slate: {
                     badge: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
                     iconBg: "bg-slate-100 text-[#6f1d56] dark:bg-slate-800 dark:text-pink-400",
-                    borderHighlight: "group-hover:border-[#6f1d56]/40",
+                    borderHighlight: "hover:border-[#6f1d56]/40",
                   }
                 };
 
@@ -578,106 +517,71 @@ export default function VanquishServicesLanding() {
                 return (
                   <div
                     key={service.id}
-                    className={`bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden ${currentColors.borderHighlight} hover:-translate-y-1`}
+                    className={`bg-white dark:bg-slate-900/90 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group p-4 sm:p-4.5 ${currentColors.borderHighlight} hover:-translate-y-0.5`}
                   >
-                    {/* Top Subtle Gradient Border Highlight */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#6f1d56]/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                    <div className="p-6">
-                      {/* Header Row: Icon + Badge + Copy Link */}
-                      <div className="flex items-start justify-between gap-3 mb-4">
-                        <div className={`p-3 rounded-2xl ${currentColors.iconBg} shadow-sm transition-transform duration-300 group-hover:scale-105`}>
-                          <IconComponent className="w-6 h-6" />
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
+                    <div>
+                      {/* Top Header Row */}
+                      <div className="flex items-center justify-between gap-2 mb-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className={`p-1.5 rounded-lg ${currentColors.iconBg}`}>
+                            <IconComponent className="w-4 h-4" />
+                          </div>
                           <span
-                            className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${currentColors.badge}`}
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${currentColors.badge}`}
                           >
                             {service.badge}
                           </span>
-
-                          <button
-                            onClick={(e) => handleCopyLink(service.directPath, service.id, e)}
-                            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                            title="Copy direct link"
-                            aria-label={`Copy link for ${service.title}`}
-                          >
-                            {isCopied ? (
-                              <Check className="w-4 h-4 text-emerald-600" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                          </button>
                         </div>
+
+                        <button
+                          onClick={(e) => handleCopyLink(service.directPath, service.id, e)}
+                          className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                          title="Copy direct link"
+                          aria-label={`Copy link for ${service.title}`}
+                        >
+                          {isCopied ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       </div>
 
-                      {/* Card Title & Headline */}
-                      <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-2 group-hover:text-[#6f1d56] dark:group-hover:text-pink-400 transition-colors">
+                      {/* Title & Short Desc */}
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight mb-1 group-hover:text-[#6f1d56] dark:group-hover:text-pink-400 transition-colors">
                         {service.title}
                       </h3>
 
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-snug mb-2.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-3 line-clamp-2">
                         {service.headline}
                       </p>
 
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
-                        {service.description}
-                      </p>
-
-                      {/* Key Meta Specifications */}
-                      <div className="space-y-1.5 py-3 border-y border-slate-100 dark:border-slate-800/80 mb-5">
-                        {service.meta.map((m, idx) => (
-                          <div key={idx} className="flex items-center justify-between text-xs">
-                            <span className="text-slate-500 dark:text-slate-400">{m.label}</span>
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">{m.value}</span>
-                          </div>
+                      {/* Compact Meta Tags */}
+                      <div className="flex flex-wrap items-center gap-1.5 mb-3.5">
+                        {service.meta.slice(0, 2).map((m, idx) => (
+                          <span
+                            key={idx}
+                            className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-md font-medium"
+                          >
+                            {m.label}: <strong className="font-semibold text-slate-700 dark:text-slate-300">{m.value}</strong>
+                          </span>
                         ))}
                       </div>
                     </div>
 
-                    {/* Footer Actions */}
-                    <div className="px-6 pb-6 pt-0 bg-transparent flex flex-col gap-3">
-                      
-                      {/* Direct Canonical Path Pill */}
-                      <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-1.5 border border-slate-200/60 dark:border-slate-700/60">
-                        <div className="flex items-center gap-1.5 overflow-hidden">
-                          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 truncate">
-                            {service.directPath}
-                          </span>
-                        </div>
-                        <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">
-                          {isCopied ? "Copied" : "Direct Link"}
-                        </span>
-                      </div>
+                    {/* Bottom Action Row */}
+                    <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-mono text-[#6f1d56] dark:text-pink-400 font-semibold truncate">
+                        {service.directPath}
+                      </span>
 
-                      {/* Primary Action Button */}
                       <Link
                         href={service.primaryAction.path}
-                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#6f1d56] hover:bg-[#5a1645] text-white text-xs font-bold tracking-wide shadow-sm hover:shadow-md transition-all duration-200"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#6f1d56] hover:bg-[#5a1645] text-white text-xs font-semibold shadow-xs hover:shadow-sm transition-all duration-150 shrink-0"
                       >
-                        <span>{service.primaryAction.label}</span>
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        <span>Open</span>
+                        <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                       </Link>
-
-                      {/* Secondary Quick Links */}
-                      {service.secondaryLinks && service.secondaryLinks.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-2 pt-1">
-                          {service.secondaryLinks.map((sec, sIdx) => {
-                            const SecIcon = sec.icon || ArrowUpRight;
-                            return (
-                              <Link
-                                key={sIdx}
-                                href={sec.path}
-                                className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 dark:text-slate-400 hover:text-[#6f1d56] dark:hover:text-pink-400 transition-colors"
-                              >
-                                <SecIcon className="w-3 h-3" />
-                                <span>{sec.label}</span>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
