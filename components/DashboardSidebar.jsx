@@ -63,6 +63,7 @@ export default function DashboardSidebar() {
   const [timeOffPendingCount, setTimeOffPendingCount] = useState(0);
   const [menuPrivileges, setMenuPrivileges] = useState([]);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [unreadStaffNotesCount, setUnreadStaffNotesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const isFetchingRef = React.useRef(false);
   const lastFetchRef = React.useRef(0);
@@ -117,7 +118,7 @@ export default function DashboardSidebar() {
       const userRole = user?.role;
       const canFetchStaffData = userRole === "admin" || userRole === "super_admin" || userRole === "staff" || userRole === "consultation_staff" || userRole === "compliance_officer";
 
-      const [consultationsData, pendingCount, traineeCount, pendingHolidays, privilegesData, unreadCountRes] =
+      const [consultationsData, pendingCount, traineeCount, pendingHolidays, privilegesData, unreadCountRes, unreadStaffNotesRes] =
         await Promise.all([
           canFetchStaffData
             ? apiService.getConsultations().catch((e) => { console.warn("Sidebar consultations fetch failed:", e); return []; })
@@ -138,6 +139,7 @@ export default function DashboardSidebar() {
               ? apiService.getMenuPrivilegesForRole(userRole).catch((e) => { console.warn("Sidebar role privileges failed:", e); return []; })
               : Promise.resolve([]),
           apiService.getUnreadMessageCount().catch((e) => { console.warn("Sidebar unread message count failed:", e); return { count: 0 }; }),
+          apiService.getUnreadStaffNotes().catch((e) => { console.warn("Sidebar unread staff notes failed:", e); return { data: [] }; }),
         ]);
 
       // Transform consultations data
@@ -164,11 +166,25 @@ export default function DashboardSidebar() {
         upcoming: upcomingCount,
         completed: completedCount,
       });
-      setPendingMatchesCount(pendingCount || 0);
-      setTraineeAppsCount(traineeCount || 0);
-      setTimeOffPendingCount(Array.isArray(pendingHolidays) ? pendingHolidays.length : 0);
+
+      const parsedPending = typeof pendingCount === "object" ? (pendingCount?.count || 0) : (Number(pendingCount) || 0);
+      const parsedTrainee = typeof traineeCount === "object" ? (traineeCount?.count || 0) : (Number(traineeCount) || 0);
+      const parsedHolidays = Array.isArray(pendingHolidays)
+        ? pendingHolidays.length
+        : (Array.isArray(pendingHolidays?.data) ? pendingHolidays.data.length : 0);
+      const parsedUnread = typeof unreadCountRes === "number"
+        ? unreadCountRes
+        : (unreadCountRes?.count || unreadCountRes?.unread_count || 0);
+      const staffNotesArray = Array.isArray(unreadStaffNotesRes?.data)
+        ? unreadStaffNotesRes.data
+        : (Array.isArray(unreadStaffNotesRes) ? unreadStaffNotesRes : []);
+
+      setPendingMatchesCount(parsedPending);
+      setTraineeAppsCount(parsedTrainee);
+      setTimeOffPendingCount(parsedHolidays);
       setMenuPrivileges(privilegesData || []);
-      setUnreadMessageCount(unreadCountRes?.count || 0);
+      setUnreadMessageCount(parsedUnread);
+      setUnreadStaffNotesCount(staffNotesArray.length);
 
       // ── Push notifications for new items ──────────────────────────
       const newPending = pendingCount || 0;
@@ -413,6 +429,7 @@ export default function DashboardSidebar() {
           id: "staff-notes",
           label: "Staff Notes",
           icon: MessageSquare,
+          badge: unreadStaffNotesCount,
           href: "/dashboard/staff-notes",
         },
       ],
@@ -669,6 +686,32 @@ export default function DashboardSidebar() {
               (sub) => pathname === sub.href,
             );
 
+            // Filter sub-items by role & menu privileges
+            const allowedSubItems = item.subItems.filter((sub) => {
+              const userRole = user?.role;
+              if (userRole === "admin") {
+                if (menuPrivileges && menuPrivileges.length > 0) {
+                  const privilege = menuPrivileges.find(
+                    (p) => p.menu_id === sub.id,
+                  );
+                  if (privilege)
+                    return privilege.roles.includes("admin");
+                }
+                return true;
+              }
+              if (menuPrivileges && menuPrivileges.length > 0) {
+                return menuPrivileges.includes(sub.id);
+              }
+              return userRole === "staff";
+            });
+
+            // Calculate aggregate unread / pending badge count for this entire group
+            const groupBadgeCount = allowedSubItems.reduce(
+              (sum, sub) =>
+                sum + (typeof sub.badge === "number" && sub.badge > 0 ? sub.badge : 0),
+              0,
+            );
+
             return (
               <div key={item.id} className="space-y-1">
                 <button
@@ -678,17 +721,34 @@ export default function DashboardSidebar() {
                       ? "bg-[#6f1c56] text-white font-semibold"
                       : "text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
                   }`}
+                  title={!sidebarOpen && groupBadgeCount > 0 ? `${item.label} (${groupBadgeCount} pending/unread)` : item.label}
                 >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <div className="relative flex-shrink-0">
+                    <item.icon className="w-5 h-5" />
+                    {!sidebarOpen && groupBadgeCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-[var(--sidebar-bg)] animate-pulse" />
+                    )}
+                  </div>
                   {sidebarOpen && (
                     <>
-                      <span className="flex-1 text-left text-sm font-medium">
+                      <span className="flex-1 text-left text-sm font-medium truncate">
                         {item.label}
                       </span>
+                      {groupBadgeCount > 0 && (
+                        <span
+                          className={`px-2 py-0.5 text-xs rounded-full font-bold shadow-xs transition-colors shrink-0 ${
+                            isAnySubItemActive && !item.expanded
+                              ? "bg-white text-[#6f1c56]"
+                              : "bg-red-500 text-white"
+                          }`}
+                        >
+                          {groupBadgeCount}
+                        </span>
+                      )}
                       {item.expanded ? (
-                        <ChevronDown className="w-4 h-4" />
+                        <ChevronDown className="w-4 h-4 flex-shrink-0" />
                       ) : (
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="w-4 h-4 flex-shrink-0" />
                       )}
                     </>
                   )}
@@ -696,59 +756,39 @@ export default function DashboardSidebar() {
 
                 {item.expanded && sidebarOpen && (
                   <div className="ml-9 space-y-1">
-                    {item.subItems
-                      .filter((sub) => {
-                        const userRole = user?.role;
-                        if (userRole === "admin") {
-                          // Check admin privilege for sub-items too
-                          if (menuPrivileges && menuPrivileges.length > 0) {
-                            const privilege = menuPrivileges.find(
-                              (p) => p.menu_id === sub.id,
-                            );
-                            if (privilege)
-                              return privilege.roles.includes("admin");
-                          }
-                          return true;
-                        }
-                        // Non-admins: menuPrivileges is array of accessible menu_id strings
-                        if (menuPrivileges && menuPrivileges.length > 0) {
-                          return menuPrivileges.includes(sub.id);
-                        }
-                        return userRole === "staff"; // Default fallback for subitems
-                      })
-                      .map((subItem) => {
-                        const isSubActive = pathname === subItem.href;
-                        return (
-                          <Link
-                            key={subItem.id}
-                            href={subItem.href}
-                            className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${
-                              isSubActive
-                                ? "bg-purple-50 dark:bg-purple-900/20 text-[#6f1c56] dark:text-purple-300 font-semibold"
-                                : "text-gray-600 dark:text-[var(--text-secondary)] hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)]"
-                            }`}
-                          >
-                            <div className="flex-1 flex items-center gap-2">
-                              {subItem.icon && (
-                                <subItem.icon className="w-4 h-4" />
-                              )}
-                              <span>{subItem.label}</span>
-                            </div>
-                            {subItem.badge !== undefined &&
-                              subItem.badge > 0 && (
-                                <span
-                                  className={`px-2 py-0.5 text-xs rounded-full font-semibold ${
-                                    isSubActive
-                                      ? "bg-[#6f1c56] text-white"
-                                      : "bg-red-500 text-white"
-                                  }`}
-                                >
-                                  {subItem.badge}
-                                </span>
-                              )}
-                          </Link>
-                        );
-                      })}
+                    {allowedSubItems.map((subItem) => {
+                      const isSubActive = pathname === subItem.href;
+                      return (
+                        <Link
+                          key={subItem.id}
+                          href={subItem.href}
+                          className={`flex items-center justify-between gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${
+                            isSubActive
+                              ? "bg-purple-50 dark:bg-purple-900/20 text-[#6f1c56] dark:text-purple-300 font-semibold"
+                              : "text-gray-600 dark:text-[var(--text-secondary)] hover:bg-gray-50 dark:hover:bg-[var(--hover-bg)]"
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0 flex items-center gap-2">
+                            {subItem.icon && (
+                              <subItem.icon className="w-4 h-4 flex-shrink-0" />
+                            )}
+                            <span className="truncate">{subItem.label}</span>
+                          </div>
+                          {subItem.badge !== undefined &&
+                            subItem.badge > 0 && (
+                              <span
+                                className={`px-2 py-0.5 text-xs rounded-full font-bold shrink-0 ${
+                                  isSubActive
+                                    ? "bg-[#6f1c56] text-white"
+                                    : "bg-red-500 text-white"
+                                }`}
+                              >
+                                {subItem.badge}
+                              </span>
+                            )}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -765,23 +805,25 @@ export default function DashboardSidebar() {
                   : "text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)]"
               }`}
               style={isActive ? { backgroundColor: "#6f1c56" } : {}}
+              title={!sidebarOpen && item.badge > 0 ? `${item.label} (${item.badge})` : item.label}
             >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <div className="relative flex-shrink-0">
+                <item.icon className="w-5 h-5" />
+                {!sidebarOpen && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-[var(--sidebar-bg)] animate-pulse" />
+                )}
+              </div>
               {sidebarOpen && (
                 <>
-                  <span className="flex-1 text-left text-sm font-medium">
+                  <span className="flex-1 text-left text-sm font-medium truncate">
                     {item.label}
                   </span>
-                  {item.badge !== undefined && (
+                  {item.badge !== undefined && item.badge > 0 && (
                     <span
-                      className={`px-2 py-0.5 text-xs rounded-full font-semibold ${
+                      className={`px-2 py-0.5 text-xs rounded-full font-bold shrink-0 ${
                         isActive
-                          ? item.badge > 0
-                            ? "bg-white/30 text-white"
-                            : "bg-white/20 text-white/80"
-                          : item.badge > 0
-                            ? "bg-red-500 dark:bg-red-600 text-white"
-                            : "bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300"
+                          ? "bg-white text-[#6f1c56]"
+                          : "bg-red-500 text-white"
                       }`}
                     >
                       {item.badge}
