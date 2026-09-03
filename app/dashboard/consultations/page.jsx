@@ -237,7 +237,9 @@ function ConsultationsManagementPageFixed() {
       return [];
     }
 
-    return consultations.map((consultation) => {
+    return consultations
+      .filter((consultation) => consultation && consultation.client && consultation.client.name && consultation.client.name !== "Unknown Client")
+      .map((consultation) => {
       const scheduledDateObj = parseBackendDate(consultation.scheduled_at);
       const createdDateObj = parseBackendDate(consultation.created_at);
 
