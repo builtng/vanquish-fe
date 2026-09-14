@@ -1611,33 +1611,6 @@ function MidRangeClientIntakeContent() {
                     )}
                   </div>
 
-                  {formData.currentlyInTherapy === "Yes" && (
-                    <div>
-                      <label
-                        className="block text-lg font-medium mb-2"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        Please mention your reason for wanting to work with
-                        another counsellor simultaneously{" "}
-                        <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        name="workingWithAnotherReason"
-                        id="workingWithAnotherReason"
-                        value={formData.workingWithAnotherReason}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "workingWithAnotherReason",
-                            e.target.value
-                          )
-                        }
-                        rows="3"
-                        className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                        placeholder="Please explain..."
-                      />
-                    </div>
-                  )}
-
                   {/* Couples Partner Details */}
                   {formData.isCouples && (
                     <div className="border-t border-purple-200 pt-6 mt-6">
