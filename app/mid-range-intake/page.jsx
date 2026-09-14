@@ -238,7 +238,7 @@ function MidRangeClientIntakeContent() {
           setServicePricing(pricingMap);
           setBaseFee(
             pricingMap[formData.serviceType] ||
-              (formData.serviceType === "Counselling & Coaching" ? 20.0 : 15.0)
+            (formData.serviceType === "Counselling & Coaching" ? 20.0 : 15.0)
           );
         }
       } catch (err) {
@@ -293,8 +293,7 @@ function MidRangeClientIntakeContent() {
 
     try {
       const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
         }/coupons/verify`,
         {
           method: "POST",
@@ -761,8 +760,7 @@ function MidRangeClientIntakeContent() {
 
     try {
       const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
         }/client-intake`,
         {
           method: "POST",
@@ -796,7 +794,7 @@ function MidRangeClientIntakeContent() {
                 : sanitizeText(formData.ethnicity) || null,
             sexual_orientation:
               formData.sexualOrientation === "Other" &&
-              formData.otherSexualOrientation
+                formData.otherSexualOrientation
                 ? sanitizeText(formData.otherSexualOrientation)
                 : sanitizeText(formData.sexualOrientation) || null,
             service_type: formData.serviceType || "Mid Range",
@@ -870,8 +868,7 @@ function MidRangeClientIntakeContent() {
       if (formData.consultationSlotId && newClientId) {
         try {
           const bookingResponse = await fetch(
-            `${
-              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
             }/consultation-slots/book`,
             {
               method: "POST",
@@ -1049,11 +1046,11 @@ function MidRangeClientIntakeContent() {
                       >
                         {branding.company_name
                           ? branding.company_name
-                              .split(" ")
-                              .map((word) => word[0])
-                              .join("")
-                              .substring(0, 2)
-                              .toUpperCase()
+                            .split(" ")
+                            .map((word) => word[0])
+                            .join("")
+                            .substring(0, 2)
+                            .toUpperCase()
                           : "VT"}
                       </div>
                     )}
@@ -1124,15 +1121,14 @@ function MidRangeClientIntakeContent() {
                             type="button"
                             onClick={() => handleStepClick(step.number)}
                             disabled={!isAccessible}
-                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                              isCurrent
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isCurrent
                                 ? "text-white ring-2 ring-offset-2"
                                 : isCompleted
                                   ? "text-white bg-green-600 hover:bg-green-700"
                                   : isAccessible
                                     ? "text-white hover:opacity-80"
                                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                            } ${isAccessible ? "cursor-pointer" : ""}`}
+                              } ${isAccessible ? "cursor-pointer" : ""}`}
                             style={
                               isCurrent || (isAccessible && !isCompleted)
                                 ? { backgroundColor: "#6f1d56" }
@@ -1151,11 +1147,10 @@ function MidRangeClientIntakeContent() {
                             )}
                           </button>
                           <span
-                            className={`text-sm mt-2 text-center ${
-                              isCurrent || isCompleted
+                            className={`text-sm mt-2 text-center ${isCurrent || isCompleted
                                 ? "font-medium"
                                 : "text-gray-500"
-                            }`}
+                              }`}
                             style={
                               isCurrent || isCompleted
                                 ? { color: "#6f1d56" }
@@ -1167,9 +1162,8 @@ function MidRangeClientIntakeContent() {
                         </div>
                         {index < steps.length - 1 && (
                           <div
-                            className={`h-1 flex-1 mx-2 rounded transition-colors ${
-                              currentStep > step.number ? "" : "bg-gray-200"
-                            }`}
+                            className={`h-1 flex-1 mx-2 rounded transition-colors ${currentStep > step.number ? "" : "bg-gray-200"
+                              }`}
                             style={
                               currentStep > step.number
                                 ? { backgroundColor: "#6f1d56" }
@@ -1218,11 +1212,10 @@ function MidRangeClientIntakeContent() {
                     ].map((s) => (
                       <label
                         key={s.val}
-                        className={`border-2 rounded-2xl p-5 cursor-pointer transition-all ${
-                          formData.serviceType === s.val
+                        className={`border-2 rounded-2xl p-5 cursor-pointer transition-all ${formData.serviceType === s.val
                             ? "border-[#6f1d56] bg-purple-50/60"
                             : "border-gray-200 hover:border-purple-300"
-                        }`}
+                          }`}
                       >
                         <input
                           type="radio"
@@ -1234,11 +1227,10 @@ function MidRangeClientIntakeContent() {
                         />
                         <div className="flex items-start gap-3.5">
                           <div
-                            className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
-                              formData.serviceType === s.val
+                            className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${formData.serviceType === s.val
                                 ? "border-[#6f1d56] bg-[#6f1d56]"
                                 : "border-gray-300"
-                            }`}
+                              }`}
                           >
                             {formData.serviceType === s.val && (
                               <div className="w-2 h-2 rounded-full bg-white" />
@@ -1285,11 +1277,10 @@ function MidRangeClientIntakeContent() {
                     ].map((o) => (
                       <label
                         key={String(o.val)}
-                        className={`border-2 rounded-2xl p-5 cursor-pointer transition-all ${
-                          formData.isCouples === o.val
+                        className={`border-2 rounded-2xl p-5 cursor-pointer transition-all ${formData.isCouples === o.val
                             ? "border-[#6f1d56] bg-purple-50/60"
                             : "border-gray-200 hover:border-purple-300"
-                        }`}
+                          }`}
                       >
                         <input
                           type="radio"
@@ -1300,11 +1291,10 @@ function MidRangeClientIntakeContent() {
                         />
                         <div className="flex items-start gap-3.5">
                           <div
-                            className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
-                              formData.isCouples === o.val
+                            className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${formData.isCouples === o.val
                                 ? "border-[#6f1d56] bg-[#6f1d56]"
                                 : "border-gray-300"
-                            }`}
+                              }`}
                           >
                             {formData.isCouples === o.val && (
                               <div className="w-2 h-2 rounded-full bg-white" />
@@ -1394,9 +1384,8 @@ function MidRangeClientIntakeContent() {
                       onChange={(e) =>
                         handleInputChange("firstName", e.target.value)
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.firstName ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.firstName ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="John"
                     />
                     {errors.firstName && (
@@ -1421,9 +1410,8 @@ function MidRangeClientIntakeContent() {
                       onChange={(e) =>
                         handleInputChange("lastName", e.target.value)
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.lastName ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.lastName ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="Smith"
                     />
                     {errors.lastName && (
@@ -1448,9 +1436,8 @@ function MidRangeClientIntakeContent() {
                       onChange={(e) =>
                         handleInputChange("email", e.target.value)
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.email ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.email ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="john.smith@example.com"
                     />
                     {errors.email && (
@@ -1475,9 +1462,8 @@ function MidRangeClientIntakeContent() {
                       onChange={(e) =>
                         handleInputChange("phone", e.target.value)
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.phone ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.phone ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="+44 7700 900000"
                     />
                     {errors.phone && (
@@ -1506,9 +1492,8 @@ function MidRangeClientIntakeContent() {
                         handleInputChange("street", e.target.value)
                       }
                       rows="3"
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.street ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.street ? "border-red-500" : "border-gray-300"
+                        }`}
                       placeholder="Please enter your full address here..."
                     />
                     {errors.street && (
@@ -1536,9 +1521,8 @@ function MidRangeClientIntakeContent() {
                         onChange={(e) =>
                           handleInputChange("age", e.target.value)
                         }
-                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                          errors.age ? "border-red-500" : "border-gray-300"
-                        }`}
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.age ? "border-red-500" : "border-gray-300"
+                          }`}
                         placeholder="e.g., 25"
                       />
                       {errors.age && (
@@ -1561,11 +1545,10 @@ function MidRangeClientIntakeContent() {
                         onChange={(e) =>
                           handleInputChange("voicemailOk", e.target.value)
                         }
-                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                          errors.voicemailOk
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.voicemailOk
                             ? "border-red-500"
                             : "border-gray-300"
-                        }`}
+                          }`}
                       >
                         <option value="">Please Select</option>
                         <option value="Yes">Yes</option>
@@ -1594,11 +1577,10 @@ function MidRangeClientIntakeContent() {
                       onChange={(e) =>
                         handleInputChange("currentlyInTherapy", e.target.value)
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.currentlyInTherapy
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.currentlyInTherapy
                           ? "border-red-500"
                           : "border-gray-300"
-                      }`}
+                        }`}
                     >
                       <option value="">Please Select</option>
                       <option value="No">No</option>
@@ -1626,9 +1608,8 @@ function MidRangeClientIntakeContent() {
                             type="text"
                             value={formData.partnerFirstName}
                             onChange={(e) => handleInputChange("partnerFirstName", e.target.value)}
-                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                              errors.partnerFirstName ? "border-red-500" : "border-gray-300"
-                            }`}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerFirstName ? "border-red-500" : "border-gray-300"
+                              }`}
                             placeholder="Jane"
                           />
                           {errors.partnerFirstName && <p className="text-red-500 text-sm mt-1">{errors.partnerFirstName}</p>}
@@ -1641,9 +1622,8 @@ function MidRangeClientIntakeContent() {
                             type="text"
                             value={formData.partnerLastName}
                             onChange={(e) => handleInputChange("partnerLastName", e.target.value)}
-                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                              errors.partnerLastName ? "border-red-500" : "border-gray-300"
-                            }`}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerLastName ? "border-red-500" : "border-gray-300"
+                              }`}
                             placeholder="Smith"
                           />
                           {errors.partnerLastName && <p className="text-red-500 text-sm mt-1">{errors.partnerLastName}</p>}
@@ -1658,9 +1638,8 @@ function MidRangeClientIntakeContent() {
                             max="99"
                             value={formData.partnerAge}
                             onChange={(e) => handleInputChange("partnerAge", e.target.value)}
-                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                              errors.partnerAge ? "border-red-500" : "border-gray-300"
-                            }`}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerAge ? "border-red-500" : "border-gray-300"
+                              }`}
                             placeholder="e.g. 28"
                           />
                           {errors.partnerAge && <p className="text-red-500 text-sm mt-1">{errors.partnerAge}</p>}
@@ -1680,8 +1659,14 @@ function MidRangeClientIntakeContent() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Demographics
+                    About You
                   </h2>
+                  <p
+                    className="text-base md:text-lg text-center"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    This information helps us match you with the right counsellor.
+                  </p>
                 </div>
 
                 <div className="space-y-4 md:space-y-6">
@@ -1699,9 +1684,8 @@ function MidRangeClientIntakeContent() {
                       onChange={(e) =>
                         handleInputChange("gender", e.target.value)
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.gender ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.gender ? "border-red-500" : "border-gray-300"
+                        }`}
                     >
                       <option value="">Please Select</option>
                       <option value="Male">Male</option>
@@ -1729,9 +1713,8 @@ function MidRangeClientIntakeContent() {
                       onChange={(e) =>
                         handleInputChange("ethnicity", e.target.value)
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.ethnicity ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.ethnicity ? "border-red-500" : "border-gray-300"
+                        }`}
                     >
                       <option value="">Please Select</option>
                       <option value="Asian / Asian British">
@@ -1789,11 +1772,10 @@ function MidRangeClientIntakeContent() {
                       onChange={(e) =>
                         handleInputChange("sexualOrientation", e.target.value)
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.sexualOrientation
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.sexualOrientation
                           ? "border-red-500"
                           : "border-gray-300"
-                      }`}
+                        }`}
                     >
                       <option value="">Please Select</option>
                       <option value="Heterosexual / Straight">
@@ -1852,9 +1834,8 @@ function MidRangeClientIntakeContent() {
                         <select
                           value={formData.partnerGender}
                           onChange={(e) => handleInputChange("partnerGender", e.target.value)}
-                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                            errors.partnerGender ? "border-red-500" : "border-gray-300"
-                          }`}
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerGender ? "border-red-500" : "border-gray-300"
+                            }`}
                         >
                           <option value="">Please Select</option>
                           <option value="Male">Male</option>
@@ -1873,9 +1854,8 @@ function MidRangeClientIntakeContent() {
                         <select
                           value={formData.partnerEthnicity}
                           onChange={(e) => handleInputChange("partnerEthnicity", e.target.value)}
-                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                            errors.partnerEthnicity ? "border-red-500" : "border-gray-300"
-                          }`}
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerEthnicity ? "border-red-500" : "border-gray-300"
+                            }`}
                         >
                           <option value="">Please Select</option>
                           <option value="Asian / Asian British">Asian / Asian British</option>
@@ -1894,9 +1874,8 @@ function MidRangeClientIntakeContent() {
                         <select
                           value={formData.partnerSexualOrientation}
                           onChange={(e) => handleInputChange("partnerSexualOrientation", e.target.value)}
-                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                            errors.partnerSexualOrientation ? "border-red-500" : "border-gray-300"
-                          }`}
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerSexualOrientation ? "border-red-500" : "border-gray-300"
+                            }`}
                         >
                           <option value="">Please Select</option>
                           <option value="Heterosexual / Straight">Heterosexual / Straight</option>
@@ -1911,6 +1890,14 @@ function MidRangeClientIntakeContent() {
                     </div>
                   )}
                 </div>
+
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <p className="text-base text-purple-900">
+                    <strong>Why we ask:</strong> This information helps us match
+                    you with a counsellor who understands your background and
+                    experiences.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -1922,7 +1909,7 @@ function MidRangeClientIntakeContent() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Medical &amp; Service Information
+                    Service Information
                   </h2>
                 </div>
 
@@ -1942,11 +1929,10 @@ function MidRangeClientIntakeContent() {
                       onChange={(e) =>
                         handleInputChange("onMedication", e.target.value)
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.onMedication
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.onMedication
                           ? "border-red-500"
                           : "border-gray-300"
-                      }`}
+                        }`}
                     >
                       <option value="">Please select</option>
                       <option value="Yes">Yes</option>
@@ -1979,11 +1965,10 @@ function MidRangeClientIntakeContent() {
                           )
                         }
                         rows="3"
-                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                          errors.medicationDetails
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.medicationDetails
                             ? "border-red-500"
                             : "border-gray-300"
-                        }`}
+                          }`}
                         placeholder="Please list your medications and conditions..."
                       />
                       {errors.medicationDetails && (
@@ -1999,8 +1984,8 @@ function MidRangeClientIntakeContent() {
                       className="block text-lg font-medium mb-2"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Do you have any physical disabilities or accessibility
-                      requirements? <span className="text-red-500">*</span>
+                      Do you have any disabilities/impairments? If so, please
+                      specify <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       name="disabilities"
@@ -2010,12 +1995,11 @@ function MidRangeClientIntakeContent() {
                         handleInputChange("disabilities", e.target.value)
                       }
                       rows="3"
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.disabilities
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.disabilities
                           ? "border-red-500"
                           : "border-gray-300"
-                      }`}
-                      placeholder="Please let us know if you have any accessibility needs (enter 'N/A' if none)..."
+                        }`}
+                      placeholder="Please describe any disabilities or impairments, or enter 'N/A' if none"
                     />
                     {errors.disabilities && (
                       <p className="text-red-500 text-sm mt-1">
@@ -2037,9 +2021,8 @@ function MidRangeClientIntakeContent() {
                         <select
                           value={formData.partnerOnMedication}
                           onChange={(e) => handleInputChange("partnerOnMedication", e.target.value)}
-                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                            errors.partnerOnMedication ? "border-red-500" : "border-gray-300"
-                          }`}
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerOnMedication ? "border-red-500" : "border-gray-300"
+                            }`}
                         >
                           <option value="">Please select</option>
                           <option value="Yes">Yes</option>
@@ -2057,9 +2040,8 @@ function MidRangeClientIntakeContent() {
                             value={formData.partnerMedicationDetails}
                             onChange={(e) => handleInputChange("partnerMedicationDetails", e.target.value)}
                             rows="3"
-                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                              errors.partnerMedicationDetails ? "border-red-500" : "border-gray-300"
-                            }`}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerMedicationDetails ? "border-red-500" : "border-gray-300"
+                              }`}
                             placeholder="Please list partner's medications..."
                           />
                           {errors.partnerMedicationDetails && <p className="text-red-500 text-sm mt-1">{errors.partnerMedicationDetails}</p>}
@@ -2074,9 +2056,8 @@ function MidRangeClientIntakeContent() {
                           value={formData.partnerDisabilities}
                           onChange={(e) => handleInputChange("partnerDisabilities", e.target.value)}
                           rows="3"
-                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                            errors.partnerDisabilities ? "border-red-500" : "border-gray-300"
-                          }`}
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerDisabilities ? "border-red-500" : "border-gray-300"
+                            }`}
                           placeholder="Enter 'N/A' if none..."
                         />
                         {errors.partnerDisabilities && <p className="text-red-500 text-sm mt-1">{errors.partnerDisabilities}</p>}
@@ -2095,15 +2076,24 @@ function MidRangeClientIntakeContent() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Areas of Support
+                    Areas You Require Support With
                   </h2>
-                  <p
-                    className="text-base md:text-lg text-center"
-                    style={{ color: "var(--text-secondary)" }}
+                </div>
+
+                <div>
+                  <label
+                    className="block text-lg font-medium mb-3"
+                    style={{ color: "var(--text-primary)" }}
                   >
-                    Please select the areas you would like support with (select
-                    all that apply)
-                  </p>
+                    We have listed a few areas below you may require support
+                    with. <span className="text-red-500">*</span>
+                    <span
+                      className="text-sm font-normal ml-2"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      (Select all that apply)
+                    </span>
+                  </label>
                 </div>
 
                 <div data-field="supportAreas">
@@ -2111,11 +2101,10 @@ function MidRangeClientIntakeContent() {
                     {supportAreasList.map((area) => (
                       <label
                         key={area}
-                        className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
-                          formData.supportAreas.includes(area)
+                        className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${formData.supportAreas.includes(area)
                             ? "bg-purple-50 border-[#6f1d56]"
                             : "border-gray-200 hover:bg-gray-50"
-                        }`}
+                          }`}
                       >
                         <input
                           type="checkbox"
@@ -2157,13 +2146,21 @@ function MidRangeClientIntakeContent() {
                         handleInputChange("concernsDetails", e.target.value)
                       }
                       rows="4"
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.concernsDetails
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.concernsDetails
                           ? "border-red-500"
                           : "border-gray-300"
-                      }`}
+                        }`}
                       placeholder="Please describe what brings you to therapy and what you hope to achieve..."
                     />
+                    <p
+                      className="text-sm font-medium mt-2"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      For example - Family &amp; Relationship Issues: A &amp; I have
+                      been arguing frequently over how to manage our finances.
+                      The disagreement is causing tension in our relationship
+                      and affecting our family's overall well-being.
+                    </p>
                     {errors.concernsDetails && (
                       <p className="text-red-500 text-sm mt-1">
                         {errors.concernsDetails}
@@ -2176,8 +2173,8 @@ function MidRangeClientIntakeContent() {
                       className="block text-lg font-medium mb-2"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Please list any risk issues (thoughts of self-harm,
-                      suicidal ideation, harm to others, substance use, etc.)
+                      Please provide details of any identified risk issues or
+                      substance misuse
                     </label>
                     <textarea
                       name="riskIssues"
@@ -2188,9 +2185,23 @@ function MidRangeClientIntakeContent() {
                       }
                       rows="3"
                       className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                      placeholder="Enter 'None' or describe any risk factors..."
+                      placeholder="Please describe any risk factors we should be aware of, or enter 'N/A' if none"
                     />
                   </div>
+                </div>
+
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-base text-red-900 font-medium mb-1">
+                    Crisis Support
+                  </p>
+                  <p className="text-base text-red-800">
+                    {branding.company_name ||
+                      process.env.NEXT_PUBLIC_APP_NAME ||
+                      "Vanquish Therapies"}{" "}
+                    is not a crisis or emergency service. If you need immediate
+                    help, please contact your GP, NHS (111), or the Samaritans
+                    (116 123).
+                  </p>
                 </div>
               </div>
             )}
@@ -2203,20 +2214,26 @@ function MidRangeClientIntakeContent() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Your Availability (UK time)
+                    Your Availability To Attend Weekly Sessions
                   </h2>
                   <p
                     className="text-base md:text-lg text-center"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    Please select all the days and time slots when you would be
-                    available for ongoing weekly sessions.
+                    Select all day and time slots when you're available to
+                    attend weekly counselling sessions.
                   </p>
-                  <p
-                    className="text-sm md:text-base text-center mt-2"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    Please note that the last session is at 6pm from Monday to Thursday, and at 5pm on Friday.
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-base text-blue-900">
+                    <strong>Important:</strong> To avoid any delays - Please
+                    select the accurate day and time you are available to
+                    attend weekly counselling sessions in UK time, as the
+                    practice is based in the UK. Please note - If this
+                    information is not provided there can be a delay in matching
+                    you with a counsellor. Please note that the last session is at 6pm
+                    from Monday to Thursday, and at 5pm on Friday.
                   </p>
                 </div>
 
@@ -2239,11 +2256,10 @@ function MidRangeClientIntakeContent() {
                               return (
                                 <label
                                   key={slot.value}
-                                  className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs sm:text-sm cursor-pointer transition-colors ${
-                                    isChecked
+                                  className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs sm:text-sm cursor-pointer transition-colors ${isChecked
                                       ? "bg-[#6f1d56] text-white border-[#6f1d56] font-medium"
                                       : "bg-white text-gray-700 border-gray-200 hover:border-purple-300"
-                                  }`}
+                                    }`}
                                 >
                                   <input
                                     type="checkbox"
@@ -2285,8 +2301,15 @@ function MidRangeClientIntakeContent() {
                     className="text-base md:text-lg text-center"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    Please tell us if you have any preferences for your
-                    counsellor (all optional).
+                    These preferences are optional and help us find the best
+                    match for you.
+                  </p>
+                </div>
+
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <p className="text-base text-purple-900">
+                    <strong>Note:</strong> All preferences are optional. Select
+                    "No preference" if you don't have specific requirements.
                   </p>
                 </div>
 
@@ -2409,8 +2432,15 @@ function MidRangeClientIntakeContent() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Referral Information
+                    Referral Information - (For any fields that do not apply to
+                    you, please enter "N/A.")
                   </h2>
+                  <p
+                    className="text-base md:text-lg text-center"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Help us understand how you found us.
+                  </p>
                 </div>
 
                 <div className="space-y-4 md:space-y-6">
@@ -2429,11 +2459,10 @@ function MidRangeClientIntakeContent() {
                       onChange={(e) =>
                         handleInputChange("hearAboutUs", e.target.value)
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.hearAboutUs
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.hearAboutUs
                           ? "border-red-500"
                           : "border-gray-300"
-                      }`}
+                        }`}
                     >
                       <option value="">Please Select</option>
                       <option value="Google">Google / Web Search</option>
@@ -2552,7 +2581,7 @@ function MidRangeClientIntakeContent() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Clinical Assessment (CORE-34)
+                    Assessment (CORE 34)
                   </h2>
                   <div className="text-base md:text-lg mb-4 p-6 bg-red-50 border-2 border-red-300 rounded-xl space-y-3">
                     <p className="font-bold text-red-900 text-lg uppercase tracking-wide">
@@ -2612,13 +2641,11 @@ function MidRangeClientIntakeContent() {
                       {core34Questions.map((question, index) => (
                         <tr
                           key={index}
-                          className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                            index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
-                          } ${
-                            errors.core34 &&
+                          className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                            } ${errors.core34 &&
                             !formData.core34[index] &&
                             "bg-red-50"
-                          }`}
+                            }`}
                         >
                           <td className="p-4 text-gray-800 font-medium sticky left-0 bg-inherit z-10 border-r border-gray-100">
                             {index + 1}. {question}
@@ -2656,11 +2683,10 @@ function MidRangeClientIntakeContent() {
                   {core34Questions.map((question, index) => (
                     <div
                       key={`mobile-${index}`}
-                      className={`border rounded-lg p-4 ${
-                        errors.core34 && !formData.core34[index]
+                      className={`border rounded-lg p-4 ${errors.core34 && !formData.core34[index]
                           ? "border-red-300 bg-red-50"
                           : "border-gray-200 bg-white"
-                      }`}
+                        }`}
                     >
                       <p className="font-medium mb-3 text-gray-900">
                         {index + 1}. {question}
@@ -2850,13 +2876,12 @@ function MidRangeClientIntakeContent() {
                                     hasSlots && setSelectedCalendarDate(dateStr)
                                   }
                                   disabled={!hasSlots}
-                                  className={`p-2 w-full aspect-square rounded-lg flex items-center justify-center text-sm transition-all ${
-                                    isSelected
+                                  className={`p-2 w-full aspect-square rounded-lg flex items-center justify-center text-sm transition-all ${isSelected
                                       ? "bg-[#4052f5] text-white font-bold shadow-md"
                                       : hasSlots
                                         ? "bg-blue-50 text-blue-900 border border-blue-100 hover:bg-blue-100 font-semibold cursor-pointer"
                                         : "text-gray-300 cursor-not-allowed"
-                                  }`}
+                                    }`}
                                 >
                                   {d}
                                 </button>
@@ -2925,11 +2950,10 @@ function MidRangeClientIntakeContent() {
                                     return (
                                       <label
                                         key={slot.id}
-                                        className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors w-full text-center ${
-                                          formData.consultationSlotId === slot.id
+                                        className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors w-full text-center ${formData.consultationSlotId === slot.id
                                             ? "border-[#4052f5] bg-[#4052f5] text-white font-bold"
                                             : "border-[#4052f5] text-[#4052f5] hover:bg-blue-50"
-                                        }`}
+                                          }`}
                                       >
                                         <input
                                           type="radio"
@@ -2979,14 +3003,14 @@ function MidRangeClientIntakeContent() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Emergency Contact
+                    Emergency Contact Details
                   </h2>
                   <p
                     className="text-base md:text-lg text-center"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    Please provide the contact details of someone we can reach in
-                    an emergency.
+                    As the sessions are online, this information is required
+                    for safeguarding and insurance purposes.
                   </p>
                 </div>
 
@@ -3010,11 +3034,10 @@ function MidRangeClientIntakeContent() {
                           e.target.value
                         )
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.emergencyContactName
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.emergencyContactName
                           ? "border-red-500"
                           : "border-gray-300"
-                      }`}
+                        }`}
                       placeholder="Jane Doe"
                     />
                     {errors.emergencyContactName && (
@@ -3029,7 +3052,7 @@ function MidRangeClientIntakeContent() {
                       className="block text-lg font-medium mb-2"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Emergency Contact Phone{" "}
+                      Phone Number of Emergency Contact{" "}
                       <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -3043,11 +3066,10 @@ function MidRangeClientIntakeContent() {
                           e.target.value
                         )
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.emergencyContactPhone
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.emergencyContactPhone
                           ? "border-red-500"
                           : "border-gray-300"
-                      }`}
+                        }`}
                       placeholder="+44 7700 900000"
                     />
                     {errors.emergencyContactPhone && (
@@ -3075,11 +3097,10 @@ function MidRangeClientIntakeContent() {
                           e.target.value
                         )
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.emergencyContactEmail
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.emergencyContactEmail
                           ? "border-red-500"
                           : "border-gray-300"
-                      }`}
+                        }`}
                       placeholder="jane.doe@example.com"
                     />
                     {errors.emergencyContactEmail && (
@@ -3108,11 +3129,10 @@ function MidRangeClientIntakeContent() {
                           e.target.value
                         )
                       }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
-                        errors.emergencyContactRelationship
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.emergencyContactRelationship
                           ? "border-red-500"
                           : "border-gray-300"
-                      }`}
+                        }`}
                       placeholder="e.g. Partner, Parent, Friend"
                     />
                     {errors.emergencyContactRelationship && (
@@ -3133,8 +3153,23 @@ function MidRangeClientIntakeContent() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Consultation Fee &amp; Confirmation
+                    Consultation Payment &amp; Acknowledgement
                   </h2>
+                  <p
+                    className="text-base md:text-lg text-center mb-6"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Our consultation/assessment and admin fee is £{getConsultationFee().toFixed(2)}. This small
+                    fee helps us ensure that those embarking on their
+                    therapeutic journey are truly committed to their well-being.
+                    Please Note: This consultation/admin fee is non-refundable
+                    as it covers the processing of your consultation regardless
+                    of attendance. Additionally, our consultation slots are
+                    limited, and once you book a slot, it is reserved just for
+                    you, making it unavailable to others. We appreciate your
+                    understanding and we are here to support you every step of
+                    the way.
+                  </p>
                 </div>
 
                 <div className="bg-purple-50 border border-purple-200 rounded-xl p-6 mb-6">
@@ -3256,11 +3291,10 @@ function MidRangeClientIntakeContent() {
                   type="button"
                   onClick={handlePrevious}
                   disabled={currentStep === 1}
-                  className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-colors text-base md:text-lg ${
-                    currentStep === 1
+                  className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-colors text-base md:text-lg ${currentStep === 1
                       ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                       : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
+                    }`}
                 >
                   <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
                   <span className="hidden md:inline">Previous</span>
@@ -3290,11 +3324,10 @@ function MidRangeClientIntakeContent() {
                     type="button"
                     onClick={handleSubmit}
                     disabled={!formData.termsAccepted || isSubmitting}
-                    className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 text-white rounded-lg font-medium transition-opacity text-base md:text-lg ${
-                      !formData.termsAccepted || isSubmitting
+                    className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 text-white rounded-lg font-medium transition-opacity text-base md:text-lg ${!formData.termsAccepted || isSubmitting
                         ? "opacity-50 cursor-not-allowed"
                         : "hover:opacity-90"
-                    }`}
+                      }`}
                     style={{ backgroundColor: "#6f1d56" }}
                   >
                     {isSubmitting ? (
