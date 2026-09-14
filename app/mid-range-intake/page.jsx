@@ -1,261 +1,727 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   User,
-  Calendar,
   Heart,
-  Settings,
+  Briefcase,
+  Calendar,
+  MessageCircle,
   CreditCard,
   CheckCircle,
-  AlertTriangle,
-  Users,
-  Search,
-  Star,
-  ChevronLeft,
   ChevronRight,
-  Filter,
-  X,
-  ArrowLeft,
+  ChevronLeft,
+  AlertTriangle,
+  Lock,
+  Users,
+  ShieldCheck,
+  Loader2,
 } from "lucide-react";
 import { StripePaymentWrapper } from "@/components/StripePayment";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
-import CalendarPicker from "@/components/CalendarPicker";
 import { toast } from "react-toastify";
-import { useBranding } from "@/contexts/BrandingContext";
 import apiService from "@/lib/api";
+import { useBranding } from "@/contexts/BrandingContext";
 import { SUPPORT_AREAS } from "@/lib/constants";
 
-/* ─── CORE-10 wellbeing items ─── */
-const CORE_QUESTIONS = [
-  "I have felt tense, anxious or nervous",
-  "I have felt I have someone to turn to for support when needed",
-  "I have felt able to cope when things go wrong",
-  "Talking to people has felt too much for me",
-  "I have felt panic or terror",
-  "I made plans to end my life or harm myself",
-  "I have had difficulty getting to sleep or staying asleep",
-  "I have felt despairing or hopeless",
-  "I have felt unhappy",
-  "Unwanted images or memories have been distressing me",
-];
-const CORE_SCALE = [
-  { value: "0", label: "Not at all" },
-  { value: "1", label: "Only occasionally" },
-  { value: "2", label: "Sometimes" },
-  { value: "3", label: "Often" },
-  { value: "4", label: "Most or all of the time" },
-];
-
-/* ─── Schedule grid (same slots as ISH) ─── */
-const ALL_SLOTS = [
-  { value: "10am-11am", label: "10:00 AM – 11:00 AM" },
-  { value: "11am-12pm", label: "11:00 AM – 12:00 PM" },
-  { value: "12pm-1pm",  label: "12:00 PM – 1:00 PM" },
-  { value: "1pm-2pm",   label: "1:00 PM – 2:00 PM" },
-  { value: "2pm-3pm",   label: "2:00 PM – 3:00 PM" },
-  { value: "3pm-4pm",   label: "3:00 PM – 4:00 PM" },
-  { value: "4pm-5pm",   label: "4:00 PM – 5:00 PM" },
-  { value: "5pm-6pm",   label: "5:00 PM – 6:00 PM" },
-  { value: "6pm-7pm",   label: "6:00 PM – 7:00 PM" },
-];
-const FRIDAY_SLOTS = ALL_SLOTS.filter((s) => s.value !== "6pm-7pm");
-const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"];
-
-/* ─── Step definitions ─── */
-const STEPS = [
-  { n: 1,  title: "Service",       icon: Star },
-  { n: 2,  title: "Personal",      icon: User },
-  { n: 3,  title: "About You",     icon: Heart },
-  { n: 4,  title: "Support",       icon: AlertTriangle },
-  { n: 5,  title: "Preferences",   icon: Settings },
-  { n: 6,  title: "Referral",      icon: User },
-  { n: 7,  title: "Assessment",    icon: CheckCircle },
-  { n: 8,  title: "Availability",  icon: Calendar },
-  { n: 9,  title: "Counsellors",   icon: Search },
-  { n: 10, title: "Consultation",  icon: Calendar },
-  { n: 11, title: "Emergency",     icon: AlertTriangle },
-  { n: 12, title: "Payment",       icon: CreditCard },
-];
-
-const EMPTY_AVAILABILITY = { monday: [], tuesday: [], wednesday: [], thursday: [], friday: [] };
-
-/* ─── Helper: field input classes ─── */
-const fieldCls = (err) =>
-  `w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6f1d56] ${
-    err ? "border-red-500" : "border-gray-300"
-  }`;
-
-/* ═══════════════════════════════════════════════════════════
-   Main component
-═══════════════════════════════════════════════════════════ */
-export default function MidRangeIntakeForm() {
+function MidRangeClientIntakeContent() {
   const { branding, loading: brandingLoading } = useBranding();
-  const formContentRef = useRef(null);
-
-  /* ─── Form state ─── */
-  const [fd, setFd] = useState({
-    // Step 1
-    serviceType: "",        // "Mid Range" | "Counselling & Coaching"
+  const searchParams = useSearchParams();
+  const [formData, setFormData] = useState({
+    // Step 1: Service
+    serviceType: "Mid Range",
     isCouples: false,
 
-    // Step 2 – Personal
-    firstName: "", lastName: "", email: "", phone: "",
-    voicemailOk: "", whatsappAgreement: "",
-    fullAddress: "", locationOfResidence: "",
+    // Step 2: Personal Info
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    street: "",
+    city: "",
+    postcode: "",
+    country: "",
+    locationOfResidence: "",
+    age: "",
+    voicemailOk: "",
+    currentlyInTherapy: "",
+    workingWithAnotherReason: "",
+
     // Couples extras
-    partnerFirstName: "", partnerLastName: "",
-    age: "", partnerAge: "",
+    partnerFirstName: "",
+    partnerLastName: "",
+    partnerAge: "",
 
-    // Step 3 – About You
-    gender: "", ethnicity: "", sexualOrientation: "",
-    onMedication: "", medicationDetails: "",
-    hasDisability: "", disabilityDetails: "",
-    currentlyInTherapy: "", workingWithAnotherReason: "",
-    // Partner
-    partnerGender: "", partnerEthnicity: "", partnerSexualOrientation: "",
-    partnerOnMedication: "", partnerMedicationDetails: "",
-    partnerHasDisability: "", partnerDisabilityDetails: "",
+    // Step 3: Demographics (About)
+    gender: "",
+    ethnicity: "",
+    otherEthnicity: "",
+    sexualOrientation: "",
+    otherSexualOrientation: "",
+    // Partner Demographics
+    partnerGender: "",
+    partnerEthnicity: "",
+    partnerOtherEthnicity: "",
+    partnerSexualOrientation: "",
+    partnerOtherSexualOrientation: "",
 
-    // Step 4 – Support areas
-    supportAreas: [], concernsDetails: "",
-    substanceUse: "", riskDetails: "",
+    // Step 4: Medical & Service
+    onMedication: "",
+    medicationDetails: "",
+    disabilities: "",
+    // Partner Medical
+    partnerOnMedication: "",
+    partnerMedicationDetails: "",
+    partnerDisabilities: "",
 
-    // Step 5 – Counsellor Preferences
+    // Step 5: Concerns / Support
+    supportAreas: [],
+    concernsDetails: "",
+    riskIssues: "",
+
+    // Step 6: Availability - Detailed time slots
+    availability: {
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+    },
+
+    // Step 7: Preferences
     genderPreference: "No preference",
     agePreference: "No preference",
-    ageRangeMin: "", ageRangeMax: "",
     ethnicityPreference: "No preference",
     orientationPreference: "No preference",
-    specificOrientation: "",
-    specialtyPreference: "", // e.g. Couples Counsellor
 
-    // Step 6 – Referral
-    hearAboutUs: "", referralType: "",
+    // Step 8: Referral
+    hearAboutUs: "",
+    referralReason: "",
+    referrerName: "",
+    referrerPhone: "",
+    referrerOrg: "",
+    referrerEmail: "",
 
-    // Step 7 – Assessment (CORE-10)
-    coreAnswers: {}, // { 0: "2", 1: "1", ... }
+    // Step 9: Core34 Assessment
+    core34: {},
 
-    // Step 8 – Availability
-    availability: { ...EMPTY_AVAILABILITY },
+    // Step 10: Consultation Slot
+    consultationSlotId: "",
 
-    // Step 11 – Emergency
-    emergencyContactName: "", emergencyContactPhone: "",
-    emergencyContactEmail: "", emergencyContactRelationship: "",
+    // Step 11: Emergency Contact
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    emergencyContactEmail: "",
+    emergencyContactRelationship: "",
 
-    // Step 12 – Payment
-    discountCode: "", termsAccepted: false,
+    // Step 12: Payment
+    discountCode: "",
+    termsAccepted: false,
   });
 
-  const [currentStep, setCurrentStep]       = useState(1);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [submitted, setSubmitted] = useState(false);
+  const [clientId, setClientId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(new Set());
-  const [errors, setErrors]                 = useState({});
 
-  // Step 9 – Filtered counsellors
-  const [filteredTcs, setFilteredTcs]               = useState([]);
-  const [loadingFiltered, setLoadingFiltered]        = useState(false);
-  const [filteredSortBy, setFilteredSortBy]          = useState("score");
-  const [selectedTc, setSelectedTc]                  = useState(null); // full TC object
-
-  // Step 10 – Consultation booking
-  const [consultAvailability, setConsultAvailability] = useState(null); // { source, slots }
-  const [loadingAvail, setLoadingAvail]               = useState(false);
-  const [selectedConsultSlot, setSelectedConsultSlot] = useState(null);
-
-  // Step 12 – Payment
-  const [discountAmount, setDiscountAmount]     = useState(0);
+  const [errors, setErrors] = useState({});
+  const [discountAmount, setDiscountAmount] = useState(0);
   const [isDiscountApplied, setIsDiscountApplied] = useState(false);
+  const [paymentProps, setPaymentProps] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentProps, setPaymentProps]         = useState(null);
-  const [clientId, setClientId]                 = useState(null);
+  const [baseFee, setBaseFee] = useState(15.0);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [isSlotsLoading, setIsSlotsLoading] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
+  const formContentRef = useRef(null);
 
-  const totalSteps = STEPS.length;
+  const [servicePricing, setServicePricing] = useState({
+    "Mid Range": 15.0,
+    "Counselling & Coaching": 20.0,
+  });
 
-  /* ─── Consultation fee ─── */
-  const getBaseFee = () => fd.serviceType === "Counselling & Coaching" ? 20 : 15;
-  const getConsultFee = () => Math.max(0, getBaseFee() - discountAmount);
-
-  /* ─── Scroll to top on step change ─── */
+  // Sync state from query parameters on mount or URL changes
   useEffect(() => {
-    if (formContentRef.current) {
-      formContentRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!searchParams) return;
+    const ctParam = searchParams.get("ct")?.toLowerCase()?.trim();
+    const actionParam = searchParams.get("action")?.toLowerCase()?.trim();
+    const serviceParam = searchParams.get("service")?.toLowerCase()?.trim();
+
+    let targetIsCouples = null;
+    let targetServiceType = null;
+
+    // Special direct link mapping: ct=md&action=cc -> Couples/Family and Mid Range
+    if (ctParam === "md" && actionParam === "cc") {
+      targetIsCouples = true;
+      targetServiceType = "Mid Range";
+    } else {
+      // Client type mapping
+      if (ctParam === "single" || ctParam === "individual") {
+        targetIsCouples = false;
+      } else if (
+        ctParam === "group" ||
+        ctParam === "couples" ||
+        ctParam === "family"
+      ) {
+        targetIsCouples = true;
+      }
+
+      // Action / Service mapping
+      if (
+        actionParam === "md" ||
+        actionParam === "mid-range" ||
+        actionParam === "midrange" ||
+        serviceParam === "mid-range" ||
+        serviceParam === "md"
+      ) {
+        targetServiceType = "Mid Range";
+      } else if (
+        actionParam === "cc" ||
+        actionParam === "coaching" ||
+        actionParam === "coaching-counselling" ||
+        serviceParam === "coaching" ||
+        serviceParam === "cc"
+      ) {
+        targetServiceType = "Counselling & Coaching";
+      }
+    }
+
+    setFormData((prev) => {
+      let updated = { ...prev };
+      let changed = false;
+
+      if (targetIsCouples !== null && updated.isCouples !== targetIsCouples) {
+        updated.isCouples = targetIsCouples;
+        changed = true;
+      }
+      if (
+        targetServiceType !== null &&
+        updated.serviceType !== targetServiceType
+      ) {
+        updated.serviceType = targetServiceType;
+        changed = true;
+      }
+
+      return changed ? updated : prev;
+    });
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        const services = await apiService.getAllServices();
+        if (Array.isArray(services)) {
+          const pricingMap = {
+            "Mid Range": 15.0,
+            "Counselling & Coaching": 20.0,
+          };
+          services.forEach((s) => {
+            if (
+              s.service_name === "Mid Range" ||
+              s.service_name === "Mid Range Counselling"
+            ) {
+              const p = parseFloat(s.consultation_price);
+              if (!isNaN(p) && p > 0) pricingMap["Mid Range"] = p;
+            }
+            if (
+              s.service_name === "Counselling & Coaching" ||
+              s.service_name === "Coaching & Counselling"
+            ) {
+              const p = parseFloat(s.consultation_price);
+              if (!isNaN(p) && p > 0) pricingMap["Counselling & Coaching"] = p;
+            }
+          });
+          setServicePricing(pricingMap);
+          setBaseFee(
+            pricingMap[formData.serviceType] ||
+              (formData.serviceType === "Counselling & Coaching" ? 20.0 : 15.0)
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load dynamic pricing:", err);
+      }
+    };
+    fetchPricing();
+  }, []);
+
+  // Update base fee when service type switches
+  useEffect(() => {
+    const price =
+      servicePricing[formData.serviceType] ||
+      (formData.serviceType === "Counselling & Coaching" ? 20.0 : 15.0);
+    setBaseFee(price);
+  }, [formData.serviceType, servicePricing]);
+
+  useEffect(() => {
+    if (currentStep === 10) {
+      const fetchSlots = async () => {
+        setIsSlotsLoading(true);
+        try {
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/consultation-slots/available`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setAvailableSlots(data);
+          }
+        } catch (err) {
+          console.error("Failed to load slots:", err);
+        } finally {
+          setIsSlotsLoading(false);
+        }
+      };
+      fetchSlots();
     }
   }, [currentStep]);
 
-  /* ─── Fetch filtered counsellors when arriving at step 9 ─── */
-  useEffect(() => {
-    if (currentStep !== 9 || filteredTcs.length > 0 || loadingFiltered) return;
-    const fetchFiltered = async () => {
-      try {
-        setLoadingFiltered(true);
-        const payload = {
-          service_type: fd.serviceType,
-          is_couples: fd.isCouples,
-          support_areas: fd.supportAreas,
-          availability: fd.availability,
-          gender_preference: fd.genderPreference,
-          age_preference: fd.agePreference,
-          ethnicity_preference: fd.ethnicityPreference,
-          orientation_preference: fd.orientationPreference,
-          specialty_preference: fd.specialtyPreference || null,
-          modality_preference: null,
-        };
-        const data = await apiService.getFilteredCounsellors(payload);
-        setFilteredTcs(data?.counsellors || data || []);
-      } catch (err) {
-        toast.error("Failed to load filtered counsellors. Please try again.");
-      } finally {
-        setLoadingFiltered(false);
-      }
-    };
-    fetchFiltered();
-  }, [currentStep]);
-
-  /* ─── Fetch consultation availability when arriving at step 10 ─── */
-  useEffect(() => {
-    if (currentStep !== 10 || !selectedTc?.uuid || loadingAvail) return;
-    const fetchAvail = async () => {
-      try {
-        setLoadingAvail(true);
-        const data = await apiService.getCounsellorConsultationAvailability(selectedTc.uuid);
-        const mapped = (data?.slots || []).map((slot) => {
-          const date = new Date(slot.consultation_datetime);
-          return {
-            ...slot,
-            date: date.toISOString().split("T")[0],
-            formatted_time: date.toLocaleTimeString("en-GB", {
-              hour: "2-digit", minute: "2-digit", timeZone: "UTC",
-            }),
-            available: !(slot.max_slots && slot.booked_slots >= slot.max_slots),
-          };
-        });
-        setConsultAvailability({ source: data?.source || "vanquish", slots: mapped });
-      } catch {
-        toast.error("Failed to load consultation slots.");
-      } finally {
-        setLoadingAvail(false);
-      }
-    };
-    fetchAvail();
-  }, [currentStep, selectedTc]);
-
-  /* ─── Helpers ─── */
-  const update = (field, value) => {
-    setFd((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors((p) => { const n = { ...p }; delete n[field]; return n; });
+  const getConsultationFee = () => {
+    return Math.max(0, baseFee - discountAmount);
   };
 
-  const toggleSupportArea = (area) => {
-    setFd((prev) => ({
+  const handleApplyDiscount = async () => {
+    const code = formData.discountCode?.trim().toUpperCase();
+
+    if (!code) {
+      setDiscountAmount(0);
+      setIsDiscountApplied(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+        }/coupons/verify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        }
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Invalid discount code");
+      }
+
+      const coupon = await response.json();
+
+      let newDiscountAmount = 0;
+      const originalFee = getConsultationFee() + discountAmount;
+
+      if (coupon.type === "fixed") {
+        newDiscountAmount = parseFloat(coupon.value);
+      } else {
+        newDiscountAmount = (originalFee * parseFloat(coupon.value)) / 100;
+      }
+
+      setDiscountAmount(newDiscountAmount);
+      setIsDiscountApplied(true);
+
+      toast.success(
+        `Discount code applied! You saved £${Number(newDiscountAmount).toFixed(2)}`
+      );
+    } catch (error) {
+      toast.error(error.message || "Invalid discount code");
+      setDiscountAmount(0);
+      setIsDiscountApplied(false);
+    }
+  };
+
+  const supportAreasList = SUPPORT_AREAS;
+
+  const core34Questions = [
+    "I have felt terribly alone and isolated",
+    "I have felt tense, anxious or nervous",
+    "I have felt I have someone to turn to for support when needed",
+    "I have felt O.K about myself",
+    "I have felt totally lacking in energy and enthusiasm",
+    "I have been physically violent to others",
+    "I have felt able to cope when things go wrong",
+    "I have been troubled by aches, pains or other physical problems",
+    "I have thought of hurting myself",
+    "Talking to people has felt too much for me",
+    "Tension and anxiety have prevented me from doing important things",
+    "I have been happy with the things I have done",
+    "I have been disturbed by unwanted thoughts and feelings",
+    "I have felt like crying",
+    "I have felt panic or terror",
+    "I made plans to end my life",
+    "I have felt overwhelmed by my problems",
+    "I have had difficulty getting to sleep or staying asleep",
+    "I have felt warmth or affection for someone",
+    "My problems have been impossible to put to one side",
+    "I have been able to do most things I needed to",
+    "I have threatened or intimidated another person",
+    "I have felt despairing or hopeless",
+    "I have thought it would be better if I were dead",
+    "I have felt criticised by other people",
+    "I have thought I have no friends",
+    "I have felt unhappy",
+    "Unwanted images or memories have been distressing me",
+    "I have been irritable when with other people",
+    "I have thought I am to blame for my problems and difficulties",
+    "I have felt optimistic about my future",
+    "I have achieved the things I wanted to",
+    "I have felt humiliated or shamed by other people",
+    "I have hurt myself physically or taken dangerous risks with my health",
+  ];
+
+  const core34Options = [
+    "Not at all",
+    "Only occasionally",
+    "Sometimes",
+    "Often",
+    "Most or all the time",
+  ];
+
+  const timeSlots = [
+    { value: "10am-1050am", label: "10:00 AM - 10:50 AM", category: "Morning" },
+    { value: "11am-1150am", label: "11:00 AM - 11:50 AM", category: "Morning" },
+    {
+      value: "12pm-1250pm",
+      label: "12:00 PM - 12:50 PM",
+      category: "Afternoon",
+    },
+    { value: "1pm-150pm", label: "1:00 PM - 1:50 PM", category: "Afternoon" },
+    { value: "2pm-250pm", label: "2:00 PM - 2:50 PM", category: "Afternoon" },
+    { value: "3pm-350pm", label: "3:00 PM - 3:50 PM", category: "Afternoon" },
+    { value: "4pm-450pm", label: "4:00 PM - 4:50 PM", category: "Afternoon" },
+    { value: "5pm-550pm", label: "5:00 PM - 5:50 PM", category: "Evening" },
+    { value: "6pm-650pm", label: "6:00 PM - 6:50 PM", category: "Evening" },
+  ];
+
+  const fridayTimeSlots = [
+    { value: "10am-1050am", label: "10:00 AM - 10:50 AM", category: "Morning" },
+    { value: "11am-1150am", label: "11:00 AM - 11:50 AM", category: "Morning" },
+    {
+      value: "12pm-1250pm",
+      label: "12:00 PM - 12:50 PM",
+      category: "Afternoon",
+    },
+    { value: "1pm-150pm", label: "1:00 PM - 1:50 PM", category: "Afternoon" },
+    { value: "2pm-250pm", label: "2:00 PM - 2:50 PM", category: "Afternoon" },
+    { value: "3pm-350pm", label: "3:00 PM - 3:50 PM", category: "Afternoon" },
+    { value: "4pm-450pm", label: "4:00 PM - 4:50 PM", category: "Afternoon" },
+    { value: "5pm-550pm", label: "5:00 PM - 5:50 PM", category: "Evening" },
+  ];
+
+  const validateStep = (step) => {
+    const stepErrors = {};
+
+    switch (step) {
+      case 1: // Service Selection
+        if (!formData.serviceType)
+          stepErrors.serviceType = "Please select a service";
+        break;
+
+      case 2: // Personal Information
+        if (!formData.firstName.trim())
+          stepErrors.firstName = "First name is required";
+        if (!formData.lastName.trim())
+          stepErrors.lastName = "Last name is required";
+        if (
+          !formData.email.trim() ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
+        ) {
+          stepErrors.email = "Valid email is required";
+        }
+        if (!formData.phone.trim())
+          stepErrors.phone = "Phone number is required";
+
+        if (!formData.street.trim()) stepErrors.street = "Address is required";
+
+        if (
+          !formData.age ||
+          parseInt(formData.age) < 18 ||
+          formData.age.length > 2
+        )
+          stepErrors.age = "Valid age (18-99) is required";
+
+        if (!formData.voicemailOk)
+          stepErrors.voicemailOk = "This field is required";
+        if (!formData.currentlyInTherapy)
+          stepErrors.currentlyInTherapy = "This field is required";
+
+        if (formData.isCouples) {
+          if (!formData.partnerFirstName.trim())
+            stepErrors.partnerFirstName = "Partner's first name is required";
+          if (!formData.partnerLastName.trim())
+            stepErrors.partnerLastName = "Partner's last name is required";
+          if (
+            !formData.partnerAge ||
+            parseInt(formData.partnerAge) < 18 ||
+            formData.partnerAge.length > 2
+          )
+            stepErrors.partnerAge = "Partner's valid age (18-99) is required";
+        }
+        break;
+
+      case 3: // Demographics (About You)
+        if (!formData.gender) stepErrors.gender = "Gender is required";
+        if (!formData.ethnicity) stepErrors.ethnicity = "Ethnicity is required";
+        if (!formData.sexualOrientation)
+          stepErrors.sexualOrientation = "Sexual orientation is required";
+
+        if (formData.isCouples) {
+          if (!formData.partnerGender)
+            stepErrors.partnerGender = "Partner's gender is required";
+          if (!formData.partnerEthnicity)
+            stepErrors.partnerEthnicity = "Partner's ethnicity is required";
+          if (!formData.partnerSexualOrientation)
+            stepErrors.partnerSexualOrientation =
+              "Partner's sexual orientation is required";
+        }
+        break;
+
+      case 4: // Medical & Disabilities
+        if (!formData.onMedication)
+          stepErrors.onMedication = "This field is required";
+        if (
+          formData.onMedication === "Yes" &&
+          !formData.medicationDetails.trim()
+        ) {
+          stepErrors.medicationDetails = "Please provide medication details";
+        }
+        if (!formData.disabilities.trim())
+          stepErrors.disabilities =
+            "This field is required (enter 'N/A' if none)";
+
+        if (formData.isCouples) {
+          if (!formData.partnerOnMedication)
+            stepErrors.partnerOnMedication = "This field is required";
+          if (
+            formData.partnerOnMedication === "Yes" &&
+            !formData.partnerMedicationDetails.trim()
+          ) {
+            stepErrors.partnerMedicationDetails =
+              "Please provide partner's medication details";
+          }
+          if (!formData.partnerDisabilities.trim())
+            stepErrors.partnerDisabilities =
+              "This field is required (enter 'N/A' if none)";
+        }
+        break;
+
+      case 5: // Concerns (Support Areas)
+        if (formData.supportAreas.length === 0)
+          stepErrors.supportAreas = "Please select at least one support area";
+        if (!formData.concernsDetails.trim())
+          stepErrors.concernsDetails =
+            "Please provide details about your concerns";
+        break;
+
+      case 6: // Availability
+        const hasAvailability = Object.values(formData.availability).some(
+          (day) => day.length > 0
+        );
+        if (!hasAvailability)
+          stepErrors.availability = "Please select at least one time slot";
+        break;
+
+      case 7: // Preferences
+        break;
+
+      case 8: // Referral
+        if (!formData.hearAboutUs) {
+          stepErrors.hearAboutUs = "This field is required";
+        } else if (formData.hearAboutUs === "Referral") {
+          if (!formData.referrerName.trim())
+            stepErrors.referrerName = "Referrer's name is required";
+          if (!formData.referrerPhone.trim())
+            stepErrors.referrerPhone = "Referrer's phone is required";
+          if (!formData.referrerEmail.trim())
+            stepErrors.referrerEmail = "Referrer's email is required";
+          if (!formData.referralReason.trim())
+            stepErrors.referralReason = "Reasons for referral is required";
+        }
+        break;
+
+      case 9: // Assessment (CORE-34)
+        if (Object.keys(formData.core34).length < 34) {
+          stepErrors.core34 =
+            "Please answer all 34 questions before proceeding.";
+        }
+        break;
+
+      case 10: // Consultation Slot
+        if (!formData.consultationSlotId)
+          stepErrors.consultationSlotId =
+            "Please select an available consultation slot";
+        break;
+
+      case 11: // Emergency Contact
+        if (!formData.emergencyContactName.trim())
+          stepErrors.emergencyContactName =
+            "Emergency contact name is required";
+        if (!formData.emergencyContactPhone.trim())
+          stepErrors.emergencyContactPhone =
+            "Emergency contact phone is required";
+        if (
+          formData.emergencyContactEmail.trim() &&
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emergencyContactEmail)
+        )
+          stepErrors.emergencyContactEmail =
+            "Valid emergency contact email is required";
+        if (!formData.emergencyContactRelationship.trim())
+          stepErrors.emergencyContactRelationship = "Relationship is required";
+        break;
+
+      case 12: // Payment
+        if (!formData.termsAccepted)
+          stepErrors.termsAccepted = "You must accept the terms";
+        break;
+
+      default:
+        break;
+    }
+
+    return stepErrors;
+  };
+
+  useEffect(() => {
+    if (formContentRef.current) {
+      formContentRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [currentStep]);
+
+  const handleStepChange = (newStep) => {
+    if (newStep < currentStep) {
+      setCurrentStep(newStep);
+      setErrors({});
+      return;
+    }
+
+    const stepErrors = validateStep(currentStep);
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
+      setTimeout(() => {
+        const firstErrorField = Object.keys(stepErrors)[0];
+        let errorElement =
+          document.querySelector(`[name="${firstErrorField}"]`) ||
+          document.querySelector(`#${firstErrorField}`);
+
+        if (!errorElement) {
+          errorElement = document.querySelector(
+            `[data-field="${firstErrorField}"]`
+          );
+        }
+
+        if (errorElement) {
+          errorElement.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (
+            errorElement.tagName === "INPUT" ||
+            errorElement.tagName === "SELECT" ||
+            errorElement.tagName === "TEXTAREA"
+          ) {
+            errorElement.focus();
+          }
+        } else {
+          if (formContentRef.current) {
+            formContentRef.current.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }
+        }
+      }, 100);
+      return;
+    }
+
+    setCompletedSteps((prev) => new Set([...prev, currentStep]));
+    setErrors({});
+    setCurrentStep(newStep);
+  };
+
+  const handleNext = () => {
+    handleStepChange(currentStep + 1);
+  };
+
+  const handlePrevious = () => {
+    handleStepChange(currentStep - 1);
+  };
+
+  const handleStepClick = (stepNumber) => {
+    if (completedSteps.has(stepNumber) || stepNumber < currentStep) {
+      handleStepChange(stepNumber);
+    } else if (stepNumber === currentStep) {
+      return;
+    } else {
+      handleStepChange(stepNumber);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "serviceType" || field === "isCouples") {
+        if (typeof window !== "undefined") {
+          const isCouplesVal = field === "isCouples" ? value : next.isCouples;
+          const serviceTypeVal =
+            field === "serviceType" ? value : next.serviceType;
+          const ctParam = isCouplesVal ? "group" : "single";
+          const actionParam =
+            serviceTypeVal === "Counselling & Coaching" ? "cc" : "md";
+          const url = new URL(window.location.href);
+          url.searchParams.set("ct", ctParam);
+          url.searchParams.set("action", actionParam);
+          url.searchParams.delete("service");
+          window.history.replaceState({}, "", url.toString());
+        }
+      }
+      return next;
+    });
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleSupportAreaToggle = (area) => {
+    setFormData((prev) => ({
       ...prev,
       supportAreas: prev.supportAreas.includes(area)
         ? prev.supportAreas.filter((a) => a !== area)
         : [...prev.supportAreas, area],
     }));
-    if (errors.supportAreas) setErrors((p) => { const n = { ...p }; delete n.supportAreas; return n; });
+    if (errors.supportAreas) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.supportAreas;
+        return newErrors;
+      });
+    }
   };
 
-  const toggleAvailability = (day, slot) => {
-    setFd((prev) => ({
+  const handleCore34Change = (questionIndex, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      core34: {
+        ...prev.core34,
+        [questionIndex]: value,
+      },
+    }));
+    if (errors.core34) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.core34;
+        return newErrors;
+      });
+    }
+  };
+
+  const handleAvailabilityToggle = (day, slot) => {
+    setFormData((prev) => ({
       ...prev,
       availability: {
         ...prev.availability,
@@ -264,561 +730,592 @@ export default function MidRangeIntakeForm() {
           : [...prev.availability[day], slot],
       },
     }));
-    if (errors.availability) setErrors((p) => { const n = { ...p }; delete n.availability; return n; });
-  };
-
-  const setCoreAnswer = (idx, val) => {
-    setFd((prev) => ({ ...prev, coreAnswers: { ...prev.coreAnswers, [idx]: val } }));
-  };
-
-  /* ─── Validation ─── */
-  const validateStep = (step) => {
-    const e = {};
-    const email_re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    switch (step) {
-      case 1:
-        if (!fd.serviceType) e.serviceType = "Please select a service";
-        break;
-      case 2:
-        if (!fd.firstName.trim()) e.firstName = "First name is required";
-        if (!fd.lastName.trim())  e.lastName  = "Last name is required";
-        if (!fd.email.trim() || !email_re.test(fd.email)) e.email = "Valid email is required";
-        if (!fd.phone.trim()) e.phone = "Phone number is required";
-        if (!fd.voicemailOk) e.voicemailOk = "This field is required";
-        if (!fd.whatsappAgreement) e.whatsappAgreement = "This field is required";
-        if (!fd.fullAddress.trim()) e.fullAddress = "Address is required";
-        if (!fd.locationOfResidence.trim()) e.locationOfResidence = "Location is required";
-        if (!fd.age) e.age = "Your age is required";
-        if (fd.isCouples) {
-          if (!fd.partnerFirstName.trim()) e.partnerFirstName = "Partner's first name is required";
-          if (!fd.partnerLastName.trim())  e.partnerLastName  = "Partner's last name is required";
-          if (!fd.partnerAge) e.partnerAge = "Partner's age is required";
-        }
-        break;
-      case 3:
-        if (!fd.gender) e.gender = "Gender is required";
-        if (!fd.ethnicity) e.ethnicity = "Ethnicity is required";
-        if (!fd.sexualOrientation) e.sexualOrientation = "Sexual orientation is required";
-        if (!fd.onMedication) e.onMedication = "This field is required";
-        if (!fd.hasDisability) e.hasDisability = "This field is required";
-        if (!fd.currentlyInTherapy) e.currentlyInTherapy = "This field is required";
-        if (fd.currentlyInTherapy === "Yes" && !fd.workingWithAnotherReason.trim())
-          e.workingWithAnotherReason = "Please explain your reasons";
-        if (fd.isCouples) {
-          if (!fd.partnerGender) e.partnerGender = "Partner's gender is required";
-          if (!fd.partnerEthnicity) e.partnerEthnicity = "Partner's ethnicity is required";
-          if (!fd.partnerSexualOrientation) e.partnerSexualOrientation = "Partner's sexual orientation is required";
-          if (!fd.partnerOnMedication) e.partnerOnMedication = "This field is required";
-          if (!fd.partnerHasDisability) e.partnerHasDisability = "This field is required";
-        }
-        break;
-      case 4:
-        if (fd.supportAreas.length === 0) e.supportAreas = "Please select at least one area";
-        break;
-      case 6:
-        if (!fd.hearAboutUs)  e.hearAboutUs  = "This field is required";
-        if (!fd.referralType) e.referralType = "This field is required";
-        break;
-      case 8:
-        if (!Object.values(fd.availability).some((d) => d.length > 0))
-          e.availability = "Please select at least one time slot";
-        break;
-      case 9:
-        if (!selectedTc) e.selectedTc = "Please select a counsellor";
-        break;
-      case 10:
-        if (!selectedConsultSlot) e.selectedConsultSlot = "Please choose a consultation slot";
-        break;
-      case 11:
-        if (!fd.emergencyContactName.trim())         e.emergencyContactName         = "Name is required";
-        if (!fd.emergencyContactPhone.trim())        e.emergencyContactPhone        = "Phone is required";
-        if (!fd.emergencyContactRelationship.trim()) e.emergencyContactRelationship = "Relationship is required";
-        if (fd.emergencyContactEmail.trim() && !email_re.test(fd.emergencyContactEmail))
-          e.emergencyContactEmail = "Valid email required";
-        break;
-      case 12:
-        if (!fd.termsAccepted) e.termsAccepted = "You must accept the terms";
-        break;
+    if (errors.availability) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.availability;
+        return newErrors;
+      });
     }
-    return e;
   };
 
-  /* ─── Step navigation ─── */
-  const goToStep = (n) => {
-    if (n < currentStep) { setCurrentStep(n); setErrors({}); return; }
-    const errs = validateStep(currentStep);
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      setTimeout(() => {
-        const firstKey = Object.keys(errs)[0];
-        const el = document.querySelector(`[name="${firstKey}"]`) ||
-                   document.querySelector(`#${firstKey}`) ||
-                   document.querySelector(`[data-field="${firstKey}"]`);
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-        else if (formContentRef.current)
-          formContentRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 80);
+  const sanitizeText = (val) => {
+    if (typeof val !== "string") return val;
+    return val.trim().replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\uD800-\uDFFF]/g, "");
+  };
+
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+
+    const stepErrors = validateStep(12);
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
       return;
     }
-    setCompletedSteps((prev) => new Set([...prev, currentStep]));
-    setErrors({});
-    setCurrentStep(n);
-  };
 
-  const handleNext = () => goToStep(currentStep + 1);
-  const handlePrev = () => goToStep(currentStep - 1);
-
-  /* ─── Discount ─── */
-  const applyDiscount = async () => {
-    const code = fd.discountCode?.trim().toUpperCase();
-    if (!code) { setDiscountAmount(0); setIsDiscountApplied(false); return; }
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/coupons/verify`,
-        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) }
-      );
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Invalid code"); }
-      const coupon = await res.json();
-      const base = getBaseFee();
-      const amt = coupon.type === "fixed" ? parseFloat(coupon.value) : (base * parseFloat(coupon.value)) / 100;
-      setDiscountAmount(amt);
-      setIsDiscountApplied(true);
-      toast.success(`Discount applied! You saved £${amt.toFixed(2)}`);
-    } catch (err) {
-      toast.error(err.message || "Invalid discount code");
-      setDiscountAmount(0); setIsDiscountApplied(false);
+    if (!formData.termsAccepted) {
+      return;
     }
-  };
 
-  /* ─── Submit ─── */
-  const handleSubmit = async () => {
-    const errs = validateStep(12);
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    setIsSubmitting(true);
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/client-intake`,
+      const response = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+        }/client-intake`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            first_name:  fd.firstName,
-            last_name:   fd.lastName,
-            email:       fd.email,
-            phone:       fd.phone || null,
-            whatsapp_agreement:      fd.whatsappAgreement,
-            voicemail_ok:            fd.voicemailOk === "Yes",
-            full_address:            fd.fullAddress,
-            street:                  fd.fullAddress,
-            city:                    "N/A",
-            postcode:                "N/A",
-            country:                 "N/A",
-            location_of_residence:   fd.locationOfResidence,
-            age:                     fd.age,
-            gender:                  fd.gender,
-            ethnicity:               fd.ethnicity,
-            sexual_orientation:      fd.sexualOrientation,
-            on_medication:           fd.onMedication === "Yes",
-            medication_details:      fd.medicationDetails || null,
-            has_disability:          fd.hasDisability === "Yes",
-            disability_details:      fd.disabilityDetails || null,
-            currently_in_therapy:    fd.currentlyInTherapy === "Yes",
-            working_with_another_reason: fd.workingWithAnotherReason || null,
-            // Couples
-            is_couples:              fd.isCouples,
-            partner_first_name:      fd.isCouples ? fd.partnerFirstName : null,
-            partner_last_name:       fd.isCouples ? fd.partnerLastName  : null,
-            partner_age:             fd.isCouples ? fd.partnerAge       : null,
-            partner_gender:          fd.isCouples ? fd.partnerGender    : null,
-            partner_ethnicity:       fd.isCouples ? fd.partnerEthnicity : null,
-            partner_sexual_orientation: fd.isCouples ? fd.partnerSexualOrientation : null,
-            partner_on_medication:   fd.isCouples ? fd.partnerOnMedication === "Yes" : null,
-            partner_medication_details: fd.isCouples ? fd.partnerMedicationDetails  : null,
-            partner_has_disability:  fd.isCouples ? fd.partnerHasDisability === "Yes" : null,
-            partner_disability_details: fd.isCouples ? fd.partnerDisabilityDetails   : null,
-            // Support & assessment
-            support_areas:           fd.supportAreas,
-            concerns_details:        fd.concernsDetails || null,
-            substance_use:           fd.substanceUse || null,
-            risk_details:            fd.riskDetails   || null,
-            core_answers:            fd.coreAnswers   || {},
-            // Preferences
-            gender_preference:       fd.genderPreference,
-            age_preference:          fd.agePreference,
-            ethnicity_preference:    fd.ethnicityPreference,
-            orientation_preference:  fd.orientationPreference,
-            specialty_preference:    fd.specialtyPreference || null,
-            // Referral
-            hear_about_us:           fd.hearAboutUs  || null,
-            referral_type:           fd.referralType || null,
-            // Availability
-            availability:            fd.availability,
-            // Counsellor selection
-            preferred_tc_uuid:       selectedTc?.uuid || null,
-            // Emergency
-            emergency_contact_name:           fd.emergencyContactName,
-            emergency_contact_phone:          fd.emergencyContactPhone,
-            emergency_contact_email:          fd.emergencyContactEmail  || null,
-            emergency_contact_relationship:   fd.emergencyContactRelationship,
-            // Booking
-            consultation_slot_id:             selectedConsultSlot?.id || null,
-            consultation_with_tc_uuid:        selectedTc?.uuid || null,
-            consultation_datetime:            selectedConsultSlot?.consultation_datetime || null,
-            // Payment
-            service_type:    fd.serviceType,
-            consultation_fee: getConsultFee(),
-            discount_code:   isDiscountApplied ? fd.discountCode : null,
-            terms_accepted:  fd.termsAccepted,
-            create_client:   true,
+            first_name: sanitizeText(formData.firstName),
+            last_name: sanitizeText(formData.lastName),
+            email: sanitizeText(formData.email).toLowerCase(),
+            phone: sanitizeText(formData.phone) || null,
+            street: sanitizeText(formData.street) || null,
+            city: sanitizeText(formData.city) || null,
+            postcode: sanitizeText(formData.postcode) || null,
+            country: sanitizeText(formData.country) || null,
+            location_of_residence:
+              sanitizeText(formData.locationOfResidence) || `${sanitizeText(formData.city)}, ${sanitizeText(formData.country)}`,
+            address: `${sanitizeText(formData.street)}, ${sanitizeText(formData.city)}, ${sanitizeText(formData.postcode)}, ${sanitizeText(formData.country)}`,
+            age: formData.age ? parseInt(formData.age, 10) : null,
+            emergency_contact_name: sanitizeText(formData.emergencyContactName) || null,
+            emergency_contact_phone: sanitizeText(formData.emergencyContactPhone) || null,
+            emergency_contact_email: sanitizeText(formData.emergencyContactEmail) || null,
+            emergency_contact_relationship:
+              sanitizeText(formData.emergencyContactRelationship) || null,
+            voicemail_ok: formData.voicemailOk === "Yes",
+            currently_in_therapy: formData.currentlyInTherapy === "Yes",
+            gender: sanitizeText(formData.gender) || null,
+            ethnicity:
+              formData.ethnicity === "Other" && formData.otherEthnicity
+                ? sanitizeText(formData.otherEthnicity)
+                : sanitizeText(formData.ethnicity) || null,
+            sexual_orientation:
+              formData.sexualOrientation === "Other" &&
+              formData.otherSexualOrientation
+                ? sanitizeText(formData.otherSexualOrientation)
+                : sanitizeText(formData.sexualOrientation) || null,
+            service_type: formData.serviceType || "Mid Range",
+            is_couples: !!formData.isCouples,
+            partner_first_name: formData.isCouples ? sanitizeText(formData.partnerFirstName) : null,
+            partner_last_name: formData.isCouples ? sanitizeText(formData.partnerLastName) : null,
+            partner_age:
+              formData.isCouples && formData.partnerAge
+                ? parseInt(formData.partnerAge, 10)
+                : null,
+            partner_gender: formData.isCouples ? sanitizeText(formData.partnerGender) : null,
+            partner_ethnicity:
+              formData.isCouples
+                ? formData.partnerEthnicity === "Other" && formData.partnerOtherEthnicity
+                  ? sanitizeText(formData.partnerOtherEthnicity)
+                  : sanitizeText(formData.partnerEthnicity) || null
+                : null,
+            partner_sexual_orientation:
+              formData.isCouples
+                ? formData.partnerSexualOrientation === "Other" && formData.partnerOtherSexualOrientation
+                  ? sanitizeText(formData.partnerOtherSexualOrientation)
+                  : sanitizeText(formData.partnerSexualOrientation) || null
+                : null,
+            partner_on_medication: formData.isCouples
+              ? formData.partnerOnMedication === "Yes"
+              : null,
+            partner_medication_details: formData.isCouples
+              ? sanitizeText(formData.partnerMedicationDetails) || null
+              : null,
+            partner_has_disability: formData.isCouples
+              ? formData.partnerDisabilities && formData.partnerDisabilities !== "N/A"
+              : null,
+            partner_disability_details: formData.isCouples
+              ? sanitizeText(formData.partnerDisabilities) || null
+              : null,
+            on_medication: formData.onMedication === "Yes",
+            medication_details: sanitizeText(formData.medicationDetails) || null,
+            disabilities: sanitizeText(formData.disabilities) || null,
+            support_areas: formData.supportAreas || [],
+            concerns_details: sanitizeText(formData.concernsDetails) || null,
+            risk_issues: sanitizeText(formData.riskIssues) || null,
+            core34_answers: formData.core34 || {},
+            availability: formData.availability || {},
+            gender_preference: sanitizeText(formData.genderPreference) || "No preference",
+            age_preference: sanitizeText(formData.agePreference) || "No preference",
+            ethnicity_preference:
+              sanitizeText(formData.ethnicityPreference) || "No preference",
+            orientation_preference:
+              sanitizeText(formData.orientationPreference) || "No preference",
+            hear_about_us: sanitizeText(formData.hearAboutUs) || null,
+            referral_reason: sanitizeText(formData.referralReason) || null,
+            referrer_name: sanitizeText(formData.referrerName) || null,
+            referrer_phone: sanitizeText(formData.referrerPhone) || null,
+            referrer_org: sanitizeText(formData.referrerOrg) || null,
+            referrer_email: sanitizeText(formData.referrerEmail) || null,
+            terms_accepted: !!formData.termsAccepted,
+            consultation_slot_id: formData.consultationSlotId || null,
           }),
         }
       );
 
-      if (!res.ok) {
-        const ct = res.headers.get("content-type");
-        let msg = `Submission failed (${res.status})`;
-        if (ct?.includes("application/json")) {
-          const d = await res.json();
-          if (d.errors) msg = Object.entries(d.errors).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`).join("\n");
-          else msg = d.message || d.error || msg;
-        }
-        throw new Error(msg);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to submit intake form");
       }
 
-      const data = await res.json();
-      const clientIdFromRes = data.client_id || data.form?.client_id;
-      setClientId(clientIdFromRes);
+      const result = await response.json();
+      const newClientId = result.client_id || result.id;
+      setClientId(newClientId);
 
-      const successParams = new URLSearchParams();
-      successParams.append("uuid", data.client_uuid || data.form?.uuid || "");
-      if (selectedConsultSlot?.id) successParams.append("slot", selectedConsultSlot.id);
-      const successUrl = `${window.location.origin}/mid-range-intake/success?${successParams}`;
+      if (formData.consultationSlotId && newClientId) {
+        try {
+          const bookingResponse = await fetch(
+            `${
+              process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+            }/consultation-slots/book`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                slot_id: formData.consultationSlotId,
+                client_id: newClientId,
+              }),
+            }
+          );
 
-      const fee = getConsultFee();
-      if (fee > 0 && clientIdFromRes) {
+          if (!bookingResponse.ok) {
+            const bookingError = await bookingResponse.json();
+            console.error("Booking error:", bookingError);
+            toast.warning(
+              "Form submitted, but failed to book consultation slot. Our team will contact you."
+            );
+          }
+        } catch (bookingErr) {
+          console.error("Failed to book consultation slot:", bookingErr);
+          toast.warning(
+            "Form submitted, but failed to book consultation slot. Our team will contact you."
+          );
+        }
+      }
+
+      const finalFee = getConsultationFee();
+
+      if (finalFee > 0) {
         setPaymentProps({
-          clientId: clientIdFromRes,
-          amount: fee,
-          paymentType: "consultation",
-          couponCode: isDiscountApplied ? fd.discountCode : null,
-          consultationSlotId: selectedConsultSlot?.id || null,
-          consultationWithTcUuid: selectedTc?.uuid || null,
-          consultationDatetime: selectedConsultSlot?.consultation_datetime || null,
-          returnUrl: successUrl,
-          onSuccess: () => { window.location.href = successUrl; },
-          onError: (err) => toast.error(err.message || "Payment failed"),
+          clientId: newClientId,
+          amount: finalFee,
+          couponCode: isDiscountApplied ? formData.discountCode : null,
+          returnUrl: `${window.location.origin}/payment-success?client_id=${newClientId}`,
+          onSuccess: () => {
+            setSubmitted(true);
+            setShowPaymentModal(false);
+          },
+          onError: (errMsg) => {
+            toast.error(errMsg || "Payment failed");
+          },
         });
         setShowPaymentModal(true);
       } else {
-        window.location.href = successUrl;
+        setSubmitted(true);
+        toast.success("Intake form submitted successfully!");
       }
-    } catch (err) {
-      toast.error(err.message || "Failed to submit form.");
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast.error(
+        error.message || "Failed to submit intake form. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  /* ─── Sorted filtered counsellors ─── */
-  const sortedTcs = [...filteredTcs].sort((a, b) =>
-    filteredSortBy === "score"
-      ? (b.score ?? 0) - (a.score ?? 0)
-      : (a.name || "").localeCompare(b.name || "")
-  );
+  const steps = [
+    { number: 1, title: "Service", icon: Briefcase },
+    { number: 2, title: "Personal", icon: User },
+    { number: 3, title: "About", icon: Heart },
+    { number: 4, title: "Service", icon: Briefcase },
+    { number: 5, title: "Support", icon: MessageCircle },
+    { number: 6, title: "Availability", icon: Calendar },
+    { number: 7, title: "Preferences", icon: Heart },
+    { number: 8, title: "Referral", icon: User },
+    { number: 9, title: "Assessment", icon: CheckCircle },
+    { number: 10, title: "Slot", icon: Calendar },
+    { number: 11, title: "Emergency", icon: AlertTriangle },
+    { number: 12, title: "Payment", icon: CreditCard },
+  ];
 
-  const getFitLabel = (score) => {
-    if (score >= 90) return { label: "Best Fit",  bg: "bg-green-100",  text: "text-green-800"  };
-    if (score >= 75) return { label: "Great Fit", bg: "bg-blue-100",   text: "text-blue-800"   };
-    return                    { label: "Good Fit",  bg: "bg-yellow-100", text: "text-yellow-800" };
-  };
-
-  /* ════════════════════════════════════════════
-     DEMOGRAPHICS sub-form (reused for couples)
-  ════════════════════════════════════════════ */
-  const DemographicsFields = ({ prefix = "", label = "Your" }) => {
-    const pf = (f) => (prefix ? `${prefix}${f.charAt(0).toUpperCase()}${f.slice(1)}` : f);
+  if (submitted) {
     return (
-      <div className="space-y-4">
-        {label && (
-          <h4 className="font-semibold text-[#6f1d56] text-base border-b border-purple-100 pb-2">
-            {label} Information
-          </h4>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Gender */}
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">
-              {label} Gender <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={fd[pf("gender")]}
-              onChange={(e) => update(pf("gender"), e.target.value)}
-              className={fieldCls(errors[pf("gender")])}
-            >
-              <option value="">Please Select</option>
-              {["Male","Female","Non-binary","Other","Prefer not to say"].map((g) => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-            {errors[pf("gender")] && <p className="text-red-500 text-xs mt-1">{errors[pf("gender")]}</p>}
-          </div>
-          {/* Ethnicity */}
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">
-              {label} Ethnicity <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={fd[pf("ethnicity")]}
-              onChange={(e) => update(pf("ethnicity"), e.target.value)}
-              className={fieldCls(errors[pf("ethnicity")])}
-            >
-              <option value="">Please Select</option>
-              {["Caucasian/White","African/Caribbean/Black","North African","Hispanic/Latino","South Asian","Southeast Asian","East Asian","Central Asian","West Asian (Middle Eastern)","North Asian","Mixed/Multiracial","Other"].map((e) => (
-                <option key={e} value={e}>{e}</option>
-              ))}
-            </select>
-            {errors[pf("ethnicity")] && <p className="text-red-500 text-xs mt-1">{errors[pf("ethnicity")]}</p>}
-          </div>
-          {/* Sexual Orientation */}
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">
-              {label} Sexual Orientation <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={fd[pf("sexualOrientation")]}
-              onChange={(e) => update(pf("sexualOrientation"), e.target.value)}
-              className={fieldCls(errors[pf("sexualOrientation")])}
-            >
-              <option value="">Please Select</option>
-              {["Heterosexual","Gay","Lesbian","Bisexual","Pansexual","Asexual","Queer","Other","Prefer not to say"].map((o) => (
-                <option key={o} value={o}>{o}</option>
-              ))}
-            </select>
-            {errors[pf("sexualOrientation")] && <p className="text-red-500 text-xs mt-1">{errors[pf("sexualOrientation")]}</p>}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const MedicationDisabilityFields = ({ prefix = "", label = "Your" }) => {
-    const pf = (f) => (prefix ? `${prefix}${f.charAt(0).toUpperCase()}${f.slice(1)}` : f);
-    return (
-      <div className="space-y-4">
-        <h4 className="font-semibold text-[#6f1d56] text-base border-b border-purple-100 pb-2">
-          {label} Medication & Disability
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">
-              {fd.isCouples ? `Is ${label.toLowerCase()} currently on any medication?` : "Are you currently on any medication?"}{" "}
-              <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={fd[pf("onMedication")]}
-              onChange={(e) => update(pf("onMedication"), e.target.value)}
-              className={fieldCls(errors[pf("onMedication")])}
-            >
-              <option value="">Please Select</option>
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-            </select>
-            {errors[pf("onMedication")] && <p className="text-red-500 text-xs mt-1">{errors[pf("onMedication")]}</p>}
-          </div>
-          {fd[pf("onMedication")] === "Yes" && (
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
-                Please provide medication details
-              </label>
-              <input
-                type="text"
-                value={fd[pf("medicationDetails")]}
-                onChange={(e) => update(pf("medicationDetails"), e.target.value)}
-                className={fieldCls(false)}
-                placeholder="Medication name(s)..."
-              />
-            </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">
-              {fd.isCouples ? `Does ${label.toLowerCase()} have any disability?` : "Do you have any disability or accessibility requirements?"}{" "}
-              <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={fd[pf("hasDisability")]}
-              onChange={(e) => update(pf("hasDisability"), e.target.value)}
-              className={fieldCls(errors[pf("hasDisability")])}
-            >
-              <option value="">Please Select</option>
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-            </select>
-            {errors[pf("hasDisability")] && <p className="text-red-500 text-xs mt-1">{errors[pf("hasDisability")]}</p>}
-          </div>
-          {fd[pf("hasDisability")] === "Yes" && (
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
-                Please describe the disability / accessibility needs
-              </label>
-              <input
-                type="text"
-                value={fd[pf("disabilityDetails")]}
-                onChange={(e) => update(pf("disabilityDetails"), e.target.value)}
-                className={fieldCls(false)}
-                placeholder="Details..."
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  /* ════════════════════════════════════════════
-     PROGRESS BAR
-  ════════════════════════════════════════════ */
-  const ProgressBar = () => (
-    <div className="hidden md:flex items-center justify-between gap-1 overflow-x-auto py-2">
-      {STEPS.map((s, idx) => {
-        const done    = completedSteps.has(s.n);
-        const current = currentStep === s.n;
-        const Icon    = s.icon;
-        return (
-          <React.Fragment key={s.n}>
-            <div className="flex flex-col items-center flex-1 min-w-[54px] sm:min-w-[62px]">
-              <button
-                type="button"
-                onClick={() => goToStep(s.n)}
-                title={`Step ${s.n}: ${s.title}`}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all text-xs font-bold shrink-0 ${
-                  done    ? "bg-green-500 text-white cursor-pointer hover:opacity-90"
-                  : current ? "text-white ring-2 ring-offset-2 ring-[#6f1d56]"
-                  :          "bg-gray-200 text-gray-400 cursor-pointer hover:bg-gray-300"
-                }`}
-                style={(current && !done) ? { backgroundColor: "#6f1d56" } : {}}
-              >
-                {done && !current ? <CheckCircle className="w-4 h-4" /> : s.n}
-              </button>
-              <span
-                title={s.title}
-                className={`text-[10px] sm:text-[11px] mt-1.5 text-center leading-tight whitespace-normal break-words max-w-[68px] ${
-                  current || done ? "text-[#6f1d56] font-bold" : "text-gray-500"
-                }`}
-              >
-                {s.title}
-              </span>
-            </div>
-            {idx < STEPS.length - 1 && (
+      <PublicFormWrapper>
+        <div
+          className="min-h-screen"
+          style={{ background: "var(--bg-secondary)" }}
+        >
+          <div className="flex items-center justify-center p-4 min-h-screen">
+            <div className="card rounded-2xl shadow-xl p-8 max-w-md w-full text-center border">
               <div
-                className="h-0.5 flex-1 mx-0.5 rounded shrink-0 min-w-[6px] transition-colors mt-[-16px]"
-                style={{ backgroundColor: currentStep > s.n ? "#6f1d56" : "#e5e7eb" }}
-              />
-            )}
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
+                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+                style={{
+                  backgroundColor: "var(--success-bg)",
+                  border: "2px solid var(--success-border)",
+                }}
+              >
+                <CheckCircle
+                  className="w-10 h-10"
+                  style={{ color: "var(--success)" }}
+                />
+              </div>
 
-  /* ════════════════════════════════════════════
-     RENDER
-  ════════════════════════════════════════════ */
+              <h2
+                className="text-2xl font-bold mb-4"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Registration Successful!
+              </h2>
+
+              <p className="mb-6" style={{ color: "var(--text-secondary)" }}>
+                Thank you for completing your registration. We have received your
+                details and consultation booking.
+              </p>
+
+              <div
+                className="rounded-lg p-4 mb-6 text-left"
+                style={{ backgroundColor: "var(--bg-secondary)" }}
+              >
+                <h3
+                  className="font-semibold mb-2"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  Next Steps:
+                </h3>
+                <ul
+                  className="text-sm space-y-1 list-disc list-inside"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <li>Check your email for confirmation and session details</li>
+                  <li>We will contact you regarding your consultation slot</li>
+                  <li>Review our client guidelines before your first session</li>
+                </ul>
+              </div>
+
+              <div className="mt-8">
+                <Link
+                  href="/"
+                  className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium text-white transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: "#6f1d56" }}
+                >
+                  Return to Home
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </PublicFormWrapper>
+    );
+  }
+
   return (
     <PublicFormWrapper>
-      <div className="min-h-screen py-4 md:py-8 px-4" style={{ background: "var(--bg-secondary)" }}>
+      <div
+        className="min-h-screen py-4 md:py-8 px-4"
+        style={{ background: "var(--bg-secondary)" }}
+      >
         <div className="max-w-4xl mx-auto">
-
-          {/* Header card */}
-          <div className="bg-white rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border">
-            <div className="flex flex-col items-center gap-3 mb-6">
+          {/* Header with Logo */}
+          <div className="card rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border">
+            <div className="flex flex-col items-center justify-center mb-4 md:mb-6 text-center">
               {brandingLoading ? (
-                <div className="w-16 h-16 bg-gray-200 rounded-full animate-pulse" />
-              ) : branding.platform_logo_url ? (
-                <img src={apiService.getStorageUrl(branding.platform_logo_url)} alt={branding.company_name} className="max-h-16 object-contain" />
-              ) : (
-                <div className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl" style={{ backgroundColor: "#6f1d56" }}>
-                  {branding.company_name?.substring(0, 2).toUpperCase() || "VT"}
+                <div className="flex flex-col items-center animate-pulse">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-200 rounded-full mb-4"></div>
+                  <div className="h-8 w-48 bg-gray-200 rounded"></div>
                 </div>
+              ) : (
+                <>
+                  <div className="inline-flex items-center justify-center mb-4">
+                    {branding.platform_logo_url ? (
+                      <img
+                        src={apiService.getStorageUrl(
+                          branding.platform_logo_url
+                        )}
+                        alt={branding.company_name}
+                        className="max-h-20 md:max-h-24 object-contain"
+                      />
+                    ) : (
+                      <div
+                        className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-white font-bold text-xl md:text-2xl"
+                        style={{ backgroundColor: "#6f1d56" }}
+                      >
+                        {branding.company_name
+                          ? branding.company_name
+                              .split(" ")
+                              .map((word) => word[0])
+                              .join("")
+                              .substring(0, 2)
+                              .toUpperCase()
+                          : "VT"}
+                      </div>
+                    )}
+                  </div>
+                  <h1
+                    className="text-2xl md:text-3xl font-bold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {branding.company_name ||
+                      process.env.NEXT_PUBLIC_APP_NAME ||
+                      "Vanquish Therapies"}
+                  </h1>
+                  <div className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 mt-3 rounded-full text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>256-Bit SSL Encrypted &bull; Confidential &bull; GDPR Compliant</span>
+                  </div>
+                </>
               )}
-              <div className="text-center">
-                <h1 className="text-xl md:text-3xl font-bold text-primary">
-                  {fd.serviceType || "Mid Range & Coaching"} — Client Intake Form
-                </h1>
-                <p className="text-sm text-secondary mt-1">
-                  By completing this form you give permission for your information to be shared within{" "}
-                  {branding.company_name || "Vanquish Therapies"} for appointment scheduling.
-                </p>
-              </div>
-              <span className="text-sm text-gray-500">Step {currentStep} of {totalSteps}</span>
             </div>
-            <ProgressBar />
+
+            {/* Mobile Progress - Simple */}
+            <div className="md:hidden">
+              <div className="flex items-center justify-between mb-2">
+                <span
+                  className="text-lg font-medium"
+                  style={{ color: "#6f1d56" }}
+                >
+                  Step {currentStep} of {steps.length}
+                </span>
+                <span
+                  className="text-base"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {steps[currentStep - 1].title}
+                </span>
+              </div>
+              <div
+                className="w-full rounded-full h-2"
+                style={{ backgroundColor: "var(--border-color)" }}
+              >
+                <div
+                  className="h-2 rounded-full transition-all duration-300"
+                  style={{
+                    backgroundColor: "#6f1d56",
+                    width: `${(currentStep / steps.length) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Desktop Progress - Full Steps */}
+            <div className="hidden md:block">
+              <div className="relative">
+                <div className="flex items-center justify-between">
+                  {steps.map((step, index) => {
+                    const isCompleted = completedSteps.has(step.number);
+                    const isCurrent = currentStep === step.number;
+                    const isAccessible =
+                      isCompleted || step.number <= currentStep;
+
+                    return (
+                      <React.Fragment key={step.number}>
+                        <div
+                          className="flex flex-col items-center"
+                          style={{ width: `${100 / steps.length}%` }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleStepClick(step.number)}
+                            disabled={!isAccessible}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                              isCurrent
+                                ? "text-white ring-2 ring-offset-2"
+                                : isCompleted
+                                  ? "text-white bg-green-600 hover:bg-green-700"
+                                  : isAccessible
+                                    ? "text-white hover:opacity-80"
+                                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                            } ${isAccessible ? "cursor-pointer" : ""}`}
+                            style={
+                              isCurrent || (isAccessible && !isCompleted)
+                                ? { backgroundColor: "#6f1d56" }
+                                : {}
+                            }
+                            title={
+                              isAccessible
+                                ? `Go to ${step.title}`
+                                : "Complete previous steps first"
+                            }
+                          >
+                            {isCompleted && !isCurrent ? (
+                              <CheckCircle className="w-5 h-5" />
+                            ) : (
+                              <step.icon className="w-5 h-5" />
+                            )}
+                          </button>
+                          <span
+                            className={`text-sm mt-2 text-center ${
+                              isCurrent || isCompleted
+                                ? "font-medium"
+                                : "text-gray-500"
+                            }`}
+                            style={
+                              isCurrent || isCompleted
+                                ? { color: "#6f1d56" }
+                                : {}
+                            }
+                          >
+                            {step.title}
+                          </span>
+                        </div>
+                        {index < steps.length - 1 && (
+                          <div
+                            className={`h-1 flex-1 mx-2 rounded transition-colors ${
+                              currentStep > step.number ? "" : "bg-gray-200"
+                            }`}
+                            style={
+                              currentStep > step.number
+                                ? { backgroundColor: "#6f1d56" }
+                                : {}
+                            }
+                          />
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Form card */}
-          <div ref={formContentRef} className="bg-white rounded-2xl shadow-sm p-4 md:p-8 border">
-
-            {/* ══════════ STEP 1 — Service Information ══════════ */}
+          {/* Form Content */}
+          <div
+            ref={formContentRef}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 md:p-8 border border-gray-200 dark:border-gray-700"
+          >
+            {/* ═══════════════ STEP 1: Service Selection ═══════════════ */}
             {currentStep === 1 && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-primary">Service Information</h2>
-                  <p className="text-sm text-gray-500 mt-1">Please select the service you are applying for</p>
-                </div>
-
+              <div className="space-y-6 md:space-y-8">
                 <div>
-                  <label className="block text-sm font-semibold mb-3 text-gray-700">
-                    Please select the service you require <span className="text-red-500">*</span>
+                  <label
+                    className="block text-lg font-medium mb-3"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Please select the service you require{" "}
+                    <span className="text-red-500">*</span>
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-field="serviceType">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                      { val: "Mid Range", label: "Mid Range Counselling", price: "Starting from £40", desc: "One-to-one counselling with a qualified counsellor." },
-                      { val: "Counselling & Coaching", label: "Coaching & Counselling", price: "Starting from £60", desc: "An integrated coaching and counselling approach." },
+                      {
+                        val: "Mid Range",
+                        label: "Mid Range Counselling",
+                        price: "Starting from £40",
+                        desc: "One-to-one counselling with a qualified counsellor.",
+                      },
+                      {
+                        val: "Counselling & Coaching",
+                        label: "Coaching & Counselling",
+                        price: "Starting from £60",
+                        desc: "An integrated coaching and counselling approach.",
+                      },
                     ].map((s) => (
                       <label
                         key={s.val}
-                        className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${
-                          fd.serviceType === s.val ? "border-[#6f1d56] bg-purple-50" : "border-gray-200 hover:border-purple-300"
+                        className={`border-2 rounded-2xl p-5 cursor-pointer transition-all ${
+                          formData.serviceType === s.val
+                            ? "border-[#6f1d56] bg-purple-50/60"
+                            : "border-gray-200 hover:border-purple-300"
                         }`}
                       >
-                        <input type="radio" name="serviceType" value={s.val} checked={fd.serviceType === s.val} onChange={() => update("serviceType", s.val)} className="sr-only" />
-                        <div className="flex items-start gap-3">
-                          <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${fd.serviceType === s.val ? "border-[#6f1d56] bg-[#6f1d56]" : "border-gray-300"}`}>
-                            {fd.serviceType === s.val && <div className="w-2 h-2 rounded-full bg-white" />}
+                        <input
+                          type="radio"
+                          name="serviceType"
+                          value={s.val}
+                          checked={formData.serviceType === s.val}
+                          onChange={() => handleInputChange("serviceType", s.val)}
+                          className="sr-only"
+                        />
+                        <div className="flex items-start gap-3.5">
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                              formData.serviceType === s.val
+                                ? "border-[#6f1d56] bg-[#6f1d56]"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {formData.serviceType === s.val && (
+                              <div className="w-2 h-2 rounded-full bg-white" />
+                            )}
                           </div>
                           <div>
-                            <p className="font-bold text-gray-900">{s.label}</p>
-                            <p className="text-[#6f1d56] font-semibold text-sm">{s.price}</p>
+                            <p className="font-bold text-gray-900 text-base">{s.label}</p>
+                            <p className="text-[#6f1d56] font-semibold text-sm mt-0.5">
+                              {s.price}
+                            </p>
                             <p className="text-xs text-gray-500 mt-1">{s.desc}</p>
                           </div>
                         </div>
                       </label>
                     ))}
                   </div>
-                  {errors.serviceType && <p className="text-red-500 text-sm mt-2">{errors.serviceType}</p>}
+                  {errors.serviceType && (
+                    <p className="text-red-500 text-sm mt-2">{errors.serviceType}</p>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-3 text-gray-700">
-                    Please select if you are applying for individuals or couples/family counselling <span className="text-red-500">*</span>
+                  <label
+                    className="block text-lg font-medium mb-3"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Please select if you are applying for individuals or couples/family counselling{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                      { val: false, label: "Individual Counselling", icon: User, desc: "For a single person." },
-                      { val: true,  label: "Couples / Family Counselling", icon: Users, desc: "For two or more people attending together." },
+                      {
+                        val: false,
+                        label: "Individual Counselling",
+                        icon: User,
+                        desc: "For a single person.",
+                      },
+                      {
+                        val: true,
+                        label: "Couples / Family Counselling",
+                        icon: Users,
+                        desc: "For two or more people attending together.",
+                      },
                     ].map((o) => (
                       <label
                         key={String(o.val)}
-                        className={`border-2 rounded-xl p-5 cursor-pointer transition-all ${
-                          fd.isCouples === o.val ? "border-[#6f1d56] bg-purple-50" : "border-gray-200 hover:border-purple-300"
+                        className={`border-2 rounded-2xl p-5 cursor-pointer transition-all ${
+                          formData.isCouples === o.val
+                            ? "border-[#6f1d56] bg-purple-50/60"
+                            : "border-gray-200 hover:border-purple-300"
                         }`}
                       >
-                        <input type="radio" name="isCouples" checked={fd.isCouples === o.val} onChange={() => update("isCouples", o.val)} className="sr-only" />
-                        <div className="flex items-start gap-3">
-                          <div className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${fd.isCouples === o.val ? "border-[#6f1d56] bg-[#6f1d56]" : "border-gray-300"}`}>
-                            {fd.isCouples === o.val && <div className="w-2 h-2 rounded-full bg-white" />}
+                        <input
+                          type="radio"
+                          name="isCouples"
+                          checked={formData.isCouples === o.val}
+                          onChange={() => handleInputChange("isCouples", o.val)}
+                          className="sr-only"
+                        />
+                        <div className="flex items-start gap-3.5">
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                              formData.isCouples === o.val
+                                ? "border-[#6f1d56] bg-[#6f1d56]"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {formData.isCouples === o.val && (
+                              <div className="w-2 h-2 rounded-full bg-white" />
+                            )}
                           </div>
                           <div>
-                            <o.icon className="w-5 h-5 text-[#6f1d56] mb-1" />
-                            <p className="font-bold text-gray-900">{o.label}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{o.desc}</p>
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <o.icon className="w-4 h-4 text-[#6f1d56]" />
+                              <p className="font-bold text-gray-900 text-base">{o.label}</p>
+                            </div>
+                            <p className="text-xs text-gray-500">{o.desc}</p>
                           </div>
                         </div>
                       </label>
@@ -828,911 +1325,2146 @@ export default function MidRangeIntakeForm() {
               </div>
             )}
 
-            {/* ══════════ STEP 2 — Personal Information ══════════ */}
+            {/* ═══════════════ STEP 2: Personal Information ═══════════════ */}
             {currentStep === 2 && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-primary">Personal Information</h2>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
-                  Please be advised that all required fields must be completed. For any fields that do not apply, please enter "N/A".
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">First Name <span className="text-red-500">*</span></label>
-                    <input type="text" value={fd.firstName} onChange={(e) => update("firstName", e.target.value)} className={fieldCls(errors.firstName)} placeholder="First Name" />
-                    {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Last Name <span className="text-red-500">*</span></label>
-                    <input type="text" value={fd.lastName} onChange={(e) => update("lastName", e.target.value)} className={fieldCls(errors.lastName)} placeholder="Last Name" />
-                    {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Email Address <span className="text-red-500">*</span></label>
-                    <input type="email" value={fd.email} onChange={(e) => update("email", e.target.value)} className={fieldCls(errors.email)} placeholder="email@example.com" />
-                    {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Tel <span className="text-red-500">*</span></label>
-                    <input type="tel" value={fd.phone} onChange={(e) => update("phone", e.target.value)} className={fieldCls(errors.phone)} placeholder="+44 7700 900000" />
-                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Your Age <span className="text-red-500">*</span></label>
-                    <input type="number" min="16" max="100" value={fd.age} onChange={(e) => update("age", e.target.value)} className={fieldCls(errors.age)} placeholder="e.g. 30" />
-                    {errors.age && <p className="text-red-500 text-xs mt-1">{errors.age}</p>}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1 text-gray-700">
-                      Is it okay for us to leave you a voicemail? <span className="text-red-500">*</span>
-                    </label>
-                    <select value={fd.voicemailOk} onChange={(e) => update("voicemailOk", e.target.value)} className={fieldCls(errors.voicemailOk)}>
-                      <option value="">Please Select</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
-                    {errors.voicemailOk && <p className="text-red-500 text-xs mt-1">{errors.voicemailOk}</p>}
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1 text-gray-700">
-                      Do you agree to our primary method of communication (Emails and WhatsApp)? <span className="text-red-500">*</span>
-                    </label>
-                    <select value={fd.whatsappAgreement} onChange={(e) => update("whatsappAgreement", e.target.value)} className={fieldCls(errors.whatsappAgreement)}>
-                      <option value="">Please Select</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No WhatsApp">I prefer emails but not WhatsApp</option>
-                    </select>
-                    {errors.whatsappAgreement && <p className="text-red-500 text-xs mt-1">{errors.whatsappAgreement}</p>}
-                  </div>
+              <div className="space-y-4 md:space-y-6">
+                <div className="text-center mb-6">
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Client Information Sheet
+                  </h2>
+                  <p
+                    className="text-lg md:text-xl"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    By completing this form, you (client) are giving permission
+                    for your information to be shared within{" "}
+                    {branding.company_name ||
+                      process.env.NEXT_PUBLIC_APP_NAME ||
+                      "Vanquish Therapies"}{" "}
+                    for the purpose of matching you with the appropriate
+                    Counsellor, for appointment scheduling, and in the event of
+                    an emergency. If you are submitting this form on behalf of
+                    another person, please provide your own contact details so
+                    we can reach you; this can be done in the referral section
+                    below. By signing this form, you are verifying that you have
+                    obtained the client's consent to disclose their personal
+                    information to us.
+                  </p>
                 </div>
 
-                {/* Couples partner basics */}
-                {fd.isCouples && (
-                  <div className="border-t border-purple-100 pt-6">
-                    <h3 className="font-bold text-[#6f1d56] mb-4">Partner / Co-Client Details</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-gray-700">Partner's First Name <span className="text-red-500">*</span></label>
-                        <input type="text" value={fd.partnerFirstName} onChange={(e) => update("partnerFirstName", e.target.value)} className={fieldCls(errors.partnerFirstName)} />
-                        {errors.partnerFirstName && <p className="text-red-500 text-xs mt-1">{errors.partnerFirstName}</p>}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-gray-700">Partner's Last Name <span className="text-red-500">*</span></label>
-                        <input type="text" value={fd.partnerLastName} onChange={(e) => update("partnerLastName", e.target.value)} className={fieldCls(errors.partnerLastName)} />
-                        {errors.partnerLastName && <p className="text-red-500 text-xs mt-1">{errors.partnerLastName}</p>}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-gray-700">Partner's Age <span className="text-red-500">*</span></label>
-                        <input type="number" min="16" max="100" value={fd.partnerAge} onChange={(e) => update("partnerAge", e.target.value)} className={fieldCls(errors.partnerAge)} />
-                        {errors.partnerAge && <p className="text-red-500 text-xs mt-1">{errors.partnerAge}</p>}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 md:p-5">
+                  <p className="text-lg md:text-xl text-red-900 font-bold mb-3">
+                    Consent for Information Sharing
+                  </p>
+                  <p className="text-lg md:text-xl text-red-800 leading-relaxed">
+                    Please be advised that all required fields must be completed
+                    in the form. Failure to do so may result in an error.
+                    Therefore, it is crucial that you carefully review the form
+                    and provide accurate and complete information to avoid any
+                    issues. For any fields that do not apply to you, please
+                    enter "N/A."
+                  </p>
+                </div>
 
-                {/* Address */}
-                <div className="border-t border-gray-100 pt-6">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1 text-gray-700">
-                      Your Complete Current Address of Residence Including Postcode & City (required for safeguarding and insurance purposes){fd.isCouples ? " — shared address or primary address" : ""} <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={fd.fullAddress}
-                      onChange={(e) => update("fullAddress", e.target.value)}
-                      rows={3}
-                      className={fieldCls(errors.fullAddress)}
-                      placeholder="Please enter your full address here..."
-                    />
-                    {errors.fullAddress && <p className="text-red-500 text-xs mt-1">{errors.fullAddress}</p>}
-                  </div>
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium mb-1 text-gray-700">
-                      Please state where you reside in the world (our practice is UK-based; sessions are in UK time) <span className="text-red-500">*</span>
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <h3
+                    className="text-2xl font-bold mb-6"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Personal Information
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      First Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      value={fd.locationOfResidence}
-                      onChange={(e) => update("locationOfResidence", e.target.value)}
-                      className={fieldCls(errors.locationOfResidence)}
+                      name="firstName"
+                      id="firstName"
+                      value={formData.firstName}
+                      onChange={(e) =>
+                        handleInputChange("firstName", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.firstName ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="John"
+                    />
+                    {errors.firstName && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.firstName}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Last Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      id="lastName"
+                      value={formData.lastName}
+                      onChange={(e) =>
+                        handleInputChange("lastName", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.lastName ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="Smith"
+                    />
+                    {errors.lastName && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.lastName}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      id="email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.email ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="john.smith@example.com"
+                    />
+                    {errors.email && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.email}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Tel <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        handleInputChange("phone", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.phone ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="+44 7700 900000"
+                    />
+                    {errors.phone && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.phone}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4 md:space-y-6">
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Your Complete Current Address of Residence Including
+                      Postcode &amp; City (required for safeguarding and insurance
+                      purposes){formData.isCouples ? " — shared address or primary address" : ""} <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="street"
+                      id="street"
+                      value={formData.street}
+                      onChange={(e) =>
+                        handleInputChange("street", e.target.value)
+                      }
+                      rows="3"
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.street ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="Please enter your full address here..."
+                    />
+                    {errors.street && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.street}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Please state where you reside in the world (as our practice
+                      is based in the UK, all our sessions are conducted according
+                      to UK time) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) =>
+                        handleInputChange("city", e.target.value)
+                      }
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                       placeholder="e.g. London, UK"
                     />
-                    {errors.locationOfResidence && <p className="text-red-500 text-xs mt-1">{errors.locationOfResidence}</p>}
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Your Age <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        name="age"
+                        id="age"
+                        min="18"
+                        max="99"
+                        value={formData.age}
+                        onChange={(e) =>
+                          handleInputChange("age", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.age ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="e.g., 25"
+                      />
+                      {errors.age && (
+                        <p className="text-red-500 text-sm mt-1">{errors.age}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Is it okay for us to leave you a voicemail?{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="voicemailOk"
+                        id="voicemailOk"
+                        value={formData.voicemailOk}
+                        onChange={(e) =>
+                          handleInputChange("voicemailOk", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.voicemailOk
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        <option value="">Please Select</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      {errors.voicemailOk && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.voicemailOk}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Are you currently receiving counselling or therapy anywhere
+                      else? <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="currentlyInTherapy"
+                      id="currentlyInTherapy"
+                      value={formData.currentlyInTherapy}
+                      onChange={(e) =>
+                        handleInputChange("currentlyInTherapy", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.currentlyInTherapy
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      <option value="">Please Select</option>
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                    {errors.currentlyInTherapy && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.currentlyInTherapy}
+                      </p>
+                    )}
+                  </div>
+
+                  {formData.currentlyInTherapy === "Yes" && (
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Please mention your reason for wanting to work with
+                        another counsellor simultaneously{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        name="workingWithAnotherReason"
+                        id="workingWithAnotherReason"
+                        value={formData.workingWithAnotherReason}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "workingWithAnotherReason",
+                            e.target.value
+                          )
+                        }
+                        rows="3"
+                        className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                        placeholder="Please explain..."
+                      />
+                    </div>
+                  )}
+
+                  {/* Couples Partner Details */}
+                  {formData.isCouples && (
+                    <div className="border-t border-purple-200 pt-6 mt-6">
+                      <h4 className="text-xl font-bold text-[#6f1d56] mb-4">
+                        Partner / Co-Client Details
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <div>
+                          <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                            Partner's First Name <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.partnerFirstName}
+                            onChange={(e) => handleInputChange("partnerFirstName", e.target.value)}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                              errors.partnerFirstName ? "border-red-500" : "border-gray-300"
+                            }`}
+                            placeholder="Jane"
+                          />
+                          {errors.partnerFirstName && <p className="text-red-500 text-sm mt-1">{errors.partnerFirstName}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                            Partner's Last Name <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.partnerLastName}
+                            onChange={(e) => handleInputChange("partnerLastName", e.target.value)}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                              errors.partnerLastName ? "border-red-500" : "border-gray-300"
+                            }`}
+                            placeholder="Smith"
+                          />
+                          {errors.partnerLastName && <p className="text-red-500 text-sm mt-1">{errors.partnerLastName}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                            Partner's Age <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="number"
+                            min="18"
+                            max="99"
+                            value={formData.partnerAge}
+                            onChange={(e) => handleInputChange("partnerAge", e.target.value)}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                              errors.partnerAge ? "border-red-500" : "border-gray-300"
+                            }`}
+                            placeholder="e.g. 28"
+                          />
+                          {errors.partnerAge && <p className="text-red-500 text-sm mt-1">{errors.partnerAge}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* ══════════ STEP 3 — About You ══════════ */}
+            {/* ═══════════════ STEP 3: Demographics (About You) ═══════════════ */}
             {currentStep === 3 && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-primary">About You</h2>
-                  <p className="text-sm text-gray-500 mt-1 italic">
-                    Your answers help us narrow down the counsellors who best match your preferences and needs
-                  </p>
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Demographics
+                  </h2>
                 </div>
 
-                <DemographicsFields prefix="" label="Your" />
-
-                {fd.isCouples && (
-                  <div className="border-t border-purple-100 pt-4">
-                    <DemographicsFields prefix="partner" label="Partner's" />
-                  </div>
-                )}
-
-                <div className="border-t border-gray-100 pt-4">
-                  <MedicationDisabilityFields prefix="" label="Your" />
-                </div>
-
-                {fd.isCouples && (
-                  <div className="border-t border-purple-100 pt-4">
-                    <MedicationDisabilityFields prefix="partner" label="Partner's" />
-                  </div>
-                )}
-
-                <div className="border-t border-gray-100 pt-4 space-y-4">
+                <div className="space-y-4 md:space-y-6">
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">
-                      {fd.isCouples
-                        ? "Are you or your partner/co-client currently in Therapy/Counselling or Coaching anywhere else?"
-                        : "Are you currently in Therapy/Counselling or Coaching anywhere else?"}{" "}
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Gender <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="gender"
+                      id="gender"
+                      value={formData.gender}
+                      onChange={(e) =>
+                        handleInputChange("gender", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.gender ? "border-red-500" : "border-gray-300"
+                      }`}
+                    >
+                      <option value="">Please Select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Non-binary">Non-binary</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {errors.gender && (
+                      <p className="text-red-500 text-sm mt-1">{errors.gender}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Ethnicity <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="ethnicity"
+                      id="ethnicity"
+                      value={formData.ethnicity}
+                      onChange={(e) =>
+                        handleInputChange("ethnicity", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.ethnicity ? "border-red-500" : "border-gray-300"
+                      }`}
+                    >
+                      <option value="">Please Select</option>
+                      <option value="Asian / Asian British">
+                        Asian / Asian British
+                      </option>
+                      <option value="Black / African / Caribbean / Black British">
+                        Black / African / Caribbean / Black British
+                      </option>
+                      <option value="Mixed / Multiple ethnic groups">
+                        Mixed / Multiple ethnic groups
+                      </option>
+                      <option value="White">White</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {errors.ethnicity && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.ethnicity}
+                      </p>
+                    )}
+                  </div>
+
+                  {formData.ethnicity === "Other" && (
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Please specify ethnicity
+                      </label>
+                      <input
+                        type="text"
+                        name="otherEthnicity"
+                        id="otherEthnicity"
+                        value={formData.otherEthnicity}
+                        onChange={(e) =>
+                          handleInputChange("otherEthnicity", e.target.value)
+                        }
+                        className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                        placeholder="Please specify"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Sexual Orientation <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="sexualOrientation"
+                      id="sexualOrientation"
+                      value={formData.sexualOrientation}
+                      onChange={(e) =>
+                        handleInputChange("sexualOrientation", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.sexualOrientation
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      <option value="">Please Select</option>
+                      <option value="Heterosexual / Straight">
+                        Heterosexual / Straight
+                      </option>
+                      <option value="Gay">Gay</option>
+                      <option value="Lesbian">Lesbian</option>
+                      <option value="Bisexual">Bisexual</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">
+                        Prefer not to say
+                      </option>
+                    </select>
+                    {errors.sexualOrientation && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.sexualOrientation}
+                      </p>
+                    )}
+                  </div>
+
+                  {formData.sexualOrientation === "Other" && (
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Please specify sexual orientation
+                      </label>
+                      <input
+                        type="text"
+                        name="otherSexualOrientation"
+                        id="otherSexualOrientation"
+                        value={formData.otherSexualOrientation}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "otherSexualOrientation",
+                            e.target.value
+                          )
+                        }
+                        className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                        placeholder="Please specify"
+                      />
+                    </div>
+                  )}
+
+                  {/* Partner Demographics for Couples */}
+                  {formData.isCouples && (
+                    <div className="border-t border-purple-200 pt-6 mt-6 space-y-4 md:space-y-6">
+                      <h4 className="text-xl font-bold text-[#6f1d56]">
+                        Partner's Demographics
+                      </h4>
+                      <div>
+                        <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                          Partner's Gender <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={formData.partnerGender}
+                          onChange={(e) => handleInputChange("partnerGender", e.target.value)}
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                            errors.partnerGender ? "border-red-500" : "border-gray-300"
+                          }`}
+                        >
+                          <option value="">Please Select</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Non-binary">Non-binary</option>
+                          <option value="Prefer not to say">Prefer not to say</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        {errors.partnerGender && <p className="text-red-500 text-sm mt-1">{errors.partnerGender}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                          Partner's Ethnicity <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={formData.partnerEthnicity}
+                          onChange={(e) => handleInputChange("partnerEthnicity", e.target.value)}
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                            errors.partnerEthnicity ? "border-red-500" : "border-gray-300"
+                          }`}
+                        >
+                          <option value="">Please Select</option>
+                          <option value="Asian / Asian British">Asian / Asian British</option>
+                          <option value="Black / African / Caribbean / Black British">Black / African / Caribbean / Black British</option>
+                          <option value="Mixed / Multiple ethnic groups">Mixed / Multiple ethnic groups</option>
+                          <option value="White">White</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        {errors.partnerEthnicity && <p className="text-red-500 text-sm mt-1">{errors.partnerEthnicity}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                          Partner's Sexual Orientation <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={formData.partnerSexualOrientation}
+                          onChange={(e) => handleInputChange("partnerSexualOrientation", e.target.value)}
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                            errors.partnerSexualOrientation ? "border-red-500" : "border-gray-300"
+                          }`}
+                        >
+                          <option value="">Please Select</option>
+                          <option value="Heterosexual / Straight">Heterosexual / Straight</option>
+                          <option value="Gay">Gay</option>
+                          <option value="Lesbian">Lesbian</option>
+                          <option value="Bisexual">Bisexual</option>
+                          <option value="Other">Other</option>
+                          <option value="Prefer not to say">Prefer not to say</option>
+                        </select>
+                        {errors.partnerSexualOrientation && <p className="text-red-500 text-sm mt-1">{errors.partnerSexualOrientation}</p>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ═══════════════ STEP 4: Medical & Service ═══════════════ */}
+            {currentStep === 4 && (
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Medical &amp; Service Information
+                  </h2>
+                </div>
+
+                <div className="space-y-4 md:space-y-6">
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Are you currently on any medication?{" "}
                       <span className="text-red-500">*</span>
                     </label>
                     <select
-                      value={fd.currentlyInTherapy}
-                      onChange={(e) => update("currentlyInTherapy", e.target.value)}
-                      className={fieldCls(errors.currentlyInTherapy)}
+                      name="onMedication"
+                      id="onMedication"
+                      value={formData.onMedication}
+                      onChange={(e) =>
+                        handleInputChange("onMedication", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.onMedication
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
                     >
-                      <option value="">Please Select</option>
+                      <option value="">Please select</option>
                       <option value="Yes">Yes</option>
                       <option value="No">No</option>
                     </select>
-                    {errors.currentlyInTherapy && <p className="text-red-500 text-xs mt-1">{errors.currentlyInTherapy}</p>}
+                    {errors.onMedication && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.onMedication}
+                      </p>
+                    )}
                   </div>
-                  {fd.currentlyInTherapy === "Yes" && (
+
+                  {formData.onMedication === "Yes" && (
                     <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700">
-                        If you have selected 'Yes' above — Please explain reasons for working with another Therapist/Counsellor or Coach <span className="text-red-500">*</span>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Please mention your medication and what it is
+                        prescribed for <span className="text-red-500">*</span>
                       </label>
                       <textarea
-                        value={fd.workingWithAnotherReason}
-                        onChange={(e) => update("workingWithAnotherReason", e.target.value)}
-                        className={fieldCls(errors.workingWithAnotherReason)}
-                        rows={3}
-                        placeholder="Reasons..."
+                        name="medicationDetails"
+                        id="medicationDetails"
+                        value={formData.medicationDetails}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "medicationDetails",
+                            e.target.value
+                          )
+                        }
+                        rows="3"
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.medicationDetails
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        placeholder="Please list your medications and conditions..."
                       />
-                      {errors.workingWithAnotherReason && <p className="text-red-500 text-xs mt-1">{errors.workingWithAnotherReason}</p>}
+                      {errors.medicationDetails && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.medicationDetails}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Do you have any physical disabilities or accessibility
+                      requirements? <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="disabilities"
+                      id="disabilities"
+                      value={formData.disabilities}
+                      onChange={(e) =>
+                        handleInputChange("disabilities", e.target.value)
+                      }
+                      rows="3"
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.disabilities
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Please let us know if you have any accessibility needs (enter 'N/A' if none)..."
+                    />
+                    {errors.disabilities && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.disabilities}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Partner Medical for Couples */}
+                  {formData.isCouples && (
+                    <div className="border-t border-purple-200 pt-6 mt-6 space-y-4 md:space-y-6">
+                      <h4 className="text-xl font-bold text-[#6f1d56]">
+                        Partner's Medical &amp; Accessibility Details
+                      </h4>
+                      <div>
+                        <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                          Is your partner currently on any medication? <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={formData.partnerOnMedication}
+                          onChange={(e) => handleInputChange("partnerOnMedication", e.target.value)}
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                            errors.partnerOnMedication ? "border-red-500" : "border-gray-300"
+                          }`}
+                        >
+                          <option value="">Please select</option>
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                        {errors.partnerOnMedication && <p className="text-red-500 text-sm mt-1">{errors.partnerOnMedication}</p>}
+                      </div>
+
+                      {formData.partnerOnMedication === "Yes" && (
+                        <div>
+                          <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                            Partner's Medication Details <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            value={formData.partnerMedicationDetails}
+                            onChange={(e) => handleInputChange("partnerMedicationDetails", e.target.value)}
+                            rows="3"
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                              errors.partnerMedicationDetails ? "border-red-500" : "border-gray-300"
+                            }`}
+                            placeholder="Please list partner's medications..."
+                          />
+                          {errors.partnerMedicationDetails && <p className="text-red-500 text-sm mt-1">{errors.partnerMedicationDetails}</p>}
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                          Does your partner have any physical disabilities or accessibility requirements? <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          value={formData.partnerDisabilities}
+                          onChange={(e) => handleInputChange("partnerDisabilities", e.target.value)}
+                          rows="3"
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                            errors.partnerDisabilities ? "border-red-500" : "border-gray-300"
+                          }`}
+                          placeholder="Enter 'N/A' if none..."
+                        />
+                        {errors.partnerDisabilities && <p className="text-red-500 text-sm mt-1">{errors.partnerDisabilities}</p>}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* ══════════ STEP 4 — Support ══════════ */}
-            {currentStep === 4 && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-primary">Areas of Support</h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    We have listed areas below you may require support with.{" "}
-                    {fd.isCouples && "Select all that apply for either or both of you."}
+            {/* ═══════════════ STEP 5: Support Areas (Concerns) ═══════════════ */}
+            {currentStep === 5 && (
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Areas of Support
+                  </h2>
+                  <p
+                    className="text-base md:text-lg text-center"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Please select the areas you would like support with (select
+                    all that apply)
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2" data-field="supportAreas">
-                  {SUPPORT_AREAS.map((area) => (
-                    <label key={area} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-purple-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={fd.supportAreas.includes(area)}
-                        onChange={() => toggleSupportArea(area)}
-                        className="mt-0.5 w-4 h-4 accent-[#6f1d56]"
-                      />
-                      <span className="text-sm text-gray-700">{area}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.supportAreas && <p className="text-red-500 text-sm">{errors.supportAreas}</p>}
-
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">
-                    Please use this box to specify and describe details related to the selected areas, or mention anything else not listed{fd.isCouples ? " (for either or both of you)" : ""}. <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    value={fd.concernsDetails}
-                    onChange={(e) => update("concernsDetails", e.target.value)}
-                    className={fieldCls(false)}
-                    rows={4}
-                    placeholder="Details about your concerns..."
-                  />
-                </div>
-
-                <div className="border-t border-gray-100 pt-4 space-y-4">
-                  <h3 className="font-semibold text-gray-800">Risk & Substance Use</h3>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">
-                      {fd.isCouples
-                        ? "Do you or your partner/co-client currently use any substances (alcohol, drugs, etc.)?"
-                        : "Do you currently use any substances (alcohol, drugs, etc.)?"}
-                    </label>
-                    <select value={fd.substanceUse} onChange={(e) => update("substanceUse", e.target.value)} className={fieldCls(false)}>
-                      <option value="">Please Select</option>
-                      <option value="No">No</option>
-                      <option value="Yes - Alcohol">Yes — Alcohol</option>
-                      <option value="Yes - Drugs">Yes — Drugs (recreational)</option>
-                      <option value="Yes - Prescription medication misuse">Yes — Prescription medication misuse</option>
-                      <option value="Yes - Other">Yes — Other</option>
-                    </select>
+                <div data-field="supportAreas">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {supportAreasList.map((area) => (
+                      <label
+                        key={area}
+                        className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                          formData.supportAreas.includes(area)
+                            ? "bg-purple-50 border-[#6f1d56]"
+                            : "border-gray-200 hover:bg-gray-50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.supportAreas.includes(area)}
+                          onChange={() => handleSupportAreaToggle(area)}
+                          className="w-4 h-4 text-[#6f1d56] rounded focus:ring-[#6f1d56]"
+                        />
+                        <span
+                          className="text-sm font-medium"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {area}
+                        </span>
+                      </label>
+                    ))}
                   </div>
+                  {errors.supportAreas && (
+                    <p className="text-red-500 text-sm mt-2">
+                      {errors.supportAreas}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-4 md:space-y-6 mt-6">
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">
-                      {fd.isCouples
-                        ? "Have you or your partner/co-client ever had thoughts of self-harm or suicide? If yes, please briefly describe."
-                        : "Have you ever had thoughts of self-harm or suicide? If yes, please briefly describe."}
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Please use this box to specify and describe details
+                      related to the selected areas, or mention anything else
+                      not listed. <span className="text-red-500">*</span>
                     </label>
                     <textarea
-                      value={fd.riskDetails}
-                      onChange={(e) => update("riskDetails", e.target.value)}
-                      className={fieldCls(false)}
-                      rows={3}
-                      placeholder="If yes, please describe (if no, write 'No')..."
+                      name="concernsDetails"
+                      id="concernsDetails"
+                      value={formData.concernsDetails}
+                      onChange={(e) =>
+                        handleInputChange("concernsDetails", e.target.value)
+                      }
+                      rows="4"
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.concernsDetails
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Please describe what brings you to therapy and what you hope to achieve..."
+                    />
+                    {errors.concernsDetails && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.concernsDetails}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Please list any risk issues (thoughts of self-harm,
+                      suicidal ideation, harm to others, substance use, etc.)
+                    </label>
+                    <textarea
+                      name="riskIssues"
+                      id="riskIssues"
+                      value={formData.riskIssues}
+                      onChange={(e) =>
+                        handleInputChange("riskIssues", e.target.value)
+                      }
+                      rows="3"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                      placeholder="Enter 'None' or describe any risk factors..."
                     />
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ══════════ STEP 5 — Counsellor Preferences ══════════ */}
-            {currentStep === 5 && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-primary">Counsellor Preferences</h2>
-                  <p className="text-sm text-gray-500 italic mt-1">
-                    These preferences are optional and help us filter the counsellors that match your preferences and needs
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Gender Preference</label>
-                    <select value={fd.genderPreference} onChange={(e) => update("genderPreference", e.target.value)} className={fieldCls(false)}>
-                      <option value="No preference">No preference</option>
-                      <option value="Male">Prefer Male counsellor</option>
-                      <option value="Female">Prefer Female counsellor</option>
-                      <option value="Non-binary">Prefer Non-binary counsellor</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Age Preference</label>
-                    <select value={fd.agePreference} onChange={(e) => update("agePreference", e.target.value)} className={fieldCls(false)}>
-                      <option value="No preference">No preference</option>
-                      <option value="Younger">Prefer younger counsellor (close to my age)</option>
-                      <option value="Older">Prefer older counsellor</option>
-                      <option value="Custom range">Custom age range</option>
-                    </select>
-                  </div>
-                  {fd.agePreference === "Custom range" && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-gray-700">Minimum Age</label>
-                        <input type="number" min="18" max="100" value={fd.ageRangeMin} onChange={(e) => update("ageRangeMin", e.target.value)} className={fieldCls(false)} placeholder="e.g. 25" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1 text-gray-700">Maximum Age</label>
-                        <input type="number" min="18" max="100" value={fd.ageRangeMax} onChange={(e) => update("ageRangeMax", e.target.value)} className={fieldCls(false)} placeholder="e.g. 50" />
-                      </div>
-                    </>
-                  )}
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Ethnicity Preference</label>
-                    <select value={fd.ethnicityPreference} onChange={(e) => update("ethnicityPreference", e.target.value)} className={fieldCls(false)}>
-                      <option value="No preference">No preference</option>
-                      <option value="Prefer same">Prefer same ethnicity as me</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Sexual Orientation Preference</label>
-                    <select value={fd.orientationPreference} onChange={(e) => update("orientationPreference", e.target.value)} className={fieldCls(false)}>
-                      <option value="No preference">No preference</option>
-                      <option value="LGBTQ+ specialist">Prefer LGBTQ+ specialist</option>
-                      <option value="Same orientation">Prefer same orientation as me</option>
-                      <option value="Specific">Prefer specific orientation</option>
-                    </select>
-                  </div>
-                  {fd.orientationPreference === "Specific" && (
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-gray-700">Specify Orientation</label>
-                      <select value={fd.specificOrientation} onChange={(e) => update("specificOrientation", e.target.value)} className={fieldCls(false)}>
-                        <option value="">Select orientation</option>
-                        <option value="Gay">Gay counsellor</option>
-                        <option value="Lesbian">Lesbian counsellor</option>
-                        <option value="Bisexual">Bisexual counsellor</option>
-                        <option value="Heterosexual">Heterosexual counsellor</option>
-                      </select>
-                    </div>
-                  )}
-                  {fd.isCouples && (
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium mb-1 text-gray-700">Counsellor Specialty Preference</label>
-                      <select value={fd.specialtyPreference} onChange={(e) => update("specialtyPreference", e.target.value)} className={fieldCls(false)}>
-                        <option value="">No preference</option>
-                        <option value="Couples Counsellor">Couples Counsellor</option>
-                        <option value="Family Therapist">Family Therapist</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <p className="text-sm text-gray-600">
-                    <strong>Note:</strong> These preferences help us find the best match, but availability is also taken into account. We will do our best to match all your preferences while ensuring you get an appointment as soon as possible.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* ══════════ STEP 6 — Referral ══════════ */}
+            {/* ═══════════════ STEP 6: Availability ═══════════════ */}
             {currentStep === 6 && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-primary">Referral Information</h2>
-                </div>
+              <div className="space-y-4 md:space-y-6">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">
-                    How did you become aware of our services? <span className="text-red-500">*</span>
-                  </label>
-                  <select value={fd.hearAboutUs} onChange={(e) => update("hearAboutUs", e.target.value)} className={fieldCls(errors.hearAboutUs)}>
-                    <option value="">Please Select</option>
-                    <option value="Online (Google, Bing etc)">Online (Google, Bing etc)</option>
-                    <option value="Social Media (Facebook, Instagram)">Social Media (Facebook, Instagram)</option>
-                    <option value="Referral">Referral</option>
-                    <option value="Word of mouth">Word of mouth</option>
-                    <option value="Billboard">Billboard</option>
-                  </select>
-                  {errors.hearAboutUs && <p className="text-red-500 text-xs mt-1">{errors.hearAboutUs}</p>}
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Your Availability (UK time)
+                  </h2>
+                  <p
+                    className="text-base md:text-lg text-center"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Please select all the days and time slots when you would be
+                    available for ongoing weekly sessions.
+                  </p>
+                  <p
+                    className="text-sm md:text-base text-center mt-2"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Please note that the last session is at 6pm from Monday to Thursday, and at 5pm on Friday.
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700">
-                    Please select the referral type: <span className="text-red-500">*</span>
-                  </label>
-                  <select value={fd.referralType} onChange={(e) => update("referralType", e.target.value)} className={fieldCls(errors.referralType)}>
-                    <option value="">Please Select</option>
-                    <option value="Self-Referral">Self-Referral</option>
-                    <option value="Referred Through an Organisation">Referred Through an Organisation</option>
-                    <option value="Referred Through an Individual">Referred Through an Individual</option>
-                  </select>
-                  {errors.referralType && <p className="text-red-500 text-xs mt-1">{errors.referralType}</p>}
+
+                <div className="space-y-6">
+                  {["monday", "tuesday", "wednesday", "thursday", "friday"].map(
+                    (day) => {
+                      const slots = day === "friday" ? fridayTimeSlots : timeSlots;
+                      return (
+                        <div
+                          key={day}
+                          className="border border-gray-200 rounded-xl p-4 bg-gray-50"
+                        >
+                          <h3 className="font-bold text-lg text-gray-800 capitalize mb-3">
+                            {day}
+                          </h3>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                            {slots.map((slot) => {
+                              const isChecked =
+                                formData.availability[day]?.includes(slot.value);
+                              return (
+                                <label
+                                  key={slot.value}
+                                  className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs sm:text-sm cursor-pointer transition-colors ${
+                                    isChecked
+                                      ? "bg-[#6f1d56] text-white border-[#6f1d56] font-medium"
+                                      : "bg-white text-gray-700 border-gray-200 hover:border-purple-300"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() =>
+                                      handleAvailabilityToggle(day, slot.value)
+                                    }
+                                    className="sr-only"
+                                  />
+                                  <span>{slot.label}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+                  {errors.availability && (
+                    <p className="text-red-500 text-sm mt-2">
+                      {errors.availability}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* ══════════ STEP 7 — Assessment (CORE-10) ══════════ */}
+            {/* ═══════════════ STEP 7: Preferences ═══════════════ */}
             {currentStep === 7 && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-primary">Wellbeing Assessment</h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Please indicate how often you have experienced each of the following over the <strong>last week</strong>.
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Counsellor Preferences
+                  </h2>
+                  <p
+                    className="text-base md:text-lg text-center"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Please tell us if you have any preferences for your
+                    counsellor (all optional).
                   </p>
                 </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-                  <strong>Why we ask:</strong> This helps your counsellor understand your current wellbeing and tailor their support accordingly. There are no right or wrong answers.
+
+                <div className="space-y-4 md:space-y-6">
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Gender Preference
+                    </label>
+                    <select
+                      name="genderPreference"
+                      id="genderPreference"
+                      value={formData.genderPreference}
+                      onChange={(e) =>
+                        handleInputChange("genderPreference", e.target.value)
+                      }
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    >
+                      <option value="No preference">No preference</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Non-binary">Non-binary</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Age Preference
+                    </label>
+                    <select
+                      name="agePreference"
+                      id="agePreference"
+                      value={formData.agePreference}
+                      onChange={(e) =>
+                        handleInputChange("agePreference", e.target.value)
+                      }
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    >
+                      <option value="No preference">No preference</option>
+                      <option value="20-30">20 - 30</option>
+                      <option value="30-40">30 - 40</option>
+                      <option value="40-50">40 - 50</option>
+                      <option value="50+">50+</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Ethnicity Preference
+                    </label>
+                    <select
+                      name="ethnicityPreference"
+                      id="ethnicityPreference"
+                      value={formData.ethnicityPreference}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "ethnicityPreference",
+                          e.target.value
+                        )
+                      }
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    >
+                      <option value="No preference">No preference</option>
+                      <option value="Asian / Asian British">
+                        Asian / Asian British
+                      </option>
+                      <option value="Black / African / Caribbean / Black British">
+                        Black / African / Caribbean / Black British
+                      </option>
+                      <option value="Mixed / Multiple ethnic groups">
+                        Mixed / Multiple ethnic groups
+                      </option>
+                      <option value="White">White</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Sexual Orientation Preference
+                    </label>
+                    <select
+                      name="orientationPreference"
+                      id="orientationPreference"
+                      value={formData.orientationPreference}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "orientationPreference",
+                          e.target.value
+                        )
+                      }
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    >
+                      <option value="No preference">No preference</option>
+                      <option value="Heterosexual / Straight">
+                        Heterosexual / Straight
+                      </option>
+                      <option value="LGBTQ+">LGBTQ+</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="space-y-4">
-                  {CORE_QUESTIONS.map((q, idx) => (
-                    <div key={idx} className="border border-gray-200 rounded-lg p-4">
-                      <p className="text-sm font-medium text-gray-800 mb-3">
-                        <span className="text-[#6f1d56] font-bold mr-2">{idx + 1}.</span> {q}
+              </div>
+            )}
+
+            {/* ═══════════════ STEP 8: Referral ═══════════════ */}
+            {currentStep === 8 && (
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Referral Information
+                  </h2>
+                </div>
+
+                <div className="space-y-4 md:space-y-6">
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      How did you hear about us?{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="hearAboutUs"
+                      id="hearAboutUs"
+                      value={formData.hearAboutUs}
+                      onChange={(e) =>
+                        handleInputChange("hearAboutUs", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.hearAboutUs
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      <option value="">Please Select</option>
+                      <option value="Google">Google / Web Search</option>
+                      <option value="Social Media">Social Media (Instagram, Facebook, etc.)</option>
+                      <option value="Friend/Family">Friend or Family Recommendation</option>
+                      <option value="Referral">Professional / Agency Referral</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {errors.hearAboutUs && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.hearAboutUs}
                       </p>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                        {CORE_SCALE.map((s) => (
+                    )}
+                  </div>
+
+                  {formData.hearAboutUs === "Referral" && (
+                    <div className="border border-purple-200 rounded-xl p-4 bg-purple-50 space-y-4">
+                      <h3 className="font-bold text-[#6f1d56]">
+                        Referrer Details
+                      </h3>
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-gray-700">
+                          Referrer's Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.referrerName}
+                          onChange={(e) =>
+                            handleInputChange("referrerName", e.target.value)
+                          }
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg bg-white"
+                          placeholder="Dr. Jane Doe"
+                        />
+                        {errors.referrerName && (
+                          <p className="text-red-500 text-xs mt-1">{errors.referrerName}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-gray-700">
+                          Referrer's Organisation / Practice
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.referrerOrg}
+                          onChange={(e) =>
+                            handleInputChange("referrerOrg", e.target.value)
+                          }
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg bg-white"
+                          placeholder="NHS / Clinic Name"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-gray-700">
+                            Referrer's Phone <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            value={formData.referrerPhone}
+                            onChange={(e) =>
+                              handleInputChange("referrerPhone", e.target.value)
+                            }
+                            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg bg-white"
+                            placeholder="+44 7700 900000"
+                          />
+                          {errors.referrerPhone && (
+                            <p className="text-red-500 text-xs mt-1">{errors.referrerPhone}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-gray-700">
+                            Referrer's Email <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="email"
+                            value={formData.referrerEmail}
+                            onChange={(e) =>
+                              handleInputChange("referrerEmail", e.target.value)
+                            }
+                            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg bg-white"
+                            placeholder="referrer@example.com"
+                          />
+                          {errors.referrerEmail && (
+                            <p className="text-red-500 text-xs mt-1">{errors.referrerEmail}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-gray-700">
+                          Reasons for Referral <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          value={formData.referralReason}
+                          onChange={(e) =>
+                            handleInputChange("referralReason", e.target.value)
+                          }
+                          rows="3"
+                          className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg bg-white"
+                          placeholder="Please explain reason for referral..."
+                        />
+                        {errors.referralReason && (
+                          <p className="text-red-500 text-xs mt-1">{errors.referralReason}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ═══════════════ STEP 9: Assessment (CORE-34) ═══════════════ */}
+            {currentStep === 9 && (
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Clinical Assessment (CORE-34)
+                  </h2>
+                  <div className="text-base md:text-lg mb-4 p-6 bg-red-50 border-2 border-red-300 rounded-xl space-y-3">
+                    <p className="font-bold text-red-900 text-lg uppercase tracking-wide">
+                      Important - Please read this information before you start
+                      completing the below section:
+                    </p>
+                    <p className="text-red-800 font-medium">
+                      This section has 34 statements about how you have been
+                      over the last week.
+                    </p>
+                    <p className="text-red-800">
+                      Please ensure you read each statement and think about how
+                      often you have felt that way over the last week. Then tick
+                      the box that relates closest to how you have felt.
+                    </p>
+                    <p className="text-red-600 text-xs italic mt-2 border-t border-red-300 pt-2">
+                      This core 34 has been taken from The CORE System
+                      Trust:http://www.coresystemtrust.org.uk/copyright.pdf
+                    </p>
+                  </div>
+                  <p
+                    className="font-bold text-lg mb-4"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    How you have been or felt over the last week?*
+                  </p>
+                </div>
+
+                {errors.core34 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <p className="text-red-600 font-medium">{errors.core34}</p>
+                  </div>
+                )}
+
+                {/* Desktop Table View */}
+                <div
+                  className="hidden md:block overflow-x-auto rounded-lg border border-gray-200"
+                  id="core34"
+                >
+                  <table className="w-full min-w-[800px] border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="p-4 text-left font-semibold text-gray-700 w-1/3 sticky left-0 bg-gray-50 z-10">
+                          Question
+                        </th>
+                        {core34Options.map((option) => (
+                          <th
+                            key={option}
+                            className="p-4 text-center font-semibold text-gray-700 text-base w-[13%]"
+                          >
+                            {option}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {core34Questions.map((question, index) => (
+                        <tr
+                          key={index}
+                          className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                            index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                          } ${
+                            errors.core34 &&
+                            !formData.core34[index] &&
+                            "bg-red-50"
+                          }`}
+                        >
+                          <td className="p-4 text-gray-800 font-medium sticky left-0 bg-inherit z-10 border-r border-gray-100">
+                            {index + 1}. {question}
+                            {errors.core34 && !formData.core34[index] && (
+                              <span className="text-red-500 ml-2 text-sm">
+                                *Required
+                              </span>
+                            )}
+                          </td>
+                          {core34Options.map((option, optIndex) => (
+                            <td key={optIndex} className="p-4 text-center">
+                              <label className="flex items-center justify-center w-full h-full cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name={`core34_q${index}`}
+                                  value={option}
+                                  checked={formData.core34[index] === option}
+                                  onChange={() =>
+                                    handleCore34Change(index, option)
+                                  }
+                                  className="w-5 h-5 cursor-pointer accent-[#6f1d56]"
+                                />
+                                <span className="sr-only">{option}</span>
+                              </label>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile View - Cards for small screens */}
+                <div className="md:hidden space-y-6 mt-6">
+                  {core34Questions.map((question, index) => (
+                    <div
+                      key={`mobile-${index}`}
+                      className={`border rounded-lg p-4 ${
+                        errors.core34 && !formData.core34[index]
+                          ? "border-red-300 bg-red-50"
+                          : "border-gray-200 bg-white"
+                      }`}
+                    >
+                      <p className="font-medium mb-3 text-gray-900">
+                        {index + 1}. {question}
+                      </p>
+                      <div className="space-y-2">
+                        {core34Options.map((option) => (
                           <label
-                            key={s.value}
-                            className={`flex flex-col items-center gap-1 p-2 rounded-lg border cursor-pointer text-center transition-all ${
-                              fd.coreAnswers[idx] === s.value
-                                ? "border-[#6f1d56] bg-purple-50"
-                                : "border-gray-200 hover:border-purple-300"
-                            }`}
+                            key={option}
+                            className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-purple-50/50 cursor-pointer border border-gray-200"
                           >
                             <input
                               type="radio"
-                              name={`core_${idx}`}
-                              value={s.value}
-                              checked={fd.coreAnswers[idx] === s.value}
-                              onChange={() => setCoreAnswer(idx, s.value)}
-                              className="sr-only"
+                              name={`mobile_core34_q${index}`}
+                              value={option}
+                              checked={formData.core34[index] === option}
+                              onChange={() => handleCore34Change(index, option)}
+                              className="w-5 h-5 accent-[#6f1d56]"
                             />
-                            <span className={`text-xl font-bold ${fd.coreAnswers[idx] === s.value ? "text-[#6f1d56]" : "text-gray-500"}`}>{s.value}</span>
-                            <span className="text-[10px] text-gray-500 leading-tight">{s.label}</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              {option}
+                            </span>
                           </label>
                         ))}
                       </div>
                     </div>
                   ))}
                 </div>
+
+                <div className="mt-8 p-6 bg-purple-50 border-2 border-purple-200 rounded-xl text-center">
+                  <p className="text-lg font-bold text-purple-900">
+                    Thank you for answering all of the above statements, please proceed with booking your consultation on the next page.
+                  </p>
+                </div>
               </div>
             )}
 
-            {/* ══════════ STEP 8 — Availability ══════════ */}
-            {currentStep === 8 && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-primary">Your Availability To Attend Weekly Sessions</h2>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Select 1 day and time slot for your recurring weekly counselling sessions — the more slots you select, the more counsellors or coaches to choose from.
+            {/* ═══════════════ STEP 10: Consultation Slot ═══════════════ */}
+            {currentStep === 10 && (
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Select a Consultation Slot (UK time)
+                  </h2>
+                  <p
+                    className="text-base md:text-lg text-center"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Please choose an available slot for your initial
+                    consultation.
                   </p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>Important:</strong> To avoid any delays, please select the accurate day and time you are available to attend weekly counselling sessions in UK time, as the practice is based in the UK. Please note — the last session is at 6pm from Monday to Thursday, and at 5pm on Friday.
-                  </p>
-                </div>
-
-                {DAYS.map((day) => {
-                  const slots = day === "friday" ? FRIDAY_SLOTS : ALL_SLOTS;
-                  return (
-                    <div key={day} className="border rounded-xl p-4">
-                      <h3 className="font-bold capitalize text-[#6f1d56] mb-3">{day}</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {slots.map((slot) => (
-                          <label
-                            key={slot.value}
-                            className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all ${
-                              fd.availability[day].includes(slot.value)
-                                ? "border-[#6f1d56] bg-purple-50"
-                                : "border-gray-200 bg-gray-50 hover:border-purple-300"
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={fd.availability[day].includes(slot.value)}
-                              onChange={() => toggleAvailability(day, slot.value)}
-                              className="accent-[#6f1d56]"
-                            />
-                            <span className="text-sm">{slot.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-                {errors.availability && <p className="text-red-500 text-sm">{errors.availability}</p>}
-              </div>
-            )}
-
-            {/* ══════════ STEP 9 — Filtered Counsellors ══════════ */}
-            {currentStep === 9 && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div>
-                    <h2 className="text-2xl font-bold text-primary">Your Filtered Counsellors</h2>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Based on your preferences, we've <span className="text-[#6f1d56] font-semibold uppercase tracking-wide">filtered</span> these counsellors for you.
+                {isSlotsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6f1d56]"></div>
+                  </div>
+                ) : availableSlots.length === 0 ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-base text-yellow-800">
+                      There are currently no available consultation slots.
+                      Please check back later or contact us directly.
                     </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1.5 bg-gray-100 border border-gray-200 rounded-full px-3 py-1.5 text-sm font-semibold text-gray-700">
-                      <Users className="w-4 h-4" /> {sortedTcs.length} Counsellor{sortedTcs.length !== 1 ? "s" : ""} Found
-                    </span>
-                    <select
-                      value={filteredSortBy}
-                      onChange={(e) => setFilteredSortBy(e.target.value)}
-                      className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white"
-                    >
-                      <option value="score">Sort: Best Fit</option>
-                      <option value="name">Sort: Name A–Z</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Filter criteria summary */}
-                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Filter className="w-4 h-4 text-[#6f1d56]" />
-                    <span className="text-sm font-semibold text-gray-700">Your Filter Criteria</span>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs text-gray-600">
-                    {fd.supportAreas.length > 0 && (
-                      <div><span className="font-semibold">Areas:</span> {fd.supportAreas.slice(0, 3).join(", ")}{fd.supportAreas.length > 3 && ` +${fd.supportAreas.length - 3} more`}</div>
-                    )}
-                    {fd.genderPreference !== "No preference" && (
-                      <div><span className="font-semibold">Counsellor Gender:</span> {fd.genderPreference}</div>
-                    )}
-                    {fd.ethnicityPreference !== "No preference" && (
-                      <div><span className="font-semibold">Ethnicity:</span> {fd.ethnicityPreference}</div>
-                    )}
-                    {fd.orientationPreference !== "No preference" && (
-                      <div><span className="font-semibold">Orientation:</span> {fd.orientationPreference}</div>
-                    )}
-                    {Object.entries(fd.availability).some(([,v]) => v.length > 0) && (
-                      <div><span className="font-semibold">Availability:</span> {
-                        Object.entries(fd.availability).filter(([,v]) => v.length > 0).map(([k]) => k.charAt(0).toUpperCase() + k.slice(1)).join(", ")
-                      }</div>
-                    )}
-                    {fd.isCouples && <div><span className="font-semibold">Type:</span> Couples</div>}
-                  </div>
-                </div>
-
-                {errors.selectedTc && <p className="text-red-500 text-sm">{errors.selectedTc}</p>}
-
-                {loadingFiltered ? (
-                  <div className="flex items-center justify-center py-16 gap-3">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6f1d56]" />
-                    <p className="text-sm text-gray-500">Finding your matched counsellors…</p>
-                  </div>
-                ) : sortedTcs.length === 0 ? (
-                  <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
-                    <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500 font-medium">No counsellors matched your criteria right now.</p>
-                    <p className="text-sm text-gray-400 mt-1">Try widening your availability or adjusting preferences.</p>
-                    <button
-                      onClick={() => { setFilteredTcs([]); goToStep(8); }}
-                      className="mt-4 text-sm text-[#6f1d56] underline"
-                    >
-                      Go back and update availability
-                    </button>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {sortedTcs.map((tc) => {
-                      const fit = getFitLabel(tc.score ?? 0);
-                      const isSelected = selectedTc?.uuid === tc.uuid;
-                      return (
-                        <div
-                          key={tc.uuid}
-                          className={`border-2 rounded-xl p-5 transition-all ${
-                            isSelected ? "border-[#6f1d56] bg-purple-50" : "border-gray-200 hover:border-purple-300 bg-white"
-                          }`}
-                        >
-                          <div className="flex items-start gap-4">
-                            {/* Avatar */}
-                            <div className="w-20 h-20 rounded-full overflow-hidden shrink-0 border-2 border-gray-100 bg-purple-100 flex items-center justify-center text-2xl font-bold text-[#6f1d56]">
-                              {tc.photo_url || tc.photo ? (
-                                <img src={apiService.getStorageUrl(tc.photo_url || tc.photo)} alt={tc.name} className="w-full h-full object-cover" />
-                              ) : (
-                                tc.name?.charAt(0).toUpperCase()
-                              )}
-                            </div>
-                            {/* Details */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-3 flex-wrap">
-                                <div>
-                                  <h3 className="font-bold text-gray-900 text-lg">{tc.name}</h3>
-                                  {tc.qualification && <p className="text-xs text-gray-500">{tc.qualification}</p>}
-                                  {tc.years_experience && <p className="text-xs text-gray-500">{tc.years_experience}+ years experience</p>}
-                                  <div className="flex flex-wrap gap-2 mt-2">
-                                    {tc.modality && <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">{tc.modality}</span>}
-                                    {tc.specialty && <span className="text-xs bg-purple-100 text-purple-800 rounded-full px-2 py-0.5">{tc.specialty}</span>}
-                                  </div>
-                                </div>
-                                {/* Match score */}
-                                <div className="text-right shrink-0">
-                                  <div className={`inline-flex flex-col items-center rounded-xl px-3 py-2 ${fit.bg}`}>
-                                    <Star className={`w-4 h-4 ${fit.text} mb-0.5`} />
-                                    <span className={`text-xs font-semibold ${fit.text}`}>{fit.label}</span>
-                                  </div>
-                                  {tc.score != null && (
-                                    <p className="text-2xl font-black text-gray-900 mt-1">{Math.round(tc.score)}%</p>
-                                  )}
-                                  <p className="text-[10px] text-gray-400">Overall Fit</p>
-                                </div>
-                              </div>
-                              {tc.bio && <p className="text-sm text-gray-600 mt-2 leading-relaxed">{tc.bio}</p>}
-                              {tc.support_areas?.length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-xs font-semibold text-gray-500 mb-1">Areas of Support</p>
-                                  <div className="flex flex-wrap gap-1">
-                                    {tc.support_areas.slice(0, 5).map((a) => (
-                                      <span key={a} className="text-xs bg-gray-100 text-gray-700 rounded px-2 py-0.5">{a}</span>
-                                    ))}
-                                    {tc.support_areas.length > 5 && <span className="text-xs text-gray-400">+{tc.support_areas.length - 5}</span>}
-                                  </div>
-                                </div>
-                              )}
-                              {tc.availability_summary && (
-                                <p className="text-xs text-gray-500 mt-2">
-                                  📅 Available: {tc.availability_summary}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="mt-4 flex justify-end">
+                    {errors.consultationSlotId && (
+                      <p className="text-red-500 text-sm font-medium">
+                        {errors.consultationSlotId}
+                      </p>
+                    )}
+
+                    {/* Calendar & Slots Split View */}
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      {/* Left Side: Calendar */}
+                      <div className="w-full lg:w-1/2 border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-bold text-gray-800">
+                            {currentMonth.toLocaleString("default", {
+                              month: "long",
+                              year: "numeric",
+                            })}
+                          </h3>
+                          <div className="flex gap-2">
                             <button
-                              onClick={() => {
-                                setSelectedTc(tc);
-                                setConsultAvailability(null);
-                                setSelectedConsultSlot(null);
-                                setErrors((p) => { const n = { ...p }; delete n.selectedTc; return n; });
-                              }}
-                              className={`px-6 py-2 rounded-lg font-semibold text-sm transition-all ${
-                                isSelected
-                                  ? "bg-[#6f1d56] text-white"
-                                  : "border-2 border-[#6f1d56] text-[#6f1d56] hover:bg-purple-50"
-                              }`}
+                              type="button"
+                              onClick={() =>
+                                setCurrentMonth(
+                                  new Date(
+                                    currentMonth.getFullYear(),
+                                    currentMonth.getMonth() - 1,
+                                    1
+                                  )
+                                )
+                              }
+                              className="p-1 rounded-full hover:bg-gray-100 text-gray-600 transition"
                             >
-                              {isSelected ? "✓ Selected" : "Select"}
+                              <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCurrentMonth(
+                                  new Date(
+                                    currentMonth.getFullYear(),
+                                    currentMonth.getMonth() + 1,
+                                    1
+                                  )
+                                )
+                              }
+                              className="p-1 rounded-full hover:bg-gray-100 text-gray-600 transition"
+                            >
+                              <ChevronRight className="w-5 h-5" />
                             </button>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
 
-                {selectedTc && (
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
-                    <p className="text-sm text-green-800 font-medium">
-                      You have selected <strong>{selectedTc.name}</strong>. Click "Next" to book your consultation.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ══════════ STEP 10 — Consultation Booking ══════════ */}
-            {currentStep === 10 && selectedTc && (
-              <div className="space-y-6">
-                {loadingAvail ? (
-                  <div className="flex items-center justify-center py-16 gap-3">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6f1d56]" />
-                    <p className="text-sm text-gray-500">Loading consultation slots…</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Source-dependent banner */}
-                    {consultAvailability?.source === "vanquish" && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                        <p className="text-sm text-amber-800">
-                          This counsellor does not have availability for a consultation in the next few weeks. However, choose any of these slots to book a consultation with <strong>Vanquish Therapies</strong>. After the consultation, you can begin sessions with {selectedTc.name}.
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="flex items-start gap-4">
-                      {/* TC photo */}
-                      <div className="w-24 h-24 rounded-xl overflow-hidden shrink-0 border-2 border-gray-100 bg-purple-100 flex items-center justify-center text-3xl font-bold text-[#6f1d56]">
-                        {selectedTc.photo_url || selectedTc.photo ? (
-                          <img src={apiService.getStorageUrl(selectedTc.photo_url || selectedTc.photo)} alt={selectedTc.name} className="w-full h-full object-cover" />
-                        ) : (
-                          selectedTc.name?.charAt(0).toUpperCase()
-                        )}
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-primary">
-                          Book a Consultation {consultAvailability?.source === "counsellor" ? `with ${selectedTc.name}` : ""}
-                        </h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {selectedTc.name} · {selectedTc.qualification || "Registered Counsellor"}
-                        </p>
-                        <div className="flex gap-3 mt-2 flex-wrap">
-                          <span className="text-xs text-gray-600 bg-gray-100 rounded-full px-2 py-0.5">✓ 15-minute call</span>
-                          <span className="text-xs text-gray-600 bg-gray-100 rounded-full px-2 py-0.5">✓ {consultAvailability?.source === "counsellor" ? `Get to know ${selectedTc.name.split(" ")[0]}` : "Understand your needs"}</span>
-                          <span className="text-xs text-gray-600 bg-gray-100 rounded-full px-2 py-0.5">✓ {consultAvailability?.source === "counsellor" ? "No obligation" : "Find your best match"}</span>
+                        <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500 mb-2">
+                          <div>MON</div>
+                          <div>TUE</div>
+                          <div>WED</div>
+                          <div>THU</div>
+                          <div>FRI</div>
+                          <div>SAT</div>
+                          <div>SUN</div>
                         </div>
-                        {consultAvailability?.source === "counsellor" && (
-                          <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                            <p className="text-xs text-amber-800">
-                              ⭐ Choose any of the available slots below to book your consultation with {selectedTc.name}. After the consultation, you can begin sessions with {selectedTc.name.split(" ")[0]}.
+
+                        <div className="grid grid-cols-7 gap-1">
+                          {(() => {
+                            const year = currentMonth.getFullYear();
+                            const month = currentMonth.getMonth();
+                            const firstDayOfMonth = new Date(
+                              year,
+                              month,
+                              1
+                            ).getDay();
+                            const daysInMonth = new Date(
+                              year,
+                              month + 1,
+                              0
+                            ).getDate();
+                            const startingDay =
+                              firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+
+                            const uniqueSlots = [];
+                            const slotTimes = new Set();
+
+                            availableSlots.forEach((slot) => {
+                              if (!slotTimes.has(slot.consultation_datetime)) {
+                                slotTimes.add(slot.consultation_datetime);
+                                uniqueSlots.push(slot);
+                              }
+                            });
+
+                            const groupedSlots = {};
+                            uniqueSlots.forEach((slot) => {
+                              const slotDate = new Date(
+                                slot.consultation_datetime
+                              );
+                              const dateStr = `${slotDate.getFullYear()}-${String(slotDate.getMonth() + 1).padStart(2, "0")}-${String(slotDate.getDate()).padStart(2, "0")}`;
+                              if (!groupedSlots[dateStr])
+                                groupedSlots[dateStr] = [];
+                              groupedSlots[dateStr].push(slot);
+                            });
+
+                            const cells = [];
+                            for (let i = 0; i < startingDay; i++) {
+                              cells.push(
+                                <div key={`empty-${i}`} className="p-2"></div>
+                              );
+                            }
+                            for (let d = 1; d <= daysInMonth; d++) {
+                              const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                              const hasSlots =
+                                groupedSlots[dateStr] &&
+                                groupedSlots[dateStr].length > 0;
+                              const isSelected =
+                                selectedCalendarDate === dateStr;
+
+                              cells.push(
+                                <button
+                                  key={`day-${d}`}
+                                  type="button"
+                                  onClick={() =>
+                                    hasSlots && setSelectedCalendarDate(dateStr)
+                                  }
+                                  disabled={!hasSlots}
+                                  className={`p-2 w-full aspect-square rounded-lg flex items-center justify-center text-sm transition-all ${
+                                    isSelected
+                                      ? "bg-[#4052f5] text-white font-bold shadow-md"
+                                      : hasSlots
+                                        ? "bg-blue-50 text-blue-900 border border-blue-100 hover:bg-blue-100 font-semibold cursor-pointer"
+                                        : "text-gray-300 cursor-not-allowed"
+                                  }`}
+                                >
+                                  {d}
+                                </button>
+                              );
+                            }
+                            return cells;
+                          })()}
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2 text-sm text-gray-500">
+                          <Lock className="w-4 h-4" />
+                          Timezone: Europe/London (
+                          {new Date().toLocaleTimeString("en-GB", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            timeZone: "Europe/London",
+                          })}
+                          )
+                        </div>
+                      </div>
+
+                      {/* Right Side: Available Slots */}
+                      <div className="w-full lg:w-1/2">
+                        {selectedCalendarDate ? (
+                          <div>
+                            <h3 className="text-lg font-bold text-[#6f1d56] mb-4">
+                              {new Date(
+                                selectedCalendarDate
+                              ).toLocaleDateString("en-GB", {
+                                weekday: "long",
+                                month: "long",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </h3>
+
+                            {(() => {
+                              const seenTimes = new Set();
+                              const dateSlots = availableSlots.filter((s) => {
+                                const sd = new Date(s.consultation_datetime);
+                                const dateStr = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, "0")}-${String(sd.getDate()).padStart(2, "0")}`;
+                                if (dateStr !== selectedCalendarDate)
+                                  return false;
+
+                                const timeKey = sd.getTime();
+                                if (seenTimes.has(timeKey)) return false;
+                                seenTimes.add(timeKey);
+                                return true;
+                              });
+
+                              return (
+                                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                                  {dateSlots.map((slot) => {
+                                    const d = new Date(
+                                      slot.consultation_datetime
+                                    );
+                                    const endD = new Date(
+                                      d.getTime() + 15 * 60 * 1000
+                                    );
+                                    const timeFormat = {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                    };
+                                    const timeStr = `${d.toLocaleTimeString("en-GB", timeFormat)} - ${endD.toLocaleTimeString("en-GB", timeFormat)}`;
+                                    return (
+                                      <label
+                                        key={slot.id}
+                                        className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors w-full text-center ${
+                                          formData.consultationSlotId === slot.id
+                                            ? "border-[#4052f5] bg-[#4052f5] text-white font-bold"
+                                            : "border-[#4052f5] text-[#4052f5] hover:bg-blue-50"
+                                        }`}
+                                      >
+                                        <input
+                                          type="radio"
+                                          name="consultationSlotId"
+                                          value={slot.id}
+                                          checked={
+                                            formData.consultationSlotId ===
+                                            slot.id
+                                          }
+                                          onChange={() =>
+                                            handleInputChange(
+                                              "consultationSlotId",
+                                              slot.id
+                                            )
+                                          }
+                                          className="hidden"
+                                        />
+                                        {timeStr} (UK time)
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-gray-50 border border-dashed rounded-lg text-gray-500">
+                            <Calendar className="w-12 h-12 mb-2 opacity-50 text-[#6f1d56]" />
+                            <p>
+                              Please select an available date from the calendar
+                              to view time slots.
                             </p>
                           </div>
                         )}
                       </div>
                     </div>
-
-                    <div data-field="selectedConsultSlot">
-                      <h3 className="font-bold text-gray-800 mb-3">Select a Date &amp; Time</h3>
-                      {(consultAvailability?.slots || []).length === 0 ? (
-                        <p className="text-sm text-gray-500 py-6 text-center">
-                          No consultation slots are currently available. Please contact us for assistance.
-                        </p>
-                      ) : (
-                        <CalendarPicker
-                          availableSlots={consultAvailability.slots}
-                          selectedSlot={selectedConsultSlot}
-                          onSelect={(slot) => {
-                            setSelectedConsultSlot(slot);
-                            setErrors((p) => { const n = { ...p }; delete n.selectedConsultSlot; return n; });
-                          }}
-                        />
-                      )}
-                      {errors.selectedConsultSlot && <p className="text-red-500 text-sm mt-2">{errors.selectedConsultSlot}</p>}
-                    </div>
-
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-gray-700">
-                          {consultAvailability?.source === "counsellor"
-                            ? `Consultation with ${selectedTc.name} directly via a secure video call.`
-                            : "Secure & Confidential — Your information is safe with us. This consultation is confidential and commitment-free."}
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => { setCurrentStep(9); setSelectedConsultSlot(null); }}
-                      className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#6f1d56] transition-colors"
-                    >
-                      <ArrowLeft className="w-4 h-4" /> Back to filtered counsellors
-                    </button>
-                  </>
+                  </div>
                 )}
               </div>
             )}
 
-            {/* ══════════ STEP 11 — Emergency Contact ══════════ */}
+            {/* ═══════════════ STEP 11: Emergency Contact ═══════════════ */}
             {currentStep === 11 && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-primary flex items-center justify-center gap-2">
-                    <AlertTriangle className="w-6 h-6 text-orange-500" /> Emergency Contact Details
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Emergency Contact
                   </h2>
-                  <p className="text-sm text-gray-500 mt-1">As the sessions are online, this is required for safeguarding and insurance purposes.</p>
+                  <p
+                    className="text-base md:text-lg text-center"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Please provide the contact details of someone we can reach in
+                    an emergency.
+                  </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Emergency Contact Full Name <span className="text-red-500">*</span></label>
-                    <input type="text" value={fd.emergencyContactName} onChange={(e) => update("emergencyContactName", e.target.value)} className={fieldCls(errors.emergencyContactName)} placeholder="Full Name" />
-                    {errors.emergencyContactName && <p className="text-red-500 text-xs mt-1">{errors.emergencyContactName}</p>}
-                  </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Telephone Number <span className="text-red-500">*</span></label>
-                    <input type="tel" value={fd.emergencyContactPhone} onChange={(e) => update("emergencyContactPhone", e.target.value)} className={fieldCls(errors.emergencyContactPhone)} placeholder="+44..." />
-                    {errors.emergencyContactPhone && <p className="text-red-500 text-xs mt-1">{errors.emergencyContactPhone}</p>}
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Emergency Contact Name{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="emergencyContactName"
+                      id="emergencyContactName"
+                      value={formData.emergencyContactName}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "emergencyContactName",
+                          e.target.value
+                        )
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.emergencyContactName
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Jane Doe"
+                    />
+                    {errors.emergencyContactName && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.emergencyContactName}
+                      </p>
+                    )}
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Email Address</label>
-                    <input type="email" value={fd.emergencyContactEmail} onChange={(e) => update("emergencyContactEmail", e.target.value)} className={fieldCls(errors.emergencyContactEmail)} placeholder="email@example.com" />
-                    {errors.emergencyContactEmail && <p className="text-red-500 text-xs mt-1">{errors.emergencyContactEmail}</p>}
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Emergency Contact Phone{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="emergencyContactPhone"
+                      id="emergencyContactPhone"
+                      value={formData.emergencyContactPhone}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "emergencyContactPhone",
+                          e.target.value
+                        )
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.emergencyContactPhone
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="+44 7700 900000"
+                    />
+                    {errors.emergencyContactPhone && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.emergencyContactPhone}
+                      </p>
+                    )}
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-gray-700">Relationship to You <span className="text-red-500">*</span></label>
-                    <input type="text" value={fd.emergencyContactRelationship} onChange={(e) => update("emergencyContactRelationship", e.target.value)} className={fieldCls(errors.emergencyContactRelationship)} placeholder="e.g. Spouse, Parent, Friend" />
-                    {errors.emergencyContactRelationship && <p className="text-red-500 text-xs mt-1">{errors.emergencyContactRelationship}</p>}
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Emergency Contact Email
+                    </label>
+                    <input
+                      type="email"
+                      name="emergencyContactEmail"
+                      id="emergencyContactEmail"
+                      value={formData.emergencyContactEmail}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "emergencyContactEmail",
+                          e.target.value
+                        )
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.emergencyContactEmail
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="jane.doe@example.com"
+                    />
+                    {errors.emergencyContactEmail && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.emergencyContactEmail}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Relationship to You{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="emergencyContactRelationship"
+                      id="emergencyContactRelationship"
+                      value={formData.emergencyContactRelationship}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "emergencyContactRelationship",
+                          e.target.value
+                        )
+                      }
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
+                        errors.emergencyContactRelationship
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="e.g. Partner, Parent, Friend"
+                    />
+                    {errors.emergencyContactRelationship && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.emergencyContactRelationship}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ══════════ STEP 12 — Payment & Terms ══════════ */}
+            {/* ═══════════════ STEP 12: Payment & Terms ═══════════════ */}
             {currentStep === 12 && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-primary">Payment &amp; Terms</h2>
+              <div className="space-y-4 md:space-y-6">
+                <div>
+                  <h2
+                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Consultation Fee &amp; Confirmation
+                  </h2>
                 </div>
 
-                {/* Consultation slot summary */}
-                {selectedConsultSlot && (
-                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
-                    <p className="text-sm font-semibold text-purple-900 mb-1">Your Consultation Booking</p>
-                    <p className="text-sm text-purple-700">
-                      {selectedConsultSlot.date} at {selectedConsultSlot.formatted_time}
-                      {selectedTc && ` with ${consultAvailability?.source === "counsellor" ? selectedTc.name : "Vanquish Therapies"}`}
-                    </p>
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-6 mb-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-lg font-medium text-gray-700">
+                      Initial Consultation Fee ({formData.serviceType}):
+                    </span>
+                    <span className="text-2xl font-bold text-[#6f1d56]">
+                      £{getConsultationFee().toFixed(2)}
+                    </span>
                   </div>
-                )}
 
-                {/* Fee display */}
-                <div className="border-2 border-[#6f1d56] bg-purple-50 rounded-xl p-5 flex items-center justify-between">
-                  <div>
-                    <p className="font-bold text-[#6f1d56]">
-                      {fd.serviceType} — Initial Consultation
-                    </p>
-                    <p className="text-sm text-purple-700">Non-refundable</p>
+                  {/* Coupon Code Input */}
+                  <div className="mt-4 pt-4 border-t border-purple-100">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Have a coupon or discount code?
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formData.discountCode}
+                        onChange={(e) =>
+                          handleInputChange("discountCode", e.target.value)
+                        }
+                        placeholder="Enter coupon code"
+                        className="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white uppercase"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyDiscount}
+                        className="px-4 py-2 bg-[#6f1d56] text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
+                      >
+                        Apply
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-4xl font-black text-[#6f1d56]">£{getConsultFee().toFixed(2)}</p>
                 </div>
 
-                {/* Discount code */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={fd.discountCode}
-                    onChange={(e) => update("discountCode", e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6f1d56]"
-                    placeholder="Discount / coupon code"
-                  />
-                  <button onClick={applyDiscount} className="px-5 py-2 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
-                    Apply
-                  </button>
-                </div>
-                {isDiscountApplied && (
-                  <p className="text-green-600 text-sm">✓ Discount applied — saving £{discountAmount.toFixed(2)}</p>
-                )}
-
-                {/* Terms */}
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
-                  <h3 className="font-bold text-gray-800 mb-2">Terms &amp; Conditions</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Please note: our consultation slots are limited; therefore, payment is required to secure another consultation. We appreciate your understanding. The consultation payment is non-refundable.
-                  </p>
-                  <label className="flex items-start gap-3 cursor-pointer">
+                {/* Terms and Conditions Agreement */}
+                <div className="space-y-4">
+                  <label className="flex items-start gap-3 cursor-pointer p-4 border border-gray-200 rounded-xl hover:bg-gray-50">
                     <input
                       type="checkbox"
-                      checked={fd.termsAccepted}
-                      onChange={(e) => update("termsAccepted", e.target.checked)}
-                      className="mt-0.5 accent-[#6f1d56]"
+                      checked={formData.termsAccepted}
+                      onChange={(e) =>
+                        handleInputChange("termsAccepted", e.target.checked)
+                      }
+                      className="w-5 h-5 mt-0.5 text-[#6f1d56] rounded focus:ring-[#6f1d56]"
                     />
-                    <span className="text-sm font-medium text-gray-700">I accept the terms and conditions.</span>
+                    <span className="text-sm text-gray-700">
+                      I confirm that the information provided is accurate, and I agree to the{" "}
+                      <Link
+                        href="/agreement/mid-range"
+                        target="_blank"
+                        className="text-[#6f1d56] underline font-medium"
+                      >
+                        Client Agreement &amp; Privacy Terms
+                      </Link>
+                      . <span className="text-red-500">*</span>
+                    </span>
                   </label>
-                  {errors.termsAccepted && <p className="text-red-500 text-xs mt-1">{errors.termsAccepted}</p>}
-                </div>
+                  {errors.termsAccepted && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.termsAccepted}
+                    </p>
+                  )}
 
-                <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-xl">
-                  Thank you for completing this form and for taking the first step towards healing. Please note — this is not a crisis or emergency service. If you need to speak to someone immediately, please contact your GP, NHS (111), or the Samaritans (116 123).
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-center">
+                    <p className="text-base font-bold mb-4" style={{ color: "#6f1d56" }}>
+                      Thank you for completing this form and for taking the first step towards healing.
+                    </p>
+                    <p className="text-sm mb-4" style={{ color: "var(--text-primary)" }}>
+                      We understand that starting counselling can feel daunting but please know, Vanquish Therapies is here to support you on your journey, and we are committed to providing a supportive environment for you.
+                    </p>
+                    <div className="bg-white p-4 rounded-lg border border-purple-200">
+                      <p className="text-sm font-bold text-red-600 mb-2">
+                        IMPORTANT NOTICE:
+                      </p>
+                      <p className="text-sm" style={{ color: "var(--text-primary)" }}>
+                        Please note – Vanquish Therapies and our online counselling are not a crisis or emergency service. If you need to speak to someone immediately, please contact your GP, NHS (111), or the Samaritans (116 123).
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* ══════════ Navigation ══════════ */}
-            <div className="flex items-center justify-between mt-10 pt-6 border-t border-gray-100">
-              <button
-                onClick={handlePrev}
-                disabled={currentStep === 1}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-medium disabled:opacity-40 hover:bg-gray-200 transition-colors"
+            {/* Error Summary */}
+            {Object.keys(errors).length > 0 && (
+              <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 rounded mt-6">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-lg font-medium text-red-900 mb-1">
+                      Please complete all required fields before proceeding:
+                    </p>
+                    <ul className="text-base text-red-800 list-disc list-inside space-y-1">
+                      {Object.values(errors)
+                        .slice(0, 5)
+                        .map((error, idx) => (
+                          <li key={idx}>{error}</li>
+                        ))}
+                      {Object.keys(errors).length > 5 && (
+                        <li>...and {Object.keys(errors).length - 5} more</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div>
+              <div
+                className="flex items-center justify-between mt-8 md:mt-10 pt-6 border-t"
+                style={{ borderColor: "var(--border-color)" }}
               >
-                <ChevronLeft className="w-4 h-4" /> Previous
-              </button>
-
-              <span className="text-sm text-gray-400">Step {currentStep} / {totalSteps}</span>
-
-              {currentStep < totalSteps ? (
                 <button
-                  onClick={handleNext}
-                  className="flex items-center gap-2 px-6 py-2.5 text-white rounded-lg font-medium transition-colors"
-                  style={{ backgroundColor: "#6f1d56" }}
+                  type="button"
+                  onClick={handlePrevious}
+                  disabled={currentStep === 1}
+                  className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg font-medium transition-colors text-base md:text-lg ${
+                    currentStep === 1
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
                 >
-                  Next <ChevronRight className="w-4 h-4" />
+                  <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+                  <span className="hidden md:inline">Previous</span>
+                  <span className="md:hidden">Back</span>
                 </button>
-              ) : (
-                !clientId && (
+
+                <div
+                  className="text-sm font-medium md:hidden"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {currentStep}/{steps.length}
+                </div>
+
+                {currentStep < steps.length ? (
                   <button
-                    onClick={handleSubmit}
-                    disabled={!fd.termsAccepted}
-                    className="flex items-center gap-2 px-6 py-2.5 text-white rounded-lg font-medium disabled:opacity-50 transition-colors"
+                    type="button"
+                    onClick={handleNext}
+                    className="flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 text-white rounded-lg font-medium transition-opacity text-base md:text-lg hover:opacity-90"
                     style={{ backgroundColor: "#6f1d56" }}
                   >
-                    <CreditCard className="w-4 h-4" /> Save &amp; Proceed to Payment
+                    <span className="hidden md:inline">Next</span>
+                    <span className="md:hidden">Next</span>
+                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
                   </button>
-                )
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+                ) : !clientId ? (
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={!formData.termsAccepted || isSubmitting}
+                    className={`flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 text-white rounded-lg font-medium transition-opacity text-base md:text-lg ${
+                      !formData.termsAccepted || isSubmitting
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:opacity-90"
+                    }`}
+                    style={{ backgroundColor: "#6f1d56" }}
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                    ) : (
+                      <CreditCard className="w-4 h-4 md:w-5 md:h-5" />
+                    )}
+                    <span className="hidden md:inline">
+                      {isSubmitting ? "Processing..." : "Save & Continue to Payment"}
+                    </span>
+                    <span className="md:hidden">
+                      {isSubmitting ? "Processing..." : "Save"}
+                    </span>
+                  </button>
+                ) : null}
+              </div>
 
-      {/* Payment modal */}
-      {showPaymentModal && paymentProps && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="text-xl font-bold">Secure Payment</h3>
-              <button onClick={() => setShowPaymentModal(false)} className="text-2xl text-gray-400 hover:text-gray-700">&times;</button>
+              <div className="flex items-center justify-center gap-1.5 mt-4 text-xs text-gray-500">
+                <Lock className="w-3.5 h-3.5 text-gray-400" />
+                <span>Protected by 256-bit SSL encryption &bull; Confidentiality guaranteed</span>
+              </div>
             </div>
-            <div className="bg-purple-50 rounded-xl p-4 flex justify-between items-center mb-5">
-              <span className="font-medium text-purple-800">Consultation Fee</span>
-              <span className="text-2xl font-black text-purple-900">£{paymentProps.amount.toFixed(2)}</span>
-            </div>
-            <StripePaymentWrapper
-              clientId={paymentProps.clientId}
-              amount={paymentProps.amount}
-              paymentType="consultation"
-              couponCode={paymentProps.couponCode}
-              consultationSlotId={paymentProps.consultationSlotId}
-              consultationWithTcUuid={paymentProps.consultationWithTcUuid}
-              consultationDatetime={paymentProps.consultationDatetime}
-              returnUrl={paymentProps.returnUrl}
-              onSuccess={paymentProps.onSuccess}
-              onError={paymentProps.onError}
-            />
           </div>
         </div>
-      )}
+
+        {/* Payment Modal */}
+        {showPaymentModal && paymentProps && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden my-8">
+              <div
+                className="p-6 border-b border-gray-100 flex justify-between items-center"
+                style={{ backgroundColor: "var(--bg-secondary)" }}
+              >
+                <div>
+                  <h3
+                    className="text-lg font-bold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Secure Payment
+                  </h3>
+                  <p
+                    className="text-base"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Consultation Fee
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    setClientId(null);
+                  }}
+                  className="hover:transition-colors"
+                  style={{ color: "var(--text-secondary)" }}
+                  title="Cancel payment"
+                >
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: "var(--border-color)" }}
+                  >
+                    <span className="text-xl font-bold">&times;</span>
+                  </div>
+                </button>
+              </div>
+
+              <div className="p-6">
+                <div className="mb-6 bg-purple-50 rounded-xl p-4 border border-purple-100 flex justify-between items-center">
+                  <span className="text-purple-900 font-medium">
+                    Total to Pay
+                  </span>
+                  <span className="text-2xl font-bold text-purple-900">
+                    £{paymentProps.amount.toFixed(2)}
+                  </span>
+                </div>
+
+                {paymentProps.couponCode && (
+                  <div className="mb-6 bg-green-50 rounded-lg p-3 border border-green-100 text-green-800 text-sm flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Coupon <strong>{paymentProps.couponCode}</strong> applied
+                  </div>
+                )}
+                <div className="flex flex-col gap-4">
+                  <StripePaymentWrapper
+                    clientId={paymentProps.clientId}
+                    amount={paymentProps.amount}
+                    paymentType="consultation"
+                    couponCode={paymentProps.couponCode}
+                    returnUrl={paymentProps.returnUrl}
+                    onSuccess={() => {
+                      paymentProps.onSuccess();
+                      setShowPaymentModal(false);
+                    }}
+                    onError={paymentProps.onError}
+                    onCancel={() => setShowPaymentModal(false)}
+                  />
+                  <button
+                    onClick={() => setShowPaymentModal(false)}
+                    className="text-gray-500 hover:text-gray-700 text-sm font-medium transition-colors text-center"
+                  >
+                    Go Back
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </PublicFormWrapper>
+  );
+}
+
+export default function MidRangeClientIntake() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="w-8 h-8 border-4 border-[#6f1d56] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <MidRangeClientIntakeContent />
+    </Suspense>
   );
 }

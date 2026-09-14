@@ -1933,8 +1933,8 @@ export default function VanquishClientIntake() {
                     attend weekly counselling sessions in UK time, as the
                     practice is based in the UK. Please note - If this
                     information is not provided there can be a delay in matching
-                    you with a counsellor. Moreover, the last session is at 6pm
-                    from Monday to Thursday, and at 5pm on Friday.*
+                    you with a counsellor. Please note that the last session is at 6pm
+                    from Monday to Thursday, and at 5pm on Friday.
                   </p>
                 </div>
 
