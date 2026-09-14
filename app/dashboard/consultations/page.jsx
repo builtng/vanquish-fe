@@ -273,7 +273,11 @@ function ConsultationsManagementPageFixed() {
                   : consultation.status === "rescheduled"
                     ? "Rescheduled"
                     : consultation.status,
-        serviceRequested: consultation.client?.service_type || "N/A",
+        serviceRequested:
+          consultation.client?.service_type ||
+          consultation.service_type ||
+          consultation.client?.intake_form?.[0]?.service_type ||
+          "N/A",
         paymentStatus: "Paid", // TODO: Get from payment records
         paymentAmount:
           consultation.recommended_service === "Coaching/Counselling"
@@ -948,7 +952,15 @@ function ConsultationsManagementPageFixed() {
                       <div className="flex items-center gap-2">
                         <Package className="w-4 h-4 text-gray-500 dark:text-[var(--text-tertiary)]" />
 
-                        <span className="text-gray-700 dark:text-[var(--text-primary)]">
+                        <span
+                          className={`font-medium ${
+                            consultation.serviceRequested === "Mid Range"
+                              ? "text-purple-700 dark:text-purple-300 font-semibold"
+                              : consultation.serviceRequested === "Low Cost"
+                                ? "text-emerald-700 dark:text-emerald-300 font-semibold"
+                                : "text-gray-700 dark:text-[var(--text-primary)]"
+                          }`}
+                        >
                           {consultation.serviceRequested}
                         </span>
                       </div>

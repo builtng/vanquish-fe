@@ -1624,6 +1624,8 @@ export default function VanquishClientIntake() {
                       }`}
                     >
                       <option value="Low Cost">Low Cost Counselling</option>
+                      <option value="Mid Range">Mid Range Counselling</option>
+                      <option value="Counselling & Coaching">Coaching & Counselling</option>
                     </select>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
                       Looking for Mid Range Counselling or Coaching?{" "}

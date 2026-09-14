@@ -131,6 +131,7 @@ function MidRangeClientIntakeContent() {
   const [isDiscountApplied, setIsDiscountApplied] = useState(false);
   const [paymentProps, setPaymentProps] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [baseFee, setBaseFee] = useState(15.0);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [isSlotsLoading, setIsSlotsLoading] = useState(false);
@@ -868,6 +869,9 @@ function MidRangeClientIntakeContent() {
             referrer_org: sanitizeText(formData.referrerOrg) || null,
             referrer_email: sanitizeText(formData.referrerEmail) || null,
             terms_accepted: !!formData.termsAccepted,
+            create_client: true,
+            consultation_fee: finalFee,
+            discount_code: isDiscountApplied ? formData.discountCode : null,
             consultation_slot_id: formData.consultationSlotId || null,
           }),
         }
@@ -879,61 +883,55 @@ function MidRangeClientIntakeContent() {
       }
 
       const result = await response.json();
-      const newClientId = result.client_id || result.id;
-      setClientId(newClientId);
+      let currentClientId =
+        result.client_id || (result.form && result.form.client_id) || result.id;
+      let clientUuid =
+        result.client_uuid || (result.client && result.client.uuid);
+      if (currentClientId) setClientId(currentClientId);
 
-      if (formData.consultationSlotId && newClientId) {
+      // Fallback lookup if client UUID not returned directly
+      if (!currentClientId || !clientUuid) {
         try {
-          const bookingResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
-            }/consultation-slots/book`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                slot_id: formData.consultationSlotId,
-                client_id: newClientId,
-              }),
+          const clientRes = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/clients?email=${encodeURIComponent(formData.email.trim().toLowerCase())}`
+          );
+          if (clientRes.ok) {
+            const matchedClients = await clientRes.json();
+            if (matchedClients.length > 0) {
+              currentClientId = matchedClients[0].id;
+              clientUuid = matchedClients[0].uuid;
+              setClientId(currentClientId);
             }
-          );
-
-          if (!bookingResponse.ok) {
-            const bookingError = await bookingResponse.json();
-            console.error("Booking error:", bookingError);
-            toast.warning(
-              "Form submitted, but failed to book consultation slot. Our team will contact you."
-            );
           }
-        } catch (bookingErr) {
-          console.error("Failed to book consultation slot:", bookingErr);
-          toast.warning(
-            "Form submitted, but failed to book consultation slot. Our team will contact you."
-          );
+        } catch (lookupErr) {
+          console.error("Client lookup error:", lookupErr);
         }
       }
 
-      const finalFee = getConsultationFee();
+      const proceedToSuccess = () => {
+        const params = new URLSearchParams();
+        if (clientUuid) params.append("uuid", clientUuid);
+        if (formData.consultationSlotId)
+          params.append("slot", formData.consultationSlotId);
+        window.location.href = `/mid-range-intake/success?${params.toString()}`;
+      };
 
-      if (finalFee > 0) {
+      if (finalFee > 0 && currentClientId) {
         setPaymentProps({
-          clientId: newClientId,
+          clientId: currentClientId,
           amount: finalFee,
           couponCode: isDiscountApplied ? formData.discountCode : null,
-          returnUrl: `${window.location.origin}/payment-success?client_id=${newClientId}`,
-          onSuccess: () => {
-            setSubmitted(true);
-            setShowPaymentModal(false);
-          },
+          consultationSlotId: formData.consultationSlotId || null,
+          returnUrl: `${window.location.origin}/mid-range-intake/success?uuid=${clientUuid || ""}&slot=${formData.consultationSlotId || ""}`,
+          onSuccess: proceedToSuccess,
           onError: (errMsg) => {
             toast.error(errMsg || "Payment failed");
           },
         });
         setShowPaymentModal(true);
       } else {
-        setSubmitted(true);
         toast.success("Intake form submitted successfully!");
+        proceedToSuccess();
       }
     } catch (error) {
       console.error("Submission error:", error);
@@ -963,67 +961,41 @@ function MidRangeClientIntakeContent() {
   if (submitted) {
     return (
       <PublicFormWrapper>
-        <div
-          className="min-h-screen"
-          style={{ background: "var(--bg-secondary)" }}
-        >
-          <div className="flex items-center justify-center p-4 min-h-screen">
-            <div className="card rounded-2xl shadow-xl p-8 max-w-md w-full text-center border">
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-                style={{
-                  backgroundColor: "var(--success-bg)",
-                  border: "2px solid var(--success-border)",
-                }}
-              >
-                <CheckCircle
-                  className="w-10 h-10"
-                  style={{ color: "var(--success)" }}
-                />
+        <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-50 via-white to-blue-50 py-12">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 max-w-2xl w-full text-center border border-purple-100">
+            <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-8 border-2 border-green-100 animate-bounce-subtle">
+              <CheckCircle className="w-12 h-12 text-green-600" />
+            </div>
+
+            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 tracking-tight">
+              Thank you for booking your consultation with us.
+            </h1>
+
+            <div className="space-y-4 mb-10">
+              <div className="bg-purple-50 rounded-2xl p-6 border border-purple-100 text-left">
+                <p className="text-sm md:text-base text-purple-800">
+                  Please remember to check your{" "}
+                  <strong>Spam/Junk folder</strong> in case the booking
+                  confirmation email does not appear in your inbox.
+                </p>
               </div>
 
-              <h2
-                className="text-2xl font-bold mb-4"
-                style={{ color: "var(--text-primary)" }}
-              >
-                Registration Successful!
-              </h2>
-
-              <p className="mb-6" style={{ color: "var(--text-secondary)" }}>
-                Thank you for completing your registration. We have received your
-                details and consultation booking.
-              </p>
-
-              <div
-                className="rounded-lg p-4 mb-6 text-left"
-                style={{ backgroundColor: "var(--bg-secondary)" }}
-              >
-                <h3
-                  className="font-semibold mb-2"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  Next Steps:
-                </h3>
-                <ul
-                  className="text-sm space-y-1 list-disc list-inside"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  <li>Check your email for confirmation and session details</li>
-                  <li>We will contact you regarding your consultation slot</li>
-                  <li>Review our client guidelines before your first session</li>
-                </ul>
-              </div>
-
-              <div className="mt-8">
-                <Link
-                  href="/"
-                  className="inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium text-white transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: "#6f1d56" }}
-                >
-                  Return to Home
-                </Link>
+              <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100 text-left">
+                <p className="text-sm md:text-base text-blue-800">
+                  If you have not received a confirmation email, it is important
+                  that you contact us at least 48 hours before your consultation
+                  so we can assist in confirming your booking.
+                </p>
               </div>
             </div>
+
+            <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+              We look forward to connecting with you.
+            </p>
+
+            <p className="mt-12 text-xs text-gray-400">
+              © {new Date().getFullYear()} {branding?.company_name || process.env.NEXT_PUBLIC_APP_NAME || "Vanquish Therapies"}. All rights reserved.
+            </p>
           </div>
         </div>
       </PublicFormWrapper>
@@ -3359,30 +3331,94 @@ function MidRangeClientIntakeContent() {
                         Apply
                       </button>
                     </div>
+                    {isDiscountApplied && (
+                      <p className="text-sm text-green-600 mt-2">
+                        Code applied successfully! You saved £
+                        {discountAmount.toFixed(2)}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                {/* Terms and Conditions Agreement */}
-                <div className="space-y-4">
-                  <label className="flex items-start gap-3 cursor-pointer p-4 border border-gray-200 rounded-xl hover:bg-gray-50">
+                {!clientId ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-base text-yellow-800">
+                      Please complete the previous steps first. The payment form
+                      will appear once your information is saved.
+                    </p>
+                  </div>
+                ) : paymentCompleted ? (
+                  <div className="bg-green-50 border-2 border-green-300 rounded-lg p-6 text-center">
+                    <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-green-900 mb-2">
+                      Payment Successful!
+                    </h3>
+                    <p className="text-base text-green-700">
+                      Your consultation has been confirmed.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                    <p className="text-base text-blue-800 font-medium">
+                      Your information has been saved successfully. Please
+                      complete your payment in the secure popup window to
+                      confirm your consultation.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowPaymentModal(true)}
+                      className="mt-4 px-4 py-2 bg-[#6f1d56] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                    >
+                      Open Payment Window
+                    </button>
+                  </div>
+                )}
+
+                <div
+                  className="space-y-6 pt-6 border-t"
+                  style={{ borderColor: "var(--border-color)" }}
+                >
+                  <h3
+                    className="text-xl font-bold mb-2"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Terms & Conditions
+                  </h3>
+
+                  <p
+                    className="text-base"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    We understand that unforeseen circumstances may arise. However,
+                    please be aware; Due to limited availability, missing more than
+                    one session or failing to book sessions for a week or more,
+                    without prior communication, may result in the release of your
+                    reserved space with your assigned Counsellor to accommodate
+                    other individuals in need of help and support.
+                  </p>
+
+                  <label className="flex items-start gap-3 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={formData.termsAccepted}
                       onChange={(e) =>
                         handleInputChange("termsAccepted", e.target.checked)
                       }
-                      className="w-5 h-5 mt-0.5 text-[#6f1d56] rounded focus:ring-[#6f1d56]"
+                      className="mt-1 w-5 h-5 rounded"
+                      style={{
+                        borderColor: "var(--input-border)",
+                        accentColor: "#6f1d56",
+                      }}
                     />
-                    <span className="text-sm text-gray-700">
-                      I confirm that the information provided is accurate, and I agree to the{" "}
-                      <Link
-                        href="/agreement/mid-range"
-                        target="_blank"
-                        className="text-[#6f1d56] underline font-medium"
-                      >
-                        Client Agreement &amp; Privacy Terms
-                      </Link>
-                      . <span className="text-red-500">*</span>
+                    <span
+                      className="text-base font-medium"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      By submitting this form, you understand and acknowledge that
+                      if you miss more than one session or fail to book sessions
+                      for a week or more, without communication, your reserved space
+                      will be released to benefit someone else who may need it.{" "}
+                      <span className="text-red-500">*</span>
                     </span>
                   </label>
                   {errors.termsAccepted && (
@@ -3391,19 +3427,41 @@ function MidRangeClientIntakeContent() {
                     </p>
                   )}
 
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-center">
-                    <p className="text-base font-bold mb-4" style={{ color: "#6f1d56" }}>
-                      Thank you for completing this form and for taking the first step towards healing.
+                  <div
+                    className="border rounded-xl p-6"
+                    style={{
+                      borderColor: "#6f1d56",
+                      backgroundColor: "#fcf6fa",
+                    }}
+                  >
+                    <p
+                      className="text-base font-bold mb-4"
+                      style={{ color: "#6f1d56" }}
+                    >
+                      Thank you for completing this form and for taking the first step
+                      towards healing.
                     </p>
-                    <p className="text-sm mb-4" style={{ color: "var(--text-primary)" }}>
-                      We understand that starting counselling can feel daunting but please know, Vanquish Therapies is here to support you on your journey, and we are committed to providing a supportive environment for you.
+                    <p
+                      className="text-sm mb-4"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      We understand that starting counselling can feel daunting but
+                      please know, Vanquish Therapies is here to support you on your
+                      journey, and we are committed to providing a supportive
+                      environment for you.
                     </p>
                     <div className="bg-white p-4 rounded-lg border border-purple-200">
                       <p className="text-sm font-bold text-red-600 mb-2">
                         IMPORTANT NOTICE:
                       </p>
-                      <p className="text-sm" style={{ color: "var(--text-primary)" }}>
-                        Please note – Vanquish Therapies and our online counselling are not a crisis or emergency service. If you need to speak to someone immediately, please contact your GP, NHS (111), or the Samaritans (116 123).
+                      <p
+                        className="text-sm"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Please note – Vanquish Therapies and our online counselling
+                        are not a crisis or emergency service. If you need to speak
+                        to someone immediately, please contact your GP, NHS (111),
+                        or the Samaritans (116 123).
                       </p>
                     </div>
                   </div>
@@ -3498,11 +3556,6 @@ function MidRangeClientIntakeContent() {
                   </button>
                 ) : null}
               </div>
-
-              <div className="flex items-center justify-center gap-1.5 mt-4 text-xs text-gray-500">
-                <Lock className="w-3.5 h-3.5 text-gray-400" />
-                <span>Protected by 256-bit SSL encryption &bull; Confidentiality guaranteed</span>
-              </div>
             </div>
           </div>
         </div>
@@ -3569,6 +3622,7 @@ function MidRangeClientIntakeContent() {
                     amount={paymentProps.amount}
                     paymentType="consultation"
                     couponCode={paymentProps.couponCode}
+                    consultationSlotId={paymentProps.consultationSlotId}
                     returnUrl={paymentProps.returnUrl}
                     onSuccess={() => {
                       paymentProps.onSuccess();
