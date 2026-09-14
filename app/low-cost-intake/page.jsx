@@ -315,10 +315,12 @@ export default function VanquishClientIntake() {
         // Address validation
         if (!formData.street.trim()) stepErrors.street = "Address is required";
 
+        const calcAge = normalizeAge(formData.age);
         if (
           !formData.age ||
-          parseInt(formData.age) < 18 ||
-          formData.age.length > 2
+          !calcAge ||
+          parseInt(calcAge, 10) < 18 ||
+          parseInt(calcAge, 10) > 120
         )
           stepErrors.age = "Valid age (18-99) is required";
 
@@ -528,6 +530,56 @@ export default function VanquishClientIntake() {
     }
   };
 
+  const normalizeAge = (raw) => {
+    if (!raw) return "";
+    const clean = String(raw).trim();
+    const num = parseInt(clean, 10);
+    if (isNaN(num)) return clean;
+    const currentYear = new Date().getFullYear();
+    // 4-digit birth year (e.g. 1920 - currentYear)
+    if (num >= 1920 && num <= currentYear) {
+      return String(currentYear - num);
+    }
+    // 2-digit birth year (e.g. 70 - 99 -> 1970 - 1999)
+    if (num >= 70 && num <= 99) {
+      return String(currentYear - (1900 + num));
+    }
+    return String(num);
+  };
+
+  const handleAgeChange = (field, value) => {
+    const clean = value.replace(/\D/g, "").slice(0, 4);
+    const num = parseInt(clean, 10);
+    const currentYear = new Date().getFullYear();
+    if (clean.length === 4 && num >= 1920 && num <= currentYear) {
+      const calcAge = String(currentYear - num);
+      handleInputChange(field, calcAge);
+      toast.info(`Converted birth year ${num} to age ${calcAge}.`);
+      return;
+    }
+    handleInputChange(field, clean);
+  };
+
+  const handleAgeBlur = (field) => {
+    const val = formData[field];
+    if (!val) return;
+    const clean = String(val).trim();
+    const num = parseInt(clean, 10);
+    if (isNaN(num)) return;
+    const currentYear = new Date().getFullYear();
+
+    if (num >= 1920 && num <= currentYear) {
+      const calcAge = String(currentYear - num);
+      handleInputChange(field, calcAge);
+      toast.info(`Converted birth year ${num} to age ${calcAge}.`);
+    } else if (num >= 70 && num <= 99) {
+      const birthYear = 1900 + num;
+      const calcAge = String(currentYear - birthYear);
+      handleInputChange(field, calcAge);
+      toast.info(`Converted birth year '${num} (${birthYear}) to age ${calcAge}.`);
+    }
+  };
+
   const handleSupportAreaToggle = (area) => {
     setFormData((prev) => ({
       ...prev,
@@ -617,7 +669,7 @@ export default function VanquishClientIntake() {
             postcode: formData.postcode || null,
             country: formData.country || null,
             address: `${formData.street}, ${formData.city}, ${formData.postcode}, ${formData.country}`,
-            age: formData.age ? parseInt(formData.age) : null,
+            age: formData.age ? parseInt(normalizeAge(formData.age), 10) : null,
             emergency_contact_name: formData.emergencyContactName || null,
             emergency_contact_phone: formData.emergencyContactPhone || null,
             emergency_contact_email: formData.emergencyContactEmail || null,
@@ -1280,28 +1332,52 @@ export default function VanquishClientIntake() {
 
                   <div>
                     <label
-                      className="block text-lg font-medium mb-2"
+                      className="block text-lg font-medium mb-1"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Age <span className="text-red-500">*</span>
+                      Your Current Age (in years) <span className="text-red-500">*</span>
                     </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Enter your current age in years (e.g. 34). If you enter a birth year (e.g. 1992 or 92), it will be automatically calculated.
+                    </p>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       name="age"
                       id="age"
-                      min="18"
-                      max="99"
                       value={formData.age}
-                      onChange={(e) => handleInputChange("age", e.target.value)}
-                      onInput={(e) => {
-                        if (e.target.value.length > 2)
-                          e.target.value = e.target.value.slice(0, 2);
-                      }}
+                      onChange={(e) => handleAgeChange("age", e.target.value)}
+                      onBlur={() => handleAgeBlur("age")}
                       className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${
                         errors.age ? "border-red-500" : "border-gray-300"
                       }`}
-                      placeholder="28"
+                      placeholder="e.g., 34"
                     />
+                    {formData.age && (
+                      <div className="mt-1.5 text-xs">
+                        {parseInt(formData.age, 10) >= 70 && parseInt(formData.age, 10) <= 99 ? (
+                          <div className="flex items-center gap-2 flex-wrap bg-amber-50 p-2 rounded border border-amber-200 text-amber-800">
+                            <span>Showing as <strong>{formData.age} years old</strong>.</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const birthYear = 1900 + parseInt(formData.age, 10);
+                                const calcAge = String(new Date().getFullYear() - birthYear);
+                                handleInputChange("age", calcAge);
+                                toast.info(`Set age to ${calcAge} (born in ${birthYear}).`);
+                              }}
+                              className="font-semibold underline text-purple-700 hover:text-purple-900"
+                            >
+                              Born in {1900 + parseInt(formData.age, 10)}? Click to set age to {new Date().getFullYear() - (1900 + parseInt(formData.age, 10))}
+                            </button>
+                          </div>
+                        ) : parseInt(formData.age, 10) >= 18 && parseInt(formData.age, 10) <= 69 ? (
+                          <span className="text-emerald-700 font-medium">
+                            ✓ Current age: {formData.age} years old
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
                     {errors.age && (
                       <p className="text-red-500 text-sm mt-1">{errors.age}</p>
                     )}
