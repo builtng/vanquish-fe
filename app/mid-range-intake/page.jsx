@@ -3159,7 +3159,7 @@ function MidRangeClientIntakeContent() {
                     className="text-base md:text-lg text-center mb-6"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    Our consultation/assessment and admin fee is £{getConsultationFee().toFixed(2)}. This small
+                    Our consultation/assessment and admin fee is £{baseFee.toFixed(2)}. This small
                     fee helps us ensure that those embarking on their
                     therapeutic journey are truly committed to their well-being.
                     Please Note: This consultation/admin fee is non-refundable
