@@ -15,7 +15,6 @@ import {
   AlertTriangle,
   Lock,
   Users,
-  ShieldCheck,
   Loader2,
 } from "lucide-react";
 import { StripePaymentWrapper } from "@/components/StripePayment";
@@ -1081,10 +1080,6 @@ function MidRangeClientIntakeContent() {
                       process.env.NEXT_PUBLIC_APP_NAME ||
                       "Vanquish Therapies"}
                   </h1>
-                  <div className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 mt-3 rounded-full text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    <span>256-Bit SSL Encrypted &bull; Confidential &bull; GDPR Compliant</span>
-                  </div>
                 </>
               )}
             </div>
