@@ -779,8 +779,8 @@ function MidRangeClientIntakeContent() {
             postcode: sanitizeText(formData.postcode) || null,
             country: sanitizeText(formData.country) || null,
             location_of_residence:
-              sanitizeText(formData.locationOfResidence) || `${sanitizeText(formData.city)}, ${sanitizeText(formData.country)}`,
-            address: `${sanitizeText(formData.street)}, ${sanitizeText(formData.city)}, ${sanitizeText(formData.postcode)}, ${sanitizeText(formData.country)}`,
+              sanitizeText(formData.locationOfResidence) || [sanitizeText(formData.city), sanitizeText(formData.country)].filter(Boolean).join(", ") || sanitizeText(formData.street) || null,
+            address: [sanitizeText(formData.street), sanitizeText(formData.city), sanitizeText(formData.postcode), sanitizeText(formData.country)].filter(Boolean).join(", ") || sanitizeText(formData.street) || null,
             age: formData.age ? parseInt(formData.age, 10) : null,
             emergency_contact_name: sanitizeText(formData.emergencyContactName) || null,
             emergency_contact_phone: sanitizeText(formData.emergencyContactPhone) || null,
@@ -1516,28 +1516,6 @@ function MidRangeClientIntakeContent() {
                         {errors.street}
                       </p>
                     )}
-                  </div>
-
-                  <div>
-                    <label
-                      className="block text-lg font-medium mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Please state where you reside in the world (as our practice
-                      is based in the UK, all our sessions are conducted according
-                      to UK time) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) =>
-                        handleInputChange("city", e.target.value)
-                      }
-                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                      placeholder="e.g. London, UK"
-                    />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
