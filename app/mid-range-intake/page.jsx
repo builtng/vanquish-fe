@@ -143,6 +143,10 @@ function MidRangeClientIntakeContent() {
     "Mid Range": 15.0,
     "Counselling & Coaching": 20.0,
   });
+  const [sessionPricing, setSessionPricing] = useState({
+    "Mid Range": 40.0,
+    "Counselling & Coaching": 50.0,
+  });
 
   // Sync state from query parameters on mount or URL changes
   useEffect(() => {
@@ -219,23 +223,37 @@ function MidRangeClientIntakeContent() {
             "Mid Range": 15.0,
             "Counselling & Coaching": 20.0,
           };
+          const sessionMap = {
+            "Mid Range": 40.0,
+            "Counselling & Coaching": 50.0,
+          };
           services.forEach((s) => {
+            const name = (s.service_name || "").toLowerCase().trim();
             if (
-              s.service_name === "Mid Range" ||
-              s.service_name === "Mid Range Counselling"
+              name === "mid range" ||
+              name === "mid range counselling" ||
+              name === "mid-range" ||
+              name === "mid-range counselling"
             ) {
-              const p = parseFloat(s.consultation_price);
-              if (!isNaN(p) && p > 0) pricingMap["Mid Range"] = p;
+              const cp = parseFloat(s.consultation_price);
+              if (!isNaN(cp) && cp > 0) pricingMap["Mid Range"] = cp;
+              const sp = parseFloat(s.session_price);
+              if (!isNaN(sp) && sp > 0) sessionMap["Mid Range"] = sp;
             }
             if (
-              s.service_name === "Counselling & Coaching" ||
-              s.service_name === "Coaching & Counselling"
+              name === "counselling & coaching" ||
+              name === "coaching & counselling" ||
+              name === "counselling and coaching" ||
+              name === "coaching and counselling"
             ) {
-              const p = parseFloat(s.consultation_price);
-              if (!isNaN(p) && p > 0) pricingMap["Counselling & Coaching"] = p;
+              const cp = parseFloat(s.consultation_price);
+              if (!isNaN(cp) && cp > 0) pricingMap["Counselling & Coaching"] = cp;
+              const sp = parseFloat(s.session_price);
+              if (!isNaN(sp) && sp > 0) sessionMap["Counselling & Coaching"] = sp;
             }
           });
           setServicePricing(pricingMap);
+          setSessionPricing(sessionMap);
           setBaseFee(
             pricingMap[formData.serviceType] ||
             (formData.serviceType === "Counselling & Coaching" ? 20.0 : 15.0)
@@ -1200,13 +1218,13 @@ function MidRangeClientIntakeContent() {
                       {
                         val: "Mid Range",
                         label: "Mid Range Counselling",
-                        price: "Starting from £40",
+                        price: `Starting from £${Math.round(sessionPricing["Mid Range"] || 40)}`,
                         desc: "One-to-one counselling with a qualified counsellor.",
                       },
                       {
                         val: "Counselling & Coaching",
                         label: "Coaching & Counselling",
-                        price: "Starting from £60",
+                        price: `Starting from £${Math.round(sessionPricing["Counselling & Coaching"] || 50)}`,
                         desc: "An integrated coaching and counselling approach.",
                       },
                     ].map((s) => (
@@ -1567,8 +1585,8 @@ function MidRangeClientIntakeContent() {
                       className="block text-lg font-medium mb-2"
                       style={{ color: "var(--text-primary)" }}
                     >
-                      Are you currently receiving counselling or therapy anywhere
-                      else? <span className="text-red-500">*</span>
+                      Are you currently in therapy/counselling anywhere else?{" "}
+                      <span className="text-red-500">*</span>
                     </label>
                     <select
                       name="currentlyInTherapy"
@@ -1582,9 +1600,9 @@ function MidRangeClientIntakeContent() {
                           : "border-gray-300"
                         }`}
                     >
-                      <option value="">Please Select</option>
-                      <option value="No">No</option>
+                      <option value="">Please select</option>
                       <option value="Yes">Yes</option>
+                      <option value="No">No</option>
                     </select>
                     {errors.currentlyInTherapy && (
                       <p className="text-red-500 text-sm mt-1">
@@ -1716,18 +1734,19 @@ function MidRangeClientIntakeContent() {
                       className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.ethnicity ? "border-red-500" : "border-gray-300"
                         }`}
                     >
-                      <option value="">Please Select</option>
-                      <option value="Asian / Asian British">
-                        Asian / Asian British
-                      </option>
-                      <option value="Black / African / Caribbean / Black British">
-                        Black / African / Caribbean / Black British
-                      </option>
-                      <option value="Mixed / Multiple ethnic groups">
-                        Mixed / Multiple ethnic groups
-                      </option>
-                      <option value="White">White</option>
-                      <option value="Other">Other</option>
+                      <option value="">Please select</option>
+                      <option value="Caucasian/White">Caucasian/White</option>
+                      <option value="African/Caribbean/Black">African/Caribbean/Black</option>
+                      <option value="North African">North African</option>
+                      <option value="Hispanic/Latino">Hispanic/Latino</option>
+                      <option value="South Asian">South Asian</option>
+                      <option value="Southeast Asian">Southeast Asian</option>
+                      <option value="East Asian">East Asian</option>
+                      <option value="Central Asian">Central Asian</option>
+                      <option value="West Asian (Middle Eastern)">West Asian (Middle Eastern)</option>
+                      <option value="North Asian">North Asian</option>
+                      <option value="Mixed/Multiracial">Mixed/Multiracial</option>
+                      <option value="Other">Other (Please use the box below to specify)</option>
                     </select>
                     {errors.ethnicity && (
                       <p className="text-red-500 text-sm mt-1">
@@ -1777,17 +1796,16 @@ function MidRangeClientIntakeContent() {
                           : "border-gray-300"
                         }`}
                     >
-                      <option value="">Please Select</option>
-                      <option value="Heterosexual / Straight">
-                        Heterosexual / Straight
-                      </option>
+                      <option value="">Please select</option>
+                      <option value="Heterosexual">Heterosexual</option>
                       <option value="Gay">Gay</option>
                       <option value="Lesbian">Lesbian</option>
                       <option value="Bisexual">Bisexual</option>
+                      <option value="Pansexual">Pansexual</option>
+                      <option value="Asexual">Asexual</option>
+                      <option value="Queer">Queer</option>
                       <option value="Other">Other</option>
-                      <option value="Prefer not to say">
-                        Prefer not to say
-                      </option>
+                      <option value="Prefer not to say">Prefer not to say</option>
                     </select>
                     {errors.sexualOrientation && (
                       <p className="text-red-500 text-sm mt-1">
@@ -1857,15 +1875,37 @@ function MidRangeClientIntakeContent() {
                           className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerEthnicity ? "border-red-500" : "border-gray-300"
                             }`}
                         >
-                          <option value="">Please Select</option>
-                          <option value="Asian / Asian British">Asian / Asian British</option>
-                          <option value="Black / African / Caribbean / Black British">Black / African / Caribbean / Black British</option>
-                          <option value="Mixed / Multiple ethnic groups">Mixed / Multiple ethnic groups</option>
-                          <option value="White">White</option>
-                          <option value="Other">Other</option>
+                          <option value="">Please select</option>
+                          <option value="Caucasian/White">Caucasian/White</option>
+                          <option value="African/Caribbean/Black">African/Caribbean/Black</option>
+                          <option value="North African">North African</option>
+                          <option value="Hispanic/Latino">Hispanic/Latino</option>
+                          <option value="South Asian">South Asian</option>
+                          <option value="Southeast Asian">Southeast Asian</option>
+                          <option value="East Asian">East Asian</option>
+                          <option value="Central Asian">Central Asian</option>
+                          <option value="West Asian (Middle Eastern)">West Asian (Middle Eastern)</option>
+                          <option value="North Asian">North Asian</option>
+                          <option value="Mixed/Multiracial">Mixed/Multiracial</option>
+                          <option value="Other">Other (Please use the box below to specify)</option>
                         </select>
                         {errors.partnerEthnicity && <p className="text-red-500 text-sm mt-1">{errors.partnerEthnicity}</p>}
                       </div>
+
+                      {formData.partnerEthnicity === "Other" && (
+                        <div>
+                          <label className="block text-base font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                            Please specify partner's ethnicity
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.partnerOtherEthnicity}
+                            onChange={(e) => handleInputChange("partnerOtherEthnicity", e.target.value)}
+                            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                            placeholder="Specify partner's ethnicity"
+                          />
+                        </div>
+                      )}
 
                       <div>
                         <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
@@ -1877,16 +1917,34 @@ function MidRangeClientIntakeContent() {
                           className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerSexualOrientation ? "border-red-500" : "border-gray-300"
                             }`}
                         >
-                          <option value="">Please Select</option>
-                          <option value="Heterosexual / Straight">Heterosexual / Straight</option>
+                          <option value="">Please select</option>
+                          <option value="Heterosexual">Heterosexual</option>
                           <option value="Gay">Gay</option>
                           <option value="Lesbian">Lesbian</option>
                           <option value="Bisexual">Bisexual</option>
+                          <option value="Pansexual">Pansexual</option>
+                          <option value="Asexual">Asexual</option>
+                          <option value="Queer">Queer</option>
                           <option value="Other">Other</option>
                           <option value="Prefer not to say">Prefer not to say</option>
                         </select>
                         {errors.partnerSexualOrientation && <p className="text-red-500 text-sm mt-1">{errors.partnerSexualOrientation}</p>}
                       </div>
+
+                      {formData.partnerSexualOrientation === "Other" && (
+                        <div>
+                          <label className="block text-base font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                            Please specify partner's sexual orientation
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.partnerOtherSexualOrientation}
+                            onChange={(e) => handleInputChange("partnerOtherSexualOrientation", e.target.value)}
+                            className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                            placeholder="Specify partner's sexual orientation"
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2331,9 +2389,15 @@ function MidRangeClientIntakeContent() {
                       className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     >
                       <option value="No preference">No preference</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Non-binary">Non-binary</option>
+                      <option value="Male">
+                        Prefer Male counsellor (subject to availability)
+                      </option>
+                      <option value="Female">
+                        Prefer Female counsellor (subject to availability)
+                      </option>
+                      <option value="Non-binary">
+                        Prefer Non-binary counsellor (subject to availability)
+                      </option>
                     </select>
                   </div>
 
@@ -2354,10 +2418,17 @@ function MidRangeClientIntakeContent() {
                       className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     >
                       <option value="No preference">No preference</option>
-                      <option value="20-30">20 - 30</option>
-                      <option value="30-40">30 - 40</option>
-                      <option value="40-50">40 - 50</option>
-                      <option value="50+">50+</option>
+                      <option value="Younger">
+                        Prefer younger counsellor (close to my age) (subject to
+                        availability)
+                      </option>
+                      <option value="Older">
+                        Prefer older counsellor (subject to availability)
+                      </option>
+                      <option value="Similar">
+                        Prefer counsellor of similar age (subject to
+                        availability)
+                      </option>
                     </select>
                   </div>
 
@@ -2381,16 +2452,9 @@ function MidRangeClientIntakeContent() {
                       className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     >
                       <option value="No preference">No preference</option>
-                      <option value="Asian / Asian British">
-                        Asian / Asian British
+                      <option value="Prefer same">
+                        Prefer same ethnicity as me (subject to availability)
                       </option>
-                      <option value="Black / African / Caribbean / Black British">
-                        Black / African / Caribbean / Black British
-                      </option>
-                      <option value="Mixed / Multiple ethnic groups">
-                        Mixed / Multiple ethnic groups
-                      </option>
-                      <option value="White">White</option>
                     </select>
                   </div>
 
@@ -2414,10 +2478,12 @@ function MidRangeClientIntakeContent() {
                       className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     >
                       <option value="No preference">No preference</option>
-                      <option value="Heterosexual / Straight">
-                        Heterosexual / Straight
+                      <option value="LGBTQ+">
+                        Prefer LGBTQ+ counsellor (subject to availability)
                       </option>
-                      <option value="LGBTQ+">LGBTQ+</option>
+                      <option value="Same orientation">
+                        Prefer same orientation as me (subject to availability)
+                      </option>
                     </select>
                   </div>
                 </div>
@@ -2464,12 +2530,18 @@ function MidRangeClientIntakeContent() {
                           : "border-gray-300"
                         }`}
                     >
-                      <option value="">Please Select</option>
-                      <option value="Google">Google / Web Search</option>
-                      <option value="Social Media">Social Media (Instagram, Facebook, etc.)</option>
-                      <option value="Friend/Family">Friend or Family Recommendation</option>
-                      <option value="Referral">Professional / Agency Referral</option>
-                      <option value="Other">Other</option>
+                      <option value="">Please select</option>
+                      <option value="Online">Online (Google, Bing etc)</option>
+                      <option value="Social Media">
+                        Social Media (Facebook, Instagram)
+                      </option>
+                      <option value="Referral">Referral</option>
+                      <option value="Organisation">Organisation</option>
+                      <option value="It's just Project">
+                        It's just Project
+                      </option>
+                      <option value="Word of Mouth">Word of Mouth</option>
+                      <option value="Billboard">Billboard</option>
                     </select>
                     {errors.hearAboutUs && (
                       <p className="text-red-500 text-sm mt-1">
