@@ -2290,53 +2290,140 @@ function MidRangeClientIntakeContent() {
                   </p>
                 </div>
 
-                <div className="space-y-6">
+                <div data-field="availability" className="space-y-4">
                   {["monday", "tuesday", "wednesday", "thursday", "friday"].map(
                     (day) => {
-                      const slots = day === "friday" ? fridayTimeSlots : timeSlots;
+                      const slotsToShow =
+                        day === "friday" ? fridayTimeSlots : timeSlots;
                       return (
                         <div
                           key={day}
-                          className="border border-gray-200 rounded-xl p-4 bg-gray-50"
+                          className={`border rounded-lg overflow-hidden ${
+                            errors.availability
+                              ? "border-red-300"
+                              : "border-gray-300"
+                          }`}
                         >
-                          <h3 className="font-bold text-lg text-gray-800 capitalize mb-3">
+                          <div
+                            className="px-4 py-3 font-semibold text-sm capitalize border-b"
+                            style={{
+                              borderColor: "var(--input-border)",
+                              backgroundColor: "var(--hover-bg)",
+                              color: "#6f1d56",
+                            }}
+                          >
                             {day}
-                          </h3>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                            {slots.map((slot) => {
-                              const isChecked =
-                                formData.availability[day]?.includes(slot.value);
-                              return (
+                            {day === "friday" && (
+                              <span
+                                className="ml-2 text-sm font-normal"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                (Last session at 5:00 PM - 5:50 PM)
+                              </span>
+                            )}
+                          </div>
+                          <div className="p-4">
+                            <div className="space-y-2">
+                              {slotsToShow.map((slot) => (
                                 <label
                                   key={slot.value}
-                                  className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs sm:text-sm cursor-pointer transition-colors ${isChecked
-                                      ? "bg-[#6f1d56] text-white border-[#6f1d56] font-medium"
-                                      : "bg-white text-gray-700 border-gray-200 hover:border-purple-300"
-                                    }`}
+                                  className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:border transition-colors border"
+                                  style={{
+                                    borderColor: "var(--border-color)",
+                                    backgroundColor: "var(--bg-secondary)",
+                                  }}
                                 >
                                   <input
                                     type="checkbox"
-                                    checked={isChecked}
+                                    checked={formData.availability[
+                                      day
+                                    ]?.includes(slot.value)}
                                     onChange={() =>
                                       handleAvailabilityToggle(day, slot.value)
                                     }
-                                    className="sr-only"
+                                    className="w-5 h-5 rounded"
+                                    style={{
+                                      borderColor: "var(--input-border)",
+                                      accentColor: "#6f1d56",
+                                    }}
                                   />
-                                  <span>{slot.label}</span>
+                                  <div className="flex-1">
+                                    <span
+                                      className="text-lg font-medium"
+                                      style={{ color: "var(--text-primary)" }}
+                                    >
+                                      {slot.label}
+                                    </span>
+                                    <span
+                                      className="ml-2 text-sm px-2 py-0.5 rounded"
+                                      style={{
+                                        backgroundColor:
+                                          slot.category === "Morning"
+                                            ? "#fef3c7"
+                                            : slot.category === "Afternoon"
+                                              ? "#dbeafe"
+                                              : "#fce7f3",
+                                        color:
+                                          slot.category === "Morning"
+                                            ? "#92400e"
+                                            : slot.category === "Afternoon"
+                                              ? "#1e40af"
+                                              : "#9f1239",
+                                      }}
+                                    >
+                                      {slot.category}
+                                    </span>
+                                  </div>
                                 </label>
-                              );
-                            })}
+                              ))}
+                            </div>
                           </div>
                         </div>
                       );
                     }
                   )}
-                  {errors.availability && (
-                    <p className="text-red-500 text-sm mt-2">
-                      {errors.availability}
-                    </p>
-                  )}
                 </div>
+
+                {errors.availability && (
+                  <p className="text-red-500 text-sm mt-2">
+                    {errors.availability}
+                  </p>
+                )}
+
+                {Object.values(formData.availability).some(
+                  (day) => day && day.length > 0
+                ) && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p className="text-base text-green-900 font-medium mb-2">
+                      Your selected availability:
+                    </p>
+                    {Object.entries(formData.availability).map(
+                      ([day, slots]) => {
+                        const slotsToUse =
+                          day === "friday" ? fridayTimeSlots : timeSlots;
+                        return (
+                          slots &&
+                          slots.length > 0 && (
+                            <p
+                              key={day}
+                              className="text-base text-green-800 capitalize"
+                            >
+                              <strong>{day}:</strong>{" "}
+                              {slots
+                                .map(
+                                  (s) =>
+                                    slotsToUse.find((t) => t.value === s)
+                                      ?.label
+                                )
+                                .filter(Boolean)
+                                .join(", ")}
+                            </p>
+                          )
+                        );
+                      }
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
