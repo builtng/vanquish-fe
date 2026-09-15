@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { StripePaymentWrapper } from "@/components/StripePayment";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
+import FilteredCounsellors from "@/components/FilteredCounsellors";
 import { toast } from "react-toastify";
 import apiService from "@/lib/api";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -108,8 +109,11 @@ function MidRangeClientIntakeContent() {
     // Step 9: Core34 Assessment
     core34: {},
 
-    // Step 10: Consultation Slot
+    // Step 10: Counsellor & Consultation Slot
     consultationSlotId: "",
+    consultationWithTcUuid: "",
+    consultationWithTcName: "",
+    consultationDatetime: "",
 
     // Step 11: Emergency Contact
     emergencyContactName: "",
@@ -575,10 +579,10 @@ function MidRangeClientIntakeContent() {
         }
         break;
 
-      case 10: // Consultation Slot
-        if (!formData.consultationSlotId)
+      case 10: // Filtered Counsellors & Consultation Slot
+        if (!formData.consultationSlotId && !formData.consultationDatetime)
           stepErrors.consultationSlotId =
-            "Please select an available consultation slot";
+            "Please choose a counsellor and select an available consultation slot";
         break;
 
       case 11: // Emergency Contact
@@ -937,6 +941,8 @@ function MidRangeClientIntakeContent() {
             consultation_fee: finalFee,
             discount_code: isDiscountApplied ? formData.discountCode : null,
             consultation_slot_id: formData.consultationSlotId || null,
+            consultation_with_tc_uuid: formData.consultationWithTcUuid || null,
+            consultation_datetime: formData.consultationDatetime || null,
           }),
         }
       );
@@ -986,6 +992,8 @@ function MidRangeClientIntakeContent() {
           amount: finalFee,
           couponCode: isDiscountApplied ? formData.discountCode : null,
           consultationSlotId: formData.consultationSlotId || null,
+          consultationWithTcUuid: formData.consultationWithTcUuid || null,
+          consultationDatetime: formData.consultationDatetime || null,
           returnUrl: `${window.location.origin}/mid-range-intake/success?uuid=${clientUuid || ""}&slot=${formData.consultationSlotId || ""}`,
           onSuccess: proceedToSuccess,
           onError: (errMsg) => {
@@ -1017,7 +1025,7 @@ function MidRangeClientIntakeContent() {
     { number: 7, title: "Preferences", icon: Heart },
     { number: 8, title: "Referral", icon: User },
     { number: 9, title: "Assessment", icon: CheckCircle },
-    { number: 10, title: "Slot", icon: Calendar },
+    { number: 10, title: "Counsellors", icon: Users },
     { number: 11, title: "Emergency", icon: AlertTriangle },
     { number: 12, title: "Payment", icon: CreditCard },
   ];
@@ -2998,276 +3006,36 @@ function MidRangeClientIntakeContent() {
               </div>
             )}
 
-            {/* ═══════════════ STEP 10: Consultation Slot ═══════════════ */}
+            {/* ═══════════════ STEP 10: Filtered Counsellors & Consultation Slot ═══════════════ */}
             {currentStep === 10 && (
-              <div className="space-y-4 md:space-y-6">
-                <div>
-                  <h2
-                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    Select a Consultation Slot (UK time)
-                  </h2>
-                  <p
-                    className="text-base md:text-lg text-center"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    Please choose an available slot for your initial
-                    consultation.
-                  </p>
-                </div>
-
-                {isSlotsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6f1d56]"></div>
-                  </div>
-                ) : availableSlots.length === 0 ? (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-base text-yellow-800">
-                      There are currently no available consultation slots.
-                      Please check back later or contact us directly.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {errors.consultationSlotId && (
-                      <p className="text-red-500 text-sm font-medium">
-                        {errors.consultationSlotId}
-                      </p>
-                    )}
-
-                    {/* Calendar & Slots Split View */}
-                    <div className="flex flex-col lg:flex-row gap-6">
-                      {/* Left Side: Calendar */}
-                      <div className="w-full lg:w-1/2 border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-bold text-gray-800">
-                            {currentMonth.toLocaleString("default", {
-                              month: "long",
-                              year: "numeric",
-                            })}
-                          </h3>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCurrentMonth(
-                                  new Date(
-                                    currentMonth.getFullYear(),
-                                    currentMonth.getMonth() - 1,
-                                    1
-                                  )
-                                )
-                              }
-                              className="p-1 rounded-full hover:bg-gray-100 text-gray-600 transition"
-                            >
-                              <ChevronLeft className="w-5 h-5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCurrentMonth(
-                                  new Date(
-                                    currentMonth.getFullYear(),
-                                    currentMonth.getMonth() + 1,
-                                    1
-                                  )
-                                )
-                              }
-                              className="p-1 rounded-full hover:bg-gray-100 text-gray-600 transition"
-                            >
-                              <ChevronRight className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500 mb-2">
-                          <div>MON</div>
-                          <div>TUE</div>
-                          <div>WED</div>
-                          <div>THU</div>
-                          <div>FRI</div>
-                          <div>SAT</div>
-                          <div>SUN</div>
-                        </div>
-
-                        <div className="grid grid-cols-7 gap-1">
-                          {(() => {
-                            const year = currentMonth.getFullYear();
-                            const month = currentMonth.getMonth();
-                            const firstDayOfMonth = new Date(
-                              year,
-                              month,
-                              1
-                            ).getDay();
-                            const daysInMonth = new Date(
-                              year,
-                              month + 1,
-                              0
-                            ).getDate();
-                            const startingDay =
-                              firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-
-                            const uniqueSlots = [];
-                            const slotTimes = new Set();
-
-                            availableSlots.forEach((slot) => {
-                              if (!slotTimes.has(slot.consultation_datetime)) {
-                                slotTimes.add(slot.consultation_datetime);
-                                uniqueSlots.push(slot);
-                              }
-                            });
-
-                            const groupedSlots = {};
-                            uniqueSlots.forEach((slot) => {
-                              const slotDate = new Date(
-                                slot.consultation_datetime
-                              );
-                              const dateStr = `${slotDate.getFullYear()}-${String(slotDate.getMonth() + 1).padStart(2, "0")}-${String(slotDate.getDate()).padStart(2, "0")}`;
-                              if (!groupedSlots[dateStr])
-                                groupedSlots[dateStr] = [];
-                              groupedSlots[dateStr].push(slot);
-                            });
-
-                            const cells = [];
-                            for (let i = 0; i < startingDay; i++) {
-                              cells.push(
-                                <div key={`empty-${i}`} className="p-2"></div>
-                              );
-                            }
-                            for (let d = 1; d <= daysInMonth; d++) {
-                              const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-                              const hasSlots =
-                                groupedSlots[dateStr] &&
-                                groupedSlots[dateStr].length > 0;
-                              const isSelected =
-                                selectedCalendarDate === dateStr;
-
-                              cells.push(
-                                <button
-                                  key={`day-${d}`}
-                                  type="button"
-                                  onClick={() =>
-                                    hasSlots && setSelectedCalendarDate(dateStr)
-                                  }
-                                  disabled={!hasSlots}
-                                  className={`p-2 w-full aspect-square rounded-lg flex items-center justify-center text-sm transition-all ${isSelected
-                                      ? "bg-[#4052f5] text-white font-bold shadow-md"
-                                      : hasSlots
-                                        ? "bg-blue-50 text-blue-900 border border-blue-100 hover:bg-blue-100 font-semibold cursor-pointer"
-                                        : "text-gray-300 cursor-not-allowed"
-                                    }`}
-                                >
-                                  {d}
-                                </button>
-                              );
-                            }
-                            return cells;
-                          })()}
-                        </div>
-
-                        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2 text-sm text-gray-500">
-                          <Lock className="w-4 h-4" />
-                          Timezone: Europe/London (
-                          {new Date().toLocaleTimeString("en-GB", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            timeZone: "Europe/London",
-                          })}
-                          )
-                        </div>
-                      </div>
-
-                      {/* Right Side: Available Slots */}
-                      <div className="w-full lg:w-1/2">
-                        {selectedCalendarDate ? (
-                          <div>
-                            <h3 className="text-lg font-bold text-[#6f1d56] mb-4">
-                              {new Date(
-                                selectedCalendarDate
-                              ).toLocaleDateString("en-GB", {
-                                weekday: "long",
-                                month: "long",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
-                            </h3>
-
-                            {(() => {
-                              const seenTimes = new Set();
-                              const dateSlots = availableSlots.filter((s) => {
-                                const sd = new Date(s.consultation_datetime);
-                                const dateStr = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, "0")}-${String(sd.getDate()).padStart(2, "0")}`;
-                                if (dateStr !== selectedCalendarDate)
-                                  return false;
-
-                                const timeKey = sd.getTime();
-                                if (seenTimes.has(timeKey)) return false;
-                                seenTimes.add(timeKey);
-                                return true;
-                              });
-
-                              return (
-                                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                                  {dateSlots.map((slot) => {
-                                    const d = new Date(
-                                      slot.consultation_datetime
-                                    );
-                                    const endD = new Date(
-                                      d.getTime() + 15 * 60 * 1000
-                                    );
-                                    const timeFormat = {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                      hour12: true,
-                                    };
-                                    const timeStr = `${d.toLocaleTimeString("en-GB", timeFormat)} - ${endD.toLocaleTimeString("en-GB", timeFormat)}`;
-                                    return (
-                                      <label
-                                        key={slot.id}
-                                        className={`flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-colors w-full text-center ${formData.consultationSlotId === slot.id
-                                            ? "border-[#4052f5] bg-[#4052f5] text-white font-bold"
-                                            : "border-[#4052f5] text-[#4052f5] hover:bg-blue-50"
-                                          }`}
-                                      >
-                                        <input
-                                          type="radio"
-                                          name="consultationSlotId"
-                                          value={slot.id}
-                                          checked={
-                                            formData.consultationSlotId ===
-                                            slot.id
-                                          }
-                                          onChange={() =>
-                                            handleInputChange(
-                                              "consultationSlotId",
-                                              slot.id
-                                            )
-                                          }
-                                          className="hidden"
-                                        />
-                                        {timeStr} (UK time)
-                                      </label>
-                                    );
-                                  })}
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        ) : (
-                          <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-gray-50 border border-dashed rounded-lg text-gray-500">
-                            <Calendar className="w-12 h-12 mb-2 opacity-50 text-[#6f1d56]" />
-                            <p>
-                              Please select an available date from the calendar
-                              to view time slots.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <FilteredCounsellors
+                formData={formData}
+                selectedCounsellorUuid={formData.consultationWithTcUuid}
+                selectedSlotId={formData.consultationSlotId}
+                selectedDatetime={formData.consultationDatetime}
+                onSelectCounsellor={(counsellor) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    consultationWithTcUuid: counsellor.uuid,
+                    consultationWithTcName: counsellor.name,
+                  }));
+                }}
+                onSelectSlot={(slotData) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    consultationSlotId: slotData.id || "",
+                    consultationDatetime: slotData.consultation_datetime || "",
+                  }));
+                  setErrors((prev) => {
+                    const updated = { ...prev };
+                    delete updated.consultationSlotId;
+                    return updated;
+                  });
+                }}
+                availableSlots={availableSlots}
+                isSlotsLoading={isSlotsLoading}
+                errors={errors}
+              />
             )}
 
             {/* ═══════════════ STEP 11: Emergency Contact ═══════════════ */}

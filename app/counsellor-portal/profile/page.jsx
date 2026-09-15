@@ -505,97 +505,136 @@ function ProfilePageContent() {
 
           {/* Consultation Availability Toggle (Qualified counsellors only) */}
           {tcData?.counsellor_type === "Qualified" && (
-            <section className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] shadow-sm">
-              <div className="px-6 py-4 border-b border-gray-100 dark:border-[var(--card-border)] flex items-center gap-2">
-                <CalendarClock className="w-5 h-5 text-[#6f1d56]" />
-                <h2 className="font-bold text-gray-900 dark:text-[var(--text-primary)]">
-                  Consultation Availability
-                </h2>
+            <section className="bg-white dark:bg-[var(--card-bg)] rounded-2xl border border-gray-200 dark:border-[var(--card-border)] shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-[var(--card-border)] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-[#f4f7f4] text-[#2d5a3f] rounded-xl">
+                    <CalendarClock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-base">
+                      Consultation Availability Toggles
+                    </h2>
+                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">
+                      For Qualified Counsellors • Delegate or host your initial consultations
+                    </p>
+                  </div>
+                </div>
+                <span className="px-3 py-1 bg-emerald-50 text-[#2d5a3f] text-xs font-bold rounded-full border border-emerald-100">
+                  Qualified Practitioner
+                </span>
               </div>
-              <div className="p-6 space-y-4">
-                <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">
-                  Control how clients applying for Mid Range or Coaching &amp;
-                  Counselling book their initial consultation with you. Your
-                  actual weekly consultation time slots are set by Vanquish
-                  Therapies admin.
+
+              <div className="p-6 space-y-6">
+                <p className="text-xs md:text-sm text-gray-600 dark:text-[var(--text-secondary)] leading-relaxed">
+                  Control how clients applying for Mid-Range or Coaching &amp;
+                  Counselling discover and book initial consultations on your profile.
                 </p>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/40 rounded-lg">
-                  <div className="pr-4">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                      Show clients my consultation availability
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-0.5">
-                      Clients can book a consultation directly with you when
-                      you have open slots.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={consultationToggles.show_own_consultation_availability}
-                    disabled={savingToggle === "show_own_consultation_availability"}
-                    onClick={() =>
-                      handleToggleConsultationPreference(
-                        "show_own_consultation_availability",
-                      )
-                    }
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-                      consultationToggles.show_own_consultation_availability
-                        ? "bg-[#6f1d56]"
-                        : "bg-gray-300 dark:bg-gray-700"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                <div className="space-y-4">
+                  {/* Toggle 1: Show clients my consultation availability */}
+                  <div className="flex items-start justify-between p-5 bg-gray-50/80 dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-700/60 hover:border-gray-200 transition">
+                    <div className="flex items-start gap-4 pr-4">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#2d5a3f] border border-emerald-100/60 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
+                        <CalendarClock className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm md:text-base font-bold text-gray-900 dark:text-gray-100">
+                          Show clients my consultation availability
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] leading-relaxed">
+                          Display your own consultation availability on your profile (Filtered searches section which clients view). Clients can book consultation slots directly with you.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={consultationToggles.show_own_consultation_availability}
+                      disabled={savingToggle === "show_own_consultation_availability"}
+                      onClick={() =>
+                        handleToggleConsultationPreference(
+                          "show_own_consultation_availability",
+                        )
+                      }
+                      className={`relative inline-flex h-7 w-13 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#2d5a3f] focus:ring-offset-2 disabled:opacity-50 cursor-pointer ${
                         consultationToggles.show_own_consultation_availability
-                          ? "translate-x-6"
-                          : "translate-x-1"
+                          ? "bg-[#2d5a3f]"
+                          : "bg-gray-300 dark:bg-gray-700"
                       }`}
-                    />
-                  </button>
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                          consultationToggles.show_own_consultation_availability
+                            ? "translate-x-7"
+                            : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Toggle 2: Show clients Vanquish Therapies consultation availability */}
+                  <div className="flex items-start justify-between p-5 bg-gray-50/80 dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-700/60 hover:border-gray-200 transition">
+                    <div className="flex items-start gap-4 pr-4">
+                      <div className="w-10 h-10 rounded-2xl bg-purple-50 text-[#6f1d56] border border-purple-100/60 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs font-serif font-black text-base">
+                        V
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm md:text-base font-bold text-gray-900 dark:text-gray-100">
+                          Show clients Vanquish Therapies consultation availability
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] leading-relaxed">
+                          If you do not have any consultation availability, display Vanquish Therapies' consultation slots instead. Vanquish Therapies will conduct the initial consultation on your behalf, and match the client with you afterwards.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={
+                        consultationToggles.show_vanquish_consultation_availability
+                      }
+                      disabled={
+                        savingToggle === "show_vanquish_consultation_availability"
+                      }
+                      onClick={() =>
+                        handleToggleConsultationPreference(
+                          "show_vanquish_consultation_availability",
+                        )
+                      }
+                      className={`relative inline-flex h-7 w-13 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#2d5a3f] focus:ring-offset-2 disabled:opacity-50 cursor-pointer ${
+                        consultationToggles.show_vanquish_consultation_availability
+                          ? "bg-[#2d5a3f]"
+                          : "bg-gray-300 dark:bg-gray-700"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                          consultationToggles.show_vanquish_consultation_availability
+                            ? "translate-x-7"
+                            : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/40 rounded-lg">
-                  <div className="pr-4">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                      Show clients Vanquish Therapies consultation
-                      availability
+                {/* Priority Logic Callout Box */}
+                <div className="p-4 bg-[#f4f7f4] dark:bg-gray-800/60 rounded-2xl border border-[#e2ece4] dark:border-gray-700 flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[#2d5a3f] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
+                      Priority Logic
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-0.5">
-                      When you have no open consultation slots, clients can
-                      instead book with Vanquish Therapies, who will run the
-                      initial consultation on your behalf.
+                    <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                      • When you have open consultation slots and <strong>"Show clients my consultation availability"</strong> is enabled, clients will see your direct availability.<br />
+                      • Where you have no consultation availability or prefer not to conduct them, <strong>Vanquish Therapies' consultation availability</strong> is displayed instead.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={
-                      consultationToggles.show_vanquish_consultation_availability
-                    }
-                    disabled={
-                      savingToggle === "show_vanquish_consultation_availability"
-                    }
-                    onClick={() =>
-                      handleToggleConsultationPreference(
-                        "show_vanquish_consultation_availability",
-                      )
-                    }
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-                      consultationToggles.show_vanquish_consultation_availability
-                        ? "bg-[#6f1d56]"
-                        : "bg-gray-300 dark:bg-gray-700"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        consultationToggles.show_vanquish_consultation_availability
-                          ? "translate-x-6"
-                          : "translate-x-1"
-                      }`}
-                    />
-                  </button>
                 </div>
               </div>
             </section>
