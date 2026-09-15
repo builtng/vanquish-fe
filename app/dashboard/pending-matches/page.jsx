@@ -107,6 +107,7 @@ function transformPendingMatchClient(client) {
     matchScore: null,
     suggestedTCs: [],
     consultantName: client.consultations?.[0]?.tc?.name || null,
+    consultantType: client.consultations?.[0]?.tc?.counsellor_type || null,
     matchedTcName: client.matched_tc?.name || null,
     stage: client.stage,
   };
@@ -556,7 +557,7 @@ const PendingMatchRow = ({
                             Consulted by:{" "}
                           </span>
                           <span className="font-medium text-[var(--purple-primary)]">
-                            {formatName(client.consultantName, "tc")}
+                            {formatName(client.consultantName, getCounsellorPrefixType(client.consultantType))}
                           </span>
                         </span>
                       </div>
@@ -714,7 +715,7 @@ const PendingMatchRow = ({
                                 className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-sm hover:text-[var(--purple-primary)] transition-colors truncate block"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                {formatName(tc.name, "tc")}
+                                {formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type))}
                               </Link>
                               <span className="flex-shrink-0 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-[10px] rounded-full font-bold border border-green-100 dark:border-green-900/30">
                                 {tc.matchScore}%
@@ -1365,7 +1366,7 @@ export default function PendingMatchesPage() {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-base">
-                              {formatName(selectedTC.name, "tc")}
+                              {formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}
                             </span>
                             <span className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-semibold rounded-full">
                               {selectedTC.modality}

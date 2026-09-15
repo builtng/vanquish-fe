@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import apiService from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import SearchableSelect from "@/components/SearchableSelect";
-import { formatName } from "@/lib/nameFormatter";
+import { formatName, getCounsellorPrefixType } from "@/lib/nameFormatter";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import { useModal } from "@/contexts/ModalContext";
@@ -106,6 +106,7 @@ export default function CompletedMatchesPage() {
         matchedTC: client.matched_tc
           ? client.matched_tc.name || client.matched_tc.full_name
           : null,
+        matchedTcType: client.matched_tc?.counsellor_type || null,
         matchedTcId: client.matched_tc_id,
         serviceType: client.service_type || null,
         lastActivity: client.last_activity || "Never",
@@ -389,7 +390,7 @@ export default function CompletedMatchesPage() {
               </div>
               <div>
                 <p className="font-medium text-gray-900">
-                  {formatName(client.matchedTC, "tc")}
+                  {formatName(client.matchedTC, getCounsellorPrefixType(client.matchedTcType))}
                 </p>
                 <p className="text-sm text-gray-600">Trainee Counsellor</p>
               </div>
@@ -758,7 +759,7 @@ export default function CompletedMatchesPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           {client.matchedTC ? (
                             <span className="text-sm text-gray-900 dark:text-[var(--text-primary)]">
-                              {formatName(client.matchedTC, "tc")}
+                              {formatName(client.matchedTC, getCounsellorPrefixType(client.matchedTcType))}
                             </span>
                           ) : (
                             <span className="text-sm text-gray-400 dark:text-[var(--text-tertiary)] italic">
