@@ -831,6 +831,8 @@ function MidRangeClientIntakeContent() {
     setIsSubmitting(true);
 
     try {
+      const finalFee = getConsultationFee();
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
         }/client-intake`,
