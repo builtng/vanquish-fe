@@ -351,7 +351,8 @@ function computeSuggestedTCs(client, trainingCounsellors) {
         matchBreakdown: breakdown,
         flags,
         currentClients: currentCaseload,
-        counsellorType: tc.counsellor_type,
+        counsellor_type: tc.counsellor_type || (client.serviceType !== "Low Cost" ? "Qualified" : "Trainee"),
+        counsellorType: tc.counsellor_type || (client.serviceType !== "Low Cost" ? "Qualified" : "Trainee"),
         availability: utilization < 0.8 ? "High" : "Low",
         rawAvailability: tc.availability || {},
       };
@@ -404,6 +405,8 @@ const PendingMatchRow = ({
       );
       setSelectedTC({
         ...tc,
+        counsellor_type: tc.counsellor_type || fullTC?.counsellor_type || (client.serviceType !== "Low Cost" ? "Qualified" : "Trainee"),
+        counsellorType: tc.counsellorType || tc.counsellor_type || fullTC?.counsellor_type || (client.serviceType !== "Low Cost" ? "Qualified" : "Trainee"),
         rawAvailability: fullTC?.availability || tc.rawAvailability || {},
       });
     } else {
@@ -719,7 +722,7 @@ const PendingMatchRow = ({
                                 className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-sm hover:text-[var(--purple-primary)] transition-colors truncate block"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                {formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type))}
+                                {formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type || tc.counsellorType, client.serviceType))}
                               </Link>
                               <span className="flex-shrink-0 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-[10px] rounded-full font-bold border border-green-100 dark:border-green-900/30">
                                 {tc.matchScore}%
@@ -1370,7 +1373,7 @@ export default function PendingMatchesPage() {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-gray-900 dark:text-[var(--text-primary)] text-base">
-                              {formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type))}
+                              {formatName(selectedTC.name, getCounsellorPrefixType(selectedTC.counsellor_type || selectedTC.counsellorType, selectedClient?.serviceType))}
                             </span>
                             <span className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-semibold rounded-full">
                               {selectedTC.modality}
@@ -1406,6 +1409,8 @@ export default function PendingMatchesPage() {
                                   matchBreakdown: tc.matchBreakdown || null,
                                   flags: tc.flags || [],
                                   currentClients: tc.currentClients ?? tc.current_clients ?? 0,
+                                  counsellor_type: tc.counsellor_type || (selectedClient.serviceType !== "Low Cost" ? "Qualified" : "Trainee"),
+                                  counsellorType: tc.counsellorType || tc.counsellor_type || (selectedClient.serviceType !== "Low Cost" ? "Qualified" : "Trainee"),
                                   availability: tc.availability || "N/A",
                                   rawAvailability: tc.availability || tc.rawAvailability || {},
                                 });
@@ -1427,7 +1432,7 @@ export default function PendingMatchesPage() {
                               )
                           ).map((tc) => ({
                             value: tc.uuid || tc.id,
-                            label: `${tc.name} (${tc.modality})${tc.matchScore ? ` - ${tc.matchScore}% match` : ""}`,
+                            label: `${formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type || tc.counsellorType, selectedClient?.serviceType))} (${tc.modality})${tc.matchScore ? ` - ${tc.matchScore}% match` : ""}`,
                           }))}
                           placeholder="Choose a Counsellor..."
                         />
@@ -1447,6 +1452,8 @@ export default function PendingMatchesPage() {
                                     const fullTC = trainingCounsellors.find((t) => t.id === tc.id || t.uuid === tc.id || t.uuid === tc.uuid);
                                     setSelectedTC({
                                       ...tc,
+                                      counsellor_type: tc.counsellor_type || fullTC?.counsellor_type || (selectedClient.serviceType !== "Low Cost" ? "Qualified" : "Trainee"),
+                                      counsellorType: tc.counsellorType || tc.counsellor_type || fullTC?.counsellor_type || (selectedClient.serviceType !== "Low Cost" ? "Qualified" : "Trainee"),
                                       rawAvailability: fullTC?.availability || tc.rawAvailability || {},
                                     });
                                     setSelectedSlot(null);
@@ -1455,7 +1462,7 @@ export default function PendingMatchesPage() {
                                 >
                                   <div className="flex justify-between items-start">
                                     <span className="font-semibold text-xs text-gray-900 dark:text-[var(--text-primary)] group-hover:text-[var(--purple-primary)]">
-                                      {tc.name}
+                                      {formatName(tc.name, getCounsellorPrefixType(tc.counsellor_type || tc.counsellorType, selectedClient?.serviceType))}
                                     </span>
                                     <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-[var(--purple-primary)]">
                                       {tc.matchScore}%

@@ -390,9 +390,11 @@ export default function CompletedMatchesPage() {
               </div>
               <div>
                 <p className="font-medium text-gray-900">
-                  {formatName(client.matchedTC, getCounsellorPrefixType(client.matchedTcType))}
+                  {formatName(client.matchedTC, getCounsellorPrefixType(client.matchedTcType, client.serviceType))}
                 </p>
-                <p className="text-sm text-gray-600">Trainee Counsellor</p>
+                <p className="text-sm text-gray-600">
+                  {client.matchedTcType === "Qualified" || client.serviceType !== "Low Cost" ? "Qualified Counsellor" : "Trainee Counsellor"}
+                </p>
               </div>
             </div>
           </div>
@@ -759,7 +761,7 @@ export default function CompletedMatchesPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           {client.matchedTC ? (
                             <span className="text-sm text-gray-900 dark:text-[var(--text-primary)]">
-                              {formatName(client.matchedTC, getCounsellorPrefixType(client.matchedTcType))}
+                              {formatName(client.matchedTC, getCounsellorPrefixType(client.matchedTcType, client.serviceType))}
                             </span>
                           ) : (
                             <span className="text-sm text-gray-400 dark:text-[var(--text-tertiary)] italic">
