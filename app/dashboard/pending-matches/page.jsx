@@ -464,7 +464,11 @@ const PendingMatchRow = ({
           <div className="flex items-center gap-2 whitespace-nowrap">
             <Clock className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-medium text-gray-700 dark:text-[var(--text-primary)]">
-              {client.waitingText || `${Math.round(client.daysWaiting)} days`}
+              {client.daysWaiting < 1
+                ? "Less than 1 day"
+                : client.daysWaiting < 2
+                ? "1 day"
+                : `${Math.round(client.daysWaiting)} days`}
             </span>
           </div>
         </td>
