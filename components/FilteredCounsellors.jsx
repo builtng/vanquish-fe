@@ -33,16 +33,123 @@ import {
 } from "lucide-react";
 import apiService from "@/lib/api";
 
-// Fallback high-quality counsellor portraits matching the visual mockups
+const MALE_NAMES = new Set([
+  "charles",
+  "james",
+  "david",
+  "mohammed",
+  "mohamed",
+  "john",
+  "michael",
+  "robert",
+  "rooshan",
+  "adam",
+  "alexander",
+  "daniel",
+  "matthew",
+  "george",
+  "william",
+  "joseph",
+  "richard",
+  "thomas",
+  "paul",
+  "mark",
+  "andrew",
+  "chris",
+  "christopher",
+  "samuel",
+  "peter",
+  "ben",
+  "benjamin",
+]);
+
+const FEMALE_NAMES = new Set([
+  "sarah",
+  "jessica",
+  "emily",
+  "priya",
+  "emma",
+  "olivia",
+  "sophia",
+  "chloe",
+  "hannah",
+  "lucy",
+  "grace",
+  "rachel",
+  "laura",
+  "rebecca",
+  "katie",
+  "sophie",
+  "alice",
+  "amy",
+  "anna",
+  "charlotte",
+  "claire",
+]);
+
+const MALE_PORTRAITS = [
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop",
+];
+
+const FEMALE_PORTRAITS = [
+  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=800&auto=format&fit=crop",
+];
+
+export function resolveCounsellorPhoto(counsellor, index = 0) {
+  if (
+    counsellor?.photo_url &&
+    typeof counsellor.photo_url === "string" &&
+    counsellor.photo_url.trim() !== "" &&
+    !counsellor.photo_url.includes("null")
+  ) {
+    return apiService.getStorageUrl(counsellor.photo_url);
+  }
+  if (
+    counsellor?.photo &&
+    typeof counsellor.photo === "string" &&
+    counsellor.photo.trim() !== ""
+  ) {
+    return apiService.getStorageUrl(counsellor.photo);
+  }
+
+  // Determine gender by explicit field or first name
+  const gender = (counsellor?.gender || "").toLowerCase();
+  const rawFirstName = (
+    counsellor?.first_name ||
+    (counsellor?.name ? counsellor.name.split(" ")[0] : "")
+  )
+    .toLowerCase()
+    .trim();
+
+  const isMale = gender === "male" || MALE_NAMES.has(rawFirstName);
+  const isFemale = gender === "female" || FEMALE_NAMES.has(rawFirstName);
+
+  if (isMale) {
+    return MALE_PORTRAITS[index % MALE_PORTRAITS.length];
+  }
+  if (isFemale) {
+    return FEMALE_PORTRAITS[index % FEMALE_PORTRAITS.length];
+  }
+  return (index % 2 === 0 ? FEMALE_PORTRAITS : MALE_PORTRAITS)[
+    index % 4
+  ];
+}
+
 const FALLBACK_COUNSELLORS = [
   {
     uuid: "counsellor-sarah-mitchell",
     name: "Sarah Mitchell",
     first_name: "Sarah",
+    gender: "Female",
     qualification_title: "Registered Counsellor (RPC)",
     years_of_experience: "8+ years experience",
-    photo_url:
-      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop",
+    photo_url: FEMALE_PORTRAITS[0],
     modality: "Integrative",
     qualified_to_work_with: ["Individuals", "Couples"],
     bio: "I help individuals and couples heal from trauma, improve communication and build healthier, more connected relationships.",
@@ -54,7 +161,7 @@ const FALLBACK_COUNSELLORS = [
       "Relationship Issues",
     ],
     availability_summary: "Available: Mon, Tue, Fri (11am – 5pm)",
-    match_score: 100,
+    match_score: 98,
     fit_label: "Best Fit",
     session_type: "Online (Video) or In-Person",
     languages: "English",
@@ -64,28 +171,28 @@ const FALLBACK_COUNSELLORS = [
       "Registered Professional Counsellor (RPC) - CRPO",
       "Trauma-Informed Therapy Certificate - The Trauma Centre",
     ],
-    show_own_consultation_availability: true, // Direct consultation availability
+    show_own_consultation_availability: true,
   },
   {
-    uuid: "counsellor-jessica-thompson",
-    name: "Jessica Thompson",
-    first_name: "Jessica",
-    qualification_title: "Registered Counsellor (RPC)",
+    uuid: "counsellor-charles-sedenu",
+    name: "Charles Sedenu",
+    first_name: "Charles",
+    gender: "Male",
+    qualification_title: "Registered Counsellor (MBACP)",
     years_of_experience: "6+ years experience",
-    photo_url:
-      "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=800&auto=format&fit=crop",
+    photo_url: MALE_PORTRAITS[0],
     modality: "Integrative",
     qualified_to_work_with: ["Individuals", "Couples"],
-    bio: "Specializing in trauma recovery and supporting couples to create stronger, healthier connections.",
+    bio: "I specialize in supporting clients through life transitions, anxiety, emotional regulation, and rebuilding fulfilling relationships.",
     topics_with_experience: [
-      "Trauma",
-      "Domestic Violence",
       "Anxiety",
-      "Abuse",
+      "Trauma",
+      "Anger Management",
+      "Depression",
       "Self-Esteem",
     ],
-    availability_summary: "Available: Mon, Tue, Fri (11am – 5pm)",
-    match_score: 92,
+    availability_summary: "Available: Mon, Tue, Thu (10am – 4pm)",
+    match_score: 94,
     fit_label: "Great Fit",
     session_type: "Online (Video) or In-Person",
     languages: "English",
@@ -93,40 +200,40 @@ const FALLBACK_COUNSELLORS = [
     education_credentials: [
       "MSc in Clinical Counselling - University of Edinburgh",
       "Registered Member MBACP - British Association for Counselling",
-      "Couples & Relational Therapy Advanced Diploma",
+      "Cognitive Behavioural & Psychodynamic Practice Diploma",
     ],
-    show_own_consultation_availability: false, // Vanquish delegation
+    show_own_consultation_availability: true,
   },
   {
-    uuid: "counsellor-emily-rose",
-    name: "Emily Rose",
-    first_name: "Emily",
-    qualification_title: "Registered Counsellor (RPC)",
+    uuid: "counsellor-jessica-thompson",
+    name: "Jessica Thompson",
+    first_name: "Jessica",
+    gender: "Female",
+    qualification_title: "Registered Counsellor (NCPS)",
     years_of_experience: "5+ years experience",
-    photo_url:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop",
+    photo_url: FEMALE_PORTRAITS[1],
     modality: "Integrative",
     qualified_to_work_with: ["Individuals", "Couples"],
-    bio: "I support clients in healing from past experiences, managing anxiety and building safe, fulfilling relationships.",
+    bio: "Specializing in trauma recovery, relationship dynamics, and supporting individuals to create stronger emotional resilience.",
     topics_with_experience: [
       "Trauma",
       "Domestic Violence",
       "Anxiety",
       "Abuse",
-      "Depression",
+      "Relationship Issues",
     ],
-    availability_summary: "Available: Mon, Tue, Fri (11am – 5pm)",
-    match_score: 85,
-    fit_label: "Good Fit",
+    availability_summary: "Available: Tue, Wed, Fri (11am – 5pm)",
+    match_score: 91,
+    fit_label: "Great Fit",
     session_type: "Online (Video) or In-Person",
     languages: "English",
     insurance: "Not accepted",
     education_credentials: [
       "Postgraduate Diploma in Integrative Psychotherapy",
       "NCPS Accredited Professional Counsellor",
-      "Certificate in Mindfulness-Based Stress Reduction",
+      "Certificate in Couples & Relational Therapy",
     ],
-    show_own_consultation_availability: true, // Direct consultation availability
+    show_own_consultation_availability: false,
   },
 ];
 
@@ -147,7 +254,7 @@ export default function FilteredCounsellors({
   const [favorites, setFavorites] = useState({});
   const [activeProfileModal, setActiveProfileModal] = useState(null);
 
-  // View state: 'directory' (3 counsellor cards list) or 'booking' (focused consultation booking page)
+  // View state: 'directory' (counsellor cards list) or 'booking' (focused consultation booking page)
   const [viewMode, setViewMode] = useState("directory");
 
   // Counsellor consultation slot state
@@ -182,16 +289,16 @@ export default function FilteredCounsellors({
     return `${days.join(", ")} (11am – 5pm)`;
   }, [formData.availability]);
 
-  // Format client support areas summary text
-  const clientSupportAreasSummary = useMemo(() => {
+  // Format client support areas list
+  const clientSupportAreasList = useMemo(() => {
     if (
       !formData.supportAreas ||
       !Array.isArray(formData.supportAreas) ||
       formData.supportAreas.length === 0
     ) {
-      return "Trauma, Domestic Violence, Anxiety, Abuse";
+      return ["Trauma", "Anxiety", "Relationship Issues", "Abuse"];
     }
-    return formData.supportAreas.slice(0, 4).join(", ");
+    return formData.supportAreas;
   }, [formData.supportAreas]);
 
   // Format client gender preference text
@@ -200,7 +307,7 @@ export default function FilteredCounsellors({
       !formData.genderPreference ||
       formData.genderPreference === "No preference"
     ) {
-      return "Female Counsellor";
+      return "No Gender Preference";
     }
     return formData.genderPreference.includes("Counsellor")
       ? formData.genderPreference
@@ -232,8 +339,13 @@ export default function FilteredCounsellors({
 
         const res = await apiService.getFilteredCounsellors(payload);
         if (isMounted) {
-          if (res && Array.isArray(res.counsellors) && res.counsellors.length > 0) {
+          if (
+            res &&
+            Array.isArray(res.counsellors) &&
+            res.counsellors.length > 0
+          ) {
             const enhanced = res.counsellors.map((c, index) => {
+              const photo = resolveCounsellorPhoto(c, index);
               const fallback =
                 FALLBACK_COUNSELLORS[index % FALLBACK_COUNSELLORS.length];
               return {
@@ -242,7 +354,7 @@ export default function FilteredCounsellors({
                 first_name:
                   c.first_name ||
                   (c.name ? c.name.split(" ")[0] : fallback.first_name),
-                photo_url: c.photo_url || fallback.photo_url,
+                photo_url: photo,
                 qualification_title:
                   c.qualification_title || fallback.qualification_title,
                 years_of_experience:
@@ -383,8 +495,27 @@ export default function FilteredCounsellors({
     return counsellorSlots.length > 0 ? counsellorSlots : availableSlots;
   }, [counsellorSlots, availableSlots]);
 
-  // Determine whether this counsellor delegates to Vanquish Therapies
-  // If show_own_consultation_availability is explicitly true, they do consultation on their own.
+  // Auto-align calendar date with active slots
+  useEffect(() => {
+    if (activeSlots.length > 0) {
+      const firstSlot = activeSlots[0];
+      const dtStr = firstSlot.consultation_datetime || firstSlot.datetime;
+      if (dtStr) {
+        const cleanDt = dtStr.replace(" ", "T");
+        const sd = new Date(cleanDt);
+        const y = sd.getFullYear();
+        const m = sd.getMonth();
+        const d = sd.getDate();
+        const dateStr = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        
+        if (!selectedCalendarDate) {
+          setSelectedCalendarDate(dateStr);
+          setCurrentMonth(new Date(y, m, 1));
+        }
+      }
+    }
+  }, [activeSlots, selectedCalendarDate]);
+
   const isDelegatedToVanquish = useMemo(() => {
     if (selectedCounsellorObj?.show_own_consultation_availability === false) {
       return true;
@@ -395,7 +526,6 @@ export default function FilteredCounsellors({
     return slotSource === "vanquish";
   }, [slotSource, selectedCounsellorObj]);
 
-  // Handle switching to focused consultation booking view
   const handleProceedToBooking = (counsellor) => {
     onSelectCounsellor(counsellor);
     setViewMode("booking");
@@ -406,460 +536,393 @@ export default function FilteredCounsellors({
     selectedCounsellorObj?.name?.split(" ")[0] ||
     "Sarah";
 
+  const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return "";
+    const parts = dateStr.split("-").map(Number);
+    if (parts.length !== 3) return dateStr;
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    return d.toLocaleDateString("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-8 max-w-7xl mx-auto px-2 sm:px-4">
       {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* VIEW MODE 1: FILTERED COUNSELLORS DIRECTORY VIEW (3 Cards)        */}
+      {/* VIEW MODE 1: FILTERED COUNSELLORS DIRECTORY VIEW                   */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {viewMode === "directory" && (
         <div className="space-y-8 animate-in fade-in duration-300">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-gray-100">
+          {/* Header Banner */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-gray-100">
             <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-[#2d5a3f] text-xs font-bold mb-2.5 border border-emerald-100">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Clinical Matching Algorithm</span>
+              </div>
               <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#1b3b2b]">
                 Your Filtered Counsellors
               </h1>
-              <p className="text-base sm:text-lg text-gray-600 mt-2">
-                Based on your preferences, we’ve{" "}
-                <span className="font-bold text-[#2d5a3f] tracking-wide">
-                  FILTERED
-                </span>{" "}
-                these counsellors for you.
+              <p className="text-sm sm:text-base text-gray-600 mt-1.5 max-w-2xl leading-relaxed">
+                Based on your clinical preferences and availability, our team
+                has matched you with these verified qualified practitioners.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 self-start md:self-auto">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 bg-white shadow-sm text-sm font-semibold text-gray-700">
-                <Users className="w-4 h-4 text-[#2d5a3f]" />
+            <div className="flex items-center gap-3 self-start md:self-auto flex-wrap">
+              <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-gray-200/90 bg-white shadow-xs text-xs sm:text-sm font-semibold text-gray-700">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>
                   {loading
-                    ? "Finding..."
+                    ? "Matching..."
                     : `${sortedCounsellors.length} Counsellors Found`}
                 </span>
               </div>
 
               {/* Sort Dropdown */}
               <div className="relative inline-flex items-center">
-                <label
-                  htmlFor="counsellor-sort"
-                  className="text-sm font-medium text-gray-600 mr-2 whitespace-nowrap"
+                <select
+                  id="counsellor-sort"
+                  aria-label="Sort counsellors by"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="appearance-none bg-white border border-gray-200/90 rounded-xl px-3.5 py-2 pr-8 text-xs sm:text-sm font-semibold text-gray-800 shadow-xs focus:outline-none focus:ring-2 focus:ring-[#2d5a3f] focus:border-transparent cursor-pointer"
                 >
-                  Sort by:
-                </label>
-                <div className="relative">
-                  <select
-                    id="counsellor-sort"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none bg-white border border-gray-200 rounded-xl px-3.5 py-2 pr-9 text-sm font-medium text-gray-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#2d5a3f] focus:border-transparent cursor-pointer"
-                  >
-                    <option value="best_fit">Best Fit</option>
-                    <option value="score_desc">Match Score: High to Low</option>
-                    <option value="experience_desc">
-                      Experience: High to Low
-                    </option>
-                    <option value="name_asc">Alphabetical: A to Z</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+                  <option value="best_fit">Sort: Best Match</option>
+                  <option value="score_desc">Score: High to Low</option>
+                  <option value="experience_desc">Experience: High to Low</option>
+                  <option value="name_asc">Name: A to Z</option>
+                </select>
+                <ChevronDown className="w-4 h-4 text-gray-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
           </div>
 
-          {/* 2-Column Layout */}
+          {/* Main 2-Column Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left Column: Filter Criteria & Preferences */}
+            {/* Left Sidebar: Unified Match Criteria & Preferences */}
             <div className="lg:col-span-4 space-y-6">
-              {/* Card 1: Your Filter Criteria */}
-              <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm p-6 space-y-6">
-                <div className="flex items-start gap-3">
-                  <div className="p-2.5 bg-[#f4f7f4] text-[#2d5a3f] rounded-2xl">
+              <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs p-6 space-y-6">
+                <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+                  <div className="w-10 h-10 rounded-2xl bg-[#f4f7f4] text-[#2d5a3f] flex items-center justify-center flex-shrink-0">
                     <SlidersHorizontal className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">
-                      Your Filter Criteria
+                    <h3 className="text-base font-bold text-gray-900">
+                      Your Match Criteria
                     </h3>
-                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                      Here’s how we used your preferences to filter these
-                      counsellors.
+                    <p className="text-xs text-gray-500">
+                      Preferences used to filter practitioners
                     </p>
                   </div>
                 </div>
 
-                {/* Criteria List */}
-                <div className="space-y-5 pt-2">
-                  {/* 1. Availability Match */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-sm font-bold text-gray-800">
-                      <Calendar className="w-4 h-4 text-gray-600" />
-                      <span>Availability Match</span>
+                {/* Criteria items list */}
+                <div className="space-y-4">
+                  {/* Availability */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs font-bold text-gray-800">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-[#2d5a3f]" />
+                        <span>Availability</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        100% Match
+                      </span>
                     </div>
-                    <p className="text-xs text-gray-500 pl-6">
+                    <p className="text-xs text-gray-600 pl-5.5 font-medium">
                       {clientAvailabilitySummary}
                     </p>
-                    <div className="flex items-center gap-3 pl-6 pt-1">
-                      <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                        <div
-                          className="bg-[#36533c] h-full rounded-full transition-all duration-700"
-                          style={{ width: "100%" }}
-                        ></div>
+                  </div>
+
+                  {/* Areas of Support */}
+                  <div className="space-y-1.5 pt-2 border-t border-gray-100/80">
+                    <div className="flex items-center justify-between text-xs font-bold text-gray-800">
+                      <div className="flex items-center gap-2">
+                        <Heart className="w-3.5 h-3.5 text-[#2d5a3f]" />
+                        <span>Areas of Support</span>
                       </div>
-                      <span className="text-xs font-bold text-gray-800 min-w-[34px] text-right">
-                        100%
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        100% Match
                       </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pl-5.5 pt-0.5">
+                      {clientSupportAreasList.slice(0, 4).map((area, i) => (
+                        <span
+                          key={i}
+                          className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-700 border border-gray-200/50"
+                        >
+                          {area}
+                        </span>
+                      ))}
+                      {clientSupportAreasList.length > 4 && (
+                        <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-50 text-gray-500">
+                          +{clientSupportAreasList.length - 4} more
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* 2. Areas of Support Match */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-sm font-bold text-gray-800">
-                      <Heart className="w-4 h-4 text-gray-600" />
-                      <span>Areas of Support Match</span>
+                  {/* Modality */}
+                  <div className="space-y-1 pt-2 border-t border-gray-100/80">
+                    <div className="flex items-center justify-between text-xs font-bold text-gray-800">
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-3.5 h-3.5 text-[#2d5a3f]" />
+                        <span>Modality</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        100% Match
+                      </span>
                     </div>
-                    <p className="text-xs text-gray-500 pl-6 line-clamp-2">
-                      {clientSupportAreasSummary}
+                    <p className="text-xs text-gray-600 pl-5.5 font-medium">
+                      Integrative Counselling
                     </p>
-                    <div className="flex items-center gap-3 pl-6 pt-1">
-                      <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                        <div
-                          className="bg-[#36533c] h-full rounded-full transition-all duration-700"
-                          style={{ width: "100%" }}
-                        ></div>
-                      </div>
-                      <span className="text-xs font-bold text-gray-800 min-w-[34px] text-right">
-                        100%
-                      </span>
-                    </div>
                   </div>
 
-                  {/* 3. Modality Match */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-sm font-bold text-gray-800">
-                      <Layers className="w-4 h-4 text-gray-600" />
-                      <span>Modality Match</span>
-                    </div>
-                    <p className="text-xs text-gray-500 pl-6">
-                      Integrative Counsellor
-                    </p>
-                    <div className="flex items-center gap-3 pl-6 pt-1">
-                      <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                        <div
-                          className="bg-[#36533c] h-full rounded-full transition-all duration-700"
-                          style={{ width: "100%" }}
-                        ></div>
+                  {/* Specialty */}
+                  <div className="space-y-1 pt-2 border-t border-gray-100/80">
+                    <div className="flex items-center justify-between text-xs font-bold text-gray-800">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5 text-[#2d5a3f]" />
+                        <span>Client Focus</span>
                       </div>
-                      <span className="text-xs font-bold text-gray-800 min-w-[34px] text-right">
-                        100%
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        100% Match
                       </span>
                     </div>
-                  </div>
-
-                  {/* 4. Specialty Match */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-sm font-bold text-gray-800">
-                      <Users className="w-4 h-4 text-gray-600" />
-                      <span>Specialty Match</span>
-                    </div>
-                    <p className="text-xs text-gray-500 pl-6">
+                    <p className="text-xs text-gray-600 pl-5.5 font-medium">
                       {clientSpecialtyLabel}
                     </p>
-                    <div className="flex items-center gap-3 pl-6 pt-1">
-                      <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                        <div
-                          className="bg-[#36533c] h-full rounded-full transition-all duration-700"
-                          style={{ width: "100%" }}
-                        ></div>
-                      </div>
-                      <span className="text-xs font-bold text-gray-800 min-w-[34px] text-right">
-                        100%
-                      </span>
-                    </div>
                   </div>
 
-                  {/* 5. Counsellor Preference */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 text-sm font-bold text-gray-800">
-                      <User className="w-4 h-4 text-gray-600" />
-                      <span>Counsellor Preference</span>
+                  {/* Counsellor Preference */}
+                  <div className="space-y-1 pt-2 border-t border-gray-100/80">
+                    <div className="flex items-center justify-between text-xs font-bold text-gray-800">
+                      <div className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-[#2d5a3f]" />
+                        <span>Practitioner Preference</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        100% Match
+                      </span>
                     </div>
-                    <p className="text-xs text-gray-500 pl-6">
+                    <p className="text-xs text-gray-600 pl-5.5 font-medium">
                       {clientPreferenceSummary}
                     </p>
-                    <div className="flex items-center gap-3 pl-6 pt-1">
-                      <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                        <div
-                          className="bg-[#36533c] h-full rounded-full transition-all duration-700"
-                          style={{ width: "100%" }}
-                        ></div>
-                      </div>
-                      <span className="text-xs font-bold text-gray-800 min-w-[34px] text-right">
-                        100%
-                      </span>
-                    </div>
                   </div>
                 </div>
 
-                {/* About These Results Box */}
-                <div className="bg-[#f7f9f7] rounded-2xl p-4 border border-[#e2ece4] flex items-start gap-3 mt-4">
-                  <div className="w-6 h-6 rounded-full bg-[#2d5a3f] flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                {/* Trust & Guarantee Callout */}
+                <div className="bg-[#f7f9f7] rounded-2xl p-4 border border-[#e0ebe2] flex items-start gap-3 mt-4">
+                  <div className="w-7 h-7 rounded-xl bg-[#2d5a3f] text-white flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
+                    <ShieldCheck className="w-4 h-4 stroke-[2.5]" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-gray-900">
-                      About These Results
+                    <h4 className="text-xs font-bold text-gray-900">
+                      Verified Clinical Standards
                     </h4>
-                    <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
-                      These counsellors meet or closely align with your selected
-                      preferences and availability.
+                    <p className="text-[11px] text-gray-600 mt-0.5 leading-relaxed">
+                      All counsellors shown are fully qualified, accredited, and
+                      have immediate availability matching your intake answers.
                     </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2: Your Selected Preferences */}
-              <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm p-6 space-y-4">
-                <h3 className="text-lg font-bold text-gray-900">
-                  Your Selected Preferences
-                </h3>
-
-                <div className="space-y-3.5 text-sm">
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <span className="font-semibold text-gray-900 block">
-                        Areas of Support
-                      </span>
-                      <span className="text-xs text-gray-600">
-                        {clientSupportAreasSummary}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <span className="font-semibold text-gray-900 block">
-                        Modality
-                      </span>
-                      <span className="text-xs text-gray-600">
-                        Integrative Counsellor
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <span className="font-semibold text-gray-900 block">
-                        Specialty
-                      </span>
-                      <span className="text-xs text-gray-600">
-                        {clientSpecialtyLabel}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <span className="font-semibold text-gray-900 block">
-                        Availability
-                      </span>
-                      <span className="text-xs text-gray-600">
-                        {clientAvailabilitySummary}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <span className="font-semibold text-gray-900 block">
-                        Counsellor Preference
-                      </span>
-                      <span className="text-xs text-gray-600">
-                        {clientPreferenceSummary}
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Matched Counsellor Cards */}
+            {/* Right Main Area: Matched Counsellor Cards */}
             <div className="lg:col-span-8 space-y-6">
               {loading ? (
-                <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-sm flex flex-col items-center justify-center space-y-4">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#2d5a3f]" />
-                  <p className="text-gray-600 font-medium">
-                    Matching and filtering the best qualified counsellors for you...
+                <div className="bg-white rounded-3xl p-16 text-center border border-gray-100 shadow-sm flex flex-col items-center justify-center space-y-4">
+                  <Loader2 className="w-9 h-9 animate-spin text-[#2d5a3f]" />
+                  <p className="text-gray-700 font-semibold text-base">
+                    Matching and filtering verified qualified counsellors...
                   </p>
                 </div>
               ) : (
-                sortedCounsellors.map((counsellor) => {
-                  const isSelected =
-                    selectedCounsellorUuid === counsellor.uuid;
+                sortedCounsellors.map((counsellor, cIdx) => {
+                  const isSelected = selectedCounsellorUuid === counsellor.uuid;
                   const isFav = !!favorites[counsellor.uuid];
+                  const photoSrc =
+                    counsellor.photo_url ||
+                    resolveCounsellorPhoto(counsellor, cIdx);
 
                   return (
                     <div
-                      key={counsellor.uuid}
-                      className={`bg-white rounded-3xl border transition-all duration-300 p-6 shadow-sm relative ${
+                      key={counsellor.uuid || cIdx}
+                      className={`bg-white rounded-3xl border transition-all duration-300 p-6 sm:p-7 shadow-xs relative overflow-hidden ${
                         isSelected
-                          ? "border-[#2d4a3e] ring-2 ring-[#2d4a3e]/15 shadow-md bg-[#fdfefd]"
-                          : "border-gray-200/80 hover:border-gray-300 hover:shadow"
+                          ? "border-[#2d5a3f] ring-2 ring-[#2d5a3f]/20 bg-[#fafcfb] shadow-md"
+                          : "border-gray-200/85 hover:border-gray-300 hover:shadow-md"
                       }`}
                     >
-                      <div className="flex flex-col md:flex-row gap-6">
+                      {/* Top Row: Photo + Main Info */}
+                      <div className="flex flex-col sm:flex-row gap-5 sm:gap-6 items-start">
                         {/* Portrait Photo */}
-                        <div className="relative flex-shrink-0 self-center md:self-start">
+                        <div className="relative flex-shrink-0 self-center sm:self-start">
                           <img
-                            src={counsellor.photo_url}
+                            src={photoSrc}
                             alt={counsellor.name}
-                            className="w-44 h-52 md:w-48 md:h-56 rounded-2xl object-cover shadow-sm bg-gray-100 border border-gray-100"
+                            className="w-36 h-44 sm:w-44 sm:h-52 md:w-48 md:h-56 rounded-2xl object-cover shadow-sm bg-gray-100 border border-gray-200/70"
                             onError={(e) => {
                               e.target.onerror = null;
-                              e.target.src =
-                                "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop";
+                              e.target.src = resolveCounsellorPhoto(
+                                counsellor,
+                                cIdx
+                              );
                             }}
                           />
                           {isSelected && (
-                            <div className="absolute top-2 left-2 bg-[#2d5a3f] text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
+                            <div className="absolute top-2.5 left-2.5 bg-[#2d5a3f] text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
                               <Check className="w-3 h-3 stroke-[3]" />
                               <span>Selected</span>
                             </div>
                           )}
                         </div>
 
-                        {/* Middle Info */}
-                        <div className="flex-1 flex flex-col justify-between space-y-4">
-                          <div className="space-y-2">
+                        {/* Middle Info Column */}
+                        <div className="flex-1 space-y-3 w-full">
+                          {/* Header: Name, Title, Fit Score Pill */}
+                          <div className="flex items-start justify-between gap-3">
                             <div>
-                              <h2 className="font-serif text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
-                                {counsellor.name}
-                              </h2>
-                              <div className="flex flex-wrap items-center gap-x-2 text-xs md:text-sm text-gray-600 mt-0.5">
+                              <div className="flex items-center gap-2">
+                                <h2 className="font-serif text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">
+                                  {counsellor.name}
+                                </h2>
+                                <BadgeCheck className="w-5 h-5 text-[#2d5a3f] fill-emerald-50 shrink-0" />
+                              </div>
+                              <p className="text-xs sm:text-sm font-medium text-gray-600 mt-1 flex flex-wrap items-center gap-1.5">
                                 <span>{counsellor.qualification_title}</span>
                                 <span>•</span>
-                                <span>{counsellor.years_of_experience}</span>
-                              </div>
+                                <span className="font-semibold text-gray-700">
+                                  {counsellor.years_of_experience}
+                                </span>
+                              </p>
                             </div>
 
-                            {/* Modality & Specialty Pills */}
-                            <div className="flex flex-wrap gap-2 pt-1">
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200/60">
-                                <Sparkles className="w-3 h-3 text-gray-500" />
-                                {counsellor.modality || "Integrative"}
-                              </span>
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200/60">
-                                <Users className="w-3 h-3 text-gray-500" />
-                                {formData.isCouples
-                                  ? "Couples Counsellor"
-                                  : "Couples & Individual Counsellor"}
-                              </span>
-                            </div>
-
-                            <p className="text-xs md:text-sm text-gray-600 leading-relaxed line-clamp-3 pt-1">
-                              {counsellor.bio}
-                            </p>
-
-                            {/* Areas of Support */}
-                            <div className="pt-2">
-                              <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider block mb-1.5">
-                                Areas of Support
-                              </span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {(
-                                  counsellor.topics_with_experience || [
-                                    "Trauma",
-                                    "Domestic Violence",
-                                    "Anxiety",
-                                    "Abuse",
-                                  ]
-                                )
-                                  .slice(0, 5)
-                                  .map((topic, i) => (
-                                    <span
-                                      key={i}
-                                      className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100/90 text-gray-700 border border-gray-200/50"
-                                    >
-                                      {topic}
-                                    </span>
-                                  ))}
+                            {/* Fit Score & Favorite */}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f4f7f4] border border-[#d2e2d5] text-[#2d5a3f] shadow-2xs">
+                                <Star className="w-3.5 h-3.5 fill-[#2d5a3f]" />
+                                <span className="text-xs sm:text-sm font-extrabold">
+                                  {counsellor.match_score || 95}% Fit
+                                </span>
                               </div>
+                              <button
+                                type="button"
+                                onClick={() => toggleFavorite(counsellor.uuid)}
+                                className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-red-500 transition cursor-pointer"
+                                title={
+                                  isFav
+                                    ? "Saved to favorites"
+                                    : "Save counsellor"
+                                }
+                              >
+                                <Heart
+                                  className={`w-4 h-4 transition ${
+                                    isFav
+                                      ? "fill-red-500 text-red-500"
+                                      : "text-gray-400 hover:text-red-400"
+                                  }`}
+                                />
+                              </button>
                             </div>
                           </div>
 
-                          {/* Availability summary */}
-                          <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600 pt-2 border-t border-gray-100">
-                            <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                            <span>
-                              {counsellor.availability_summary ||
-                                clientAvailabilitySummary}
+                          {/* Pills: Modality & Focus */}
+                          <div className="flex flex-wrap gap-2 pt-0.5">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200/60">
+                              <Sparkles className="w-3 h-3 text-[#2d5a3f]" />
+                              {counsellor.modality || "Integrative"}
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200/60">
+                              <Users className="w-3 h-3 text-[#2d5a3f]" />
+                              {formData.isCouples
+                                ? "Couples & Family"
+                                : "Individuals & Couples"}
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200/60">
+                              <Video className="w-3 h-3 text-[#2d5a3f]" />
+                              Online Video
                             </span>
                           </div>
+
+                          {/* Bio */}
+                          <p className="text-xs sm:text-sm text-gray-600 leading-relaxed line-clamp-2">
+                            {counsellor.bio}
+                          </p>
+
+                          {/* Areas of Support: Clean horizontal wrap */}
+                          <div className="pt-1">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
+                              Areas of Support
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {(
+                                counsellor.topics_with_experience || [
+                                  "Trauma",
+                                  "Domestic Violence",
+                                  "Anxiety",
+                                  "Abuse",
+                                  "Relationship Issues",
+                                ]
+                              )
+                                .slice(0, 6)
+                                .map((topic, i) => (
+                                  <span
+                                    key={i}
+                                    className="px-2.5 py-0.5 rounded-lg text-xs font-medium bg-gray-100/90 text-gray-700 border border-gray-200/50 hover:bg-gray-200/60 transition"
+                                  >
+                                    {topic}
+                                  </span>
+                                ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Footer Row: Availability on left, Action buttons on right */}
+                      <div className="border-t border-gray-100 mt-5 pt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                          <Calendar className="w-4 h-4 text-[#2d5a3f] flex-shrink-0" />
+                          <span>
+                            {counsellor.availability_summary ||
+                              clientAvailabilitySummary}
+                          </span>
                         </div>
 
-                        {/* Right: Score & Actions */}
-                        <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-between gap-4 md:w-36 flex-shrink-0 border-t md:border-t-0 pt-4 md:pt-0 border-gray-100">
+                        <div className="flex items-center gap-2.5 self-end sm:self-auto w-full sm:w-auto">
                           <button
                             type="button"
-                            onClick={() => toggleFavorite(counsellor.uuid)}
-                            className="self-start md:self-end p-2 rounded-full hover:bg-gray-100 text-gray-400 transition"
-                            title={
-                              isFav ? "Saved to favorites" : "Save counsellor"
-                            }
+                            onClick={() => setActiveProfileModal(counsellor)}
+                            className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-xs sm:text-sm font-semibold text-gray-700 transition cursor-pointer"
                           >
-                            <Heart
-                              className={`w-5 h-5 transition ${
-                                isFav
-                                  ? "fill-red-500 text-red-500"
-                                  : "text-gray-400 hover:text-red-400"
-                              }`}
-                            />
+                            View Profile
                           </button>
-
-                          {/* Match Score Card */}
-                          <div className="bg-[#f4f7f4] border border-[#d9e5db] rounded-2xl p-3.5 text-center w-32 shadow-xs">
-                            <div className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2d5a3f] mb-0.5">
-                              <Star className="w-3 h-3 fill-[#2d5a3f]" />
-                              <span>{counsellor.fit_label || "Best Fit"}</span>
-                            </div>
-                            <div className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight my-0.5">
-                              {counsellor.match_score || 100}%
-                            </div>
-                            <div className="text-[11px] font-medium text-gray-500">
-                              Overall Fit
-                            </div>
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="space-y-2 w-full">
-                            <button
-                              type="button"
-                              onClick={() => handleProceedToBooking(counsellor)}
-                              className="w-full bg-[#2d4a3e] hover:bg-[#20362c] text-white text-sm font-semibold py-2.5 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-1.5"
-                            >
-                              <span>View Profile</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onSelectCounsellor(counsellor);
-                                handleProceedToBooking(counsellor);
-                              }}
-                              className={`w-full text-xs font-semibold py-1.5 px-3 rounded-lg transition text-center ${
-                                isSelected
-                                  ? "text-[#2d5a3f] bg-emerald-50 border border-emerald-200"
-                                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                              }`}
-                            >
-                              {isSelected
-                                ? "Selected ✓"
-                                : "Choose Counsellor"}
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onSelectCounsellor(counsellor);
+                              handleProceedToBooking(counsellor);
+                            }}
+                            className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition flex items-center justify-center gap-2 cursor-pointer ${
+                              isSelected
+                                ? "bg-[#1b3b2b] hover:bg-[#12281d] text-white"
+                                : "bg-[#2d4a3e] hover:bg-[#20362c] text-white"
+                            }`}
+                          >
+                            {isSelected ? (
+                              <>
+                                <Check className="w-4 h-4 stroke-[3]" />
+                                <span>Selected & Book</span>
+                              </>
+                            ) : (
+                              <span>Choose & Book</span>
+                            )}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -873,7 +936,6 @@ export default function FilteredCounsellors({
 
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {/* VIEW MODE 2: DEDICATED INITIAL CONSULTATION BOOKING VIEW           */}
-      {/* (Handles both Direct Counsellor Consultation & Vanquish Delegation)*/}
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {viewMode === "booking" && (
         <div className="space-y-6 animate-in fade-in duration-300">
@@ -882,37 +944,32 @@ export default function FilteredCounsellors({
             <button
               type="button"
               onClick={() => setViewMode("directory")}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-[#1b3b2b] transition py-1 group cursor-pointer"
+              className="inline-flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-[#1b3b2b] transition py-1 group cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              <span>Back to filtered counsellors</span>
+              <span>Back to all filtered counsellors</span>
             </button>
-
-            {/* Subtle toggle for testing both modes */}
-            <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-              <span>Mode:</span>
-              <span className="font-semibold text-[#2d5a3f]">
-                {isDelegatedToVanquish
-                  ? "Vanquish Delegation"
-                  : `Direct with ${firstName}`}
-              </span>
-            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Sidebar: Detailed Counsellor Card */}
             <div className="lg:col-span-4 space-y-6">
-              <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs overflow-hidden">
                 {/* Photo */}
                 <div className="p-4 pb-0">
                   <img
-                    src={selectedCounsellorObj.photo_url}
+                    src={
+                      selectedCounsellorObj.photo_url ||
+                      resolveCounsellorPhoto(selectedCounsellorObj, 0)
+                    }
                     alt={selectedCounsellorObj.name}
                     className="w-full h-64 sm:h-72 rounded-2xl object-cover shadow-sm bg-gray-100"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src =
-                        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop";
+                      e.target.src = resolveCounsellorPhoto(
+                        selectedCounsellorObj,
+                        0
+                      );
                     }}
                   />
                 </div>
@@ -920,39 +977,37 @@ export default function FilteredCounsellors({
                 <div className="p-6 space-y-5">
                   {/* Name, Title, Experience */}
                   <div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <h2 className="font-serif text-2xl md:text-3xl font-bold text-gray-900">
                         {selectedCounsellorObj.name}
                       </h2>
-                      <div className="w-5 h-5 rounded-full bg-[#2d5a3f] text-white flex items-center justify-center flex-shrink-0">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </div>
+                      <BadgeCheck className="w-5 h-5 text-[#2d5a3f] fill-emerald-50 shrink-0" />
                     </div>
-                    <p className="text-sm font-medium text-gray-600 mt-0.5">
+                    <p className="text-sm font-medium text-gray-600 mt-1">
                       {selectedCounsellorObj.qualification_title}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 font-semibold mt-0.5">
                       {selectedCounsellorObj.years_of_experience}
                     </p>
                   </div>
 
                   {/* Modality & Specialty Pills */}
                   <div className="flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200/60">
-                      <Sparkles className="w-3 h-3 text-gray-500" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200/60">
+                      <Sparkles className="w-3.5 h-3.5 text-[#2d5a3f]" />
                       {selectedCounsellorObj.modality || "Integrative"}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200/60">
-                      <Users className="w-3 h-3 text-gray-500" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200/60">
+                      <Users className="w-3.5 h-3.5 text-[#2d5a3f]" />
                       {formData.isCouples
                         ? "Couples Counsellor"
                         : "Couples & Individual Counsellor"}
                     </span>
                   </div>
 
-                  {/* Areas of Support */}
+                  {/* Areas of Support: Clean horizontal wrap */}
                   <div className="space-y-1.5">
-                    <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider block">
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block">
                       Areas of Support
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -962,13 +1017,14 @@ export default function FilteredCounsellors({
                           "Domestic Violence",
                           "Anxiety",
                           "Abuse",
+                          "Relationship Issues",
                         ]
                       )
-                        .slice(0, 5)
+                        .slice(0, 6)
                         .map((topic, i) => (
                           <span
                             key={i}
-                            className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100/90 text-gray-700 border border-gray-200/50"
+                            className="px-2.5 py-0.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200/50"
                           >
                             {topic}
                           </span>
@@ -976,7 +1032,7 @@ export default function FilteredCounsellors({
                     </div>
                   </div>
 
-                  {/* Bio quote */}
+                  {/* Bio */}
                   <p className="text-xs md:text-sm text-gray-600 leading-relaxed pt-1">
                     {selectedCounsellorObj.bio}
                   </p>
@@ -984,7 +1040,7 @@ export default function FilteredCounsellors({
                   {/* Quick Icon Details */}
                   <div className="space-y-2.5 pt-2 border-t border-gray-100 text-xs md:text-sm text-gray-700">
                     <div className="flex items-start gap-2.5">
-                      <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                      <MapPin className="w-4 h-4 text-[#2d5a3f] mt-0.5 flex-shrink-0" />
                       <span>
                         <strong>Session Type:</strong>{" "}
                         {selectedCounsellorObj.session_type ||
@@ -992,7 +1048,7 @@ export default function FilteredCounsellors({
                       </span>
                     </div>
                     <div className="flex items-start gap-2.5">
-                      <Calendar className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                      <Calendar className="w-4 h-4 text-[#2d5a3f] mt-0.5 flex-shrink-0" />
                       <span>
                         <strong>Availability:</strong>{" "}
                         {selectedCounsellorObj.availability_summary ||
@@ -1000,20 +1056,20 @@ export default function FilteredCounsellors({
                       </span>
                     </div>
                     <div className="flex items-start gap-2.5">
-                      <Users className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                      <Users className="w-4 h-4 text-[#2d5a3f] mt-0.5 flex-shrink-0" />
                       <span>
                         <strong>Works with:</strong> Individuals, Couples
                       </span>
                     </div>
                     <div className="flex items-start gap-2.5">
-                      <Globe className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                      <Globe className="w-4 h-4 text-[#2d5a3f] mt-0.5 flex-shrink-0" />
                       <span>
                         <strong>Language:</strong>{" "}
                         {selectedCounsellorObj.languages || "English"}
                       </span>
                     </div>
                     <div className="flex items-start gap-2.5">
-                      <ShieldCheck className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                      <ShieldCheck className="w-4 h-4 text-[#2d5a3f] mt-0.5 flex-shrink-0" />
                       <span>
                         <strong>Insurance:</strong>{" "}
                         {selectedCounsellorObj.insurance || "Not accepted"}
@@ -1024,7 +1080,7 @@ export default function FilteredCounsellors({
               </div>
 
               {/* Education & Credentials Card */}
-              <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm p-6 space-y-4">
+              <div className="bg-white rounded-3xl border border-gray-200/80 shadow-xs p-6 space-y-4">
                 <h3 className="text-base font-bold text-gray-900">
                   Education & Credentials
                 </h3>
@@ -1037,7 +1093,7 @@ export default function FilteredCounsellors({
                     ]
                   ).map((cred, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="text-gray-400 mt-1">•</span>
+                      <span className="text-[#2d5a3f] mt-1 font-bold">•</span>
                       <span>{cred}</span>
                     </li>
                   ))}
@@ -1046,22 +1102,19 @@ export default function FilteredCounsellors({
                 <button
                   type="button"
                   onClick={() => setActiveProfileModal(selectedCounsellorObj)}
-                  className="w-full mt-2 py-2.5 px-4 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition text-center"
+                  className="w-full mt-2 py-2.5 px-4 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition text-center cursor-pointer"
                 >
                   View Full Profile
                 </button>
               </div>
             </div>
 
-            {/* Right Column: Consultation Header, Notice, & Date/Time Selector */}
+            {/* Right Column: Consultation Booking Calendar */}
             <div className="lg:col-span-8 space-y-6">
-              {/* ───────────────────────────────────────────────────────────── */}
-              {/* STATE 1: COUNSELLOR DOES CONSULTATION ON THEIR OWN (Direct)  */}
-              {/* ───────────────────────────────────────────────────────────── */}
               {!isDelegatedToVanquish ? (
                 <>
                   {/* Top Card: Book a Consultation with {firstName} */}
-                  <div className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-sm space-y-5">
+                  <div className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-5">
                     <div className="flex items-start gap-3.5">
                       <div className="w-10 h-10 rounded-2xl bg-[#f4f7f4] text-[#2d5a3f] flex items-center justify-center flex-shrink-0">
                         <Calendar className="w-5 h-5" />
@@ -1072,8 +1125,8 @@ export default function FilteredCounsellors({
                         </h3>
                         <p className="text-xs md:text-sm text-gray-600 mt-0.5 leading-relaxed">
                           A 15-minute consultation with {firstName} is the best
-                          way to get to know each other and determine if she's
-                          the right fit for your needs.
+                          way to get to know each other and determine if they are
+                          the right fit for your therapeutic needs.
                         </p>
                       </div>
                     </div>
@@ -1101,48 +1154,44 @@ export default function FilteredCounsellors({
                     </div>
                   </div>
 
-                  {/* Notice Card: Choose any of the available slots */}
-                  <div className="bg-[#fffdf5] rounded-2xl border border-[#fef3c7] p-4 md:p-5 shadow-xs flex items-center gap-3.5">
-                    <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center flex-shrink-0 shadow-xs">
+                  {/* Notice Card */}
+                  <div className="bg-[#fffdf5] rounded-2xl border border-[#fef3c7] p-4 md:p-5 shadow-2xs flex items-center gap-3.5">
+                    <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center flex-shrink-0 shadow-2xs">
                       <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
                     </div>
                     <div>
                       <h4 className="text-xs md:text-sm font-bold text-gray-900">
-                        Choose any of the available slots below to book your
-                        consultation with {firstName}.
+                        Choose any available slot below to book your consultation
+                        with {firstName}.
                       </h4>
                       <p className="text-xs text-gray-600 mt-0.5">
-                        After the consultation, you can begin sessions with{" "}
-                        {firstName}.
+                        After the consultation, you will proceed directly to your
+                        regular ongoing therapy sessions.
                       </p>
                     </div>
                   </div>
                 </>
               ) : (
-                /* ───────────────────────────────────────────────────────────── */
-                /* STATE 2: VANQUISH THERAPIES DELEGATION (When TC unavailable)   */
-                /* ───────────────────────────────────────────────────────────── */
                 <>
-                  {/* Warning Banner: TC unavailable for consultation in next few weeks */}
-                  <div className="bg-[#fffdf5] rounded-3xl border border-[#fef3c7] p-5 md:p-6 shadow-xs flex items-start gap-4">
+                  {/* Warning Banner: TC unavailable for direct consultation */}
+                  <div className="bg-[#fffdf5] rounded-3xl border border-[#fef3c7] p-5 md:p-6 shadow-2xs flex items-start gap-4">
                     <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Info className="w-4 h-4 stroke-[2.5]" />
                     </div>
                     <div className="space-y-1">
                       <h3 className="text-sm md:text-base font-bold text-gray-900">
-                        This counsellor does not have availability for a
-                        consultation in the next few weeks.
+                        Consultation Coordination via Vanquish Therapies
                       </h3>
                       <p className="text-xs md:text-sm text-gray-600 leading-relaxed">
-                        However, choose any of these slots to book a consultation
-                        with Vanquish Therapies. After the consultation, you can
-                        begin sessions with {firstName}.
+                        Choose any slot below to complete your initial consultation
+                        with Vanquish Therapies. Following the consultation, you
+                        will begin your regular sessions with {firstName}.
                       </p>
                     </div>
                   </div>
 
-                  {/* Feature Card: Book a Consultation */}
-                  <div className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-sm space-y-5">
+                  {/* Feature Card */}
+                  <div className="bg-white rounded-3xl border border-gray-200/80 p-6 shadow-xs space-y-5">
                     <div className="flex items-start gap-3.5">
                       <div className="w-10 h-10 rounded-2xl bg-[#f4f7f4] text-[#2d5a3f] flex items-center justify-center flex-shrink-0">
                         <Calendar className="w-5 h-5" />
@@ -1152,14 +1201,12 @@ export default function FilteredCounsellors({
                           Book a Consultation
                         </h3>
                         <p className="text-xs md:text-sm text-gray-600 mt-0.5 leading-relaxed">
-                          A 15-minute consultation with a Vanquish Therapies
-                          counsellor helps us understand your needs and ensure
-                          the right fit.
+                          A 15-minute consultation ensures we understand your
+                          needs and confirm the ideal clinical fit.
                         </p>
                       </div>
                     </div>
 
-                    {/* 3 Badges Row */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                       <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-100 text-xs font-medium text-gray-800">
                         <div className="w-4 h-4 rounded-full bg-[#2d5a3f] text-white flex items-center justify-center flex-shrink-0">
@@ -1184,9 +1231,8 @@ export default function FilteredCounsellors({
                 </>
               )}
 
-              {/* 3. Date & Time Selection Box */}
-              <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
-                {/* Header & Timezone Selector */}
+              {/* Date & Time Selection Box */}
+              <div className="bg-white rounded-3xl border border-gray-200/90 shadow-xs p-6 md:p-8 space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
                   <h3 className="text-xl md:text-2xl font-bold text-gray-900">
                     Select a Date & Time
@@ -1194,7 +1240,7 @@ export default function FilteredCounsellors({
 
                   <div className="flex items-center gap-2 text-xs text-gray-600 self-start sm:self-auto">
                     <Globe className="w-4 h-4 text-gray-500" />
-                    <span>All times shown in</span>
+                    <span>Timezone:</span>
                     <select
                       value={timezone}
                       onChange={(e) => setTimezone(e.target.value)}
@@ -1242,7 +1288,7 @@ export default function FilteredCounsellors({
                           timeString: "Direct Coordination",
                         })
                       }
-                      className={`mt-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition ${
+                      className={`mt-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition cursor-pointer ${
                         selectedSlotId
                           ? "bg-[#2d4a3e] text-white"
                           : "bg-white border border-amber-300 text-amber-900 hover:bg-amber-100"
@@ -1258,7 +1304,7 @@ export default function FilteredCounsellors({
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
                     {/* Left: Mini Month Calendar */}
                     <div className="md:col-span-6 space-y-4">
-                      <div className="border border-gray-200/90 rounded-2xl p-4 bg-white shadow-xs">
+                      <div className="border border-gray-200/90 rounded-2xl p-4 bg-white shadow-2xs">
                         <div className="flex items-center justify-between mb-4">
                           <button
                             type="button"
@@ -1271,7 +1317,7 @@ export default function FilteredCounsellors({
                                 )
                               )
                             }
-                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition"
+                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition cursor-pointer"
                           >
                             <ChevronLeft className="w-4 h-4" />
                           </button>
@@ -1292,7 +1338,7 @@ export default function FilteredCounsellors({
                                 )
                               )
                             }
-                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition"
+                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition cursor-pointer"
                           >
                             <ChevronRight className="w-4 h-4" />
                           </button>
@@ -1330,7 +1376,7 @@ export default function FilteredCounsellors({
                               const dtStr =
                                 slot.consultation_datetime || slot.datetime;
                               if (!dtStr) return;
-                              const slotDate = new Date(dtStr);
+                              const slotDate = new Date(dtStr.replace(" ", "T"));
                               const dateStr = `${slotDate.getFullYear()}-${String(
                                 slotDate.getMonth() + 1
                               ).padStart(2, "0")}-${String(
@@ -1340,19 +1386,6 @@ export default function FilteredCounsellors({
                                 groupedSlots[dateStr] = [];
                               groupedSlots[dateStr].push(slot);
                             });
-
-                            // Auto-select first date with slots if none selected
-                            const firstAvailableDate = Object.keys(
-                              groupedSlots
-                            )[0];
-                            if (
-                              !selectedCalendarDate &&
-                              firstAvailableDate
-                            ) {
-                              setTimeout(() => {
-                                setSelectedCalendarDate(firstAvailableDate);
-                              }, 0);
-                            }
 
                             const cells = [];
                             for (let i = 0; i < startingDay; i++) {
@@ -1383,7 +1416,7 @@ export default function FilteredCounsellors({
                                   disabled={!hasSlots}
                                   className={`p-2 w-full aspect-square rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                                     isSelected
-                                      ? "bg-[#2d4a3e] text-white shadow-sm font-bold"
+                                      ? "bg-[#2d4a3e] text-white shadow-xs font-bold"
                                       : hasSlots
                                       ? "border border-gray-300 text-gray-800 hover:bg-emerald-50 hover:border-[#2d4a3e] cursor-pointer"
                                       : "text-gray-300 cursor-not-allowed"
@@ -1397,7 +1430,6 @@ export default function FilteredCounsellors({
                           })()}
                         </div>
 
-                        {/* Available dates legend */}
                         <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2 text-[11px] text-gray-500">
                           <div className="w-2.5 h-2.5 rounded-full bg-[#2d5a3f]"></div>
                           <span>Available dates</span>
@@ -1410,15 +1442,7 @@ export default function FilteredCounsellors({
                       {selectedCalendarDate ? (
                         <div className="space-y-3">
                           <h4 className="text-sm md:text-base font-bold text-gray-900">
-                            {new Date(selectedCalendarDate).toLocaleDateString(
-                              "en-GB",
-                              {
-                                weekday: "long",
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              }
-                            )}
+                            {formatDisplayDate(selectedCalendarDate)}
                           </h4>
 
                           <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -1427,7 +1451,7 @@ export default function FilteredCounsellors({
                                 const dtStr =
                                   slot.consultation_datetime || slot.datetime;
                                 if (!dtStr) return false;
-                                const sd = new Date(dtStr);
+                                const sd = new Date(dtStr.replace(" ", "T"));
                                 const dateStr = `${sd.getFullYear()}-${String(
                                   sd.getMonth() + 1
                                 ).padStart(2, "0")}-${String(
@@ -1435,9 +1459,26 @@ export default function FilteredCounsellors({
                                 ).padStart(2, "0")}`;
                                 return dateStr === selectedCalendarDate;
                               })
+                              .sort((a, b) => {
+                                const dtA = new Date(
+                                  (a.consultation_datetime || a.datetime).replace(
+                                    " ",
+                                    "T"
+                                  )
+                                );
+                                const dtB = new Date(
+                                  (b.consultation_datetime || b.datetime).replace(
+                                    " ",
+                                    "T"
+                                  )
+                                );
+                                return dtA - dtB;
+                              })
                               .map((slot, index) => {
                                 const dt = new Date(
-                                  slot.consultation_datetime || slot.datetime
+                                  (slot.consultation_datetime ||
+                                    slot.datetime
+                                  ).replace(" ", "T")
                                 );
                                 const endDt = new Date(
                                   dt.getTime() + 15 * 60 * 1000
@@ -1475,9 +1516,9 @@ export default function FilteredCounsellors({
                                         timeString: slotLabel,
                                       })
                                     }
-                                    className={`w-full py-2.5 px-4 rounded-xl border text-xs sm:text-sm font-semibold transition text-center ${
+                                    className={`w-full py-2.5 px-4 rounded-xl border text-xs sm:text-sm font-semibold transition text-center cursor-pointer ${
                                       isSlotChosen
-                                        ? "bg-[#2d4a3e] text-white border-[#2d4a3e] shadow-sm"
+                                        ? "bg-[#2d4a3e] text-white border-[#2d4a3e] shadow-xs"
                                         : "bg-white border-gray-200 text-gray-800 hover:border-[#2d4a3e] hover:bg-emerald-50/40"
                                     }`}
                                   >
@@ -1504,17 +1545,16 @@ export default function FilteredCounsellors({
                               Confirmed Consultation Time
                             </span>
                             <span className="text-xs md:text-sm font-bold text-emerald-950">
-                              {new Date(selectedDatetime).toLocaleString(
-                                "en-GB",
-                                {
-                                  weekday: "short",
-                                  day: "numeric",
-                                  month: "short",
-                                  hour: "numeric",
-                                  minute: "2-digit",
-                                  hour12: true,
-                                }
-                              )}
+                              {new Date(
+                                selectedDatetime.replace(" ", "T")
+                              ).toLocaleString("en-GB", {
+                                weekday: "short",
+                                day: "numeric",
+                                month: "short",
+                                hour: "numeric",
+                                minute: "2-digit",
+                                hour12: true,
+                              })}
                             </span>
                           </div>
                           <div className="w-6 h-6 rounded-full bg-[#2d5a3f] text-white flex items-center justify-center flex-shrink-0">
@@ -1526,11 +1566,10 @@ export default function FilteredCounsellors({
                   </div>
                 )}
 
-                {/* 4. Bottom Card: Changes depending on direct TC vs Vanquish */}
+                {/* Bottom Assurance Card */}
                 {!isDelegatedToVanquish ? (
-                  /* Direct Consultation with Counsellor Card */
                   <div className="bg-[#f7f9f7] rounded-2xl p-4 border border-[#e2ece4] flex items-start gap-3 mt-6">
-                    <div className="w-8 h-8 rounded-xl bg-white text-[#2d5a3f] border border-gray-200 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
+                    <div className="w-8 h-8 rounded-xl bg-white text-[#2d5a3f] border border-gray-200 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
                       <Video className="w-4 h-4" />
                     </div>
                     <div>
@@ -1538,15 +1577,14 @@ export default function FilteredCounsellors({
                         Consultation with {firstName}
                       </h4>
                       <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
-                        This consultation is with {firstName} directly via a
-                        secure video call.
+                        This 15-minute consultation is held directly with{" "}
+                        {firstName} via a secure video call.
                       </p>
                     </div>
                   </div>
                 ) : (
-                  /* Vanquish Delegation Secure & Confidential Card */
                   <div className="bg-[#f7f9f7] rounded-2xl p-4 border border-[#e2ece4] flex items-start gap-3 mt-6">
-                    <div className="w-8 h-8 rounded-xl bg-white text-[#2d5a3f] border border-gray-200 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
+                    <div className="w-8 h-8 rounded-xl bg-white text-[#2d5a3f] border border-gray-200 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
                       <Shield className="w-4 h-4" />
                     </div>
                     <div>
@@ -1561,12 +1599,12 @@ export default function FilteredCounsellors({
                   </div>
                 )}
 
-                {/* 5. What happens after the consultation? Accordion */}
+                {/* Accordion */}
                 <div className="pt-2 border-t border-gray-100">
                   <button
                     type="button"
                     onClick={() => setFaqExpanded(!faqExpanded)}
-                    className="w-full flex items-center justify-between py-2 text-left text-xs md:text-sm font-bold text-gray-800 hover:text-[#1b3b2b] transition"
+                    className="w-full flex items-center justify-between py-2 text-left text-xs md:text-sm font-bold text-gray-800 hover:text-[#1b3b2b] transition cursor-pointer"
                   >
                     <span>What happens after the consultation?</span>
                     {faqExpanded ? (
@@ -1586,7 +1624,7 @@ export default function FilteredCounsellors({
                       <p>
                         <strong>2. Direct Booking:</strong> Following the
                         consultation, you will be invited to schedule your
-                        ongoing regular therapy sessions.
+                        regular ongoing therapy sessions.
                       </p>
                       <p>
                         <strong>3. Ongoing Support:</strong> Our clinical care
@@ -1609,7 +1647,7 @@ export default function FilteredCounsellors({
             <button
               type="button"
               onClick={() => setActiveProfileModal(null)}
-              className="absolute top-5 right-5 p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition"
+              className="absolute top-5 right-5 p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1617,15 +1655,22 @@ export default function FilteredCounsellors({
             {/* Profile Header */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pt-2">
               <img
-                src={activeProfileModal.photo_url}
+                src={
+                  activeProfileModal.photo_url ||
+                  resolveCounsellorPhoto(activeProfileModal, 0)
+                }
                 alt={activeProfileModal.name}
                 className="w-28 h-28 md:w-32 md:h-32 rounded-2xl object-cover shadow-md bg-gray-100 border border-gray-100 flex-shrink-0"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = resolveCounsellorPhoto(activeProfileModal, 0);
+                }}
               />
               <div className="text-center sm:text-left space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-[#2d5a3f] text-xs font-bold mb-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-[#2d5a3f] text-xs font-bold mb-1 border border-emerald-100">
                   <Star className="w-3 h-3 fill-[#2d5a3f]" />
                   <span>
-                    {activeProfileModal.match_score || 100}% Overall Match
+                    {activeProfileModal.match_score || 95}% Overall Match
                   </span>
                 </div>
                 <h3 className="font-serif text-2xl md:text-3xl font-bold text-gray-900">
@@ -1642,7 +1687,7 @@ export default function FilteredCounsellors({
 
             {/* Bio */}
             <div className="space-y-2">
-              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
                 About & Clinical Approach
               </h4>
               <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 rounded-2xl p-4">
@@ -1677,7 +1722,7 @@ export default function FilteredCounsellors({
 
             {/* Education & Credentials */}
             <div className="space-y-2">
-              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+              <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
                 Education & Credentials
               </h4>
               <ul className="space-y-2 text-xs md:text-sm text-gray-600 bg-gray-50 rounded-2xl p-4">
@@ -1689,7 +1734,7 @@ export default function FilteredCounsellors({
                   ]
                 ).map((cred, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-gray-400 mt-0.5">•</span>
+                    <span className="text-[#2d5a3f] mt-0.5 font-bold">•</span>
                     <span>{cred}</span>
                   </li>
                 ))}
@@ -1705,14 +1750,14 @@ export default function FilteredCounsellors({
                   setActiveProfileModal(null);
                   setViewMode("booking");
                 }}
-                className="flex-1 bg-[#2d4a3e] hover:bg-[#20362c] text-white text-sm font-bold py-3 px-6 rounded-xl shadow-sm transition"
+                className="flex-1 bg-[#2d4a3e] hover:bg-[#20362c] text-white text-sm font-bold py-3 px-6 rounded-xl shadow-xs transition cursor-pointer"
               >
                 Select {activeProfileModal.name} & Book Consultation
               </button>
               <button
                 type="button"
                 onClick={() => setActiveProfileModal(null)}
-                className="px-5 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition"
+                className="px-5 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition cursor-pointer"
               >
                 Close
               </button>
