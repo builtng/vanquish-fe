@@ -52,6 +52,8 @@ function MidRangeClientIntakeContent() {
     partnerFirstName: "",
     partnerLastName: "",
     partnerAge: "",
+    partnerEmail: "",
+    partnerPhone: "",
 
     // Step 3: Demographics (About)
     gender: "",
@@ -479,6 +481,10 @@ function MidRangeClientIntakeContent() {
             parseInt(calcPartnerAge, 10) > 120
           )
             stepErrors.partnerAge = "Partner's valid age (18-99) is required";
+          if (!formData.partnerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.partnerEmail))
+            stepErrors.partnerEmail = "Partner's valid email address is required";
+          if (!formData.partnerPhone.trim())
+            stepErrors.partnerPhone = "Partner's contact number is required";
         }
         break;
 
@@ -879,6 +885,8 @@ function MidRangeClientIntakeContent() {
               formData.isCouples && formData.partnerAge
                 ? parseInt(normalizeAge(formData.partnerAge), 10)
                 : null,
+            partner_email: formData.isCouples ? sanitizeText(formData.partnerEmail) || null : null,
+            partner_phone: formData.isCouples ? sanitizeText(formData.partnerPhone) || null : null,
             partner_gender: formData.isCouples ? sanitizeText(formData.partnerGender) : null,
             partner_ethnicity:
               formData.isCouples
@@ -1742,6 +1750,32 @@ function MidRangeClientIntakeContent() {
                             </div>
                           )}
                           {errors.partnerAge && <p className="text-red-500 text-sm mt-1">{errors.partnerAge}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                            Partner's Email Address <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="email"
+                            value={formData.partnerEmail}
+                            onChange={(e) => handleInputChange("partnerEmail", e.target.value)}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerEmail ? "border-red-500" : "border-gray-300"}`}
+                            placeholder="partner@example.com"
+                          />
+                          {errors.partnerEmail && <p className="text-red-500 text-sm mt-1">{errors.partnerEmail}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                            Partner's Contact Number <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            value={formData.partnerPhone}
+                            onChange={(e) => handleInputChange("partnerPhone", e.target.value)}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerPhone ? "border-red-500" : "border-gray-300"}`}
+                            placeholder="e.g. 07700 900123"
+                          />
+                          {errors.partnerPhone && <p className="text-red-500 text-sm mt-1">{errors.partnerPhone}</p>}
                         </div>
                       </div>
                     </div>
