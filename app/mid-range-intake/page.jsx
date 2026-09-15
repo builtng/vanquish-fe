@@ -2564,8 +2564,8 @@ function MidRangeClientIntakeContent() {
                     className="text-base md:text-lg text-center"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    These preferences are optional and help us find the best
-                    match for you.
+                    These preferences are optional and help us filter the counsellors that match
+                    your preferences and needs
                   </p>
                 </div>
 
