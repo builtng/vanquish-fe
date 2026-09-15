@@ -1798,7 +1798,7 @@ function MidRangeClientIntakeContent() {
                     className="text-base md:text-lg text-center"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    This information helps us match you with the right counsellor.
+                    Your answers help us narrow down the counsellors who best match your preferences and needs.
                   </p>
                 </div>
 
