@@ -50,7 +50,7 @@ export default function VanquishClientIntake() {
     otherSexualOrientation: "",
 
     // Medical & Service
-    serviceType: "Low Cost",
+    serviceType: "low-cost",
     onMedication: "",
     medicationDetails: "",
     disabilities: "",
@@ -1657,24 +1657,6 @@ export default function VanquishClientIntake() {
                     style={{ color: "var(--text-secondary)" }}
                   ></p>
 
-                  <div className="mt-4 p-6 bg-purple-50 border-2 border-purple-200 rounded-xl shadow-sm">
-                    <p className="text-purple-900 font-bold mb-3 text-center text-lg">
-                      Looking for our Counselling & Coaching service?
-                    </p>
-                    <p className="text-purple-800 text-sm mb-4 text-center">
-                      Our Counselling & Coaching services now have a dedicated
-                      registration page.
-                    </p>
-                    <div className="flex justify-center">
-                      <Link
-                        href="/coaching"
-                        className="inline-flex items-center gap-2 px-8 py-3 bg-[#6f1d56] text-white rounded-lg font-bold hover:bg-[#5a1745] transition-all shadow-md"
-                      >
-                        Access Counselling & Coaching Form
-                        <ChevronRight className="w-5 h-5" />
-                      </Link>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="space-y-4 md:space-y-6">
@@ -1699,7 +1681,7 @@ export default function VanquishClientIntake() {
                           : "border-gray-300"
                       }`}
                     >
-                      <option value="Low Cost">Low Cost Counselling</option>
+                      <option value="low-cost">Low Cost Counselling</option>
                       <option value="Mid Range">Mid Range Counselling</option>
                       <option value="Counselling & Coaching">Coaching & Counselling</option>
                     </select>
