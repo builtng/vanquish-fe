@@ -2348,6 +2348,9 @@ function MidRangeClientIntakeContent() {
                     >
                       Please provide details of any identified risk issues or
                       substance misuse
+                      {formData.isCouples
+                        ? " for You and Partner/Co-client"
+                        : ""}
                     </label>
                     <textarea
                       name="riskIssues"
