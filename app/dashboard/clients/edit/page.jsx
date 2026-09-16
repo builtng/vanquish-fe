@@ -162,8 +162,18 @@ function EditClientPageContent() {
 
     // Other Details
     whatsappAgreement: "No",
+    isCouples: false,
+    partnerFirstName: "",
+    partnerLastName: "",
+    partnerAge: "",
     partnerEmail: "",
     partnerPhone: "",
+    partnerGender: "",
+    partnerEthnicity: "",
+    partnerSexualOrientation: "",
+    partnerOnMedication: "No",
+    partnerMedicationDetails: "",
+    partnerDisabilities: "",
     workingWithAnotherReason: "",
     referralType: "",
     locationOfResidence: "",
@@ -259,8 +269,22 @@ function EditClientPageContent() {
           adminNotes: client.admin_notes || "",
           paymentStatus: client.payment_status || intake?.payment_status || "Pending",
           whatsappAgreement: client.whatsapp_agreement || intake?.whatsapp_agreement || "No",
+          isCouples: !!(client.is_couples || intake?.is_couples || client.partner_first_name || intake?.partner_first_name || client.partner_email || intake?.partner_email),
+          partnerFirstName: client.partner_first_name || intake?.partner_first_name || "",
+          partnerLastName: client.partner_last_name || intake?.partner_last_name || "",
+          partnerAge: client.partner_age || intake?.partner_age || "",
           partnerEmail: client.partner_email || intake?.partner_email || "",
           partnerPhone: client.partner_phone || intake?.partner_phone || "",
+          partnerGender: client.partner_gender || intake?.partner_gender || "",
+          partnerEthnicity: client.partner_ethnicity || intake?.partner_ethnicity || "",
+          partnerSexualOrientation: client.partner_sexual_orientation || intake?.partner_sexual_orientation || "",
+          partnerOnMedication: (client.partner_on_medication !== undefined && client.partner_on_medication !== null)
+            ? (client.partner_on_medication ? "Yes" : "No")
+            : (intake?.partner_on_medication !== undefined && intake?.partner_on_medication !== null)
+              ? (intake.partner_on_medication ? "Yes" : "No")
+              : "No",
+          partnerMedicationDetails: client.partner_medication_details || intake?.partner_medication_details || "",
+          partnerDisabilities: client.partner_disabilities || intake?.partner_disabilities || "",
           workingWithAnotherReason: client.working_with_another_reason || intake?.working_with_another_reason || "",
           referralType: client.referral_type || intake?.referral_type || "",
           locationOfResidence: client.location_of_residence || intake?.location_of_residence || "",
@@ -415,8 +439,18 @@ function EditClientPageContent() {
           admin_notes: formData.adminNotes,
           payment_status: formData.paymentStatus,
           whatsapp_agreement: formData.whatsappAgreement,
-          partner_email: formData.partnerEmail,
-          partner_phone: formData.partnerPhone,
+          is_couples: !!formData.isCouples,
+          partner_first_name: formData.partnerFirstName || null,
+          partner_last_name: formData.partnerLastName || null,
+          partner_age: formData.partnerAge ? parseInt(formData.partnerAge, 10) : null,
+          partner_email: formData.partnerEmail || null,
+          partner_phone: formData.partnerPhone || null,
+          partner_gender: formData.partnerGender || null,
+          partner_ethnicity: formData.partnerEthnicity || null,
+          partner_sexual_orientation: formData.partnerSexualOrientation || null,
+          partner_on_medication: formData.partnerOnMedication === "Yes",
+          partner_medication_details: formData.partnerMedicationDetails || null,
+          partner_disabilities: formData.partnerDisabilities || null,
           working_with_another_reason: formData.workingWithAnotherReason,
           referral_type: formData.referralType,
           location_of_residence: formData.locationOfResidence,
@@ -490,8 +524,18 @@ function EditClientPageContent() {
         admin_notes: pendingFormData.adminNotes,
         payment_status: pendingFormData.paymentStatus,
         whatsapp_agreement: pendingFormData.whatsappAgreement,
-        partner_email: pendingFormData.partnerEmail,
-        partner_phone: pendingFormData.partnerPhone,
+        is_couples: !!pendingFormData.isCouples,
+        partner_first_name: pendingFormData.partnerFirstName || null,
+        partner_last_name: pendingFormData.partnerLastName || null,
+        partner_age: pendingFormData.partnerAge ? parseInt(pendingFormData.partnerAge, 10) : null,
+        partner_email: pendingFormData.partnerEmail || null,
+        partner_phone: pendingFormData.partnerPhone || null,
+        partner_gender: pendingFormData.partnerGender || null,
+        partner_ethnicity: pendingFormData.partnerEthnicity || null,
+        partner_sexual_orientation: pendingFormData.partnerSexualOrientation || null,
+        partner_on_medication: pendingFormData.partnerOnMedication === "Yes",
+        partner_medication_details: pendingFormData.partnerMedicationDetails || null,
+        partner_disabilities: pendingFormData.partnerDisabilities || null,
         working_with_another_reason: pendingFormData.workingWithAnotherReason,
         referral_type: pendingFormData.referralType,
         location_of_residence: pendingFormData.locationOfResidence,
@@ -1637,31 +1681,177 @@ function EditClientPageContent() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                            Partner's Email (for couples)
-                          </label>
-                          <input
-                            type="email"
-                            value={formData.partnerEmail}
-                            onChange={(e) =>
-                              handleInputChange("partnerEmail", e.target.value)
-                            }
-                            className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                          />
+                      <div className="pt-4 border-t border-[var(--border-color)]">
+                        <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-4">
+                          Partner / Co-Client Details (for couples cases)
+                        </h4>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              Partner First Name
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.partnerFirstName}
+                              onChange={(e) =>
+                                handleInputChange("partnerFirstName", e.target.value)
+                              }
+                              className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                              placeholder="Partner's first name"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              Partner Last Name
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.partnerLastName}
+                              onChange={(e) =>
+                                handleInputChange("partnerLastName", e.target.value)
+                              }
+                              className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                              placeholder="Partner's last name"
+                            />
+                          </div>
                         </div>
-                        <div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              Partner Age
+                            </label>
+                            <input
+                              type="number"
+                              value={formData.partnerAge}
+                              onChange={(e) =>
+                                handleInputChange("partnerAge", e.target.value)
+                              }
+                              className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                              placeholder="e.g. 32"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              Partner Email
+                            </label>
+                            <input
+                              type="email"
+                              value={formData.partnerEmail}
+                              onChange={(e) =>
+                                handleInputChange("partnerEmail", e.target.value)
+                              }
+                              className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                              placeholder="partner@example.com"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              Partner Phone
+                            </label>
+                            <input
+                              type="tel"
+                              value={formData.partnerPhone}
+                              onChange={(e) =>
+                                handleInputChange("partnerPhone", e.target.value)
+                              }
+                              className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                              placeholder="07123456789"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              Partner Gender
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.partnerGender}
+                              onChange={(e) =>
+                                handleInputChange("partnerGender", e.target.value)
+                              }
+                              className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                              placeholder="e.g. Female, Male, Non-binary"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              Partner Ethnicity
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.partnerEthnicity}
+                              onChange={(e) =>
+                                handleInputChange("partnerEthnicity", e.target.value)
+                              }
+                              className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                              placeholder="e.g. White British, Asian, etc."
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              Partner Sexual Orientation
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.partnerSexualOrientation}
+                              onChange={(e) =>
+                                handleInputChange("partnerSexualOrientation", e.target.value)
+                              }
+                              className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                              placeholder="e.g. Heterosexual, Gay, etc."
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              Partner on Medication?
+                            </label>
+                            <SearchableSelect
+                              value={formData.partnerOnMedication}
+                              onChange={(e) =>
+                                handleInputChange("partnerOnMedication", e.target.value)
+                              }
+                              options={[
+                                { value: "Yes", label: "Yes" },
+                                { value: "No", label: "No" },
+                              ]}
+                              placeholder="Select option"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              Partner Medication Details
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.partnerMedicationDetails}
+                              onChange={(e) =>
+                                handleInputChange("partnerMedicationDetails", e.target.value)
+                              }
+                              className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                              placeholder="Details if on medication"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mb-4">
                           <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                            Partner's Phone (for couples)
+                            Partner Disabilities / Impairments
                           </label>
                           <input
-                            type="tel"
-                            value={formData.partnerPhone}
+                            type="text"
+                            value={formData.partnerDisabilities}
                             onChange={(e) =>
-                              handleInputChange("partnerPhone", e.target.value)
+                              handleInputChange("partnerDisabilities", e.target.value)
                             }
-                            className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                            className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-[var(--purple-primary)] focus:border-transparent"
+                            placeholder="Disabilities or impairments, if any"
                           />
                         </div>
                       </div>

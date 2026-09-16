@@ -255,6 +255,38 @@ export default function IndividualClientDetailPage() {
         : 0,
       voicemailPermission: data.voicemail_permission || (intake?.voicemail_ok !== undefined ? (intake.voicemail_ok ? "Yes" : "No") : "Not specified"),
       howHeardAbout: data.how_heard_about || data.hear_about_us || intake?.hear_about_us || "Not specified",
+      isCouples: !!(
+        data.is_couples ||
+        intake?.is_couples ||
+        data.partner_first_name ||
+        intake?.partner_first_name ||
+        data.partner_email ||
+        intake?.partner_email
+      ),
+      partnerFirstName: data.partner_first_name || intake?.partner_first_name || null,
+      partnerLastName: data.partner_last_name || intake?.partner_last_name || null,
+      partnerFullName:
+        [
+          data.partner_first_name || intake?.partner_first_name,
+          data.partner_last_name || intake?.partner_last_name,
+        ]
+          .filter(Boolean)
+          .join(" ") ||
+        (data.partner_email || intake?.partner_email ? "Partner / Co-Client" : null),
+      partnerAge: data.partner_age || intake?.partner_age || null,
+      partnerEmail: data.partner_email || intake?.partner_email || null,
+      partnerPhone: data.partner_phone || intake?.partner_phone || null,
+      partnerGender: data.partner_gender || intake?.partner_gender || "Not specified",
+      partnerEthnicity: data.partner_ethnicity || intake?.partner_ethnicity || "Not specified",
+      partnerSexualOrientation: data.partner_sexual_orientation || intake?.partner_sexual_orientation || "Not specified",
+      partnerOnMedication:
+        data.partner_on_medication !== undefined && data.partner_on_medication !== null
+          ? (data.partner_on_medication ? "Yes" : "No")
+          : intake?.partner_on_medication !== undefined && intake?.partner_on_medication !== null
+            ? (intake.partner_on_medication ? "Yes" : "No")
+            : "Not recorded",
+      partnerMedicationDetails: data.partner_medication_details || intake?.partner_medication_details || null,
+      partnerDisabilities: data.partner_disabilities || intake?.partner_disabilities || null,
       relatedCases: data.related_cases || [],
       journey: (() => {
         const stages = [
@@ -1192,6 +1224,17 @@ export default function IndividualClientDetailPage() {
     }
   };
 
+  const isCouplesClient = Boolean(
+    client?.isCouples ||
+    client?.partnerFullName ||
+    client?.partnerEmail ||
+    (client?.serviceType &&
+      (client.serviceType.toLowerCase().includes("couples") ||
+        (["mid range", "midrange", "coach", "counselling & coaching", "coaching & counselling"].some((t) =>
+          client.serviceType.toLowerCase().includes(t)
+        ) && (client.isCouples || client.partnerFirstName || client.partnerEmail))))
+  );
+
   return (
     <PageGuard menuId="clients">
       <DashboardLayout>
@@ -1310,6 +1353,15 @@ export default function IndividualClientDetailPage() {
                             <span className="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></span>
                             <span className="font-mono opacity-70">ID: {client.id?.substring(0, 8)}...</span>
                           </div>
+                          {isCouplesClient && (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-pink-50 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800 rounded-full text-xs font-bold shadow-xs">
+                              <Users className="w-3.5 h-3.5 text-pink-600 dark:text-pink-400" />
+                              <span>Couples</span>
+                              {client.partnerFullName && (
+                                <span className="font-normal opacity-85">• {client.partnerFullName}</span>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs">
@@ -1813,6 +1865,124 @@ export default function IndividualClientDetailPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Partner / Co-Client Information - Only for Mid Range Couples / Coaching & Counselling Couples */}
+                    {isCouplesClient && (
+                      <div className="bg-white rounded-2xl border border-[var(--border-color)] p-8 shadow-sm">
+                        <div className="flex items-center justify-between mb-8">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center text-pink-700">
+                              <Users className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight">
+                                  Partner / Co-Client Information
+                                </h2>
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-pink-50 text-pink-700 border border-pink-200">
+                                  Couples Profile
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                Partner and co-client information recorded during couples intake.
+                              </p>
+                            </div>
+                          </div>
+
+                          <Link
+                            href={`/dashboard/clients/edit?id=${uuid}`}
+                            className="px-4 py-2 bg-pink-50 text-pink-700 rounded-xl hover:bg-pink-600 hover:text-white transition-all text-sm font-bold flex items-center gap-2"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Edit Details
+                          </Link>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                              Partner Full Name
+                            </p>
+                            <p className="text-base font-bold text-[var(--text-primary)]">
+                              {client.partnerFullName || "Not provided"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                              Partner Age
+                            </p>
+                            <p className="text-base font-bold text-[var(--text-primary)]">
+                              {client.partnerAge ? `${client.partnerAge} years old` : "Not provided"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                              Partner Email Address
+                            </p>
+                            <p className="text-base font-bold text-[var(--text-primary)]">
+                              {client.partnerEmail || "Not provided"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                              Partner Phone Number
+                            </p>
+                            <p className="text-base font-bold text-[var(--text-primary)]">
+                              {client.partnerPhone || "Not provided"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                              Partner Gender
+                            </p>
+                            <p className="text-base font-bold text-[var(--text-primary)]">
+                              {client.partnerGender || "Not specified"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                              Partner Ethnicity
+                            </p>
+                            <p className="text-base font-bold text-[var(--text-primary)]">
+                              {client.partnerEthnicity || "Not specified"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                              Partner Sexual Orientation
+                            </p>
+                            <p className="text-base font-bold text-[var(--text-primary)]">
+                              {client.partnerSexualOrientation || "Not specified"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                              Partner Medication
+                            </p>
+                            <p className="text-base font-bold text-[var(--text-primary)]">
+                              {client.partnerOnMedication || "Not recorded"}
+                              {client.partnerMedicationDetails ? ` (${client.partnerMedicationDetails})` : ""}
+                            </p>
+                          </div>
+
+                          <div className="col-span-1 md:col-span-2 space-y-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                              Partner Disabilities / Impairments
+                            </p>
+                            <p className="text-base font-bold text-slate-800">
+                              {client.partnerDisabilities || "None recorded"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Counsellor Preferences Card (Matching Logic) */}
                     <div className="bg-white rounded-2xl border border-[var(--border-color)] p-8 shadow-sm">
