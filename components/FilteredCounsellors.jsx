@@ -288,10 +288,10 @@ export default function FilteredCounsellors({
       : `${formData.genderPreference} Counsellor`;
   }, [formData.genderPreference]);
 
-  // Specialty label
+  // Specialty label shown in the filter criteria sidebar
   const clientSpecialtyLabel = formData.isCouples
     ? "Couples Counsellor"
-    : "Couples Counsellor";
+    : "Individual Counsellor";
 
   // Fetch filtered counsellors from backend
   useEffect(() => {
