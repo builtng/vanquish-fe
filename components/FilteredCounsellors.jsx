@@ -905,14 +905,16 @@ export default function FilteredCounsellors({
                                     "Anxiety",
                                     "Abuse",
                                   ]
-                                ).map((topic, i) => (
-                                  <span
-                                    key={i}
-                                    className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#f4f5f2] text-gray-700 border border-gray-200/60"
-                                  >
-                                    {topic}
-                                  </span>
-                                ))}
+                                )
+                                  .slice(0, 4)
+                                  .map((topic, i) => (
+                                    <span
+                                      key={i}
+                                      className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#f4f5f2] text-gray-700 border border-gray-200/60"
+                                    >
+                                      {topic}
+                                    </span>
+                                  ))}
                               </div>
                             </div>
                           </div>
