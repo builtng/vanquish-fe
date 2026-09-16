@@ -1406,7 +1406,12 @@ export default function FilteredCounsellors({
                                       id: slot.id,
                                       consultation_datetime:
                                         slot.consultation_datetime ||
-                                        new Date().toISOString(),
+                                        slot.datetime ||
+                                        null,
+                                      datetime:
+                                        slot.datetime ||
+                                        slot.consultation_datetime ||
+                                        null,
                                       timeString: slotLabel,
                                     })
                                   }

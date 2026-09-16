@@ -3021,10 +3021,20 @@ function MidRangeClientIntakeContent() {
                   }));
                 }}
                 onSelectSlot={(slotData) => {
+                  // Only store a slot ID if it's a real numeric DB record from
+                  // the consultation_slots table. Fake display IDs ("s1", "s2" etc.)
+                  // or counsellor-generated slot IDs must NOT be sent to the backend
+                  // or they will fail the exists:consultation_slots,id validation.
+                  const rawId = slotData.id;
+                  const isRealDbSlot = rawId && /^\d+$/.test(String(rawId));
+                  const datetime =
+                    slotData.consultation_datetime ||
+                    slotData.datetime ||
+                    "";
                   setFormData((prev) => ({
                     ...prev,
-                    consultationSlotId: slotData.id || "",
-                    consultationDatetime: slotData.consultation_datetime || "",
+                    consultationSlotId: isRealDbSlot ? rawId : "",
+                    consultationDatetime: datetime,
                   }));
                   setErrors((prev) => {
                     const updated = { ...prev };
