@@ -986,15 +986,27 @@ export default function FilteredCounsellors({
                 </div>
 
                 <div className="p-6 space-y-4">
-                  {/* Name, Verified Badge, Title, Experience */}
+                  {/* Name, Verified Shield Badge, Title, Experience */}
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="font-serif text-2xl md:text-3xl font-bold text-gray-900">
                         {selectedCounsellorObj.name}
                       </h2>
-                      <div className="w-5 h-5 rounded-full bg-[#2d5a3f] text-white flex items-center justify-center shrink-0">
-                        <Check className="w-3 h-3 stroke-[3]" />
-                      </div>
+                      <span className="inline-flex items-center text-[#2d5a3f] shrink-0" title="Verified Counsellor">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                            fill="#2d5a3f"
+                          />
+                          <path
+                            d="m9 12 2 2 4-4"
+                            stroke="#ffffff"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </span>
                     </div>
                     <p className="text-xs sm:text-sm text-gray-600 font-normal mt-1">
                       {selectedCounsellorObj.qualification_title}
@@ -1506,9 +1518,26 @@ export default function FilteredCounsellors({
                     {activeProfileModal.fit_label || "Best Fit"})
                   </span>
                 </div>
-                <h3 className="font-serif text-2xl md:text-3xl font-bold text-gray-900">
-                  {activeProfileModal.name}
-                </h3>
+                <div className="flex items-center gap-2 justify-center sm:justify-start">
+                  <h3 className="font-serif text-2xl md:text-3xl font-bold text-gray-900">
+                    {activeProfileModal.name}
+                  </h3>
+                  <span className="inline-flex items-center text-[#2d5a3f] shrink-0" title="Verified Counsellor">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                        fill="#2d5a3f"
+                      />
+                      <path
+                        d="m9 12 2 2 4-4"
+                        stroke="#ffffff"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                </div>
                 <p className="text-sm font-medium text-gray-600">
                   {activeProfileModal.qualification_title}
                 </p>
