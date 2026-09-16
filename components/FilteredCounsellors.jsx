@@ -988,8 +988,8 @@ export default function FilteredCounsellors({
                 <div className="p-6 space-y-4">
                   {/* Name, Verified Shield Badge, Title, Experience */}
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="font-serif text-2xl md:text-3xl font-bold text-gray-900">
+                    <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                      <h2 className="font-serif text-2xl md:text-3xl font-bold text-gray-900 whitespace-nowrap truncate">
                         {selectedCounsellorObj.name}
                       </h2>
                       <span className="inline-flex items-center text-[#2d5a3f] shrink-0" title="Verified Counsellor">
@@ -1107,20 +1107,13 @@ export default function FilteredCounsellors({
                   Education & Credentials
                 </h3>
                 <ul className="space-y-2.5 text-xs sm:text-sm text-gray-600">
-                  {(
-                    selectedCounsellorObj.education_credentials || [
-                      "Master of Counselling Psychology - Yorkville University",
-                      "Registered Professional Counsellor (RPC) - CRPO",
-                      "Trauma-Informed Therapy Certificate - The Trauma Centre",
-                    ]
-                  ).map((cred, i) => (
+                  {(selectedCounsellorObj.education_credentials || []).map((cred, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="text-[#2d5a3f] mt-0.5 font-bold">•</span>
                       <span>{cred}</span>
                     </li>
                   ))}
                 </ul>
-
               </div>
             </div>
 
@@ -1511,8 +1504,8 @@ export default function FilteredCounsellors({
                     {activeProfileModal.fit_label || "Best Fit"})
                   </span>
                 </div>
-                <div className="flex items-center gap-2 justify-center sm:justify-start">
-                  <h3 className="font-serif text-2xl md:text-3xl font-bold text-gray-900">
+                <div className="flex items-center gap-2 justify-center sm:justify-start min-w-0 overflow-hidden">
+                  <h3 className="font-serif text-2xl md:text-3xl font-bold text-gray-900 whitespace-nowrap truncate">
                     {activeProfileModal.name}
                   </h3>
                   <span className="inline-flex items-center text-[#2d5a3f] shrink-0" title="Verified Counsellor">
@@ -1605,13 +1598,7 @@ export default function FilteredCounsellors({
                 Education & Credentials
               </h4>
               <ul className="space-y-2 text-xs md:text-sm text-gray-600 bg-gray-50 rounded-2xl p-4">
-                {(
-                  activeProfileModal.education_credentials || [
-                    "Master of Counselling Psychology - Yorkville University",
-                    "Registered Professional Counsellor (RPC) - CRPO",
-                    "Trauma-Informed Therapy Certificate - The Trauma Centre",
-                  ]
-                ).map((cred, i) => (
+                {(activeProfileModal.education_credentials || []).map((cred, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="text-[#2d5a3f] mt-0.5 font-bold">•</span>
                     <span>{cred}</span>

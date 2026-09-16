@@ -84,34 +84,31 @@ function QualifiedCounsellorFormContent() {
     { number: 4, title: "Review & Sign", shortTitle: "Review", icon: FileText },
   ];
 
-  // If tcId is provided in URL, prefill existing counsellor info
+  // If tcId (uuid) is provided in URL, prefill existing counsellor info via public endpoint
   useEffect(() => {
     if (!tcId) return;
 
     const fetchAndPrefillData = async () => {
       try {
         setIsLoading(true);
-        const data = await apiService.getTrainingCounsellorDetails(tcId);
+        // Use the public prefill endpoint — no auth token required
+        const data = await apiService.getQualifiedCounsellorPrefill(tcId);
 
         if (data) {
-          const nameParts = (data.name || "").trim().split(" ");
-          const fallbackFirst = nameParts[0] || "";
-          const fallbackLast = nameParts.slice(1).join(" ") || "";
-
           setFormData((prev) => ({
             ...prev,
             email: data.email || prev.email,
             phone: data.phone || prev.phone,
-            legalFirstName: data.legal_first_name || fallbackFirst || prev.legalFirstName,
-            legalLastName: data.legal_last_name || fallbackLast || prev.legalLastName,
-            registeredAddress: data.registered_address || data.address || prev.registeredAddress,
+            legalFirstName: data.legal_first_name || prev.legalFirstName,
+            legalLastName: data.legal_last_name || prev.legalLastName,
+            registeredAddress: data.registered_address || prev.registeredAddress,
             registeredCity: data.registered_city || prev.registeredCity,
             registeredPostcode: data.registered_postcode || prev.registeredPostcode,
             hasSupervisor: data.has_supervisor || prev.hasSupervisor,
             previousVanquishWork: data.previous_vanquish_work || prev.previousVanquishWork,
             areasToImprove: data.areas_to_improve || prev.areasToImprove,
             uniqueTrait: data.unique_trait || prev.uniqueTrait,
-            counsellorTrainingDetails: data.counsellor_training_details || data.qualifications || prev.counsellorTrainingDetails,
+            counsellorTrainingDetails: data.counsellor_training_details || prev.counsellorTrainingDetails,
             qualifiedToWorkWith: Array.isArray(data.qualified_to_work_with)
               ? data.qualified_to_work_with
               : prev.qualifiedToWorkWith,
