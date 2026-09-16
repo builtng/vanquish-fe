@@ -541,9 +541,9 @@ export default function FilteredCounsellors({
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-2.5 self-start md:self-auto">
+            <div className="flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-3 self-start md:self-auto">
               {/* Found Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-gray-200/90 bg-white text-xs sm:text-sm font-medium text-gray-700 shadow-2xs">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 bg-white text-xs sm:text-sm font-medium text-gray-700 shadow-2xs">
                 <Users className="w-4 h-4 text-gray-500" />
                 <span>
                   {loading
@@ -561,14 +561,14 @@ export default function FilteredCounsellors({
                     aria-label="Sort counsellors by"
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none bg-white border border-gray-200/90 rounded-xl px-3 py-1.5 pr-7 text-xs sm:text-sm font-semibold text-gray-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#2d5a3f] cursor-pointer"
+                    className="appearance-none bg-white border border-gray-200/90 rounded-lg px-3 py-1.5 pr-7 text-xs sm:text-sm font-semibold text-gray-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#2d5a3f] cursor-pointer"
                   >
                     <option value="best_fit">Best Fit</option>
                     <option value="score_desc">Highest Match</option>
                     <option value="experience_desc">Most Experience</option>
                     <option value="name_asc">Name (A-Z)</option>
                   </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-gray-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-3.5 h-3.5 text-gray-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
             </div>
@@ -579,7 +579,7 @@ export default function FilteredCounsellors({
             {/* ────────────────── LEFT SIDEBAR ────────────────── */}
             <div className="lg:col-span-4 space-y-6">
               {/* Box 1: Your Filter Criteria */}
-              <div className="bg-[#fafbfa] rounded-3xl border border-gray-200/80 p-5 sm:p-6 shadow-2xs space-y-5">
+              <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-2xs space-y-5">
                 {/* Header */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -608,7 +608,7 @@ export default function FilteredCounsellors({
                     </p>
                     <div className="flex items-center gap-3 pl-5.5">
                       <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                        <div className="h-full bg-[#2d5a3f] rounded-full w-full" />
+                        <div className="h-full bg-[#3d654c] rounded-full w-full" />
                       </div>
                       <span className="text-xs font-bold text-gray-800">100%</span>
                     </div>
@@ -627,7 +627,7 @@ export default function FilteredCounsellors({
                     </p>
                     <div className="flex items-center gap-3 pl-5.5">
                       <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                        <div className="h-full bg-[#2d5a3f] rounded-full w-full" />
+                        <div className="h-full bg-[#3d654c] rounded-full w-full" />
                       </div>
                       <span className="text-xs font-bold text-gray-800">100%</span>
                     </div>
@@ -646,7 +646,7 @@ export default function FilteredCounsellors({
                     </p>
                     <div className="flex items-center gap-3 pl-5.5">
                       <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                        <div className="h-full bg-[#2d5a3f] rounded-full w-full" />
+                        <div className="h-full bg-[#3d654c] rounded-full w-full" />
                       </div>
                       <span className="text-xs font-bold text-gray-800">100%</span>
                     </div>
@@ -655,7 +655,7 @@ export default function FilteredCounsellors({
                   {/* 4. Specialty Match */}
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-gray-600" />
+                      <Users className="w-3.5 h-3.5 text-gray-600" />
                       <span className="text-xs font-bold text-gray-800">
                         Specialty Match
                       </span>
@@ -665,7 +665,7 @@ export default function FilteredCounsellors({
                     </p>
                     <div className="flex items-center gap-3 pl-5.5">
                       <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                        <div className="h-full bg-[#2d5a3f] rounded-full w-full" />
+                        <div className="h-full bg-[#3d654c] rounded-full w-full" />
                       </div>
                       <span className="text-xs font-bold text-gray-800">100%</span>
                     </div>
@@ -684,7 +684,7 @@ export default function FilteredCounsellors({
                     </p>
                     <div className="flex items-center gap-3 pl-5.5">
                       <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                        <div className="h-full bg-[#2d5a3f] rounded-full w-full" />
+                        <div className="h-full bg-[#3d654c] rounded-full w-full" />
                       </div>
                       <span className="text-xs font-bold text-gray-800">100%</span>
                     </div>
@@ -692,8 +692,8 @@ export default function FilteredCounsellors({
                 </div>
 
                 {/* About These Results Callout */}
-                <div className="bg-[#f0f5f1] rounded-2xl p-3.5 border border-[#d9e6dc] flex items-start gap-3 mt-4">
-                  <div className="w-5 h-5 rounded-full bg-[#2d5a3f] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="bg-[#eef4ee] rounded-xl p-3.5 border border-[#d9e6dc] flex items-start gap-3 mt-4">
+                  <div className="w-5 h-5 rounded-full bg-[#3d654c] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Check className="w-3 h-3 stroke-[3]" />
                   </div>
                   <div>
@@ -709,7 +709,7 @@ export default function FilteredCounsellors({
               </div>
 
               {/* Box 2: Your Selected Preferences */}
-              <div className="p-2 space-y-4">
+              <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-2xs space-y-4">
                 <h3 className="text-sm sm:text-base font-bold text-gray-900">
                   Your Selected Preferences
                 </h3>
@@ -717,7 +717,7 @@ export default function FilteredCounsellors({
                 <div className="space-y-3.5">
                   {/* Areas of Support */}
                   <div className="flex items-start gap-2.5">
-                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#2d5a3f]">
+                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
                       <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                     </div>
                     <div>
@@ -732,7 +732,7 @@ export default function FilteredCounsellors({
 
                   {/* Modality */}
                   <div className="flex items-start gap-2.5">
-                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#2d5a3f]">
+                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
                       <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                     </div>
                     <div>
@@ -747,7 +747,7 @@ export default function FilteredCounsellors({
 
                   {/* Specialty */}
                   <div className="flex items-start gap-2.5">
-                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#2d5a3f]">
+                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
                       <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                     </div>
                     <div>
@@ -762,7 +762,7 @@ export default function FilteredCounsellors({
 
                   {/* Availability */}
                   <div className="flex items-start gap-2.5">
-                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#2d5a3f]">
+                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
                       <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                     </div>
                     <div>
@@ -777,7 +777,7 @@ export default function FilteredCounsellors({
 
                   {/* Counsellor Preference */}
                   <div className="flex items-start gap-2.5">
-                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#2d5a3f]">
+                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
                       <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                     </div>
                     <div>
@@ -796,7 +796,7 @@ export default function FilteredCounsellors({
             {/* ────────────────── RIGHT MAIN AREA: COUNSELLOR CARDS ────────────────── */}
             <div className="lg:col-span-8 space-y-6">
               {loading ? (
-                <div className="bg-white rounded-3xl p-16 text-center border border-gray-100 shadow-2xs flex flex-col items-center justify-center space-y-4">
+                <div className="bg-white rounded-2xl p-16 text-center border border-gray-100 shadow-2xs flex flex-col items-center justify-center space-y-4">
                   <Loader2 className="w-9 h-9 animate-spin text-[#2d5a3f]" />
                   <p className="text-gray-700 font-semibold text-base">
                     Matching and filtering counsellors...
@@ -812,130 +812,132 @@ export default function FilteredCounsellors({
                   return (
                     <div
                       key={counsellor.uuid || cIdx}
-                      className="bg-white rounded-3xl border border-gray-200/90 shadow-2xs hover:shadow-md transition-all duration-300 p-5 sm:p-6 relative overflow-hidden"
+                      className="bg-white rounded-2xl border border-gray-200/80 shadow-2xs hover:shadow-md transition-all duration-300 p-6 relative overflow-hidden"
                     >
-                      <div className="flex flex-col md:flex-row gap-5 items-start">
-                        {/* Left: Portrait Photo / Avatar Placeholder */}
-                        <div className="relative flex-shrink-0 self-center md:self-start">
+                      {/* Top Right Heart Favorite Button */}
+                      <button
+                        type="button"
+                        onClick={() => toggleFavorite(counsellor.uuid)}
+                        className="absolute top-6 right-6 p-1 text-gray-400 hover:text-red-500 transition cursor-pointer z-10"
+                        title="Save counsellor"
+                      >
+                        <Heart
+                          className={`w-5 h-5 transition ${
+                            isFav
+                              ? "fill-red-500 text-red-500"
+                              : "text-gray-400 hover:text-red-400"
+                          }`}
+                        />
+                      </button>
+
+                      <div className="flex flex-col md:flex-row gap-6 items-start">
+                        {/* Left: Portrait Photo */}
+                        <div className="flex-shrink-0 self-center md:self-start">
                           <CounsellorAvatar
                             src={photoSrc}
                             alt={counsellor.name}
-                            className="w-40 sm:w-44 md:w-48 h-52 sm:h-56 md:h-60 rounded-2xl object-cover shadow-2xs bg-gray-100"
-                            iconClassName="w-10 h-10"
+                            className="w-44 md:w-48 h-56 md:h-64 rounded-2xl object-cover shadow-2xs bg-gray-100"
+                            iconClassName="w-12 h-12"
                           />
                         </div>
 
-                        {/* Middle: Details */}
-                        <div className="flex-1 space-y-2.5 w-full">
+                        {/* Middle & Right Content */}
+                        <div className="flex-1 flex flex-col justify-between min-h-[256px] space-y-3 w-full pr-0 md:pr-2">
                           <div>
-                            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-[#1e3a2b] tracking-tight">
-                              {counsellor.name}
-                            </h2>
-                            <p className="text-xs sm:text-sm text-gray-600 font-normal mt-0.5">
-                              {counsellor.qualification_title}
+                            {/* Top Info & Score Box */}
+                            <div className="flex items-start justify-between gap-4 pr-8">
+                              <div>
+                                <h2 className="font-serif text-2xl md:text-[26px] font-semibold text-gray-900 leading-tight">
+                                  {counsellor.name}
+                                </h2>
+                                <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                                  {counsellor.qualification_title}
+                                </p>
+                                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                                  {formatYearsOfExperience(
+                                    counsellor.years_of_experience
+                                  )}
+                                </p>
+                              </div>
+
+                              {/* Fit Score Badge Box */}
+                              <div className="bg-[#f7f9f7] border border-gray-200/70 rounded-xl px-4 py-2.5 text-center min-w-[110px] shadow-2xs">
+                                <div className="flex items-center justify-center gap-1 text-xs font-semibold text-[#2d5a3f]">
+                                  <Star className="w-3.5 h-3.5 fill-[#2d5a3f]" />
+                                  <span>{counsellor.fit_label || "Best Fit"}</span>
+                                </div>
+                                <div className="text-2xl md:text-3xl font-bold text-gray-900 mt-0.5">
+                                  {counsellor.match_score || 100}%
+                                </div>
+                                <div className="text-[11px] text-gray-500 font-medium">
+                                  Overall Fit
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Modality & Specialty Badges */}
+                            <div className="flex flex-wrap gap-2 mt-2.5">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
+                                <span className="text-[#2d5a3f]">⬡</span>
+                                {counsellor.modality || "Integrative"}
+                              </span>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
+                                <Users className="w-3.5 h-3.5 text-[#2d5a3f]" />
+                                {counsellor.specialty || clientSpecialtyLabel}
+                              </span>
+                            </div>
+
+                            {/* Bio */}
+                            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mt-2.5">
+                              {counsellor.bio}
                             </p>
-                            <p className="text-xs text-gray-500 font-normal mt-0.5">
-                              {formatYearsOfExperience(
-                                counsellor.years_of_experience
-                              )}
-                            </p>
-                          </div>
 
-                          {/* Tag Pills */}
-                          <div className="flex flex-wrap gap-2 pt-0.5">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#f4f7f4] text-[#2d5a3f] border border-[#d9e6dc]">
-                              <Sparkles className="w-3.5 h-3.5" />
-                              {counsellor.modality || "Integrative"}
-                            </span>
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#f4f7f4] text-[#2d5a3f] border border-[#d9e6dc]">
-                              <Users className="w-3.5 h-3.5" />
-                              {counsellor.specialty || clientSpecialtyLabel}
-                            </span>
-                          </div>
-
-                          {/* Bio */}
-                          <p className="text-xs sm:text-sm text-gray-600 leading-relaxed pt-1 line-clamp-3">
-                            {counsellor.bio}
-                          </p>
-
-                          {/* Areas of Support */}
-                          <div className="pt-1.5">
-                            <span className="text-xs font-bold text-gray-800 block mb-1.5">
-                              Areas of Support
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {(
-                                counsellor.topics_with_experience || [
-                                  "Trauma",
-                                  "Domestic Violence",
-                                  "Anxiety",
-                                  "Abuse",
-                                ]
-                              ).map((topic, i) => (
-                                <span
-                                  key={i}
-                                  className="px-2.5 py-0.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200/50"
-                                >
-                                  {topic}
-                                </span>
-                              ))}
+                            {/* Areas of Support */}
+                            <div className="mt-3">
+                              <span className="text-xs font-semibold text-gray-900 block mb-1.5">
+                                Areas of Support
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(
+                                  counsellor.topics_with_experience || [
+                                    "Trauma",
+                                    "Domestic Violence",
+                                    "Anxiety",
+                                    "Abuse",
+                                  ]
+                                ).map((topic, i) => (
+                                  <span
+                                    key={i}
+                                    className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#f4f5f2] text-gray-700 border border-gray-200/60"
+                                  >
+                                    {topic}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           </div>
 
-                          {/* Availability Line */}
-                          <div className="flex items-center gap-2 text-xs text-gray-600 pt-2 border-t border-gray-100">
-                            <Calendar className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
-                            <span>
-                              {counsellor.availability_summary ||
-                                clientAvailabilitySummary}
-                            </span>
-                          </div>
-                        </div>
+                          {/* Bottom Row: Availability + View Profile Button */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-gray-100 mt-2">
+                            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-700 font-medium">
+                              <Calendar className="w-4 h-4 text-gray-500 shrink-0" />
+                              <span>
+                                {counsellor.availability_summary ||
+                                  clientAvailabilitySummary}
+                              </span>
+                            </div>
 
-                        {/* Right: Score Card & Action */}
-                        <div className="flex flex-row md:flex-col justify-between items-end md:items-stretch gap-4 self-stretch md:self-auto flex-shrink-0 min-w-[130px] sm:min-w-[140px]">
-                          <div className="self-end">
                             <button
                               type="button"
-                              onClick={() => toggleFavorite(counsellor.uuid)}
-                              className="p-1 rounded-full text-gray-400 hover:text-red-500 transition cursor-pointer"
-                              title="Save counsellor"
+                              onClick={() => {
+                                onSelectCounsellor(counsellor);
+                                setActiveProfileModal(counsellor);
+                              }}
+                              className="py-2 px-6 rounded-lg bg-[#2d4a3e] hover:bg-[#223930] text-white text-xs sm:text-sm font-semibold shadow-xs transition text-center cursor-pointer shrink-0"
                             >
-                              <Heart
-                                className={`w-5 h-5 transition ${
-                                  isFav
-                                    ? "fill-red-500 text-red-500"
-                                    : "text-gray-400 hover:text-red-400"
-                                }`}
-                              />
+                              View Profile
                             </button>
                           </div>
-
-                          {/* Fit Score Badge */}
-                          <div className="bg-[#f4f7f4] border border-[#d9e6dc] rounded-2xl p-3.5 text-center w-full">
-                            <div className="flex items-center justify-center gap-1 text-xs font-bold text-[#2d5a3f]">
-                              <Star className="w-3.5 h-3.5 fill-[#2d5a3f]" />
-                              <span>{counsellor.fit_label || "Best Fit"}</span>
-                            </div>
-                            <div className="text-3xl font-bold text-gray-900 mt-1">
-                              {counsellor.match_score || 100}%
-                            </div>
-                            <div className="text-[11px] text-gray-500 font-medium mt-0.5">
-                              Overall Fit
-                            </div>
-                          </div>
-
-                          {/* ONLY View Profile Button */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onSelectCounsellor(counsellor);
-                              setActiveProfileModal(counsellor);
-                            }}
-                            className="w-full py-2.5 px-4 rounded-xl bg-[#243f32] hover:bg-[#1a2f25] text-white text-xs sm:text-sm font-semibold shadow-xs transition text-center cursor-pointer"
-                          >
-                            View Profile
-                          </button>
                         </div>
                       </div>
                     </div>

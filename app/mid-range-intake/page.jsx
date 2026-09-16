@@ -1077,10 +1077,10 @@ function MidRangeClientIntakeContent() {
   return (
     <PublicFormWrapper>
       <div
-        className="min-h-screen py-4 md:py-8 px-4"
+        className="min-h-screen py-4 md:py-8 px-4 sm:px-6 lg:px-8"
         style={{ background: "var(--bg-secondary)" }}
       >
-        <div className="max-w-4xl mx-auto">
+        <div className="w-full max-w-6xl xl:max-w-7xl mx-auto">
           {/* Header with Logo */}
           <div className="card rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border">
             <div className="flex flex-col items-center justify-center mb-4 md:mb-6 text-center">
