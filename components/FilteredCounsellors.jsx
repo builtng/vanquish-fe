@@ -1121,13 +1121,6 @@ export default function FilteredCounsellors({
                   ))}
                 </ul>
 
-                <button
-                  type="button"
-                  onClick={() => setActiveProfileModal(selectedCounsellorObj)}
-                  className="w-full mt-2 py-2.5 px-4 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition text-center cursor-pointer"
-                >
-                  View Full Profile
-                </button>
               </div>
             </div>
 
