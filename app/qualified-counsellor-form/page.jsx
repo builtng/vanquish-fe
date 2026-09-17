@@ -42,25 +42,19 @@ const GENDER_OPTIONS = [
 ];
 
 const ETHNICITY_OPTIONS = [
-  "Asian / Asian British - Indian",
-  "Asian / Asian British - Pakistani",
-  "Asian / Asian British - Bangladeshi",
-  "Asian / Asian British - Chinese",
-  "Asian / Asian British - Any other Asian background",
-  "Black / African / Caribbean / Black British - African",
-  "Black / African / Caribbean / Black British - Caribbean",
-  "Black / African / Caribbean / Black British - Any other Black background",
-  "Mixed / Multiple ethnic groups - White and Black Caribbean",
-  "Mixed / Multiple ethnic groups - White and Black African",
-  "Mixed / Multiple ethnic groups - White and Asian",
-  "Mixed / Multiple ethnic groups - Any other Mixed background",
-  "White - English / Welsh / Scottish / Northern Irish / British",
-  "White - Irish",
-  "White - Gypsy or Irish Traveller",
-  "White - Any other White background",
-  "Other ethnic group - Arab",
-  "Other ethnic group - Any other ethnic group",
+  "Caucasian/White",
+  "African/Caribbean/Black",
+  "North African",
+  "Hispanic/Latino",
+  "South Asian",
+  "Southeast Asian",
+  "East Asian",
+  "Central Asian",
+  "West Asian (Middle Eastern)",
+  "North Asian",
+  "Mixed/Multiracial",
   "Prefer not to say",
+  "Other (not listed above)",
 ];
 
 const SEXUAL_ORIENTATION_OPTIONS = [
