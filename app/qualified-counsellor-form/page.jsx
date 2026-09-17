@@ -22,15 +22,17 @@ import {
   FileCheck,
   Check,
   Trash2,
+  PenTool,
+  Type,
 } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import apiService from "@/lib/api";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { useBranding } from "@/contexts/BrandingContext";
+import SearchableSelect from "@/components/SearchableSelect";
 import { THERAPY_TOPICS } from "@/lib/constants";
 
 const GENDER_OPTIONS = [
-  "Please Select",
   "Female",
   "Male",
   "Non-binary",
@@ -40,7 +42,6 @@ const GENDER_OPTIONS = [
 ];
 
 const ETHNICITY_OPTIONS = [
-  "Please Select",
   "Asian / Asian British - Indian",
   "Asian / Asian British - Pakistani",
   "Asian / Asian British - Bangladeshi",
@@ -63,7 +64,6 @@ const ETHNICITY_OPTIONS = [
 ];
 
 const SEXUAL_ORIENTATION_OPTIONS = [
-  "Please Select",
   "Heterosexual",
   "Gay",
   "Lesbian",
@@ -76,7 +76,6 @@ const SEXUAL_ORIENTATION_OPTIONS = [
 ];
 
 const BELIEFS_OPTIONS = [
-  "Please Select",
   "Atheism",
   "Agnosticism",
   "Buddhism",
@@ -89,6 +88,18 @@ const BELIEFS_OPTIONS = [
   "Taoism",
   "Prefer not to say",
   "Other (not listed above)",
+];
+
+const YES_NO_OPTIONS = [
+  "Yes",
+  "No",
+];
+
+const DBS_OPTIONS = [
+  "Yes - Adult workforce (on Update Service)",
+  "Yes - Both workforces (on Update Service)",
+  "Yes - (not on Update Service)",
+  "No",
 ];
 
 const QUALIFIED_WORK_WITH_OPTIONS = [
@@ -159,6 +170,29 @@ const EXPERIENCE_AREAS_OPTIONS = [
   "Other (not listed above)",
 ];
 
+const TIME_SLOTS = [
+  { value: "10am-11am", label: "10:00 AM - 11:00 AM", category: "Morning" },
+  { value: "11am-12pm", label: "11:00 AM - 12:00 PM", category: "Morning" },
+  { value: "12pm-1pm", label: "12:00 PM - 1:00 PM", category: "Afternoon" },
+  { value: "1pm-2pm", label: "1:00 PM - 2:00 PM", category: "Afternoon" },
+  { value: "2pm-3pm", label: "2:00 PM - 3:00 PM", category: "Afternoon" },
+  { value: "3pm-4pm", label: "3:00 PM - 4:00 PM", category: "Afternoon" },
+  { value: "4pm-5pm", label: "4:00 PM - 5:00 PM", category: "Afternoon" },
+  { value: "5pm-6pm", label: "5:00 PM - 6:00 PM", category: "Evening" },
+  { value: "6pm-7pm", label: "6:00 PM - 7:00 PM", category: "Evening" },
+];
+
+const FRIDAY_TIME_SLOTS = [
+  { value: "10am-11am", label: "10:00 AM - 11:00 AM", category: "Morning" },
+  { value: "11am-12pm", label: "11:00 AM - 12:00 PM", category: "Morning" },
+  { value: "12pm-1pm", label: "12:00 PM - 1:00 PM", category: "Afternoon" },
+  { value: "1pm-2pm", label: "1:00 PM - 2:00 PM", category: "Afternoon" },
+  { value: "2pm-3pm", label: "2:00 PM - 3:00 PM", category: "Afternoon" },
+  { value: "3pm-4pm", label: "3:00 PM - 4:00 PM", category: "Afternoon" },
+  { value: "4pm-5pm", label: "4:00 PM - 5:00 PM", category: "Afternoon" },
+  { value: "5pm-6pm", label: "5:00 PM - 6:00 PM", category: "Evening" },
+];
+
 function QualifiedCounsellorFormContent() {
   const { branding, loading: brandingLoading } = useBranding();
   const searchParams = useSearchParams();
@@ -198,7 +232,13 @@ function QualifiedCounsellorFormContent() {
     qualifiedToWorkWith: [],
     modalities: [],
     experienceAreas: [],
-    availabilitySchedule: "",
+    availability: {
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+    },
     uniqueTrait: "",
     areasToImprove: "",
     challengingCases: "",
@@ -217,6 +257,7 @@ function QualifiedCounsellorFormContent() {
     signatureDate: new Date().toISOString().split("T")[0],
   });
 
+  const [signatureMode, setSignatureMode] = useState("draw"); // "draw" | "type"
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -265,6 +306,15 @@ function QualifiedCounsellorFormContent() {
             qualifiedToWorkWith: Array.isArray(data.qualified_to_work_with)
               ? data.qualified_to_work_with
               : prev.qualifiedToWorkWith,
+            availability: (typeof data.availability === "object" && data.availability !== null)
+              ? {
+                  monday: Array.isArray(data.availability.monday) ? data.availability.monday : [],
+                  tuesday: Array.isArray(data.availability.tuesday) ? data.availability.tuesday : [],
+                  wednesday: Array.isArray(data.availability.wednesday) ? data.availability.wednesday : [],
+                  thursday: Array.isArray(data.availability.thursday) ? data.availability.thursday : [],
+                  friday: Array.isArray(data.availability.friday) ? data.availability.friday : [],
+                }
+              : prev.availability,
             challengingCases: data.challenging_cases || prev.challengingCases,
             signature: data.signature || (data.name ? data.name : prev.signature),
             signatureDate: data.signature_date
@@ -298,6 +348,30 @@ function QualifiedCounsellorFormContent() {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleAvailabilityToggle = (day, slot) => {
+    setFormData((prev) => {
+      const currentSlots = prev.availability?.[day] || [];
+      const updatedSlots = currentSlots.includes(slot)
+        ? currentSlots.filter((s) => s !== slot)
+        : [...currentSlots, slot];
+      return {
+        ...prev,
+        availability: {
+          ...prev.availability,
+          [day]: updatedSlots,
+        },
+      };
+    });
+
+    if (errors.availability) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.availability;
         return newErrors;
       });
     }
@@ -400,8 +474,11 @@ function QualifiedCounsellorFormContent() {
           stepErrors.modalities = "Please select at least one therapeutic modality or approach";
         if (formData.experienceAreas.length === 0)
           stepErrors.experienceAreas = "Please select all areas you have experience in and currently support clients with";
-        if (!formData.availabilitySchedule.trim())
-          stepErrors.availabilitySchedule = "Please mention your availability/schedule to attend online counselling sessions";
+        const hasAvailability = Object.values(formData.availability || {}).some(
+          (slots) => Array.isArray(slots) && slots.length > 0
+        );
+        if (!hasAvailability)
+          stepErrors.availability = "Please select at least one available day and time slot";
         break;
 
       case 3:
@@ -422,10 +499,14 @@ function QualifiedCounsellorFormContent() {
       case 4:
         if (!formData.termsAccepted)
           stepErrors.termsAccepted = "You must confirm that the declaration is accurate";
-        if (!formData.signature.trim())
-          stepErrors.signature = "Please provide your signature";
-        if (!formData.signatureDate)
-          stepErrors.signatureDate = "Signature date is required";
+        
+        let validSignature = formData.signature;
+        if (signatureMode === "draw" && signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+          validSignature = signaturePadRef.current.getTrimmedCanvas().toDataURL("image/png");
+        }
+        if (!validSignature || !validSignature.trim()) {
+          stepErrors.signature = "Please provide your signature before submitting";
+        }
         break;
 
       default:
@@ -449,6 +530,7 @@ function QualifiedCounsellorFormContent() {
         const firstErrorField = Object.keys(stepErrors)[0];
         const errorElement =
           document.querySelector(`[name="${firstErrorField}"]`) ||
+          document.querySelector(`[data-field="${firstErrorField}"]`) ||
           document.querySelector(`#${firstErrorField}`);
         if (errorElement) {
           errorElement.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -495,9 +577,9 @@ function QualifiedCounsellorFormContent() {
   };
 
   const handleSubmit = async () => {
-    // Capture signature if drawn on canvas
+    // Capture signature if drawn on canvas or typed
     let currentSignature = formData.signature;
-    if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+    if (signatureMode === "draw" && signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
       currentSignature = signaturePadRef.current.getTrimmedCanvas().toDataURL("image/png");
       setFormData((prev) => ({ ...prev, signature: currentSignature }));
     }
@@ -510,6 +592,8 @@ function QualifiedCounsellorFormContent() {
 
     setIsSubmitting(true);
     setSubmitError(null);
+
+    const autoDate = new Date().toISOString().split("T")[0];
 
     try {
       // 1. Upload verification documents
@@ -528,6 +612,8 @@ function QualifiedCounsellorFormContent() {
         uploadFile(formData.selfEmploymentProof, "self_employment"),
         uploadFile(formData.insuranceQualified, "insurance"),
       ]);
+
+      const autoDate = new Date().toISOString().split("T")[0];
 
       // 2. Submit payload
       const submitData = {
@@ -556,7 +642,8 @@ function QualifiedCounsellorFormContent() {
         qualified_to_work_with: formData.qualifiedToWorkWith,
         modalities: formData.modalities,
         experience_areas: formData.experienceAreas,
-        availability_schedule: formData.availabilitySchedule,
+        availability: formData.availability,
+        availability_schedule: JSON.stringify(formData.availability),
         areas_to_improve: formData.areasToImprove || "N/A",
         unique_trait: formData.uniqueTrait || "N/A",
         challenging_cases: formData.challengingCases || "N/A",
@@ -567,7 +654,7 @@ function QualifiedCounsellorFormContent() {
         self_employment_proof: selfEmploymentDoc,
         insurance_qualified: insuranceDoc,
         signature: currentSignature || formData.signature,
-        signature_date: formData.signatureDate,
+        signature_date: formData.signatureDate || autoDate,
       };
 
       const response = await apiService.request("/qualified-counsellor/submit", {
@@ -591,77 +678,83 @@ function QualifiedCounsellorFormContent() {
     }
   };
 
-  // Success Confirmation Screen
+  // Success Confirmation Screen (Matching JotForm Thank You Page with Vanquish purple styling)
   if (submitted) {
     return (
       <PublicFormWrapper>
-        <div className="min-h-screen py-12 px-4" style={{ background: "var(--bg-secondary)" }}>
-          <div className="flex items-center justify-center min-h-[75vh]">
-            <div className="card rounded-2xl shadow-xl p-8 max-w-lg w-full text-center border bg-white">
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner"
-                style={{ backgroundColor: "var(--success-bg)", border: "2px solid var(--success-border)" }}
-              >
-                <CheckCircle className="w-12 h-12" style={{ color: "var(--success-primary)" }} />
-              </div>
-
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-[#6f1d56] border border-purple-200 mb-3">
-                <Sparkles className="w-3.5 h-3.5" />
-                Qualified Application Received
-              </div>
-
-              <h2 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: "var(--text-primary)" }}>
-                Application Submitted!
-              </h2>
-
-              <p className="mb-6 text-sm md:text-base leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                Thank you for completing the application form. We will be in touch soon. Your credentials and profile have been securely recorded.
-              </p>
-
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6 text-left text-sm space-y-2">
-                <div className="flex justify-between items-center pb-2 border-b border-gray-200">
-                  <span className="text-xs uppercase font-medium text-gray-500">Applicant</span>
-                  <span className="font-semibold text-gray-800">
-                    {formData.legalFirstName} {formData.legalLastName}
-                  </span>
-                </div>
-                {submittedCounsellor?.tc_id && (
-                  <div className="flex justify-between items-center pb-2 border-b border-gray-200">
-                    <span className="text-xs uppercase font-medium text-gray-500">Reference ID</span>
-                    <span className="font-mono font-bold text-[#6f1d56]">
-                      {submittedCounsellor.tc_id}
-                    </span>
+        <div className="min-h-screen py-10 px-4 flex items-center justify-center" style={{ backgroundColor: "#6f1d56" }}>
+          <div className="bg-white rounded-2xl shadow-2xl p-8 sm:p-12 max-w-xl w-full text-center border border-purple-100 animate-fadeIn">
+            {/* Logo */}
+            <div className="flex flex-col items-center justify-center mb-8">
+              {branding?.logo_url ? (
+                <img
+                  src={branding.logo_url}
+                  alt={branding.company_name || "Vanquish Therapies"}
+                  className="h-16 w-auto object-contain"
+                />
+              ) : (
+                <div className="flex flex-col items-center">
+                  <div className="flex items-center gap-1">
+                    <span className="text-3xl font-extrabold tracking-tight" style={{ color: "#6f1d56" }}>V</span>
+                    <span className="text-3xl font-extrabold tracking-tight" style={{ color: "#707070" }}>Q</span>
+                    <span className="text-3xl font-extrabold tracking-tight" style={{ color: "#4A4A4A" }}>T</span>
                   </div>
-                )}
-                <div className="flex justify-between items-center">
-                  <span className="text-xs uppercase font-medium text-gray-500">Clinical Status</span>
-                  <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-xs bg-emerald-50 px-2 py-0.5 rounded">
-                    <Check className="w-3 h-3" /> Credentials Under Verification
+                  <span className="text-[11px] font-bold tracking-widest text-[#6f1d56] uppercase mt-1">
+                    Vanquish Therapies
                   </span>
                 </div>
-              </div>
+              )}
+            </div>
 
-              <div className="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg text-left text-xs sm:text-sm text-amber-900 mb-8">
-                <p className="font-bold mb-1">What Happens Next?</p>
-                <p>
-                  Our clinical team will verify your qualification diploma, indemnity insurance, DBS certificate, and professional membership. You will receive an email update once verified.
-                </p>
-              </div>
+            {/* Title */}
+            <h1 className="text-3xl sm:text-4xl font-extrabold mb-3 tracking-tight" style={{ color: "#6f1d56" }}>
+              Thank You!
+            </h1>
 
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link
-                  href="/"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#6f1d56] text-white rounded-lg hover:bg-[#5a1746] font-medium transition-colors shadow-sm"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Return to Home
-                </Link>
-                <Link
-                  href="/counsellor-login"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-                >
-                  <ExternalLink className="w-4 h-4" /> Counsellor Portal
-                </Link>
+            {/* Subtitles */}
+            <div className="space-y-1 text-gray-600 text-base sm:text-lg mb-8 leading-relaxed">
+              <p>Your submission has been received.</p>
+              <p>We will be in touch soon.</p>
+            </div>
+
+            {/* Submission Info Box */}
+            <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-4 mb-8 text-left text-xs sm:text-sm space-y-2">
+              <div className="flex justify-between items-center pb-2 border-b border-purple-100">
+                <span className="text-gray-500 font-medium">Applicant:</span>
+                <span className="font-semibold text-gray-900">
+                  {formData.legalFirstName} {formData.legalLastName}
+                </span>
               </div>
+              {submittedCounsellor?.tc_id && (
+                <div className="flex justify-between items-center pb-2 border-b border-purple-100">
+                  <span className="text-gray-500 font-medium">Reference ID:</span>
+                  <span className="font-mono font-bold text-[#6f1d56]">
+                    {submittedCounsellor.tc_id}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 font-medium">Clinical Status:</span>
+                <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-xs bg-emerald-50 px-2 py-0.5 rounded">
+                  <Check className="w-3 h-3" /> Received & Under Review
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#6f1d56] text-white rounded-lg hover:bg-[#5a1746] font-semibold text-sm transition-colors shadow-sm"
+              >
+                <ArrowLeft className="w-4 h-4" /> Return to Home
+              </Link>
+              <Link
+                href="/counsellor-login"
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold text-sm transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" /> Counsellor Portal
+              </Link>
             </div>
           </div>
         </div>
@@ -939,21 +1032,13 @@ function QualifiedCounsellorFormContent() {
                     <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                       Gender <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      name="gender"
-                      id="gender"
+                    <SearchableSelect
                       value={formData.gender}
                       onChange={(e) => handleInputChange("gender", e.target.value)}
-                      className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
-                        errors.gender ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                      }`}
-                    >
-                      {GENDER_OPTIONS.map((gender) => (
-                        <option key={gender} value={gender === "Please Select" ? "" : gender}>
-                          {gender}
-                        </option>
-                      ))}
-                    </select>
+                      options={GENDER_OPTIONS}
+                      placeholder="Please Select"
+                      className={errors.gender ? "border-red-500" : ""}
+                    />
                     {errors.gender && (
                       <p className="text-red-500 text-xs mt-1">{errors.gender}</p>
                     )}
@@ -963,21 +1048,13 @@ function QualifiedCounsellorFormContent() {
                     <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                       Ethnicity <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      name="ethnicity"
-                      id="ethnicity"
+                    <SearchableSelect
                       value={formData.ethnicity}
                       onChange={(e) => handleInputChange("ethnicity", e.target.value)}
-                      className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
-                        errors.ethnicity ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                      }`}
-                    >
-                      {ETHNICITY_OPTIONS.map((ethnicity) => (
-                        <option key={ethnicity} value={ethnicity === "Please Select" ? "" : ethnicity}>
-                          {ethnicity}
-                        </option>
-                      ))}
-                    </select>
+                      options={ETHNICITY_OPTIONS}
+                      placeholder="Please Select"
+                      className={errors.ethnicity ? "border-red-500" : ""}
+                    />
                     {errors.ethnicity && (
                       <p className="text-red-500 text-xs mt-1">{errors.ethnicity}</p>
                     )}
@@ -1038,21 +1115,15 @@ function QualifiedCounsellorFormContent() {
                   <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                     Sexual Orientation: (This helps us match counsellors with clients who may feel more comfortable with certain perspectives, expertise, or understanding). <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    name="sexualOrientation"
-                    id="sexualOrientation"
-                    value={formData.sexualOrientation}
-                    onChange={(e) => handleInputChange("sexualOrientation", e.target.value)}
-                    className={`w-full max-w-md px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
-                      errors.sexualOrientation ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                    }`}
-                  >
-                    {SEXUAL_ORIENTATION_OPTIONS.map((orientation) => (
-                      <option key={orientation} value={orientation === "Please Select" ? "" : orientation}>
-                        {orientation}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="max-w-md">
+                    <SearchableSelect
+                      value={formData.sexualOrientation}
+                      onChange={(e) => handleInputChange("sexualOrientation", e.target.value)}
+                      options={SEXUAL_ORIENTATION_OPTIONS}
+                      placeholder="Please Select"
+                      className={errors.sexualOrientation ? "border-red-500" : ""}
+                    />
+                  </div>
                   {errors.sexualOrientation && (
                     <p className="text-red-500 text-xs mt-1">{errors.sexualOrientation}</p>
                   )}
@@ -1063,21 +1134,15 @@ function QualifiedCounsellorFormContent() {
                   <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                     Please select your beliefs <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    name="beliefs"
-                    id="beliefs"
-                    value={formData.beliefs}
-                    onChange={(e) => handleInputChange("beliefs", e.target.value)}
-                    className={`w-full max-w-md px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
-                      errors.beliefs ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                    }`}
-                  >
-                    {BELIEFS_OPTIONS.map((belief) => (
-                      <option key={belief} value={belief === "Please Select" ? "" : belief}>
-                        {belief}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="max-w-md">
+                    <SearchableSelect
+                      value={formData.beliefs}
+                      onChange={(e) => handleInputChange("beliefs", e.target.value)}
+                      options={BELIEFS_OPTIONS}
+                      placeholder="Please Select"
+                      className={errors.beliefs ? "border-red-500" : ""}
+                    />
+                  </div>
                   {errors.beliefs && (
                     <p className="text-red-500 text-xs mt-1">{errors.beliefs}</p>
                   )}
@@ -1204,19 +1269,15 @@ function QualifiedCounsellorFormContent() {
                   <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                     Do you currently hold valid Professional Indemnity Insurance that covers your counselling or therapeutic practice? <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    name="hasIndemnityInsurance"
-                    id="hasIndemnityInsurance"
-                    value={formData.hasIndemnityInsurance}
-                    onChange={(e) => handleInputChange("hasIndemnityInsurance", e.target.value)}
-                    className={`w-full max-w-md px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
-                      errors.hasIndemnityInsurance ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Please Select</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
+                  <div className="max-w-md">
+                    <SearchableSelect
+                      value={formData.hasIndemnityInsurance}
+                      onChange={(e) => handleInputChange("hasIndemnityInsurance", e.target.value)}
+                      options={YES_NO_OPTIONS}
+                      placeholder="Please Select"
+                      className={errors.hasIndemnityInsurance ? "border-red-500" : ""}
+                    />
+                  </div>
                   {errors.hasIndemnityInsurance && (
                     <p className="text-red-500 text-xs mt-1">{errors.hasIndemnityInsurance}</p>
                   )}
@@ -1248,19 +1309,15 @@ function QualifiedCounsellorFormContent() {
                   <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                     Do you currently have a Qualified Clinical Supervisor? <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    name="hasSupervisor"
-                    id="hasSupervisor"
-                    value={formData.hasSupervisor}
-                    onChange={(e) => handleInputChange("hasSupervisor", e.target.value)}
-                    className={`w-full max-w-md px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
-                      errors.hasSupervisor ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Please Select</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
+                  <div className="max-w-md">
+                    <SearchableSelect
+                      value={formData.hasSupervisor}
+                      onChange={(e) => handleInputChange("hasSupervisor", e.target.value)}
+                      options={YES_NO_OPTIONS}
+                      placeholder="Please Select"
+                      className={errors.hasSupervisor ? "border-red-500" : ""}
+                    />
+                  </div>
                   {errors.hasSupervisor && (
                     <p className="text-red-500 text-xs mt-1">{errors.hasSupervisor}</p>
                   )}
@@ -1271,21 +1328,15 @@ function QualifiedCounsellorFormContent() {
                   <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                     Do you have an enhanced DBS covering the Adult workforce or both workforce? If so, are you registered on the DBS update service? We will be carrying out a status check <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    name="dbsRegistered"
-                    id="dbsRegistered"
-                    value={formData.dbsRegistered}
-                    onChange={(e) => handleInputChange("dbsRegistered", e.target.value)}
-                    className={`w-full max-w-md px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
-                      errors.dbsRegistered ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Please Select</option>
-                    <option value="Yes - Adult workforce (on Update Service)">Yes - Adult workforce (on Update Service)</option>
-                    <option value="Yes - Both workforces (on Update Service)">Yes - Both workforces (on Update Service)</option>
-                    <option value="Yes - (not on Update Service)">Yes - (not on Update Service)</option>
-                    <option value="No">No</option>
-                  </select>
+                  <div className="max-w-md">
+                    <SearchableSelect
+                      value={formData.dbsRegistered}
+                      onChange={(e) => handleInputChange("dbsRegistered", e.target.value)}
+                      options={DBS_OPTIONS}
+                      placeholder="Please Select"
+                      className={errors.dbsRegistered ? "border-red-500" : ""}
+                    />
+                  </div>
                   {errors.dbsRegistered && (
                     <p className="text-red-500 text-xs mt-1">{errors.dbsRegistered}</p>
                   )}
@@ -1296,19 +1347,15 @@ function QualifiedCounsellorFormContent() {
                   <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                     Are you familiar with Online Counselling? <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    name="familiarWithOnlineCounselling"
-                    id="familiarWithOnlineCounselling"
-                    value={formData.familiarWithOnlineCounselling}
-                    onChange={(e) => handleInputChange("familiarWithOnlineCounselling", e.target.value)}
-                    className={`w-full max-w-md px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
-                      errors.familiarWithOnlineCounselling ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Please Select</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
+                  <div className="max-w-md">
+                    <SearchableSelect
+                      value={formData.familiarWithOnlineCounselling}
+                      onChange={(e) => handleInputChange("familiarWithOnlineCounselling", e.target.value)}
+                      options={YES_NO_OPTIONS}
+                      placeholder="Please Select"
+                      className={errors.familiarWithOnlineCounselling ? "border-red-500" : ""}
+                    />
+                  </div>
                   {errors.familiarWithOnlineCounselling && (
                     <p className="text-red-500 text-xs mt-1">{errors.familiarWithOnlineCounselling}</p>
                   )}
@@ -1319,19 +1366,15 @@ function QualifiedCounsellorFormContent() {
                   <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                     Have you previously worked or been on placement with Vanquish Therapies? <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    name="previousVanquishWork"
-                    id="previousVanquishWork"
-                    value={formData.previousVanquishWork}
-                    onChange={(e) => handleInputChange("previousVanquishWork", e.target.value)}
-                    className={`w-full max-w-md px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
-                      errors.previousVanquishWork ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Please Select</option>
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
+                  <div className="max-w-md">
+                    <SearchableSelect
+                      value={formData.previousVanquishWork}
+                      onChange={(e) => handleInputChange("previousVanquishWork", e.target.value)}
+                      options={YES_NO_OPTIONS}
+                      placeholder="Please Select"
+                      className={errors.previousVanquishWork ? "border-red-500" : ""}
+                    />
+                  </div>
                   {errors.previousVanquishWork && (
                     <p className="text-red-500 text-xs mt-1">{errors.previousVanquishWork}</p>
                   )}
@@ -1458,23 +1501,135 @@ function QualifiedCounsellorFormContent() {
                 </div>
 
                 {/* Availability / Schedule */}
-                <div>
-                  <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
-                    Please mention your availability/schedule to attend online counselling sessions with clients: (List your available days & times - e.g Monday (11am -3pm) <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    name="availabilitySchedule"
-                    id="availabilitySchedule"
-                    rows={3}
-                    value={formData.availabilitySchedule}
-                    onChange={(e) => handleInputChange("availabilitySchedule", e.target.value)}
-                    className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none transition-all ${
-                      errors.availabilitySchedule ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                    }`}
-                    placeholder="e.g. Monday (11am - 3pm), Tuesday (10am - 4pm), Thursday (1pm - 6pm)..."
-                  />
-                  {errors.availabilitySchedule && (
-                    <p className="text-red-500 text-xs mt-1">{errors.availabilitySchedule}</p>
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <label className="block text-sm font-semibold text-[#6f1d56] mb-1">
+                      Your Availability <span className="text-red-500">*</span>
+                    </label>
+                    <p className="text-xs text-gray-600">
+                      Select all time slots and days when you are available to attend online counselling sessions with clients.
+                    </p>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold mb-0.5">Important:</p>
+                      <p>
+                        Be realistic with your schedule. Once you begin working with clients, consistency is vital. Counsellors are expected to be online 10–15 minutes prior to scheduled session start times.
+                      </p>
+                    </div>
+                  </div>
+
+                  {errors.availability && (
+                    <div className="bg-red-50 border border-red-300 rounded-lg p-3">
+                      <p className="text-red-600 text-xs font-medium">{errors.availability}</p>
+                    </div>
+                  )}
+
+                  <div data-field="availability" className="space-y-3">
+                    {["monday", "tuesday", "wednesday", "thursday", "friday"].map((day) => {
+                      const slotsToShow = day === "friday" ? FRIDAY_TIME_SLOTS : TIME_SLOTS;
+                      const selectedInDay = formData.availability?.[day] || [];
+
+                      return (
+                        <div
+                          key={day}
+                          className={`border rounded-xl overflow-hidden bg-white ${
+                            errors.availability ? "border-red-300" : "border-gray-200"
+                          }`}
+                        >
+                          <div className="px-4 py-2.5 font-semibold text-xs sm:text-sm capitalize bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                            <span className="text-[#6f1d56] font-bold">
+                              {day}
+                              {day === "friday" && (
+                                <span className="ml-2 text-xs font-normal text-gray-500">
+                                  (Last session at 5:00 PM - 6:00 PM)
+                                </span>
+                              )}
+                            </span>
+                            {selectedInDay.length > 0 && (
+                              <span className="text-xs font-medium text-[#6f1d56] bg-purple-100 px-2 py-0.5 rounded-full">
+                                {selectedInDay.length} {selectedInDay.length === 1 ? "slot" : "slots"} selected
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="p-3 sm:p-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                              {slotsToShow.map((slot) => {
+                                const isChecked = selectedInDay.includes(slot.value);
+                                return (
+                                  <label
+                                    key={slot.value}
+                                    className={`flex items-center gap-2.5 p-2.5 rounded-lg cursor-pointer border text-xs transition-all ${
+                                      isChecked
+                                        ? "bg-purple-50/60 border-[#6f1d56] font-medium shadow-xs"
+                                        : "bg-white border-gray-200 hover:bg-gray-50 text-gray-700"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => handleAvailabilityToggle(day, slot.value)}
+                                      className="w-4 h-4 rounded border-gray-300 text-[#6f1d56] focus:ring-[#6f1d56]"
+                                      style={{ accentColor: "#6f1d56" }}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <span className="text-xs text-gray-900 block truncate">
+                                        {slot.label}
+                                      </span>
+                                    </div>
+                                    <span
+                                      className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0"
+                                      style={{
+                                        backgroundColor:
+                                          slot.category === "Morning"
+                                            ? "#fef3c7"
+                                            : slot.category === "Afternoon"
+                                            ? "#dbeafe"
+                                            : "#fce7f3",
+                                        color:
+                                          slot.category === "Morning"
+                                            ? "#92400e"
+                                            : slot.category === "Afternoon"
+                                            ? "#1e40af"
+                                            : "#9f1239",
+                                      }}
+                                    >
+                                      {slot.category}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Selected Availability Summary */}
+                  {Object.values(formData.availability || {}).some((slots) => slots.length > 0) && (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 sm:p-4 space-y-1.5">
+                      <p className="text-xs sm:text-sm text-emerald-900 font-bold mb-2 flex items-center gap-1.5">
+                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                        Selected Availability Schedule:
+                      </p>
+                      {Object.entries(formData.availability || {}).map(([day, slots]) => {
+                        const slotsToUse = day === "friday" ? FRIDAY_TIME_SLOTS : TIME_SLOTS;
+                        return (
+                          slots.length > 0 && (
+                            <p key={day} className="text-xs text-emerald-800 capitalize leading-relaxed">
+                              <strong className="font-semibold text-emerald-950">{day}:</strong>{" "}
+                              {slots
+                                .map((s) => slotsToUse.find((t) => t.value === s)?.label || s)
+                                .join(", ")}
+                            </p>
+                          )
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               </div>
@@ -1659,7 +1814,22 @@ function QualifiedCounsellorFormContent() {
                     <p><span className="text-gray-500">Qualified to Work With:</span> {formData.qualifiedToWorkWith.join(", ") || "None"}</p>
                     <p><span className="text-gray-500">Modalities Selected:</span> {formData.modalities.length} selected</p>
                     <p><span className="text-gray-500">Support Areas:</span> {formData.experienceAreas.length} selected</p>
+                    <p>
+                      <span className="text-gray-500">Availability Slots:</span>{" "}
+                      <strong>
+                        {Object.values(formData.availability || {}).flat().length} slots selected across{" "}
+                        {Object.entries(formData.availability || {}).filter(([_, s]) => s.length > 0).length} days
+                      </strong>
+                    </p>
                   </div>
+                </div>
+
+                {/* Electronic Signature Legal Agreement Preview Notice */}
+                <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-4 text-xs sm:text-sm text-gray-800 leading-relaxed space-y-1">
+                  <p className="font-semibold text-[#6f1d56]">Electronic Signature Agreement</p>
+                  <p>
+                    I understand and accept that my electronic signature will be as valid as a handwritten signature and considered original to the extent allowed by applicable law.
+                  </p>
                 </div>
 
                 {/* Declaration Agreement Checkbox */}
@@ -1682,85 +1852,125 @@ function QualifiedCounsellorFormContent() {
                   )}
                 </div>
 
-                {/* Signature & Date Section (Matching JotForm signature component) */}
+                {/* Signature & Auto Date Section */}
                 <div className="space-y-4 pt-2">
                   <div>
-                    <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
-                      Signature <span className="text-red-500">*</span>
-                    </label>
-
-                    <div
-                      className={`border-2 rounded-xl overflow-hidden bg-white ${
-                        errors.signature ? "border-red-500" : "border-gray-300"
-                      }`}
-                    >
-                      <SignatureCanvas
-                        ref={signaturePadRef}
-                        onEnd={() => {
-                          if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
-                            const sig = signaturePadRef.current.getTrimmedCanvas().toDataURL("image/png");
-                            handleInputChange("signature", sig);
-                          }
-                        }}
-                        canvasProps={{
-                          className: "w-full h-36 md:h-44 bg-white cursor-crosshair",
-                        }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between mt-2">
-                      <button
-                        type="button"
-                        onClick={clearSignature}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
-                      >
-                        Clear
-                      </button>
-                      <span className="text-xs text-gray-400">
-                        Powered by Vanquish Therapies
-                      </span>
-                    </div>
-
-                    {/* Or Type Name Option Fallback */}
-                    <div className="mt-3">
-                      <label className="block text-xs font-medium text-gray-500 mb-1">
-                        Or type full legal name as electronic signature:
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                      <label className="block text-sm font-semibold text-[#6f1d56]">
+                        Signature <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        name="signature"
-                        id="signature"
-                        value={formData.signature && !formData.signature.startsWith("data:") ? formData.signature : ""}
-                        onChange={(e) => handleInputChange("signature", e.target.value)}
-                        placeholder="e.g. Sarah Elizabeth Jenkins"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg italic font-serif focus:ring-2 focus:ring-[#6f1d56] outline-none"
-                      />
+                      <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => setSignatureMode("draw")}
+                          className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                            signatureMode === "draw"
+                              ? "bg-white text-[#6f1d56] shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          <PenTool className="w-3.5 h-3.5" /> Draw Signature
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSignatureMode("type")}
+                          className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                            signatureMode === "type"
+                              ? "bg-white text-[#6f1d56] shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          <Type className="w-3.5 h-3.5" /> Type Name
+                        </button>
+                      </div>
                     </div>
+
+                    {signatureMode === "draw" ? (
+                      <div className="space-y-2">
+                        <div
+                          className={`border-2 rounded-xl overflow-hidden bg-white relative ${
+                            errors.signature ? "border-red-500" : "border-gray-300"
+                          }`}
+                        >
+                          <SignatureCanvas
+                            ref={signaturePadRef}
+                            onEnd={() => {
+                              if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+                                const sig = signaturePadRef.current.getTrimmedCanvas().toDataURL("image/png");
+                                handleInputChange("signature", sig);
+                              }
+                            }}
+                            canvasProps={{
+                              className: "w-full h-40 bg-white cursor-crosshair",
+                            }}
+                          />
+                          <div className="absolute bottom-2 left-3 pointer-events-none text-[11px] text-gray-400 font-sans">
+                            Sign above with your mouse, touchpad, or finger
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={clearSignature}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+                          >
+                            Clear Signature
+                          </button>
+                          <span className="text-xs text-gray-400">
+                            Powered by Vanquish Therapies
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div>
+                          <input
+                            type="text"
+                            name="signature"
+                            id="signature"
+                            value={formData.signature && !formData.signature.startsWith("data:") ? formData.signature : ""}
+                            onChange={(e) => handleInputChange("signature", e.target.value)}
+                            placeholder="Type your full legal name here"
+                            className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none"
+                          />
+                        </div>
+
+                        {formData.signature && !formData.signature.startsWith("data:") && (
+                          <div className="p-4 rounded-xl border border-dashed border-purple-300 bg-purple-50/40 text-center">
+                            <span className="text-xs uppercase tracking-wider text-gray-500 block mb-1">
+                              Signature Preview:
+                            </span>
+                            <span className="text-2xl sm:text-3xl font-serif italic text-[#6f1d56]">
+                              {formData.signature}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {errors.signature && (
                       <p className="text-red-500 text-xs mt-1.5">{errors.signature}</p>
                     )}
                   </div>
 
-                  {/* Date field */}
-                  <div className="max-w-xs">
-                    <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
-                      Date <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      name="signatureDate"
-                      id="signatureDate"
-                      value={formData.signatureDate}
-                      onChange={(e) => handleInputChange("signatureDate", e.target.value)}
-                      className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none transition-all ${
-                        errors.signatureDate ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                      }`}
-                    />
-                    <span className="text-xs text-gray-500 mt-1 block">Date</span>
-                    {errors.signatureDate && (
-                      <p className="text-red-500 text-xs mt-0.5">{errors.signatureDate}</p>
-                    )}
+                  {/* Auto-set Date Signed Field */}
+                  <div className="max-w-md bg-gray-50 border border-gray-200 rounded-xl p-3.5 flex items-center justify-between">
+                    <div>
+                      <span className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date Signed
+                      </span>
+                      <span className="text-sm font-bold text-gray-900">
+                        {new Date().toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                      <Check className="w-3 h-3" /> Auto-recorded
+                    </span>
                   </div>
                 </div>
 
