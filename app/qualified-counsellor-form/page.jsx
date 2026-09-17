@@ -29,6 +29,52 @@ import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { useBranding } from "@/contexts/BrandingContext";
 import { THERAPY_TOPICS } from "@/lib/constants";
 
+const GENDER_OPTIONS = [
+  "Please Select",
+  "Female",
+  "Male",
+  "Non-binary",
+  "Transgender",
+  "Prefer not to say",
+  "Other (not listed above)",
+];
+
+const ETHNICITY_OPTIONS = [
+  "Please Select",
+  "Asian / Asian British - Indian",
+  "Asian / Asian British - Pakistani",
+  "Asian / Asian British - Bangladeshi",
+  "Asian / Asian British - Chinese",
+  "Asian / Asian British - Any other Asian background",
+  "Black / African / Caribbean / Black British - African",
+  "Black / African / Caribbean / Black British - Caribbean",
+  "Black / African / Caribbean / Black British - Any other Black background",
+  "Mixed / Multiple ethnic groups - White and Black Caribbean",
+  "Mixed / Multiple ethnic groups - White and Black African",
+  "Mixed / Multiple ethnic groups - White and Asian",
+  "Mixed / Multiple ethnic groups - Any other Mixed background",
+  "White - English / Welsh / Scottish / Northern Irish / British",
+  "White - Irish",
+  "White - Gypsy or Irish Traveller",
+  "White - Any other White background",
+  "Other ethnic group - Arab",
+  "Other ethnic group - Any other ethnic group",
+  "Prefer not to say",
+];
+
+const SEXUAL_ORIENTATION_OPTIONS = [
+  "Please Select",
+  "Heterosexual",
+  "Gay",
+  "Lesbian",
+  "Bisexual",
+  "Pansexual",
+  "Asexual",
+  "Queer",
+  "Prefer not to say",
+  "Other (not listed above)",
+];
+
 const BELIEFS_OPTIONS = [
   "Please Select",
   "Atheism",
@@ -306,10 +352,10 @@ function QualifiedCounsellorFormContent() {
           stepErrors.legalLastName = "Legal last name is required";
         if (!formData.dateOfBirth)
           stepErrors.dateOfBirth = "Date of birth is required";
-        if (!formData.gender.trim())
-          stepErrors.gender = "Gender is required";
-        if (!formData.ethnicity.trim())
-          stepErrors.ethnicity = "Ethnicity is required";
+        if (!formData.gender || formData.gender === "Please Select")
+          stepErrors.gender = "Please select your gender";
+        if (!formData.ethnicity || formData.ethnicity === "Please Select")
+          stepErrors.ethnicity = "Please select your ethnicity";
         if (!formData.email.trim()) {
           stepErrors.email = "Email address is required";
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
@@ -317,8 +363,8 @@ function QualifiedCounsellorFormContent() {
         }
         if (!formData.phone.trim())
           stepErrors.phone = "Contact number is required";
-        if (!formData.sexualOrientation.trim())
-          stepErrors.sexualOrientation = "Sexual orientation is required";
+        if (!formData.sexualOrientation || formData.sexualOrientation === "Please Select")
+          stepErrors.sexualOrientation = "Please select your sexual orientation";
         if (!formData.beliefs || formData.beliefs === "Please Select")
           stepErrors.beliefs = "Please select your beliefs";
         if (!formData.registeredAddress.trim())
@@ -893,17 +939,21 @@ function QualifiedCounsellorFormContent() {
                     <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                       Gender <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <select
                       name="gender"
                       id="gender"
                       value={formData.gender}
                       onChange={(e) => handleInputChange("gender", e.target.value)}
-                      className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none transition-all ${
+                      className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
                         errors.gender ? "border-red-500 bg-red-50/20" : "border-gray-300"
                       }`}
-                      placeholder="e.g. Female, Male, Non-binary, etc."
-                    />
+                    >
+                      {GENDER_OPTIONS.map((gender) => (
+                        <option key={gender} value={gender === "Please Select" ? "" : gender}>
+                          {gender}
+                        </option>
+                      ))}
+                    </select>
                     {errors.gender && (
                       <p className="text-red-500 text-xs mt-1">{errors.gender}</p>
                     )}
@@ -913,17 +963,21 @@ function QualifiedCounsellorFormContent() {
                     <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                       Ethnicity <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <select
                       name="ethnicity"
                       id="ethnicity"
                       value={formData.ethnicity}
                       onChange={(e) => handleInputChange("ethnicity", e.target.value)}
-                      className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none transition-all ${
+                      className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
                         errors.ethnicity ? "border-red-500 bg-red-50/20" : "border-gray-300"
                       }`}
-                      placeholder="e.g. White British, Asian British, Black, etc."
-                    />
+                    >
+                      {ETHNICITY_OPTIONS.map((ethnicity) => (
+                        <option key={ethnicity} value={ethnicity === "Please Select" ? "" : ethnicity}>
+                          {ethnicity}
+                        </option>
+                      ))}
+                    </select>
                     {errors.ethnicity && (
                       <p className="text-red-500 text-xs mt-1">{errors.ethnicity}</p>
                     )}
@@ -984,17 +1038,21 @@ function QualifiedCounsellorFormContent() {
                   <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
                     Sexual Orientation: (This helps us match counsellors with clients who may feel more comfortable with certain perspectives, expertise, or understanding). <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
+                  <select
                     name="sexualOrientation"
                     id="sexualOrientation"
                     value={formData.sexualOrientation}
                     onChange={(e) => handleInputChange("sexualOrientation", e.target.value)}
-                    className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none transition-all ${
+                    className={`w-full max-w-md px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none bg-white transition-all ${
                       errors.sexualOrientation ? "border-red-500 bg-red-50/20" : "border-gray-300"
                     }`}
-                    placeholder="e.g. Heterosexual, Gay, Lesbian, Bisexual, Prefer not to say, etc."
-                  />
+                  >
+                    {SEXUAL_ORIENTATION_OPTIONS.map((orientation) => (
+                      <option key={orientation} value={orientation === "Please Select" ? "" : orientation}>
+                        {orientation}
+                      </option>
+                    ))}
+                  </select>
                   {errors.sexualOrientation && (
                     <p className="text-red-500 text-xs mt-1">{errors.sexualOrientation}</p>
                   )}
