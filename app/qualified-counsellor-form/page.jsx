@@ -26,6 +26,7 @@ import {
 import SignatureCanvas from "react-signature-canvas";
 import apiService from "@/lib/api";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
+import { useBranding } from "@/contexts/BrandingContext";
 import { THERAPY_TOPICS } from "@/lib/constants";
 
 const BELIEFS_OPTIONS = [
@@ -113,6 +114,7 @@ const EXPERIENCE_AREAS_OPTIONS = [
 ];
 
 function QualifiedCounsellorFormContent() {
+  const { branding, loading: brandingLoading } = useBranding();
   const searchParams = useSearchParams();
   const router = useRouter();
   const formContentRef = useRef(null);
@@ -641,19 +643,70 @@ function QualifiedCounsellorFormContent() {
         <div className="max-w-4xl mx-auto">
           {/* Header Card with Branding and Stepper */}
           <div className="card rounded-2xl shadow-sm p-5 md:p-8 mb-4 md:mb-6 border bg-white">
-            <div className="text-center mb-6">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <div
-                  className="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-white font-black text-xl shadow-md"
-                  style={{ backgroundColor: "#6f1d56" }}
-                >
-                  VQT
+            <div className="flex flex-col items-center justify-center text-center mb-6">
+              {brandingLoading ? (
+                <div className="flex flex-col items-center animate-pulse w-full mb-3">
+                  <div className="h-16 w-48 bg-gray-200 rounded-lg mb-2"></div>
                 </div>
-              </div>
-              <p className="text-xs font-bold tracking-widest text-[#6f1d56] uppercase mb-1">
-                VANQUISH THERAPIES
-              </p>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+              ) : branding?.platform_logo_url ? (
+                <img
+                  src={apiService.getStorageUrl(branding.platform_logo_url)}
+                  alt={branding.company_name || "Vanquish Therapies"}
+                  className="max-h-20 md:max-h-24 w-auto object-contain mb-3"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center mb-3">
+                  <div className="flex items-center justify-center">
+                    <svg
+                      className="h-14 md:h-18 w-auto"
+                      viewBox="0 0 240 85"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      {/* V in rich plum/burgundy */}
+                      <path
+                        d="M20 12 L50 78 L80 12 H64 L50 48 L36 12 Z"
+                        fill="#6f1d56"
+                      />
+                      {/* Q in dark slate */}
+                      <path
+                        d="M85 36 C85 20 98 10 116 10 C134 10 147 20 147 36 C147 44 143 51 136 56 L146 72 H131 L123 60 C120.5 61 118 62 116 62 C98 62 85 52 85 36 Z M116 22 C104 22 98 28 98 36 C98 44 104 50 116 50 C128 50 134 44 134 36 C134 28 128 22 116 22 Z"
+                        fill="#374151"
+                      />
+                      {/* T in dark slate */}
+                      <path
+                        d="M148 10 H192 V22 H177 V78 H163 V22 H148 Z"
+                        fill="#374151"
+                      />
+                      {/* ® registered symbol */}
+                      <circle
+                        cx="200"
+                        cy="16"
+                        r="6"
+                        stroke="#374151"
+                        strokeWidth="1.2"
+                        fill="none"
+                      />
+                      <text
+                        x="200"
+                        y="19"
+                        fontSize="7"
+                        textAnchor="middle"
+                        fill="#374151"
+                        fontWeight="bold"
+                        fontFamily="sans-serif"
+                      >
+                        R
+                      </text>
+                    </svg>
+                  </div>
+                  <div className="text-sm md:text-base font-bold tracking-widest uppercase mt-1">
+                    <span className="font-extrabold text-[#6f1d56]">VANQUISH</span>{" "}
+                    <span className="text-gray-700">THERAPIES</span>
+                  </div>
+                </div>
+              )}
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mt-2">
                 Qualified Counsellor Application
               </h1>
               <p className="text-xs md:text-sm text-gray-500 font-medium mt-0.5">
@@ -661,14 +714,10 @@ function QualifiedCounsellorFormContent() {
               </p>
             </div>
 
-            {/* Advisory Notice Box (Matching JotForm writeup) */}
-            <div className="bg-purple-50/50 border border-purple-200 rounded-xl p-4 md:p-5 mb-6 text-gray-800 text-xs md:text-sm leading-relaxed">
-              <p className="font-semibold text-gray-900 mb-1 flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-[#6f1d56] flex-shrink-0" />
-                Please be advised:
-              </p>
-              <p>
-                All required fields on the form must be completed. Failure to do so will result in an &apos;error&apos; message. Therefore, it is crucial that you carefully review the form and provide accurate and complete information to avoid any submission issues.
+            {/* Advisory Notice Box (Matching JotForm writeup with increased font size) */}
+            <div className="border-t border-b border-gray-200 py-4 md:py-6 mb-6">
+              <p className="text-base sm:text-lg md:text-xl font-bold text-gray-900 leading-snug md:leading-relaxed">
+                Please be advised: All required fields on the form must be completed. Failure to do so will result in an &apos;error&apos; message. Therefore, it is crucial that you carefully review the form and provide accurate and complete information to avoid any submission issues.
               </p>
             </div>
 
