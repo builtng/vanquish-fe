@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import Link from "next/link";
 import {
   User,
   Shield,
@@ -13,12 +12,10 @@ import {
   AlertTriangle,
   ChevronRight,
   ChevronLeft,
-  ArrowLeft,
   Mail,
   Phone,
   Calendar,
   Sparkles,
-  ExternalLink,
   FileCheck,
   Check,
   Trash2,
@@ -680,22 +677,62 @@ function QualifiedCounsellorFormContent() {
           <div className="bg-white rounded-2xl shadow-2xl p-8 sm:p-12 max-w-xl w-full text-center border border-purple-100 animate-fadeIn">
             {/* Logo */}
             <div className="flex flex-col items-center justify-center mb-8">
-              {branding?.logo_url ? (
+              {branding?.platform_logo_url ? (
                 <img
-                  src={branding.logo_url}
+                  src={apiService.getStorageUrl(branding.platform_logo_url)}
                   alt={branding.company_name || "Vanquish Therapies"}
-                  className="h-16 w-auto object-contain"
+                  className="max-h-16 md:max-h-20 w-auto object-contain mb-2"
                 />
               ) : (
-                <div className="flex flex-col items-center">
-                  <div className="flex items-center gap-1">
-                    <span className="text-3xl font-extrabold tracking-tight" style={{ color: "#6f1d56" }}>V</span>
-                    <span className="text-3xl font-extrabold tracking-tight" style={{ color: "#707070" }}>Q</span>
-                    <span className="text-3xl font-extrabold tracking-tight" style={{ color: "#4A4A4A" }}>T</span>
+                <div className="flex flex-col items-center justify-center mb-2">
+                  <div className="flex items-center justify-center">
+                    <svg
+                      className="h-14 md:h-16 w-auto"
+                      viewBox="0 0 240 85"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      {/* V in rich plum/burgundy */}
+                      <path
+                        d="M20 12 L50 78 L80 12 H64 L50 48 L36 12 Z"
+                        fill="#6f1d56"
+                      />
+                      {/* Q in dark slate */}
+                      <path
+                        d="M85 36 C85 20 98 10 116 10 C134 10 147 20 147 36 C147 44 143 51 136 56 L146 72 H131 L123 60 C120.5 61 118 62 116 62 C98 62 85 52 85 36 Z M116 22 C104 22 98 28 98 36 C98 44 104 50 116 50 C128 50 134 44 134 36 C134 28 128 22 116 22 Z"
+                        fill="#374151"
+                      />
+                      {/* T in dark slate */}
+                      <path
+                        d="M148 10 H192 V22 H177 V78 H163 V22 H148 Z"
+                        fill="#374151"
+                      />
+                      {/* ® registered symbol */}
+                      <circle
+                        cx="200"
+                        cy="16"
+                        r="6"
+                        stroke="#374151"
+                        strokeWidth="1.2"
+                        fill="none"
+                      />
+                      <text
+                        x="200"
+                        y="19"
+                        fontSize="7"
+                        textAnchor="middle"
+                        fill="#374151"
+                        fontWeight="bold"
+                        fontFamily="sans-serif"
+                      >
+                        R
+                      </text>
+                    </svg>
                   </div>
-                  <span className="text-[11px] font-bold tracking-widest text-[#6f1d56] uppercase mt-1">
-                    Vanquish Therapies
-                  </span>
+                  <div className="text-xs md:text-sm font-bold tracking-widest uppercase mt-1">
+                    <span className="font-extrabold text-[#6f1d56]">VANQUISH</span>{" "}
+                    <span className="text-gray-700">THERAPIES</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -712,7 +749,7 @@ function QualifiedCounsellorFormContent() {
             </div>
 
             {/* Submission Info Box */}
-            <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-4 mb-8 text-left text-xs sm:text-sm space-y-2">
+            <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-4 text-left text-xs sm:text-sm space-y-2">
               <div className="flex justify-between items-center pb-2 border-b border-purple-100">
                 <span className="text-gray-500 font-medium">Applicant:</span>
                 <span className="font-semibold text-gray-900">
@@ -728,27 +765,11 @@ function QualifiedCounsellorFormContent() {
                 </div>
               )}
               <div className="flex justify-between items-center">
-                <span className="text-gray-500 font-medium">Clinical Status:</span>
+                <span className="text-gray-500 font-medium">Status:</span>
                 <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-xs bg-emerald-50 px-2 py-0.5 rounded">
                   <Check className="w-3 h-3" /> Received & Under Review
                 </span>
               </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#6f1d56] text-white rounded-lg hover:bg-[#5a1746] font-semibold text-sm transition-colors shadow-sm"
-              >
-                <ArrowLeft className="w-4 h-4" /> Return to Home
-              </Link>
-              <Link
-                href="/counsellor-login"
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold text-sm transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" /> Counsellor Portal
-              </Link>
             </div>
           </div>
         </div>
