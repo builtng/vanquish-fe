@@ -496,7 +496,7 @@ function QualifiedCounsellorFormContent() {
         
         let validSignature = formData.signature;
         if (signatureMode === "draw" && signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
-          validSignature = signaturePadRef.current.getTrimmedCanvas().toDataURL("image/png");
+          validSignature = signaturePadRef.current.getCanvas().toDataURL("image/png");
         }
         if (!validSignature || !validSignature.trim()) {
           stepErrors.signature = "Please provide your signature before submitting";
@@ -574,7 +574,7 @@ function QualifiedCounsellorFormContent() {
     // Capture signature if drawn on canvas or typed
     let currentSignature = formData.signature;
     if (signatureMode === "draw" && signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
-      currentSignature = signaturePadRef.current.getTrimmedCanvas().toDataURL("image/png");
+      currentSignature = signaturePadRef.current.getCanvas().toDataURL("image/png");
       setFormData((prev) => ({ ...prev, signature: currentSignature }));
     }
 
@@ -1890,7 +1890,7 @@ function QualifiedCounsellorFormContent() {
                             ref={signaturePadRef}
                             onEnd={() => {
                               if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
-                                const sig = signaturePadRef.current.getTrimmedCanvas().toDataURL("image/png");
+                                const sig = signaturePadRef.current.getCanvas().toDataURL("image/png");
                                 handleInputChange("signature", sig);
                               }
                             }}
