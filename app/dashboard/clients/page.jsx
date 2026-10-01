@@ -1,9 +1,9 @@
 "use client";
 import PageGuard from "@/components/PageGuard";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import apiService from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,9 +47,10 @@ import {
   Repeat,
 } from "lucide-react";
 
-export default function ViewAllClients() {
+function ViewAllClientsInner() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { success, error: showError } = useToast();
   const { user: authUser } = useAuth();
   const [selectedClient, setSelectedClient] = useState(null);
@@ -65,6 +66,18 @@ export default function ViewAllClients() {
   const [sortDirection, setSortDirection] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
+
+  // Sync filters from URL query parameters
+  useEffect(() => {
+    const stageParam = searchParams?.get("stage");
+    if (stageParam) {
+      setFilterStage(stageParam);
+    }
+    const statusParam = searchParams?.get("status");
+    if (statusParam) {
+      setFilterStatus(statusParam);
+    }
+  }, [searchParams]);
 
   // Data states
   const [allClients, setAllClients] = useState([]);
@@ -85,7 +98,7 @@ export default function ViewAllClients() {
     try {
       setDeleteLoading(true);
       await apiService.deleteClient(clientToDelete.uuid || clientToDelete.id);
-      success("Client deleted successfully!");
+      success("Client archived successfully!");
       setShowDeleteConfirmModal(false);
       if (selectedClient?.id === clientToDelete.id) {
         setSelectedClient(null);
@@ -471,22 +484,12 @@ export default function ViewAllClients() {
 
         {/* Actions */}
         <div className="space-y-3 pt-6 border-t border-gray-200">
-          <button className="w-full py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">
-            Progress to Next Stage
-          </button>
-          <button
-            onClick={() =>
-              router.push(
-                `/dashboard/consultations?bookClientUuid=${client.uuid || client.id}`,
-              )
-            }
-            className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+          <Link
+            href={`/dashboard/client-details/${client.uuid || client.id}`}
+            className="w-full py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium text-center block"
           >
-            Book Consultation
-          </button>
-          <button className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
-            Send Email
-          </button>
+            View Full Profile & Journey
+          </Link>
           {(client.stage === "Active Therapy" ||
             client.stage === "Completed") && (
             <button
@@ -995,7 +998,7 @@ export default function ViewAllClients() {
           </>
         )}
 
-        {/* Delete Client Confirmation Modal */}
+        {/* Archive Client Confirmation Modal */}
         <DeleteConfirmationModal
           isOpen={showDeleteConfirmModal}
           onClose={() => {
@@ -1003,14 +1006,22 @@ export default function ViewAllClients() {
             setClientToDelete(null);
           }}
           onConfirm={confirmDeleteClient}
-          title="Delete Client"
-          message={`Are you sure you want to delete ${clientToDelete?.name}? This action cannot be undone and will permanently remove this client record.`}
+          title="Archive Client"
+          message={`Are you sure you want to archive ${clientToDelete?.name}? The record will be archived and kept in history.`}
           itemName={clientToDelete?.name}
-          confirmText="Delete Client"
+          confirmText="Archive Client"
           cancelText="Cancel"
           loading={deleteLoading}
         />
       </DashboardLayout>
     </PageGuard>
+  );
+}
+
+export default function ViewAllClients() {
+  return (
+    <Suspense fallback={null}>
+      <ViewAllClientsInner />
+    </Suspense>
   );
 }

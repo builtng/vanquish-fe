@@ -134,15 +134,12 @@ export default function IndividualClientDetailPage() {
     useState(false);
   const [showDeleteNoteConfirmModal, setShowDeleteNoteConfirmModal] =
     useState(false);
-  const [showProgressStageConfirmModal, setShowProgressStageConfirmModal] =
-    useState(false);
   const [showDeleteSessionConfirmModal, setShowDeleteSessionConfirmModal] =
     useState(false);
   const [sessionToDelete, setSessionToDelete] = useState(null);
   const [showDeleteClientModal, setShowDeleteClientModal] = useState(false);
   const [deletingClient, setDeletingClient] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState(null);
-  const [nextStage, setNextStage] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [showAssessment, setShowAssessment] = useState(false);
@@ -377,14 +374,16 @@ export default function IndividualClientDetailPage() {
         data.availability &&
         typeof data.availability === "object" &&
         !Array.isArray(data.availability)
-          ? Object.entries(data.availability).map(([day, timeBlocks]) => ({
-              day: day
-                ? day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()
-                : day,
-              timeBlocks: Array.isArray(timeBlocks) ? timeBlocks : [],
-            }))
+          ? Object.entries(data.availability)
+              .filter(([_, timeBlocks]) => Array.isArray(timeBlocks) && timeBlocks.length > 0)
+              .map(([day, timeBlocks]) => ({
+                day: day
+                  ? day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()
+                  : day,
+                timeBlocks: Array.isArray(timeBlocks) ? timeBlocks : [],
+              }))
           : Array.isArray(data.availability)
-            ? data.availability
+            ? data.availability.filter((a) => (a.timeBlocks || a.slots || []).length > 0)
             : [],
       serviceType: data.service_type || null,
       packageDetails: (() => {
@@ -679,29 +678,29 @@ export default function IndividualClientDetailPage() {
     }
   };
 
+  const fetchClientData = async () => {
+    if (!uuid) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiService.getClientDetails(uuid);
+      const transformedData = transformClientData(data);
+      setClient(transformedData);
+      await fetchAdminNotes();
+      // Fetch clinical logs once dbId is available
+      const logs = await apiService.getSessionNotes({ client_id: data.id });
+      setClinicalLogs(logs || []);
+    } catch (err) {
+      console.error("Error fetching client details:", err);
+      setError("Failed to load client details. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch client data from API
   useEffect(() => {
-    const fetchClientData = async () => {
-      if (!uuid) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await apiService.getClientDetails(uuid);
-        const transformedData = transformClientData(data);
-        setClient(transformedData);
-        await fetchAdminNotes();
-        // Fetch clinical logs once dbId is available
-        const logs = await apiService.getSessionNotes({ client_id: data.id });
-        setClinicalLogs(logs || []);
-      } catch (err) {
-        console.error("Error fetching client details:", err);
-        setError("Failed to load client details. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchClientData();
   }, [uuid]);
 
@@ -860,7 +859,7 @@ export default function IndividualClientDetailPage() {
     try {
       setDeletingClient(true);
       await apiService.deleteClient(uuid);
-      success("Client deleted successfully");
+      success("Client archived successfully");
       setShowDeleteClientModal(false);
       router.push("/dashboard/clients");
     } catch (err) {
@@ -1033,7 +1032,24 @@ export default function IndividualClientDetailPage() {
     }
   };
 
-  const handleProgressStage = () => {
+  const handleSetStage = async (newStage) => {
+    if (!newStage || newStage === client.stage) return;
+    try {
+      setActionLoading(true);
+      await apiService.progressClientStage(uuid, newStage);
+      success(`Client stage updated to ${newStage}`);
+      setClient((prev) => ({ ...prev, stage: newStage }));
+      if (typeof fetchClientData === "function") {
+        fetchClientData();
+      }
+    } catch (err) {
+      showError(err.message || "Failed to update stage");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleProgressStage = async () => {
     const stages = [
       "Consultation Booked",
       "Consultation Completed",
@@ -1050,23 +1066,7 @@ export default function IndividualClientDetailPage() {
     }
 
     const stage = stages[currentIndex + 1];
-    setNextStage(stage);
-    setShowProgressStageConfirmModal(true);
-  };
-
-  const confirmProgressStage = async () => {
-    try {
-      setActionLoading(true);
-      await apiService.progressClientStage(uuid, nextStage);
-      success(`Client progressed to ${nextStage}`);
-      setClient((prev) => ({ ...prev, stage: nextStage }));
-      setShowProgressStageConfirmModal(false);
-      setNextStage(null);
-    } catch (err) {
-      showError(err.message || "Failed to progress stage");
-    } finally {
-      setActionLoading(false);
-    }
+    await handleSetStage(stage);
   };
 
   const handleBookNextSession = () => {
@@ -1712,14 +1712,20 @@ export default function IndividualClientDetailPage() {
                     {/* Timeline Stages */}
                     <div className="relative flex justify-between">
                       {(client.journey || []).map((stage, index) => (
-                        <div key={index} className="flex flex-col items-center" style={{ width: '120px' }}>
+                        <div
+                          key={index}
+                          className="flex flex-col items-center group cursor-pointer"
+                          style={{ width: '120px' }}
+                          onClick={() => handleSetStage(stage.stage)}
+                          title={`Click to set stage to ${stage.stage}`}
+                        >
                           <div
-                            className={`w-16 h-16 rounded-2xl border-4 flex items-center justify-center relative z-10 transition-all duration-500 shadow-xl ${
+                            className={`w-16 h-16 rounded-2xl border-4 flex items-center justify-center relative z-10 transition-all duration-300 shadow-xl group-hover:scale-110 ${
                               stage.completed
                                 ? "bg-[var(--accent-color)] border-white text-white rotate-0"
                                 : stage.current
                                   ? "bg-white border-[var(--accent-color)] text-[var(--accent-color)] scale-110 -rotate-3"
-                                  : "bg-white border-slate-100 text-slate-300"
+                                  : "bg-white border-slate-100 text-slate-300 group-hover:border-[var(--accent-color)]/50"
                             }`}
                           >
                             {stage.completed ? (
@@ -1727,13 +1733,13 @@ export default function IndividualClientDetailPage() {
                             ) : stage.current ? (
                               <Clock className="w-8 h-8 animate-pulse" />
                             ) : (
-                              <div className="w-4 h-4 rounded-full bg-slate-200"></div>
+                              <div className="w-4 h-4 rounded-full bg-slate-200 group-hover:bg-[var(--accent-color)]/40"></div>
                             )}
                           </div>
 
                           <div className="mt-6 text-center">
-                            <p className={`text-sm font-black leading-tight ${
-                                stage.completed || stage.current ? "text-[var(--text-primary)]" : "text-slate-400"
+                            <p className={`text-sm font-black leading-tight transition-colors ${
+                                stage.completed || stage.current ? "text-[var(--text-primary)]" : "text-slate-400 group-hover:text-[var(--text-primary)]"
                               }`}
                             >
                               {stage.stage}
@@ -3661,22 +3667,6 @@ export default function IndividualClientDetailPage() {
             loading={actionLoading}
           />
 
-          {/* Progress Stage Confirmation Modal */}
-          <ConfirmationModal
-            isOpen={showProgressStageConfirmModal}
-            onClose={() => {
-              setShowProgressStageConfirmModal(false);
-              setNextStage(null);
-            }}
-            onConfirm={confirmProgressStage}
-            title="Progress Client Stage"
-            message={`Are you sure you want to progress ${client?.name} to "${nextStage}" stage?`}
-            confirmText={`Progress to ${nextStage}`}
-            cancelText="Cancel"
-            type="info"
-            loading={actionLoading}
-            confirmButtonColor="#6f1d56"
-          />
 
           {/* Delete Session Confirmation Modal */}
           <DeleteConfirmationModal
@@ -3694,15 +3684,15 @@ export default function IndividualClientDetailPage() {
             loading={actionLoading}
           />
 
-          {/* Delete Client Confirmation Modal */}
+          {/* Archive Client Confirmation Modal */}
           <DeleteConfirmationModal
             isOpen={showDeleteClientModal}
             onClose={() => setShowDeleteClientModal(false)}
             onConfirm={confirmDeleteClient}
-            title="Delete Client"
-            message={`Are you sure you want to delete ${client?.name || "this client"}? This action cannot be undone and will permanently remove this client record and all associated consultations, sessions, and files.`}
+            title="Archive Client"
+            message={`Are you sure you want to archive ${client?.name || "this client"}? The record will be archived and kept in history.`}
             itemName={client?.name}
-            confirmText="Delete Client"
+            confirmText="Archive Client"
             cancelText="Cancel"
             loading={deletingClient}
           />
