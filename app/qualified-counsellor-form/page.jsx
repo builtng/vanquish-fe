@@ -28,6 +28,7 @@ import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { useBranding } from "@/contexts/BrandingContext";
 import SearchableSelect from "@/components/SearchableSelect";
 import { THERAPY_TOPICS } from "@/lib/constants";
+import OtherOption from "@/components/OtherOption";
 
 const GENDER_OPTIONS = [
   "Female",
@@ -222,7 +223,9 @@ function QualifiedCounsellorFormContent() {
     counsellorTrainingDetails: "",
     qualifiedToWorkWith: [],
     modalities: [],
+    otherModalities: "",
     experienceAreas: [],
+    otherExperienceAreas: "",
     availability: {
       monday: [],
       tuesday: [],
@@ -387,19 +390,35 @@ function QualifiedCounsellorFormContent() {
   const handleArrayToggle = (field, item) => {
     setFormData((prev) => {
       const currentList = prev[field] || [];
-      const updatedList = currentList.includes(item)
+      const isRemoving = currentList.includes(item);
+      const updatedList = isRemoving
         ? currentList.filter((i) => i !== item)
         : [...currentList, item];
-      return { ...prev, [field]: updatedList };
+      const updated = { ...prev, [field]: updatedList };
+
+      if (isRemoving && item === "Other (not listed above)") {
+        if (field === "modalities") {
+          updated.otherModalities = "";
+        } else if (field === "experienceAreas") {
+          updated.otherExperienceAreas = "";
+        }
+      }
+
+      return updated;
     });
 
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      if (item === "Other (not listed above)") {
+        if (field === "modalities") {
+          delete newErrors.otherModalities;
+        } else if (field === "experienceAreas") {
+          delete newErrors.otherExperienceAreas;
+        }
+      }
+      return newErrors;
+    });
   };
 
   const handleFileUpload = (field, files) => {
@@ -481,8 +500,12 @@ function QualifiedCounsellorFormContent() {
           stepErrors.qualifiedToWorkWith = "Please select at least one client group you are qualified to work with";
         if (formData.modalities.length === 0)
           stepErrors.modalities = "Please select at least one therapeutic modality or approach";
+        if (formData.modalities.includes("Other (not listed above)") && !formData.otherModalities?.trim())
+          stepErrors.otherModalities = "For any modalities/therapeutic approaches not listed above, please specify below";
         if (formData.experienceAreas.length === 0)
           stepErrors.experienceAreas = "Please select all areas you have experience in and currently support clients with";
+        if (formData.experienceAreas.includes("Other (not listed above)") && !formData.otherExperienceAreas?.trim())
+          stepErrors.otherExperienceAreas = "Other areas of support you have experience with (not listed above)";
         const hasAvailability = Object.values(formData.availability || {}).some(
           (slots) => Array.isArray(slots) && slots.length > 0
         );
@@ -650,7 +673,13 @@ function QualifiedCounsellorFormContent() {
         counsellor_training_details: formData.counsellorTrainingDetails,
         qualified_to_work_with: formData.qualifiedToWorkWith,
         modalities: formData.modalities,
+        ...(formData.modalities.includes("Other (not listed above)") && formData.otherModalities?.trim()
+          ? { other_modalities: formData.otherModalities.trim() }
+          : {}),
         experience_areas: formData.experienceAreas,
+        ...(formData.experienceAreas.includes("Other (not listed above)") && formData.otherExperienceAreas?.trim()
+          ? { other_experience_areas: formData.otherExperienceAreas.trim() }
+          : {}),
         availability: formData.availability,
         availability_schedule: JSON.stringify(formData.availability),
         ...(formData.previousVanquishWork === "Yes" && formData.areasToImprove?.trim()
@@ -1524,6 +1553,16 @@ function QualifiedCounsellorFormContent() {
                   {errors.modalities && (
                     <p className="text-red-500 text-xs mt-1.5">{errors.modalities}</p>
                   )}
+                  <OtherOption
+                    isTicked={formData.modalities.includes("Other (not listed above)")}
+                    label="For any modalities/therapeutic approaches not listed above, please specify below"
+                    id="otherModalities"
+                    name="otherModalities"
+                    value={formData.otherModalities}
+                    onChange={(e) => handleInputChange("otherModalities", e.target.value)}
+                    error={errors.otherModalities}
+                    placeholder="Please specify any modalities or therapeutic approaches not listed above..."
+                  />
                 </div>
 
                 {/* Experience Areas */}
@@ -1557,6 +1596,16 @@ function QualifiedCounsellorFormContent() {
                   {errors.experienceAreas && (
                     <p className="text-red-500 text-xs mt-1.5">{errors.experienceAreas}</p>
                   )}
+                  <OtherOption
+                    isTicked={formData.experienceAreas.includes("Other (not listed above)")}
+                    label="Other areas of support you have experience with (not listed above)"
+                    id="otherExperienceAreas"
+                    name="otherExperienceAreas"
+                    value={formData.otherExperienceAreas}
+                    onChange={(e) => handleInputChange("otherExperienceAreas", e.target.value)}
+                    error={errors.otherExperienceAreas}
+                    placeholder="Please specify other areas of support you have experience with..."
+                  />
                 </div>
 
                 {/* Availability / Schedule */}
@@ -1876,7 +1925,13 @@ function QualifiedCounsellorFormContent() {
                     )}
                     <p><span className="text-gray-500">Qualified to Work With:</span> {formData.qualifiedToWorkWith.join(", ") || "None"}</p>
                     <p><span className="text-gray-500">Modalities Selected:</span> {formData.modalities.length} selected</p>
+                    {formData.modalities.includes("Other (not listed above)") && formData.otherModalities && (
+                      <p><span className="text-gray-500">Other Modalities:</span> <span className="italic">{formData.otherModalities}</span></p>
+                    )}
                     <p><span className="text-gray-500">Support Areas:</span> {formData.experienceAreas.length} selected</p>
+                    {formData.experienceAreas.includes("Other (not listed above)") && formData.otherExperienceAreas && (
+                      <p><span className="text-gray-500">Other Support Areas:</span> <span className="italic">{formData.otherExperienceAreas}</span></p>
+                    )}
                     <p>
                       <span className="text-gray-500">Availability Slots:</span>{" "}
                       <strong>

@@ -364,19 +364,25 @@ function QualifiedApplicationsContent() {
     {
       key: "modality",
       label: "Modality",
-      getAppVal: (a) =>
-        Array.isArray(a.answers?.modalities)
+      getAppVal: (a) => {
+        const base = Array.isArray(a.answers?.modalities)
           ? a.answers.modalities.join(", ")
-          : a.answers?.modalities || "N/A",
+          : a.answers?.modalities || "N/A";
+        const other = a.other_modalities || a.answers?.other_modalities;
+        return other ? `${base} (Other: ${other})` : base;
+      },
       getTcVal: (t) => t?.modality || "N/A",
     },
     {
       key: "topics_with_experience",
       label: "Experience Topics",
-      getAppVal: (a) =>
-        Array.isArray(a.answers?.experience_areas)
+      getAppVal: (a) => {
+        const base = Array.isArray(a.answers?.experience_areas)
           ? a.answers.experience_areas.join(", ")
-          : a.answers?.experience_areas || "N/A",
+          : a.answers?.experience_areas || "N/A";
+        const other = a.other_experience_areas || a.answers?.other_experience_areas;
+        return other ? `${base} (Other: ${other})` : base;
+      },
       getTcVal: (t) =>
         Array.isArray(t?.topics_with_experience)
           ? t.topics_with_experience.join(", ")
@@ -919,6 +925,12 @@ function QualifiedApplicationsContent() {
                         ? selectedApp.answers.modalities.join(", ")
                         : selectedApp.answers?.modalities || "N/A"}
                     </p>
+                    {(selectedApp.other_modalities || selectedApp.answers?.other_modalities) && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        <span className="font-medium text-gray-700">Other:</span>{" "}
+                        {selectedApp.other_modalities || selectedApp.answers?.other_modalities}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-800 text-xs uppercase tracking-wider mb-2">Experience Topics</h3>
@@ -927,6 +939,12 @@ function QualifiedApplicationsContent() {
                         ? selectedApp.answers.experience_areas.join(", ")
                         : selectedApp.answers?.experience_areas || "N/A"}
                     </p>
+                    {(selectedApp.other_experience_areas || selectedApp.answers?.other_experience_areas) && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        <span className="font-medium text-gray-700">Other:</span>{" "}
+                        {selectedApp.other_experience_areas || selectedApp.answers?.other_experience_areas}
+                      </p>
+                    )}
                   </div>
                 </div>
 
