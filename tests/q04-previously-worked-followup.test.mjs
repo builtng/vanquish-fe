@@ -1,15 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import path from "node:path";
 
 describe("FIX Q04: 'Previously worked with Vanquish' follow-up tests", () => {
-  const filePath = path.resolve(
-    process.cwd().endsWith("frontend")
-      ? "app/qualified-counsellor-form/page.jsx"
-      : "frontend/app/qualified-counsellor-form/page.jsx"
+  const fileContent = fs.readFileSync(
+    new URL("../app/qualified-counsellor-form/page.jsx", import.meta.url),
+    "utf8"
   );
-  const fileContent = fs.readFileSync(filePath, "utf8");
 
   it("1. Renders the exact required follow-up label when previousVanquishWork is Yes", () => {
     const requiredLabel =

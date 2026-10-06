@@ -44,8 +44,8 @@ describe("Prompt 3: Version Consistency & Branding Verification", () => {
   });
 
   it("mid-range-intake renders 'Vanquish Therapies' in disclosure text without flicker", () => {
-    const filePath = path.resolve("frontend/app/mid-range-intake/page.jsx");
-    const content = fs.readFileSync(filePath, "utf8");
+    const fileUrl = new URL("../app/mid-range-intake/page.jsx", import.meta.url);
+    const content = fs.readFileSync(fileUrl, "utf8");
 
     // Must not contain the old dynamic expression that flickers
     assert.doesNotMatch(
@@ -61,8 +61,8 @@ describe("Prompt 3: Version Consistency & Branding Verification", () => {
   });
 
   it("low-cost-intake renders 'Vanquish Therapies' in disclosure text without flicker", () => {
-    const filePath = path.resolve("frontend/app/low-cost-intake/page.jsx");
-    const content = fs.readFileSync(filePath, "utf8");
+    const fileUrl = new URL("../app/low-cost-intake/page.jsx", import.meta.url);
+    const content = fs.readFileSync(fileUrl, "utf8");
 
     assert.doesNotMatch(
       content,
@@ -76,8 +76,8 @@ describe("Prompt 3: Version Consistency & Branding Verification", () => {
   });
 
   it("coaching page renders 'Vanquish Therapies' in disclosure and capacity button", () => {
-    const filePath = path.resolve("frontend/app/coaching/page.jsx");
-    const content = fs.readFileSync(filePath, "utf8");
+    const fileUrl = new URL("../app/coaching/page.jsx", import.meta.url);
+    const content = fs.readFileSync(fileUrl, "utf8");
 
     assert.match(
       content,
@@ -89,8 +89,8 @@ describe("Prompt 3: Version Consistency & Branding Verification", () => {
   });
 
   it("agreement clauses use 'Vanquish Therapies' without 'VQT' acronym", () => {
-    const filePath = path.resolve("frontend/components/AgreementClauses.jsx");
-    const content = fs.readFileSync(filePath, "utf8");
+    const fileUrl = new URL("../components/AgreementClauses.jsx", import.meta.url);
+    const content = fs.readFileSync(fileUrl, "utf8");
 
     assert.doesNotMatch(content, /Vanquish Therapies<\/strong>\s*\(VQT\)/);
     assert.doesNotMatch(content, /Please note &ndash; VQT and online/);
@@ -98,26 +98,26 @@ describe("Prompt 3: Version Consistency & Branding Verification", () => {
   });
 
   it("no client-facing code references 'VQT Management'", () => {
-    const files = [
-      "frontend/app/mid-range-intake/page.jsx",
-      "frontend/app/low-cost-intake/page.jsx",
-      "frontend/app/coaching/page.jsx",
-      "frontend/app/qualified-counsellor-form/page.jsx",
-      "frontend/app/clform/page.jsx",
-      "frontend/app/tcform/page.jsx",
-      "frontend/app/client-booking/page.jsx",
-      "frontend/components/AgreementClauses.jsx",
-      "frontend/components/PublicFormWrapper.jsx",
-      "frontend/contexts/BrandingContext.jsx",
+    const relativePaths = [
+      "../app/mid-range-intake/page.jsx",
+      "../app/low-cost-intake/page.jsx",
+      "../app/coaching/page.jsx",
+      "../app/qualified-counsellor-form/page.jsx",
+      "../app/clform/page.jsx",
+      "../app/tcform/page.jsx",
+      "../app/client-booking/page.jsx",
+      "../components/AgreementClauses.jsx",
+      "../components/PublicFormWrapper.jsx",
+      "../contexts/BrandingContext.jsx",
     ];
 
-    for (const f of files) {
-      const fullPath = path.resolve(f);
-      if (fs.existsSync(fullPath)) {
-        const text = fs.readFileSync(fullPath, "utf8");
+    for (const rel of relativePaths) {
+      const fileUrl = new URL(rel, import.meta.url);
+      if (fs.existsSync(fileUrl)) {
+        const text = fs.readFileSync(fileUrl, "utf8");
         assert.ok(
           !text.includes("VQT Management"),
-          `File ${f} should not contain "VQT Management"`
+          `File ${rel} should not contain "VQT Management"`
         );
       }
     }
