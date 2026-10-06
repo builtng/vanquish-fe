@@ -335,11 +335,26 @@ function QualifiedCounsellorFormContent() {
   }, [currentStep]);
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      if (field === "previousVanquishWork" && value !== "Yes") {
+        updated.areasToImprove = "";
+      }
+      return updated;
+    });
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
+        if (field === "previousVanquishWork" && value !== "Yes") {
+          delete newErrors.areasToImprove;
+        }
+        return newErrors;
+      });
+    } else if (field === "previousVanquishWork" && value !== "Yes" && errors.areasToImprove) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.areasToImprove;
         return newErrors;
       });
     }
@@ -458,6 +473,8 @@ function QualifiedCounsellorFormContent() {
           stepErrors.familiarWithOnlineCounselling = "Please select if you are familiar with online counselling";
         if (!formData.previousVanquishWork || formData.previousVanquishWork === "Please Select")
           stepErrors.previousVanquishWork = "Please select if you have previously worked or been on placement with Vanquish";
+        if (formData.previousVanquishWork === "Yes" && !formData.areasToImprove?.trim())
+          stepErrors.areasToImprove = "Please specify the role and capacity in which you previously worked with Vanquish Therapies and areas for development";
         if (!formData.counsellorTrainingDetails.trim())
           stepErrors.counsellorTrainingDetails = "Please provide details of counselling-related education, qualifications, and experience";
         if (formData.qualifiedToWorkWith.length === 0)
@@ -636,7 +653,9 @@ function QualifiedCounsellorFormContent() {
         experience_areas: formData.experienceAreas,
         availability: formData.availability,
         availability_schedule: JSON.stringify(formData.availability),
-        areas_to_improve: formData.areasToImprove || "N/A",
+        ...(formData.previousVanquishWork === "Yes" && formData.areasToImprove?.trim()
+          ? { areas_to_improve: formData.areasToImprove.trim() }
+          : {}),
         unique_trait: formData.uniqueTrait || "N/A",
         challenging_cases: formData.challengingCases || "N/A",
         qualification_document: qualificationDoc,
@@ -1397,6 +1416,29 @@ function QualifiedCounsellorFormContent() {
                   )}
                 </div>
 
+                {/* Follow-up question if Yes */}
+                {formData.previousVanquishWork === "Yes" && (
+                  <div>
+                    <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
+                      Please specify the role and capacity in which you previously worked with Vanquish Therapies. If you completed a placement with us, please explain which areas you feel you would need to further develop or improve in order to transition into a Qualified Counsellor role within the Practice, and how you would work towards these areas of development. <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="areasToImprove"
+                      id="areasToImprove"
+                      rows={4}
+                      value={formData.areasToImprove}
+                      onChange={(e) => handleInputChange("areasToImprove", e.target.value)}
+                      className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none transition-all ${
+                        errors.areasToImprove ? "border-red-500 bg-red-50/20" : "border-gray-300"
+                      }`}
+                      placeholder="Please specify your previous role/capacity and areas for development..."
+                    />
+                    {errors.areasToImprove && (
+                      <p className="text-red-500 text-xs mt-1">{errors.areasToImprove}</p>
+                    )}
+                  </div>
+                )}
+
                 {/* Counselling-related education & experience */}
                 <div>
                   <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
@@ -1828,6 +1870,10 @@ function QualifiedCounsellorFormContent() {
                     <p><span className="text-gray-500">Insurance Held:</span> <strong>{formData.hasIndemnityInsurance}</strong></p>
                     <p><span className="text-gray-500">Supervisor Status:</span> <strong>{formData.hasSupervisor}</strong></p>
                     <p><span className="text-gray-500">DBS Status:</span> {formData.dbsRegistered}</p>
+                    <p><span className="text-gray-500">Previously with Vanquish:</span> <strong>{formData.previousVanquishWork || "None"}</strong></p>
+                    {formData.previousVanquishWork === "Yes" && formData.areasToImprove && (
+                      <p><span className="text-gray-500">Previous Role & Development:</span> <span className="italic">{formData.areasToImprove}</span></p>
+                    )}
                     <p><span className="text-gray-500">Qualified to Work With:</span> {formData.qualifiedToWorkWith.join(", ") || "None"}</p>
                     <p><span className="text-gray-500">Modalities Selected:</span> {formData.modalities.length} selected</p>
                     <p><span className="text-gray-500">Support Areas:</span> {formData.experienceAreas.length} selected</p>
