@@ -102,9 +102,14 @@ export default function QualifiedApplicationsPage() {
     fetchApplications();
   };
 
+  // Duplicate Conflict Modal
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateConflictData, setDuplicateConflictData] = useState(null);
+
   // Accept handler
-  const handleAccept = async (app) => {
+  const handleAccept = async (app, forceNew = false) => {
     if (
+      !forceNew &&
       !confirm(
         `Are you sure you want to accept the application for ${app.name}? This will create an active Qualified Counsellor record.`
       )
@@ -114,17 +119,42 @@ export default function QualifiedApplicationsPage() {
 
     setAcceptingId(app.id);
     try {
-      const res = await apiService.acceptQcApplication(app.id);
+      const res = await apiService.acceptQcApplication(app.id, forceNew ? { force_new: true } : {});
       toast.success(res.message || "Application accepted successfully!");
       if (res.user_message) {
         toast.info(res.user_message);
       }
+      setShowDuplicateModal(false);
+      setDuplicateConflictData(null);
       fetchApplications();
     } catch (err) {
       console.error("Error accepting application:", err);
-      toast.error(err?.data?.message || err?.message || "Failed to accept application.");
+      const status = err?.status || err?.data?.status;
+      const msg = err?.data?.message || err?.message || "Failed to accept application.";
+
+      if (status === 409 || err?.data?.existing_tc || msg.includes("already exists")) {
+        setDuplicateConflictData({
+          app,
+          message: msg,
+          existingTc: err?.data?.existing_tc,
+        });
+        setShowDuplicateModal(true);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setAcceptingId(null);
+    }
+  };
+
+  // Restore handler
+  const handleRestore = async (app) => {
+    try {
+      await apiService.restoreQcApplication(app.id);
+      toast.success("Application restored successfully.");
+      fetchApplications();
+    } catch (err) {
+      toast.error(err?.data?.message || err?.message || "Failed to restore application.");
     }
   };
 
@@ -512,6 +542,16 @@ export default function QualifiedApplicationsPage() {
                             >
                               View
                             </button>
+
+                            {app.status === "Rejected" && (
+                              <button
+                                onClick={() => handleRestore(app)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition"
+                                title="Restore rejected application"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" /> Restore
+                              </button>
+                            )}
 
                             {app.status !== "Accepted" && app.status !== "Rejected" && (
                               <>
@@ -918,6 +958,68 @@ export default function QualifiedApplicationsPage() {
                   className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition disabled:opacity-50"
                 >
                   {isRejecting ? "Rejecting..." : "Confirm Rejection"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================== DUPLICATE PRACTITIONER CONFLICT MODAL (409) ===================== */}
+        {showDuplicateModal && duplicateConflictData && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-amber-200 animate-fadeIn space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    Practitioner With This Email Already Exists
+                  </h2>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {duplicateConflictData.message}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 text-xs text-amber-950 space-y-2">
+                <p className="font-semibold text-amber-900">Recommended Action:</p>
+                <p>
+                  Use <strong>Link to existing practitioner</strong> to attach this application to their existing profile without changing their type or overwriting details.
+                </p>
+                <p className="text-gray-500 text-[11px]">
+                  Alternatively, you can force the creation of an entirely separate new practitioner record.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicateModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const { app, existingTc } = duplicateConflictData;
+                    setShowDuplicateModal(false);
+                    openLinkModal(app, existingTc?.id);
+                  }}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#6f1d56] hover:bg-[#581643] rounded-lg transition"
+                >
+                  <Link2 className="w-4 h-4" /> Link to Existing Practitioner
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAccept(duplicateConflictData.app, true)}
+                  disabled={acceptingId === duplicateConflictData.app.id}
+                  className="px-3 py-2 text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg transition"
+                >
+                  Force Create New Record
                 </button>
               </div>
             </div>
