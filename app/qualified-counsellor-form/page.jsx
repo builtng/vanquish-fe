@@ -256,6 +256,7 @@ function QualifiedCounsellorFormContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submittedCounsellor, setSubmittedCounsellor] = useState(null);
+  const [submittedApplication, setSubmittedApplication] = useState(null);
 
   const isUpgradeMode = Boolean(tcId);
 
@@ -653,6 +654,7 @@ function QualifiedCounsellorFormContent() {
         body: JSON.stringify(submitData),
       });
 
+      setSubmittedApplication(response?.application || (response?.application_id ? { id: response.application_id } : null));
       setSubmittedCounsellor(response?.tc || null);
       setSubmitted(true);
       toast.success("Qualified Counsellor application submitted successfully!");
@@ -756,11 +758,11 @@ function QualifiedCounsellorFormContent() {
                   {formData.legalFirstName} {formData.legalLastName}
                 </span>
               </div>
-              {submittedCounsellor?.tc_id && (
+              {submittedApplication?.id && (
                 <div className="flex justify-between items-center pb-2 border-b border-purple-100">
-                  <span className="text-gray-500 font-medium">Reference ID:</span>
+                  <span className="text-gray-500 font-medium">Application Reference:</span>
                   <span className="font-mono font-bold text-[#6f1d56]">
-                    {submittedCounsellor.tc_id}
+                    QC-APP-{String(submittedApplication.id).padStart(4, "0")}
                   </span>
                 </div>
               )}

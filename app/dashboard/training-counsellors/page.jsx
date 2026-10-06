@@ -491,6 +491,14 @@ export default function ViewAllTrainingCounsellorsPage() {
         <DashboardHeader
           actions={
             <>
+              <Link
+                href="/dashboard/qualified-applications"
+                className="px-4 py-2 border border-purple-200 text-[#6f1d56] bg-purple-50 hover:bg-purple-100 rounded-lg font-medium flex items-center gap-2 whitespace-nowrap transition-colors"
+              >
+                <Award className="w-4 h-4" />
+                <span className="hidden sm:inline">Qualified Applications</span>
+                <span className="sm:hidden">QC Apps</span>
+              </Link>
               <button
                 onClick={fetchTrainingCounsellors}
                 disabled={loading}

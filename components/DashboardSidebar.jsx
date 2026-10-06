@@ -267,6 +267,7 @@ export default function DashboardSidebar() {
   );
   const [tcExpanded, setTcExpanded] = useState(
     pathname?.startsWith("/dashboard/trainee-applications") ||
+    pathname?.startsWith("/dashboard/qualified-applications") ||
     pathname?.startsWith("/dashboard/training-counsellors") ||
     pathname?.startsWith("/dashboard/inductions") ||
     pathname?.startsWith("/dashboard/training-providers") ||
@@ -358,6 +359,12 @@ export default function DashboardSidebar() {
           icon: ClipboardList,
           badge: traineeAppsCount,
           href: "/dashboard/trainee-applications",
+        },
+        {
+          id: "qc-applications",
+          label: "Qualified Applications",
+          icon: UserCheck,
+          href: "/dashboard/qualified-applications",
         },
         {
           id: "video-reviews",
