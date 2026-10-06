@@ -64,6 +64,7 @@ import {
   Repeat,
   Sliders,
   Sparkles,
+  EyeOff,
 } from "lucide-react";
 
 const core34Questions = [
@@ -134,6 +135,10 @@ export default function IndividualClientDetailPage() {
     useState(false);
   const [showDeleteNoteConfirmModal, setShowDeleteNoteConfirmModal] =
     useState(false);
+  const [showHideNoteConfirmModal, setShowHideNoteConfirmModal] =
+    useState(false);
+  const [showHiddenNotes, setShowHiddenNotes] = useState(false);
+  const [noteToHide, setNoteToHide] = useState(null);
   const [showDeleteSessionConfirmModal, setShowDeleteSessionConfirmModal] =
     useState(false);
   const [sessionToDelete, setSessionToDelete] = useState(null);
@@ -635,14 +640,20 @@ export default function IndividualClientDetailPage() {
   };
 
   // Fetch admin notes
-  const fetchAdminNotes = async () => {
+  const fetchAdminNotes = async (overrideIncludeHidden) => {
     if (!client?.dbId) return;
+
+    const includeHidden =
+      overrideIncludeHidden !== undefined
+        ? overrideIncludeHidden
+        : showHiddenNotes;
 
     try {
       const logs = await apiService.getActivityLogs({
         model_type: "App\\Models\\Client",
         model_id: client.dbId,
         action: "admin_note",
+        include_hidden: includeHidden ? 1 : 0,
         per_page: 100,
       });
 
@@ -660,12 +671,25 @@ export default function IndividualClientDetailPage() {
           userId: log.user?.id || null,
           content: log.description,
           isEdited: log.updated_at && log.updated_at !== log.created_at,
+          isHidden: !!log.hidden_at,
+          hiddenAt: log.hidden_at
+            ? new Date(log.hidden_at).toLocaleString("en-GB")
+            : null,
+          hiddenBy:
+            log.hidden_by_user?.name ||
+            (log.hidden_by ? `User #${log.hidden_by}` : null),
         })),
       );
     } catch (err) {
       console.error("Error fetching admin notes:", err);
     }
   };
+
+  useEffect(() => {
+    if (client?.dbId) {
+      fetchAdminNotes(showHiddenNotes);
+    }
+  }, [showHiddenNotes]);
 
   // Fetch clinical logs (SessionNote model)
   const fetchClinicalLogs = async () => {
@@ -898,14 +922,15 @@ export default function IndividualClientDetailPage() {
     setShowSessionNotesModal(true);
   };
 
-  const handleDeleteSession = (session) => {
+  const handleCancelSession = (session) => {
     setSessionToDelete(session);
     setShowDeleteSessionConfirmModal(true);
   };
+  const handleDeleteSession = handleCancelSession;
 
-  const confirmDeleteSession = async () => {
+  const confirmCancelSession = async () => {
     if (!sessionToDelete || !sessionToDelete.id) {
-      showError("Session ID not found. Cannot delete session.");
+      showError("Session ID not found. Cannot cancel session.");
       setShowDeleteSessionConfirmModal(false);
       setSessionToDelete(null);
       return;
@@ -914,7 +939,7 @@ export default function IndividualClientDetailPage() {
     try {
       setActionLoading(true);
       await apiService.deleteConsultation(sessionToDelete.id);
-      success("Session deleted successfully!");
+      success("Session cancelled successfully!");
       setShowDeleteSessionConfirmModal(false);
       setSessionToDelete(null);
 
@@ -923,12 +948,13 @@ export default function IndividualClientDetailPage() {
       const transformedData = transformClientData(data);
       setClient(transformedData);
     } catch (err) {
-      console.error("Error deleting session:", err);
-      showError(err.message || "Failed to delete session. Please try again.");
+      console.error("Error cancelling session:", err);
+      showError(err.message || "Failed to cancel session. Please try again.");
     } finally {
       setActionLoading(false);
     }
   };
+  const confirmDeleteSession = confirmCancelSession;
 
   const handleDownloadAgreement = async () => {
     try {
@@ -1012,21 +1038,38 @@ export default function IndividualClientDetailPage() {
     }
   };
 
-  const handleDeleteNote = (noteId) => {
-    setNoteToDelete(noteId);
-    setShowDeleteNoteConfirmModal(true);
+  const handleHideNote = (noteId) => {
+    setNoteToHide(noteId);
+    setShowHideNoteConfirmModal(true);
   };
+  const handleDeleteNote = handleHideNote;
 
-  const confirmDeleteNote = async () => {
+  const confirmHideNote = async () => {
     try {
       setActionLoading(true);
-      await apiService.deleteActivityLog(noteToDelete);
-      success("Note deleted successfully");
+      await apiService.hideActivityLog(noteToHide || noteToDelete);
+      success("Note hidden from default view");
       await fetchAdminNotes();
+      setShowHideNoteConfirmModal(false);
       setShowDeleteNoteConfirmModal(false);
+      setNoteToHide(null);
       setNoteToDelete(null);
     } catch (err) {
-      showError(err.message || "Failed to delete note");
+      showError(err.message || "Failed to hide note");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+  const confirmDeleteNote = confirmHideNote;
+
+  const handleUnhideNote = async (noteId) => {
+    try {
+      setActionLoading(true);
+      await apiService.unhideActivityLog(noteId);
+      success("Note restored to view");
+      await fetchAdminNotes();
+    } catch (err) {
+      showError(err.message || "Failed to unhide note");
     } finally {
       setActionLoading(false);
     }
@@ -2717,16 +2760,17 @@ export default function IndividualClientDetailPage() {
                                     </button>
                                     <button
                                       onClick={() =>
-                                        handleDeleteSession(session)
+                                        handleCancelSession(session)
                                       }
                                       disabled={
                                         actionLoading ||
-                                        client.status === "archived"
+                                        client.status === "archived" ||
+                                        session.status === "cancelled"
                                       }
-                                      className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                      title="Delete Session"
+                                      className="p-2 hover:bg-amber-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="Cancel session"
                                     >
-                                      <Trash2 className="w-4 h-4 text-red-600" />
+                                      <XCircle className="w-4 h-4 text-amber-600" />
                                     </button>
                                   </div>
                                 </td>
@@ -3019,19 +3063,32 @@ export default function IndividualClientDetailPage() {
                           Notes & Activity
                         </h2>
                         {activeNotesTab === "admin" && (
-                          <button
-                            onClick={() => fetchAdminNotes()}
-                            disabled={
-                              actionLoading || client.status === "archived"
-                            }
-                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Refresh notes to see latest changes"
-                          >
-                            <RefreshCw
-                              className={`w-4 h-4 ${actionLoading ? "animate-spin" : ""}`}
-                            />
-                            <span>Refresh</span>
-                          </button>
+                          <div className="flex items-center gap-4">
+                            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={showHiddenNotes}
+                                onChange={(e) =>
+                                  setShowHiddenNotes(e.target.checked)
+                                }
+                                className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                              />
+                              <span>Show hidden notes</span>
+                            </label>
+                            <button
+                              onClick={() => fetchAdminNotes()}
+                              disabled={
+                                actionLoading || client.status === "archived"
+                              }
+                              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Refresh notes to see latest changes"
+                            >
+                              <RefreshCw
+                                className={`w-4 h-4 ${actionLoading ? "animate-spin" : ""}`}
+                              />
+                              <span>Refresh</span>
+                            </button>
+                          </div>
                         )}
                       </div>
 
@@ -3228,7 +3285,11 @@ export default function IndividualClientDetailPage() {
                               adminNotes.map((note) => (
                                 <div
                                   key={note.id}
-                                  className="border border-gray-200 rounded-lg p-4"
+                                  className={`border rounded-lg p-4 transition-colors ${
+                                    note.isHidden
+                                      ? "bg-amber-50/50 border-amber-200"
+                                      : "border-gray-200"
+                                  }`}
                                 >
                                   <div className="flex items-start justify-between mb-2">
                                     <div>
@@ -3239,6 +3300,11 @@ export default function IndividualClientDetailPage() {
                                         {note.authorRole && (
                                           <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
                                             {note.authorRole}
+                                          </span>
+                                        )}
+                                        {note.isHidden && (
+                                          <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">
+                                            Hidden
                                           </span>
                                         )}
                                       </div>
@@ -3258,29 +3324,57 @@ export default function IndividualClientDetailPage() {
                                           {note.authorEmail}
                                         </p>
                                       )}
+                                      {note.isHidden && (
+                                        <p className="text-xs text-amber-700 mt-1 font-medium">
+                                          Hidden by {note.hiddenBy || "Staff"}{" "}
+                                          {note.hiddenAt
+                                            ? `on ${note.hiddenAt}`
+                                            : ""}
+                                        </p>
+                                      )}
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                      <button
-                                        onClick={() => handleEditNote(note)}
-                                        disabled={client.status === "archived"}
-                                        className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        <Edit className="w-4 h-4 text-gray-600" />
-                                      </button>
+                                      {!note.isHidden && (
+                                        <button
+                                          onClick={() => handleEditNote(note)}
+                                          disabled={client.status === "archived"}
+                                          className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                          title="Edit note"
+                                        >
+                                          <Edit className="w-4 h-4 text-gray-600" />
+                                        </button>
+                                      )}
 
-                                      <button
-                                        onClick={() =>
-                                          handleDeleteNote(note.id)
-                                        }
-                                        disabled={
-                                          actionLoading ||
-                                          client.status === "archived"
-                                        }
-                                        className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        <Trash2 className="w-4 h-4 text-red-600" />
-                                      </button>
+                                      {note.isHidden ? (
+                                        <button
+                                          onClick={() =>
+                                            handleUnhideNote(note.id)
+                                          }
+                                          disabled={
+                                            actionLoading ||
+                                            client.status === "archived"
+                                          }
+                                          className="p-2 hover:bg-emerald-100 rounded-lg text-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                          title="Unhide note"
+                                        >
+                                          <Eye className="w-4 h-4 text-emerald-600" />
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() =>
+                                            handleHideNote(note.id)
+                                          }
+                                          disabled={
+                                            actionLoading ||
+                                            client.status === "archived"
+                                          }
+                                          className="p-2 hover:bg-amber-100 rounded-lg text-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                          title="Hide note"
+                                        >
+                                          <EyeOff className="w-4 h-4 text-amber-600" />
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
 
@@ -3629,8 +3723,8 @@ export default function IndividualClientDetailPage() {
             onClose={() => setShowArchiveConfirmModal(false)}
             onConfirm={confirmArchive}
             title="Archive Client"
-            message={`Are you sure you want to archive ${client?.name}? This will mark the client as archived.`}
-            confirmText="Archive Client"
+            message="This record will be archived and kept for our records. It will no longer appear in your lists."
+            confirmText="Archive"
             cancelText="Cancel"
             type="warning"
             loading={actionLoading}
@@ -3651,36 +3745,38 @@ export default function IndividualClientDetailPage() {
             confirmButtonColor="#10b981"
           />
 
-          {/* Delete Note Confirmation Modal */}
+          {/* Hide Note Confirmation Modal */}
           <DeleteConfirmationModal
-            isOpen={showDeleteNoteConfirmModal}
+            isOpen={showHideNoteConfirmModal || showDeleteNoteConfirmModal}
             onClose={() => {
+              setShowHideNoteConfirmModal(false);
               setShowDeleteNoteConfirmModal(false);
+              setNoteToHide(null);
               setNoteToDelete(null);
             }}
-            onConfirm={confirmDeleteNote}
-            title="Delete Note"
-            message="Are you sure you want to delete this note? This action cannot be undone."
+            onConfirm={confirmHideNote}
+            title="Hide Note"
+            message="Are you sure you want to hide this note? It will be hidden from the default view but kept in our records and audit log."
             itemName="this note"
-            confirmText="Delete Note"
+            confirmText="Hide Note"
             cancelText="Cancel"
             loading={actionLoading}
           />
 
 
-          {/* Delete Session Confirmation Modal */}
+          {/* Cancel Session Confirmation Modal */}
           <DeleteConfirmationModal
             isOpen={showDeleteSessionConfirmModal}
             onClose={() => {
               setShowDeleteSessionConfirmModal(false);
               setSessionToDelete(null);
             }}
-            onConfirm={confirmDeleteSession}
-            title="Delete Session"
-            message={`Are you sure you want to delete Session #${sessionToDelete?.sessionNumber || "N/A"} scheduled for ${sessionToDelete?.date || "N/A"}? This action cannot be undone.`}
+            onConfirm={confirmCancelSession}
+            title="Cancel Session"
+            message={`Are you sure you want to cancel Session #${sessionToDelete?.sessionNumber || "N/A"} scheduled for ${sessionToDelete?.date || "N/A"}? The session will be marked as Cancelled and kept for our records.`}
             itemName={`Session #${sessionToDelete?.sessionNumber || "N/A"}`}
-            confirmText="Delete Session"
-            cancelText="Cancel"
+            confirmText="Cancel Session"
+            cancelText="Keep Session"
             loading={actionLoading}
           />
 
@@ -3690,9 +3786,9 @@ export default function IndividualClientDetailPage() {
             onClose={() => setShowDeleteClientModal(false)}
             onConfirm={confirmDeleteClient}
             title="Archive Client"
-            message={`Are you sure you want to archive ${client?.name || "this client"}? The record will be archived and kept in history.`}
+            message="This record will be archived and kept for our records. It will no longer appear in your lists."
             itemName={client?.name}
-            confirmText="Archive Client"
+            confirmText="Archive"
             cancelText="Cancel"
             loading={deletingClient}
           />

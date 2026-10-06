@@ -1124,7 +1124,7 @@ function EditTrainingCounsellorContent() {
         onClose={() => setShowDeleteConfirmModal(false)}
         onConfirm={confirmDelete}
         title="Archive Practitioner"
-        message={`Are you sure you want to archive ${formData.name}? The record will be archived and kept in history.`}
+        message="This record will be archived and kept for our records. It will no longer appear in your lists."
         itemName={formData.name}
         confirmText="Archive"
         cancelText="Cancel"

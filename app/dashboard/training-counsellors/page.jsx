@@ -3,9 +3,10 @@ import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import apiService from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatName, getCounsellorPrefixType } from "@/lib/nameFormatter";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -56,20 +57,25 @@ import {
 } from "lucide-react";
 import SearchableSelect from "@/components/SearchableSelect";
 
-export default function ViewAllTrainingCounsellorsPage() {
+function ViewAllTrainingCounsellorsContent() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { user: authUser } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState("");
-
   const [filterStatus, setFilterStatus] = useState("all");
-
   const [filterService, setFilterService] = useState("all");
-
   const [filterModality, setFilterModality] = useState("all");
-
   const [filterAvailability, setFilterAvailability] = useState("all");
-
   const [sortBy, setSortBy] = useState("tc_id");
+  const [includeArchived, setIncludeArchived] = useState(false);
+
+  useEffect(() => {
+    const archivedParam = searchParams?.get("include_archived");
+    if (archivedParam === "1" || archivedParam === "true") {
+      setIncludeArchived(true);
+    }
+  }, [searchParams]);
 
   // Data states
   const [trainingCounsellors, setTrainingCounsellors] = useState([]);
@@ -77,6 +83,20 @@ export default function ViewAllTrainingCounsellorsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  const handleRestoreTC = async (tc, e) => {
+    if (e) e.stopPropagation();
+    try {
+      setLoading(true);
+      await apiService.restoreTrainingCounsellor(tc.uuid || tc.id);
+      toast.success("Practitioner restored successfully!");
+      fetchTrainingCounsellors();
+    } catch (err) {
+      toast.error(err.message || "Failed to restore practitioner");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Modal states
   const [selectedTC, setSelectedTC] = useState(null);
@@ -146,6 +166,7 @@ export default function ViewAllTrainingCounsellorsPage() {
       if (searchTerm) params.search = searchTerm;
       if (filterStatus !== "all") params.status = filterStatus;
       if (filterModality !== "all") params.modality = filterModality;
+      if (includeArchived) params.include_archived = 1;
 
       const data = await apiService.getTrainingCounsellors(params);
 
@@ -159,6 +180,8 @@ export default function ViewAllTrainingCounsellorsPage() {
         phone: tc.phone,
         modality: tc.modality,
         status: tc.status,
+        archivedAt: tc.archived_at || null,
+        isArchived: !!tc.archived_at || tc.status === "Archived",
         counsellor_type: tc.counsellor_type || "Trainee",
         currentClients: tc.current_clients || 0,
         currentClientsList: tc.clients
@@ -253,7 +276,7 @@ export default function ViewAllTrainingCounsellorsPage() {
   useEffect(() => {
     fetchTrainingCounsellors();
     fetchPendingClients();
-  }, [searchTerm, filterStatus, filterService, filterModality]);
+  }, [searchTerm, filterStatus, filterService, filterModality, includeArchived]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -263,7 +286,7 @@ export default function ViewAllTrainingCounsellorsPage() {
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [searchTerm, filterStatus, filterService, filterModality]);
+  }, [searchTerm, filterStatus, filterService, filterModality, includeArchived]);
 
   // Filter and sort TCs
   // Filter and sort TCs
@@ -684,6 +707,16 @@ export default function ViewAllTrainingCounsellorsPage() {
               ]}
               placeholder="Sort by..."
             />
+
+            <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none px-3 py-2 rounded-lg border border-border bg-card flex-shrink-0">
+              <input
+                type="checkbox"
+                checked={includeArchived}
+                onChange={(e) => setIncludeArchived(e.target.checked)}
+                className="w-4 h-4 rounded border-input text-[var(--purple-primary)] focus:ring-[var(--purple-primary)]"
+              />
+              <span className="whitespace-nowrap font-medium">Show archived</span>
+            </label>
           </div>
 
           {filteredTCs.length > 0 && (
@@ -827,6 +860,21 @@ export default function ViewAllTrainingCounsellorsPage() {
 
                     <div className="flex flex-wrap gap-2 items-center">
                       {getStatusBadge(tc.status, tc.currentClients)}
+                      {tc.isArchived && (
+                        <span
+                          className="px-2.5 py-0.5 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-full"
+                          title={
+                            tc.archivedAt
+                              ? `Archived: ${new Date(tc.archivedAt).toLocaleDateString("en-GB")}`
+                              : "Archived"
+                          }
+                        >
+                          Archived{" "}
+                          {tc.archivedAt
+                            ? `(${new Date(tc.archivedAt).toLocaleDateString("en-GB")})`
+                            : ""}
+                        </span>
+                      )}
                       {tc.not_onboarded_properly && (
                         <span className="px-3 py-1 bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-400 ring-1 ring-inset ring-rose-600/20 dark:ring-rose-500/30 text-xs font-medium rounded-full flex items-center gap-1 w-fit animate-pulse">
                           <AlertCircle className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" /> Onboarding Incomplete
@@ -927,20 +975,31 @@ export default function ViewAllTrainingCounsellorsPage() {
                     View Profile
                   </Link>
 
-                  {tc.status === "Active" && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
+                  {tc.isArchived ? (
+                    authUser?.role === "admin" && (
+                      <button
+                        onClick={(e) => handleRestoreTC(tc, e)}
+                        className="flex-1 px-4 py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg font-semibold text-sm hover:bg-emerald-100 transition-colors"
+                      >
+                        Restore
+                      </button>
+                    )
+                  ) : (
+                    tc.status === "Active" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
 
-                        setSelectedTC(tc);
+                          setSelectedTC(tc);
 
-                        setShowAssignModal(true);
-                      }}
-                      className="flex-1 px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors"
-                    >
-                      <UserCheck className="w-4 h-4" />
-                      Assign Client
-                    </button>
+                          setShowAssignModal(true);
+                        }}
+                        className="flex-1 px-4 py-2 bg-[var(--button-primary-bg)] hover:bg-[var(--button-primary-hover)] text-[var(--button-primary-text)] rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        Assign Client
+                      </button>
+                    )
                   )}
                 </div>
               </div>
@@ -1350,5 +1409,23 @@ export default function ViewAllTrainingCounsellorsPage() {
       )}
     </DashboardLayout>
     </PageGuard>
+  );
+}
+
+export default function ViewAllTrainingCounsellorsPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <PageGuard menuId="training-counsellors">
+          <DashboardLayout>
+            <div className="flex-1 flex items-center justify-center p-8 bg-gray-50 dark:bg-[var(--background)]">
+              <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#6f1d56] border-t-transparent mb-2"></div>
+            </div>
+          </DashboardLayout>
+        </PageGuard>
+      }
+    >
+      <ViewAllTrainingCounsellorsContent />
+    </React.Suspense>
   );
 }

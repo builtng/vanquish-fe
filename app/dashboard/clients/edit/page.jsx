@@ -1942,13 +1942,13 @@ function EditClientPageContent() {
         onClose={() => setShowDeleteConfirmModal(false)}
         onConfirm={confirmDelete}
         title="Archive Client"
-        message="Are you sure you want to archive this client? The record will be archived and kept in history."
+        message="This record will be archived and kept for our records. It will no longer appear in your lists."
         itemName={
           formData.firstName && formData.lastName
             ? `${formData.firstName} ${formData.lastName}`
             : "this client"
         }
-        confirmText="Archive Client"
+        confirmText="Archive"
         cancelText="Cancel"
         loading={deleteLoading}
       />

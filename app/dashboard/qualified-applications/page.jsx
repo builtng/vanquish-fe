@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { toast } from "react-toastify";
 import {
   Users,
@@ -26,22 +27,34 @@ import {
   Award,
 } from "lucide-react";
 import apiService from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import PageGuard from "@/components/PageGuard";
 
-export default function QualifiedApplicationsPage() {
+function QualifiedApplicationsContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { user: authUser } = useAuth();
+  const isAdmin = authUser?.role === 'admin' || authUser?.role === 'super_admin';
+
   const [applications, setApplications] = useState([]);
   const [practitioners, setPractitioners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [includeArchived, setIncludeArchived] = useState(searchParams.get("include_archived") === "1");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   // Modals
   const [selectedApp, setSelectedApp] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Archive Modal
+  const [archiveModalApp, setArchiveModalApp] = useState(null);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   // Link Modal
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -67,6 +80,7 @@ export default function QualifiedApplicationsPage() {
         page,
         search,
         status: statusFilter,
+        include_archived: includeArchived ? 1 : 0,
       };
       const res = await apiService.getQcApplications(params);
       setApplications(res.data || []);
@@ -90,11 +104,39 @@ export default function QualifiedApplicationsPage() {
 
   useEffect(() => {
     fetchApplications();
-  }, [page, statusFilter]);
+  }, [page, statusFilter, includeArchived]);
 
   useEffect(() => {
     fetchPractitioners();
   }, []);
+
+  const handleToggleArchived = (e) => {
+    const checked = e.target.checked;
+    setIncludeArchived(checked);
+    setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    if (checked) {
+      params.set("include_archived", "1");
+    } else {
+      params.delete("include_archived");
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const handleArchiveSubmit = async () => {
+    if (!archiveModalApp) return;
+    setIsArchiving(true);
+    try {
+      await apiService.deleteQcApplication(archiveModalApp.id);
+      toast.success("Application archived successfully.");
+      setArchiveModalApp(null);
+      fetchApplications();
+    } catch (err) {
+      toast.error(err?.data?.message || err?.message || "Failed to archive application.");
+    } finally {
+      setIsArchiving(false);
+    }
+  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -260,7 +302,14 @@ export default function QualifiedApplicationsPage() {
     }
   };
 
-  const renderStatusBadge = (status) => {
+  const renderStatusBadge = (status, archivedAt = null) => {
+    if (archivedAt || status === "Archived") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+          Archived {archivedAt ? `(${new Date(archivedAt).toLocaleDateString("en-GB")})` : ''}
+        </span>
+      );
+    }
     switch (status) {
       case "Accepted":
         return (
@@ -424,6 +473,16 @@ export default function QualifiedApplicationsPage() {
             </form>
 
             <div className="flex items-center gap-3 w-full md:w-auto">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-600 select-none">
+                <input
+                  type="checkbox"
+                  checked={includeArchived}
+                  onChange={handleToggleArchived}
+                  className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-gray-300"
+                />
+                Show archived
+              </label>
+
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-gray-400" />
                 <select
@@ -496,8 +555,10 @@ export default function QualifiedApplicationsPage() {
                           ? practitioners.find((p) => String(p.id) === String(app.suggested_training_counsellor_id))
                           : null);
 
+                      const isArchived = Boolean(app.archived_at || app.status === "Archived" || app.status === "Rejected");
+
                       return (
-                        <tr key={app.id} className="hover:bg-purple-50/20 transition">
+                        <tr key={app.id} className={`hover:bg-purple-50/20 transition ${isArchived ? "opacity-75 bg-gray-50/50" : ""}`}>
                           <td className="py-4 px-4">
                             <div className="font-semibold text-gray-900">{app.name}</div>
                             <div className="text-xs font-mono text-purple-700">
@@ -510,7 +571,7 @@ export default function QualifiedApplicationsPage() {
                             {app.phone && <div className="text-xs text-gray-500">{app.phone}</div>}
                           </td>
 
-                          <td className="py-4 px-4">{renderStatusBadge(app.status)}</td>
+                          <td className="py-4 px-4">{renderStatusBadge(app.status, app.archived_at)}</td>
 
                           <td className="py-4 px-4">
                             {suggested ? (
@@ -543,38 +604,49 @@ export default function QualifiedApplicationsPage() {
                               View
                             </button>
 
-                            {app.status === "Rejected" && (
-                              <button
-                                onClick={() => handleRestore(app)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition"
-                                title="Restore rejected application"
-                              >
-                                <RefreshCw className="w-3.5 h-3.5" /> Restore
-                              </button>
-                            )}
-
-                            {app.status !== "Accepted" && app.status !== "Rejected" && (
+                            {isArchived ? (
+                              isAdmin && (
+                                <button
+                                  onClick={() => handleRestore(app)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition"
+                                  title="Restore application"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" /> Restore
+                                </button>
+                              )
+                            ) : (
                               <>
-                                <button
-                                  onClick={() => openLinkModal(app, suggested?.id)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition"
-                                >
-                                  <Link2 className="w-3.5 h-3.5" /> Link
-                                </button>
+                                {app.status !== "Accepted" && (
+                                  <>
+                                    <button
+                                      onClick={() => openLinkModal(app, suggested?.id)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition"
+                                    >
+                                      <Link2 className="w-3.5 h-3.5" /> Link
+                                    </button>
+
+                                    <button
+                                      onClick={() => handleAccept(app)}
+                                      disabled={acceptingId === app.id}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-white bg-[#6f1d56] hover:bg-[#581643] rounded-lg transition disabled:opacity-50"
+                                    >
+                                      <Check className="w-3.5 h-3.5" /> Accept
+                                    </button>
+
+                                    <button
+                                      onClick={() => openRejectModal(app)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
+                                    >
+                                      <X className="w-3.5 h-3.5" /> Reject
+                                    </button>
+                                  </>
+                                )}
 
                                 <button
-                                  onClick={() => handleAccept(app)}
-                                  disabled={acceptingId === app.id}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-white bg-[#6f1d56] hover:bg-[#581643] rounded-lg transition disabled:opacity-50"
+                                  onClick={() => setArchiveModalApp(app)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
                                 >
-                                  <Check className="w-3.5 h-3.5" /> Accept
-                                </button>
-
-                                <button
-                                  onClick={() => openRejectModal(app)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
-                                >
-                                  <X className="w-3.5 h-3.5" /> Reject
+                                  Archive
                                 </button>
                               </>
                             )}
@@ -929,7 +1001,9 @@ export default function QualifiedApplicationsPage() {
               </h2>
               <p className="text-xs text-gray-500 mt-1">
                 Rejecting application QC-APP-{String(rejectingApp.id).padStart(4, "0")} for {rejectingApp.name}.
-                The application will be marked as Rejected and archived.
+              </p>
+              <p className="text-sm text-gray-600 mt-2">
+                This record will be archived and kept for our records. It will no longer appear in your lists.
               </p>
 
               <div className="mt-4 space-y-2">
@@ -957,7 +1031,42 @@ export default function QualifiedApplicationsPage() {
                   disabled={isRejecting}
                   className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition disabled:opacity-50"
                 >
-                  {isRejecting ? "Rejecting..." : "Confirm Rejection"}
+                  {isRejecting ? "Archiving..." : "Archive"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================== ARCHIVE MODAL ===================== */}
+        {archiveModalApp && (
+          <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-100 animate-fadeIn">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-amber-600" /> Archive Application
+              </h2>
+              <p className="text-xs text-gray-500 mt-1">
+                QC-APP-{String(archiveModalApp.id).padStart(4, "0")} - {archiveModalApp.name}
+              </p>
+              <p className="text-sm text-gray-600 mt-2">
+                This record will be archived and kept for our records. It will no longer appear in your lists.
+              </p>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setArchiveModalApp(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleArchiveSubmit}
+                  disabled={isArchiving}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition disabled:opacity-50"
+                >
+                  {isArchiving ? "Archiving..." : "Archive"}
                 </button>
               </div>
             </div>
@@ -1027,5 +1136,24 @@ export default function QualifiedApplicationsPage() {
         )}
       </DashboardLayout>
     </PageGuard>
+  );
+}
+
+export default function QualifiedApplicationsPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <PageGuard permissions={["view_trainee_applications", "manage_training_counsellors"]}>
+          <DashboardLayout>
+            <div className="p-8 text-center text-gray-500">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-600 border-t-transparent mb-2"></div>
+              <p className="text-sm">Loading applications...</p>
+            </div>
+          </DashboardLayout>
+        </PageGuard>
+      }
+    >
+      <QualifiedApplicationsContent />
+    </React.Suspense>
   );
 }

@@ -43,6 +43,7 @@ import DashboardHeader from "@/components/DashboardHeader";
 import PageGuard from "@/components/PageGuard";
 import apiService from "@/lib/api";
 import { useModal } from "@/contexts/ModalContext";
+import { useAuth } from "@/contexts/AuthContext";
 import EmbeddedZoomMeeting from "@/components/EmbeddedZoomMeeting";
 import { StatusBadge, SearchableStatusSelect } from "@/components/StatusBadge";
 
@@ -305,6 +306,8 @@ function AvailabilitySchedule({ value }) {
 export default function TraineeApplicationDetail() {
   const { id } = useParams();
   const router = useRouter();
+  const { user: authUser } = useAuth();
+  const isAdmin = authUser?.role === 'admin' || authUser?.role === 'super_admin';
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(null);
@@ -316,6 +319,16 @@ export default function TraineeApplicationDetail() {
   const [recordingInductionAttendance, setRecordingInductionAttendance] =
     useState(false);
   const { prompt, confirm } = useModal();
+
+  const handleRestore = async () => {
+    try {
+      await apiService.restoreTraineeApplication(id);
+      toast.success("Application restored successfully.");
+      fetchApplication();
+    } catch (err) {
+      toast.error(err?.data?.message || err?.message || "Failed to restore application.");
+    }
+  };
 
   const previewAndSend = async (templateType, placeholders, sendFn) => {
     try {
@@ -456,21 +469,21 @@ export default function TraineeApplicationDetail() {
 
         if (!attended) {
           const deleteNow = await confirm({
-            title: "GDPR Compliance: Delete Candidate Data?",
+            title: "Archive Candidate Data",
             message:
-              "The interview not attended email has been sent informing the applicant that their information has been deleted to comply with GDPR regulations.\n\nWould you like to manually delete this candidate's application data now?",
-            confirmText: "Delete Data Now",
+              "This record will be archived and kept for our records. It will no longer appear in your lists.",
+            confirmText: "Archive",
             cancelText: "Keep for Now",
             type: "danger",
           });
           if (deleteNow) {
             try {
               await apiService.deleteTraineeApplication(id);
-              toast.success("Candidate data deleted successfully.");
+              toast.success("Candidate record archived successfully.");
               router.push("/dashboard/trainee-applications");
               return;
             } catch {
-              toast.error("Failed to delete application.");
+              toast.error("Failed to archive application.");
             }
           }
         }
@@ -594,21 +607,21 @@ export default function TraineeApplicationDetail() {
 
         if (!attended) {
           const deleteNow = await confirm({
-            title: "GDPR Compliance: Delete Candidate Data?",
+            title: "Archive Candidate Data",
             message:
-              "The induction not attended email has been sent informing the applicant that their information has been deleted to comply with GDPR regulations.\n\nWould you like to manually delete this candidate's application data now?",
-            confirmText: "Delete Data Now",
+              "This record will be archived and kept for our records. It will no longer appear in your lists.",
+            confirmText: "Archive",
             cancelText: "Keep for Now",
             type: "danger",
           });
           if (deleteNow) {
             try {
               await apiService.deleteTraineeApplication(id);
-              toast.success("Candidate data deleted successfully.");
+              toast.success("Candidate record archived successfully.");
               router.push("/dashboard/trainee-applications");
               return;
             } catch {
-              toast.error("Failed to delete application.");
+              toast.error("Failed to archive application.");
             }
           }
         }
@@ -667,7 +680,7 @@ export default function TraineeApplicationDetail() {
     const ok = await confirm({
       title: "Archive Application",
       message:
-        "Are you sure you want to archive this application? The record will be archived and kept in history.",
+        "This record will be archived and kept for our records. It will no longer appear in your lists.",
       confirmText: "Archive",
       type: "danger",
     });
@@ -867,12 +880,23 @@ export default function TraineeApplicationDetail() {
                     <CalendarCheck className="w-4 h-4" /> Send S3 Invite
                   </button>
                 )}
-                <button
-                  onClick={deleteApplication}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-all font-medium text-sm"
-                >
-                  <Trash2 className="w-4 h-4" /> Archive
-                </button>
+                {Boolean(application.archived_at || application.status === "Archived") ? (
+                  isAdmin && (
+                    <button
+                      onClick={handleRestore}
+                      className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all font-medium text-sm shadow-sm"
+                    >
+                      <Repeat className="w-4 h-4" /> Restore Application
+                    </button>
+                  )
+                ) : (
+                  <button
+                    onClick={deleteApplication}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-all font-medium text-sm"
+                  >
+                    <Trash2 className="w-4 h-4" /> Archive
+                  </button>
+                )}
               </div>
             }
           >

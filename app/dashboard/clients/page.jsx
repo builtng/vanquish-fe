@@ -66,6 +66,7 @@ function ViewAllClientsInner() {
   const [sortDirection, setSortDirection] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [includeArchived, setIncludeArchived] = useState(false);
 
   // Sync filters from URL query parameters
   useEffect(() => {
@@ -76,6 +77,10 @@ function ViewAllClientsInner() {
     const statusParam = searchParams?.get("status");
     if (statusParam) {
       setFilterStatus(statusParam);
+    }
+    const archivedParam = searchParams?.get("include_archived");
+    if (archivedParam === "1" || archivedParam === "true") {
+      setIncludeArchived(true);
     }
   }, [searchParams]);
 
@@ -90,6 +95,20 @@ function ViewAllClientsInner() {
     if (e) e.stopPropagation();
     setClientToDelete(client);
     setShowDeleteConfirmModal(true);
+  };
+
+  const handleRestoreClient = async (client, e) => {
+    if (e) e.stopPropagation();
+    try {
+      setLoading(true);
+      await apiService.restoreClient(client.uuid || client.id);
+      success("Client restored successfully!");
+      fetchClients();
+    } catch (err) {
+      showError(err.message || "Failed to restore client");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const confirmDeleteClient = async () => {
@@ -121,6 +140,7 @@ function ViewAllClientsInner() {
       if (filterStage !== "all") params.stage = filterStage;
       if (filterStatus !== "all") params.status = filterStatus;
       if (filterService !== "all") params.service_type = filterService;
+      if (includeArchived) params.include_archived = 1;
 
       const response = await apiService.getClients(params);
 
@@ -157,6 +177,8 @@ function ViewAllClientsInner() {
         serviceType: client.service_type || null,
         lastActivity: client.last_activity || "Never",
         status: client.status || "active",
+        archivedAt: client.archived_at || null,
+        isArchived: !!client.archived_at || client.status === "archived",
         startDate: client.start_date || null,
         sessionsCompleted: client.sessions_completed || 0,
         primaryIssues: client.primary_issues || [],
@@ -188,7 +210,7 @@ function ViewAllClientsInner() {
   // Initial fetch and refresh on filter changes
   useEffect(() => {
     fetchClients();
-  }, [searchTerm, filterStage, filterStatus, filterService]);
+  }, [searchTerm, filterStage, filterStatus, filterService, includeArchived]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -197,7 +219,7 @@ function ViewAllClientsInner() {
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [searchTerm, filterStage, filterStatus, filterService]);
+  }, [searchTerm, filterStage, filterStatus, filterService, includeArchived]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -674,6 +696,15 @@ function ViewAllClientsInner() {
                   className="text-sm"
                 />
               </div>
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-[var(--text-secondary)] cursor-pointer select-none px-3 py-2 rounded-lg border border-gray-300 dark:border-[var(--input-border)] bg-white dark:bg-[var(--input-bg)] flex-shrink-0">
+                <input
+                  type="checkbox"
+                  checked={includeArchived}
+                  onChange={(e) => setIncludeArchived(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                />
+                <span className="whitespace-nowrap font-medium">Show archived</span>
+              </label>
             </div>
           </div>
 
@@ -779,6 +810,21 @@ function ViewAllClientsInner() {
                                 >
                                   {client.name}
                                 </Link>
+                                {client.isArchived && (
+                                  <span
+                                    className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                                    title={
+                                      client.archivedAt
+                                        ? `Archived: ${new Date(client.archivedAt).toLocaleDateString("en-GB")}`
+                                        : "Archived"
+                                    }
+                                  >
+                                    Archived{" "}
+                                    {client.archivedAt
+                                      ? `(${new Date(client.archivedAt).toLocaleDateString("en-GB")})`
+                                      : ""}
+                                  </span>
+                                )}
                                 {client.totalCasesForPerson > 1 && (
                                   <span
                                     className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
@@ -858,70 +904,82 @@ function ViewAllClientsInner() {
                             >
                               <Eye className="w-4 h-4 text-purple-600" />
                             </Link>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const url = `${window.location.origin}/client-booking?uuid=${encodeURIComponent(client.uuid || client.id)}`;
-                                navigator.clipboard.writeText(url);
-                                success(
-                                  `Repeat booking link for ${client.name} copied to clipboard!`,
-                                );
-                              }}
-                              className="p-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors text-emerald-600 dark:text-emerald-400"
-                              title="Copy Repeat Booking Link"
-                            >
-                              <CalendarPlus className="w-4 h-4" />
-                            </button>
-                            {/* <button className="p-2 hover:bg-blue-100 rounded-lg transition-colors" title="Send Email">
-                        <Mail className="w-4 h-4 text-blue-600" />
-                      </button> */}
-                            <Link
-                              href={`/dashboard/clients/edit?id=${client.uuid || client.id}`}
-                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                              title="Edit Client"
-                            >
-                              <Edit className="w-4 h-4 text-gray-600" />
-                            </Link>
-                            {(client.stage === "Active Therapy" ||
-                              client.stage === "Completed") && (
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    await apiService.sendFeedbackForm(
-                                      client.uuid || client.id,
-                                    );
+
+                            {client.isArchived ? (
+                              authUser?.role === "admin" && (
+                                <button
+                                  onClick={(e) => handleRestoreClient(client, e)}
+                                  className="px-2.5 py-1 text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 transition-colors"
+                                  title="Restore Client"
+                                >
+                                  Restore
+                                </button>
+                              )
+                            ) : (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const url = `${window.location.origin}/client-booking?uuid=${encodeURIComponent(client.uuid || client.id)}`;
+                                    navigator.clipboard.writeText(url);
                                     success(
-                                      "Feedback form email sent successfully!",
+                                      `Repeat booking link for ${client.name} copied to clipboard!`,
                                     );
-                                    fetchClients();
-                                  } catch (err) {
-                                    showError(
-                                      err.message ||
-                                        "Failed to send feedback form",
-                                    );
-                                  }
-                                }}
-                                disabled={
-                                  client.lastFeedbackSentAt &&
-                                  new Date(client.lastFeedbackSentAt) >
-                                    new Date(
-                                      Date.now() - 90 * 24 * 60 * 60 * 1000,
-                                    )
-                                }
-                                className="p-2 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Send Feedback Form"
-                              >
-                                <Send className="w-4 h-4 text-green-600" />
-                              </button>
-                            )}
-                            {authUser?.role === "admin" && (
-                              <button
-                                onClick={(e) => handleDeleteClient(client, e)}
-                                className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors text-red-600 dark:text-red-400"
-                                title="Delete Client"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                                  }}
+                                  className="p-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors text-emerald-600 dark:text-emerald-400"
+                                  title="Copy Repeat Booking Link"
+                                >
+                                  <CalendarPlus className="w-4 h-4" />
+                                </button>
+                                <Link
+                                  href={`/dashboard/clients/edit?id=${client.uuid || client.id}`}
+                                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                  title="Edit Client"
+                                >
+                                  <Edit className="w-4 h-4 text-gray-600" />
+                                </Link>
+                                {(client.stage === "Active Therapy" ||
+                                  client.stage === "Completed") && (
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        await apiService.sendFeedbackForm(
+                                          client.uuid || client.id,
+                                        );
+                                        success(
+                                          "Feedback form email sent successfully!",
+                                        );
+                                        fetchClients();
+                                      } catch (err) {
+                                        showError(
+                                          err.message ||
+                                            "Failed to send feedback form",
+                                        );
+                                      }
+                                    }}
+                                    disabled={
+                                      client.lastFeedbackSentAt &&
+                                      new Date(client.lastFeedbackSentAt) >
+                                        new Date(
+                                          Date.now() - 90 * 24 * 60 * 60 * 1000,
+                                        )
+                                    }
+                                    className="p-2 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Send Feedback Form"
+                                  >
+                                    <Send className="w-4 h-4 text-green-600" />
+                                  </button>
+                                )}
+                                {authUser?.role === "admin" && (
+                                  <button
+                                    onClick={(e) => handleDeleteClient(client, e)}
+                                    className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors text-red-600 dark:text-red-400"
+                                    title="Archive Client"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </>
                             )}
                           </div>
                         </td>
@@ -1007,9 +1065,9 @@ function ViewAllClientsInner() {
           }}
           onConfirm={confirmDeleteClient}
           title="Archive Client"
-          message={`Are you sure you want to archive ${clientToDelete?.name}? The record will be archived and kept in history.`}
+          message="This record will be archived and kept for our records. It will no longer appear in your lists."
           itemName={clientToDelete?.name}
-          confirmText="Archive Client"
+          confirmText="Archive"
           cancelText="Cancel"
           loading={deleteLoading}
         />

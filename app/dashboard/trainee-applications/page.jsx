@@ -1,20 +1,25 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, Settings, ExternalLink, Mail, Phone, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Search, Settings, ExternalLink, Mail, Phone, Clock, CheckCircle, XCircle, RefreshCw } from "lucide-react";
 import { toast } from "react-toastify";
 import apiService from "@/lib/api";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import PageGuard from "@/components/PageGuard";
 import { useModal } from "@/contexts/ModalContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { StatusBadge, SearchableStatusSelect } from "@/components/StatusBadge";
 import SearchableSelect from "@/components/SearchableSelect";
 
 function TraineeApplicationsDashboardContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const filterParam = searchParams.get('filter');
+  const { user: authUser } = useAuth();
+  const isAdmin = authUser?.role === 'admin' || authUser?.role === 'super_admin';
   
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +27,7 @@ function TraineeApplicationsDashboardContent() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState(filterParam === "video" ? "Stage 2 Video Submitted" : "all");
   const [source, setSource] = useState("all");
+  const [includeArchived, setIncludeArchived] = useState(searchParams.get("include_archived") === "1");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const { prompt, confirm } = useModal();
@@ -35,6 +41,7 @@ function TraineeApplicationsDashboardContent() {
         search,
         status,
         source,
+        include_archived: includeArchived ? 1 : 0,
       };
       
       const data = await apiService.getTraineeApplications(params);
@@ -56,7 +63,7 @@ function TraineeApplicationsDashboardContent() {
 
   useEffect(() => {
     fetchApplications();
-  }, [page, status, source]);
+  }, [page, status, source, includeArchived]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -101,6 +108,29 @@ function TraineeApplicationsDashboardContent() {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleToggleArchived = (e) => {
+    const checked = e.target.checked;
+    setIncludeArchived(checked);
+    setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    if (checked) {
+      params.set("include_archived", "1");
+    } else {
+      params.delete("include_archived");
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const handleRestoreApplication = async (app) => {
+    try {
+      await apiService.restoreTraineeApplication(app.id);
+      toast.success("Application restored successfully.");
+      fetchApplications();
+    } catch (err) {
+      toast.error(err?.data?.message || err?.message || "Failed to restore application.");
+    }
   };
 
   const bulkUpdateStatus = async (newStatus) => {
@@ -197,6 +227,18 @@ function TraineeApplicationsDashboardContent() {
             />
           </div>
 
+          <div className="flex items-center gap-2 pb-2">
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-500 uppercase tracking-wider select-none">
+              <input
+                type="checkbox"
+                checked={includeArchived}
+                onChange={handleToggleArchived}
+                className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-gray-300"
+              />
+              Show archived
+            </label>
+          </div>
+
           <button 
             type="submit"
             className="w-full md:w-auto px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all font-medium"
@@ -254,95 +296,122 @@ function TraineeApplicationsDashboardContent() {
                 <th className="px-6 py-4">Course Info</th>
                 <th className="px-6 py-4">Source</th>
                 <th className="px-6 py-4">Status & Action</th>
-                <th className="px-6 py-4 text-right">View</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-gray-400">Loading applications...</td>
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-400">Loading applications...</td>
                 </tr>
               ) : applications.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center text-gray-400">No applications found.</td>
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-400">No applications found.</td>
                 </tr>
               ) : (
-                applications.filter(app => app).map((app) => (
-                  <tr key={app.id} className={`hover:bg-gray-50/80 transition-all group ${selectedIds.includes(app.id) ? 'bg-purple-50/40 ring-1 ring-inset ring-purple-100' : ''}`}>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex justify-center">
-                        <input 
-                          type="checkbox" 
-                          checked={selectedIds.includes(app.id)}
-                          onChange={() => toggleSelect(app.id)}
-                          className="w-5 h-5 rounded-md border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer shadow-sm transition-all hover:border-purple-400"
-                        />
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-100 border border-purple-100 flex items-center justify-center text-purple-700 font-black shadow-inner">
-                          {app.first_name[0]}{app.last_name[0]}
+                applications.filter(app => app).map((app) => {
+                  const isArchived = Boolean(app.archived_at || app.status === 'Archived');
+                  return (
+                    <tr key={app.id} className={`hover:bg-gray-50/80 transition-all group ${selectedIds.includes(app.id) ? 'bg-purple-50/40 ring-1 ring-inset ring-purple-100' : ''} ${isArchived ? 'opacity-75 bg-gray-50/50' : ''}`}>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedIds.includes(app.id)}
+                            onChange={() => toggleSelect(app.id)}
+                            className="w-5 h-5 rounded-md border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer shadow-sm transition-all hover:border-purple-400"
+                          />
                         </div>
-                        <div>
-                          <div className="font-black text-gray-900 group-hover:text-purple-700 transition-colors leading-tight text-sm translate-y-[-1px]">{app.first_name} {app.last_name}</div>
-                          <div className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-1 font-medium italic">
-                            <Mail className="w-3 h-3 text-purple-400" /> {app.email}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-100 border border-purple-100 flex items-center justify-center text-purple-700 font-black shadow-inner">
+                            {app.first_name[0]}{app.last_name[0]}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-gray-900 group-hover:text-purple-700 transition-colors leading-tight text-sm translate-y-[-1px]">{app.first_name} {app.last_name}</span>
+                              {isArchived && (
+                                <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-gray-100 text-gray-600 border border-gray-300">
+                                  Archived {app.archived_at ? `(${new Date(app.archived_at).toLocaleDateString()})` : ''}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-1 font-medium italic">
+                              <Mail className="w-3 h-3 text-purple-400" /> {app.email}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="max-w-[180px]">
-                        <div className="text-xs font-black text-gray-800 leading-tight line-clamp-1">{app.course_name}</div>
-                        <div className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1 opacity-70">{app.institution}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1.5">
-                        <span className={`inline-flex px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest w-fit shadow-sm border ${
-                          app.source === 'jotform' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-purple-50 text-purple-600 border-purple-100'
-                        }`}>
-                          {app.source.replace('_', ' ')}
-                        </span>
-                        <div className="text-[9px] text-gray-400 flex items-center gap-1 font-bold">
-                          <Clock className="w-2.5 h-2.5 opacity-50" /> {new Date(app.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="max-w-[180px]">
+                          <div className="text-xs font-black text-gray-800 leading-tight line-clamp-1">{app.course_name}</div>
+                          <div className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1 opacity-70">{app.institution}</div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-2">
-                        <SearchableStatusSelect
-                          options={[
-                            'New Application','Stage 1 Complete','Stage 2 Invited',
-                            'Stage 2 Video Submitted','Stage 2 Approved','Stage 3 Interview Booked',
-                            'Interview Attended','Interview No Show','Accepted',
-                            'Induction Attended','Induction No-Show','Onboarding',
-                            'Active Placement','Rejected','Hold'
-                          ]}
-                          value={app.status}
-                          onChange={(v) => handleStatusChangeAction(app.id, v)}
-                          disabled={updatingId === app.id}
-                          size="sm"
-                        />
-                        {app.status === 'Accepted' && app.induction_date && (
-                          <div className="text-[9px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1 ml-1 animate-in fade-in slide-in-from-left-2">
-                            <CheckCircle className="w-2.5 h-2.5" /> Starts: {app.induction_date}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1.5">
+                          <span className={`inline-flex px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest w-fit shadow-sm border ${
+                            app.source === 'jotform' ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-purple-50 text-purple-600 border-purple-100'
+                          }`}>
+                            {app.source.replace('_', ' ')}
+                          </span>
+                          <div className="text-[9px] text-gray-400 flex items-center gap-1 font-bold">
+                            <Clock className="w-2.5 h-2.5 opacity-50" /> {new Date(app.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {isArchived ? (
+                          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                            Archived {app.archived_at ? `(${new Date(app.archived_at).toLocaleDateString()})` : ''}
+                          </span>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <SearchableStatusSelect
+                              options={[
+                                'New Application','Stage 1 Complete','Stage 2 Invited',
+                                'Stage 2 Video Submitted','Stage 2 Approved','Stage 3 Interview Booked',
+                                'Interview Attended','Interview No Show','Accepted',
+                                'Induction Attended','Induction No-Show','Onboarding',
+                                'Active Placement','Rejected','Hold'
+                              ]}
+                              value={app.status}
+                              onChange={(v) => handleStatusChangeAction(app.id, v)}
+                              disabled={updatingId === app.id}
+                              size="sm"
+                            />
+                            {app.status === 'Accepted' && app.induction_date && (
+                              <div className="text-[9px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1 ml-1 animate-in fade-in slide-in-from-left-2">
+                                <CheckCircle className="w-2.5 h-2.5" /> Starts: {app.induction_date}
+                              </div>
+                            )}
                           </div>
                         )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Link 
-                        href={`/dashboard/trainee-applications/${app.id}`}
-                        className="inline-flex p-3 text-gray-400 hover:text-purple-600 hover:bg-white hover:shadow-lg rounded-2xl transition-all border border-transparent hover:border-purple-100"
-                        title="View Full Profile"
-                      >
-                        <ExternalLink className="w-5 h-5" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {isArchived && isAdmin && (
+                            <button
+                              onClick={() => handleRestoreApplication(app)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition"
+                              title="Restore application"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" /> Restore
+                            </button>
+                          )}
+                          <Link 
+                            href={`/dashboard/trainee-applications/${app.id}`}
+                            className="inline-flex p-3 text-gray-400 hover:text-purple-600 hover:bg-white hover:shadow-lg rounded-2xl transition-all border border-transparent hover:border-purple-100"
+                            title="View Full Profile"
+                          >
+                            <ExternalLink className="w-5 h-5" />
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
