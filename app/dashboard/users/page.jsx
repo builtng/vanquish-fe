@@ -16,6 +16,8 @@ import {
   Trash2,
   Shield,
   User,
+  UserX,
+  UserCheck,
   X,
   Save,
   Eye,
@@ -38,6 +40,7 @@ export default function UsersPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showEditConfirmModal, setShowEditConfirmModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [showDropNoteModal, setShowDropNoteModal] = useState(false);
   const [noteContent, setNoteContent] = useState("");
   const [sendingNote, setSendingNote] = useState(false);
@@ -53,6 +56,7 @@ export default function UsersPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [togglingActive, setTogglingActive] = useState(false);
 
   // Check if user is admin
   const isAdmin = authUser?.role === "admin" || authUser?.role === "super_admin";
@@ -129,6 +133,28 @@ export default function UsersPage() {
     setShowDeleteModal(true);
   };
 
+  const handleToggleActive = (user) => {
+    setSelectedUser(user);
+    setShowDeactivateModal(true);
+  };
+
+  const confirmToggleActive = async () => {
+    if (!selectedUser) return;
+    try {
+      setTogglingActive(true);
+      const res = await apiService.toggleUserActive(selectedUser.id);
+      success(res.message || "User status updated successfully");
+      setShowDeactivateModal(false);
+      setSelectedUser(null);
+      loadUsers();
+      loadUserCount();
+    } catch (err) {
+      showError(err.message || "Failed to update user status");
+    } finally {
+      setTogglingActive(false);
+    }
+  };
+
   const handleDropNote = (user) => {
     setSelectedUser(user);
     setNoteContent("");
@@ -195,8 +221,8 @@ export default function UsersPage() {
       return;
     }
 
-    if (formData.password && formData.password.length < 8) {
-      showError("Password must be at least 8 characters long");
+    if (formData.password && formData.password.length < 12) {
+      showError("Password must be at least 12 characters long");
       return;
     }
 
@@ -363,6 +389,9 @@ export default function UsersPage() {
                         Role
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         2FA Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -425,6 +454,17 @@ export default function UsersPage() {
                             )}
                           </span>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {user.is_active !== false ? (
+                            <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300">
+                              Deactivated
+                            </span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-[var(--text-secondary)]">
                           {user.two_factor_enabled ? (
                             <span className="text-green-600 dark:text-green-400 font-medium">
@@ -457,6 +497,27 @@ export default function UsersPage() {
                             >
                               <Edit className="w-4 h-4" />
                             </button>
+                            {user.id !== authUser?.id && (
+                              <button
+                                onClick={() => handleToggleActive(user)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  user.is_active !== false
+                                    ? "text-amber-600 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30"
+                                    : "text-emerald-600 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+                                }`}
+                                title={
+                                  user.is_active !== false
+                                    ? "Deactivate user"
+                                    : "Reactivate user"
+                                }
+                              >
+                                {user.is_active !== false ? (
+                                  <UserX className="w-4 h-4" />
+                                ) : (
+                                  <UserCheck className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteUser(user)}
                               className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
@@ -585,6 +646,9 @@ export default function UsersPage() {
                         )}
                       </button>
                     </div>
+                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">
+                      Must be at least 12 characters, including uppercase, lowercase, and numbers.
+                    </p>
                   </div>
 
                   {formData.password && (
@@ -687,6 +751,28 @@ export default function UsersPage() {
           loading={saving}
           confirmButtonColor="#6f1d56"
         />
+
+        {/* Deactivate/Reactivate Confirmation Modal */}
+        {showDeactivateModal && selectedUser && (
+          <ConfirmationModal
+            isOpen={showDeactivateModal}
+            onClose={() => {
+              setShowDeactivateModal(false);
+              setSelectedUser(null);
+            }}
+            onConfirm={confirmToggleActive}
+            title={selectedUser.is_active !== false ? "Deactivate Account" : "Reactivate Account"}
+            message={
+              selectedUser.is_active !== false
+                ? `Are you sure you want to deactivate ${selectedUser.name} (${selectedUser.email})? They will immediately lose access and will not be able to log in until reactivated.`
+                : `Are you sure you want to reactivate ${selectedUser.name} (${selectedUser.email})? They will be able to log into their account again.`
+            }
+            confirmText={selectedUser.is_active !== false ? "Deactivate" : "Reactivate"}
+            type={selectedUser.is_active !== false ? "warning" : "info"}
+            confirmButtonColor={selectedUser.is_active !== false ? "#d97706" : "#059669"}
+            loading={togglingActive}
+          />
+        )}
 
         {/* Drop Note Modal */}
         {showDropNoteModal && selectedUser && (

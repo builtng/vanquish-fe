@@ -874,10 +874,10 @@ export default function PendingMatchesPage() {
     } else {
       setTcSlotBookings({});
       setSelectedSlot(null);
-      setSlotFilter("all");
+      setSlotFilter(selectedClient?.serviceType === "Low Cost" ? "overlap_only" : "all");
       setActiveDayTab("all");
     }
-  }, [selectedTC, showAssignModal]);
+  }, [selectedTC, showAssignModal, selectedClient]);
 
   const handleMarkReady = async (client) => {
     try {
@@ -1504,10 +1504,12 @@ export default function PendingMatchesPage() {
                         <div>
                           <h3 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)] flex items-center gap-2">
                             <Clock className="w-4 h-4 text-[var(--purple-primary)]" />
-                            Weekly Session Day & Time Allocation
+                            Assign Session Time
                           </h3>
                           <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)]">
-                            Select one recurring weekly slot for the client's sessions based on overlapping availability
+                            {selectedClient?.serviceType === "Low Cost"
+                              ? "Select an overlapping weekly slot agreed between client availability and counsellor schedule"
+                              : "Select one recurring weekly slot for the client's sessions based on overlapping availability"}
                           </p>
                         </div>
 

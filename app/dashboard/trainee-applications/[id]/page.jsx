@@ -33,6 +33,7 @@ import {
   Check,
   Loader2,
   AlertTriangle,
+  Repeat,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -664,19 +665,19 @@ export default function TraineeApplicationDetail() {
 
   const deleteApplication = async () => {
     const ok = await confirm({
-      title: "Delete Application",
+      title: "Archive Application",
       message:
-        "Are you sure you want to delete this application? This action cannot be undone.",
-      confirmText: "Delete",
+        "Are you sure you want to archive this application? The record will be archived and kept in history.",
+      confirmText: "Archive",
       type: "danger",
     });
     if (!ok) return;
     try {
       await apiService.deleteTraineeApplication(id);
-      toast.success("Application deleted.");
+      toast.success("Application archived successfully.");
       router.push("/dashboard/trainee-applications");
     } catch {
-      toast.error("Failed to delete application.");
+      toast.error("Failed to archive application.");
     }
   };
 
@@ -870,7 +871,7 @@ export default function TraineeApplicationDetail() {
                   onClick={deleteApplication}
                   className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-all font-medium text-sm"
                 >
-                  <Trash2 className="w-4 h-4" /> Delete
+                  <Trash2 className="w-4 h-4" /> Archive
                 </button>
               </div>
             }
@@ -966,6 +967,62 @@ export default function TraineeApplicationDetail() {
                 >
                   <Trash2 className="w-4 h-4" /> Delete Candidate Data (GDPR)
                 </button>
+              </div>
+            )}
+
+            {/* Multiple Submissions Banner for this Person */}
+            {application.previous_submissions && application.previous_submissions.length > 0 && (
+              <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 dark:from-purple-950/30 dark:via-indigo-950/30 dark:to-blue-950/30 border border-purple-200 dark:border-purple-800/50 rounded-xl p-4 mb-6 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-purple-600 text-white rounded-lg shadow-sm shrink-0">
+                      <Repeat className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                          Multiple Applications for this Candidate
+                        </h3>
+                        <span className="px-2.5 py-0.5 bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 rounded-full text-xs font-semibold">
+                          {application.previous_submissions.length + 1} Submissions
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-[var(--text-secondary)] mt-0.5">
+                        Earlier submissions for <span className="font-semibold text-gray-800 dark:text-gray-200">{application.email}</span> are preserved as independent history.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-purple-200/60 dark:border-purple-800/40 flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1">
+                    Switch Submission:
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-600 text-white rounded-lg text-xs font-bold shadow-sm">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>App #{application.id}</span>
+                    <span className="opacity-80 font-normal">({application.status})</span>
+                    <span className="bg-purple-700 px-1.5 py-0.2 rounded text-[10px]">Current</span>
+                  </span>
+
+                  {application.previous_submissions.map((otherApp) => (
+                    <Link
+                      key={otherApp.id}
+                      href={`/dashboard/trainee-applications/${otherApp.id}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-gray-800 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-gray-800 dark:text-gray-200 border border-purple-200 dark:border-purple-800 rounded-lg text-xs font-medium transition-all shadow-sm"
+                    >
+                      <span className="font-bold text-purple-700 dark:text-purple-400">
+                        App #{otherApp.id}
+                      </span>
+                      <span className="text-gray-500">•</span>
+                      <span>{otherApp.status}</span>
+                      <span className="text-gray-400 text-[11px]">
+                        {new Date(otherApp.created_at).toLocaleDateString()}
+                      </span>
+                      <ExternalLink className="w-3 h-3 text-purple-500 ml-0.5" />
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
 

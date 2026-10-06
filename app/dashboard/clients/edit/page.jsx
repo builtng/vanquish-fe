@@ -572,7 +572,7 @@ function EditClientPageContent() {
       await apiService.deleteClient(clientId);
       setDeleteLoading(false);
       setShowDeleteConfirmModal(false);
-      success("Client deleted successfully!");
+      success("Client archived successfully!");
       router.push("/dashboard/clients");
     } catch (err) {
       console.error("Error deleting client:", err);
@@ -1892,7 +1892,7 @@ function EditClientPageContent() {
                     ) : (
                       <>
                         <Trash2 className="w-5 h-5" />
-                        Delete Client
+                        Archive Client
                       </>
                     )}
                   </button>
@@ -1936,19 +1936,19 @@ function EditClientPageContent() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Archive Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={showDeleteConfirmModal}
         onClose={() => setShowDeleteConfirmModal(false)}
         onConfirm={confirmDelete}
-        title="Delete Client"
-        message="Are you sure you want to delete this client? This action cannot be undone."
+        title="Archive Client"
+        message="Are you sure you want to archive this client? The record will be archived and kept in history."
         itemName={
           formData.firstName && formData.lastName
             ? `${formData.firstName} ${formData.lastName}`
             : "this client"
         }
-        confirmText="Delete Client"
+        confirmText="Archive Client"
         cancelText="Cancel"
         loading={deleteLoading}
       />

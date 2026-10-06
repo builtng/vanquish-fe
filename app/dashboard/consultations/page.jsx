@@ -219,6 +219,10 @@ function ConsultationsManagementPageFixed() {
     if (bookClientUuid) {
       router.push(`/admin/book-consultation?bookClientUuid=${bookClientUuid}`);
     }
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["today", "upcoming", "completed", "rescheduled", "cancelled", "all"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
   }, [searchParams, router]);
 
   // Helper to parse backend date strings safely in all browsers (including Safari)
@@ -315,6 +319,15 @@ function ConsultationsManagementPageFixed() {
     }
 
     switch (activeTab) {
+      case "today":
+        filtered = filtered.filter(
+          (c) =>
+            (c.date === today ||
+              (c.date === null && c.bookedAt && c.bookedAt === today)) &&
+            c.status === "Booked",
+        );
+        break;
+
       case "upcoming":
         filtered = filtered.filter((c) => c.status === "Booked");
 
@@ -1215,6 +1228,7 @@ function ConsultationsManagementPageFixed() {
             {viewMode === "list" && (
               <div className="flex items-center gap-2">
                 {[
+                  { id: "today", label: "Today", count: todayCount },
                   { id: "upcoming", label: "Upcoming", count: upcomingCount },
 
                   {

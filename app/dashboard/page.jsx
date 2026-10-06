@@ -221,17 +221,18 @@ export default function ClientDashboard() {
         const activeTherapy = allClients.filter(c => c.stage === 'Active Therapy').length;
         const pendingMatch = pendingMatches.length;
         
-        const today = new Date().toISOString().split('T')[0];
+        const ukTodayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
         const todayConsultations = consultations.filter(c => {
-          const consultationDate = c.scheduled_at ? c.scheduled_at.split('T')[0] : null;
-          return consultationDate === today && c.status === 'scheduled';
+          if (!c.scheduled_at || c.status !== 'scheduled') return false;
+          const cleanDate = c.scheduled_at.includes('T') ? c.scheduled_at.split('T')[0] : c.scheduled_at.split(' ')[0];
+          return cleanDate === ukTodayStr;
         }).length;
         
         const thisWeekConsultations = consultations.filter(c => c.status === 'scheduled').length;
         
         // Calculate pipeline stages
         const consultationCount = allClients.filter(c => c.stage === 'Consultation Booked' || c.stage === 'Consultation Completed').length;
-        const matchedCount = allClients.filter(c => c.stage === 'Matched With Counsellor').length;
+        const matchedCount = allClients.filter(c => c.stage === 'Matched With Counsellor' || c.stage === 'Matched with TC').length;
         const agreementCount = allClients.filter(c => c.stage === 'Agreement Sent' || c.stage === 'Agreement Signed').length;
         const activeCount = allClients.filter(c => c.stage === 'Active Therapy').length;
         
@@ -344,6 +345,7 @@ export default function ClientDashboard() {
           pendingNote: pendingMatch > 0 ? "Needs review" : "All caught up",
           consultations: thisWeekConsultations,
           consultationsNote: `${todayConsultations} today`,
+          todayConsultations: todayConsultations,
           traineeApps: traineeAppsCount,
           traineeAppsNote: traineeAppsCount > 0 ? `${traineeAppsCount} new` : "All caught up",
         });
@@ -789,7 +791,7 @@ export default function ClientDashboard() {
                   label="Client Journey"
                   value={pipelineStages.find(s => s.stage === "Consultation")?.count || 0}
                   color="#3b82f6"
-                  href="/dashboard/clients"
+                  href="/dashboard/clients?stage=Consultation+Booked"
                 />
                 <StatCard
                   icon={ClipboardList}
@@ -805,7 +807,7 @@ export default function ClientDashboard() {
                   value={stats.consultations}
                   sublabel={stats.consultationsNote}
                   color="#6366F1"
-                  href="/dashboard/consultations"
+                  href={stats.todayConsultations > 0 ? "/dashboard/consultations?tab=today" : "/dashboard/consultations?tab=upcoming"}
                 />
                 <StatCard
                   icon={UserCheck}
@@ -820,7 +822,7 @@ export default function ClientDashboard() {
                   label="Agreement"
                   value={pipelineStages.find(s => s.stage === "Agreement")?.count || 0}
                   color="#f97316"
-                  href="/dashboard/pending-matches"
+                  href="/dashboard/clients?stage=Agreement+Sent"
                 />
                 <StatCard
                   icon={Activity}
@@ -828,7 +830,7 @@ export default function ClientDashboard() {
                   value={stats.activeTherapy}
                   change={stats.activeChange}
                   color="#10b981"
-                  href="/dashboard/clients"
+                  href="/dashboard/clients?stage=Active+Therapy"
                 />
               </div>
 
@@ -986,10 +988,10 @@ export default function ClientDashboard() {
                       <Video className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <h3 className="font-semibold text-gray-900 dark:text-[var(--text-primary)] mb-1">
-                      Book Consultation
+                      View Consultations
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
-                      Schedule initial consultation
+                      Manage today & upcoming consultations
                     </p>
                   </Link>
 

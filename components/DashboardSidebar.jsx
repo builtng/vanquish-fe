@@ -28,6 +28,7 @@ import {
   ChevronRight,
   Clock,
   Mail,
+  Inbox,
   Calendar,
   CalendarDays,
   CalendarCheck,
@@ -274,6 +275,7 @@ export default function DashboardSidebar() {
   );
   const [commExpanded, setCommExpanded] = useState(pathname?.startsWith("/dashboard/staff-notes") || pathname?.startsWith("/dashboard/messages"));
   const [settingsExpanded, setSettingsExpanded] = useState(
+    pathname?.startsWith("/dashboard/email-logs") ||
     pathname?.startsWith("/dashboard/email-management") || 
     pathname?.startsWith("/dashboard/matching-algorithm") || 
     pathname?.startsWith("/dashboard/consultation-slots") ||
@@ -457,8 +459,14 @@ export default function DashboardSidebar() {
       onToggle: () => setSettingsExpanded(!settingsExpanded),
       subItems: [
         {
+          id: "email-logs",
+          label: "Email Delivery Logs",
+          icon: Inbox,
+          href: "/dashboard/email-logs",
+        },
+        {
           id: "email-management",
-          label: "Email Management",
+          label: "Email Templates",
           icon: Mail,
           href: "/dashboard/email-management",
         },

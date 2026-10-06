@@ -17,6 +17,7 @@ import { toast } from "react-toastify";
 import { useBranding } from "@/contexts/BrandingContext";
 import apiService from "@/lib/api";
 import { SUPPORT_AREAS } from "@/lib/constants";
+import WeeklyAvailabilityPicker from "@/components/WeeklyAvailabilityPicker";
 
 export default function CoachingIntake() {
   const { branding, loading: brandingLoading } = useBranding();
@@ -93,7 +94,8 @@ export default function CoachingIntake() {
   const handleApplyDiscount = async () => {
     const code = formData.discountCode?.trim().toUpperCase();
 
-    if (!code) {
+    const cleanCode = (code || "").trim();
+    if (!cleanCode) {
       setDiscountAmount(0);
       setIsDiscountApplied(false);
       return;
@@ -107,13 +109,13 @@ export default function CoachingIntake() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({ code: cleanCode }),
         },
       );
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || "Invalid discount code");
+        throw new Error(data.message || "This code is not valid. Please check it or continue to payment.");
       }
 
       const coupon = await response.json();
@@ -134,7 +136,7 @@ export default function CoachingIntake() {
         `Discount code applied! You saved £${newDiscountAmount.toFixed(2)}`,
       );
     } catch (error) {
-      toast.error(error.message || "Invalid discount code");
+      toast.error(error.message || "This code is not valid. Please check it or continue to payment.");
       setDiscountAmount(0);
       setIsDiscountApplied(false);
     }
@@ -152,7 +154,7 @@ export default function CoachingIntake() {
         setCapacityData({
           message:
             data.message ||
-            "This service is at capacity at this time. If you would like to work with our Counselling & Coaching service, you can click here to proceed with our Partner service VQT COACHING & THERAPY",
+            "This service is at capacity at this time. If you would like to work with our Counselling & Coaching service, you can click here to proceed with our Partner service Vanquish Therapies Coaching & Therapy",
           alternative_url:
             data.alternative_url ||
             "https://pci.jotform.com/form/243161740962456",
@@ -162,7 +164,7 @@ export default function CoachingIntake() {
         setIsCapacityFull(false);
         setCapacityData({
           message:
-            "This service is at capacity at this time. If you would like to work with our Counselling & Coaching service, you can click here to proceed with our Partner service VQT COACHING & THERAPY",
+            "This service is at capacity at this time. If you would like to work with our Counselling & Coaching service, you can click here to proceed with our Partner service Vanquish Therapies Coaching & Therapy",
           alternative_url: "https://pci.jotform.com/form/243161740962456",
         });
       });
@@ -661,7 +663,7 @@ export default function CoachingIntake() {
                     </h1>
                     <p className="text-sm mt-0.5 md:mt-1 text-secondary">
                       By completing this form, you (client) are giving permission
-                      for your information to be shared within {branding.company_name || "Vanquish Therapies"}
+                      for your information to be shared within Vanquish Therapies
                       for the purpose of appointment scheduling.
                     </p>
                   </div>
@@ -767,7 +769,7 @@ export default function CoachingIntake() {
                       rel="noopener noreferrer"
                       className="inline-block px-6 py-3 bg-orange-600 text-white rounded-lg font-medium"
                     >
-                      Continue with VQT COACHING & THERAPY
+                      Continue with Vanquish Therapies Coaching & Therapy
                     </a>
                   </div>
                 )}
@@ -1142,46 +1144,20 @@ export default function CoachingIntake() {
             )}
 
             {currentStep === 2 && (
-              <div className="space-y-4 md:space-y-6">
-                <h2 className="text-xl md:text-2xl font-bold mb-2 text-primary text-center">
-                  Your Availability
-                </h2>
-                {["monday", "tuesday", "wednesday", "thursday", "friday"].map(
-                  (day) => (
-                    <div key={day} className="border rounded-lg p-4 mb-4">
-                      <h3 className="font-bold capitalize mb-3 text-purple-900">
-                        {day}
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {(day === "friday" ? fridayTimeSlots : timeSlots)
-                          .filter((slot) => ISH_SCHEDULE[day].includes(slot.value))
-                          .map((slot) => (
-                            <label
-                              key={slot.value}
-                              className="flex items-center gap-3 p-2 bg-gray-50 rounded cursor-pointer"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={formData.availability[day].includes(
-                                  slot.value,
-                                )}
-                                onChange={() =>
-                                  handleAvailabilityToggle(day, slot.value)
-                                }
-                                className="accent-[#6f1d56]"
-                              />
-                              <span>{slot.label}</span>
-                            </label>
-                          ),
-                        )}
-                      </div>
-                    </div>
-                  ),
-                )}
-                {errors.availability && (
-                  <p className="text-red-500 text-sm">{errors.availability}</p>
-                )}
-              </div>
+              <WeeklyAvailabilityPicker
+                value={formData.availability}
+                onChange={(newAvail) => {
+                  setFormData((prev) => ({ ...prev, availability: newAvail }));
+                  if (errors.availability) {
+                    setErrors((prev) => {
+                      const newErrors = { ...prev };
+                      delete newErrors.availability;
+                      return newErrors;
+                    });
+                  }
+                }}
+                error={errors.availability}
+              />
             )}
 
             {currentStep === 3 && (
@@ -1453,20 +1429,26 @@ export default function CoachingIntake() {
         </div>
 
         {showPaymentModal && paymentProps && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl w-full max-w-md p-6">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowPaymentModal(false);
+            }}
+          >
+            <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold">Secure Payment</h3>
                 <button
+                  type="button"
                   onClick={() => setShowPaymentModal(false)}
-                  className="text-2xl"
+                  className="text-2xl text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   &times;
                 </button>
               </div>
-              <div className="bg-purple-50 p-4 rounded-xl flex justify-between items-center mb-6">
-                <span className="font-medium">Total</span>
-                <span className="text-2xl font-bold">
+              <div className="bg-purple-50 p-4 rounded-xl flex justify-between items-center mb-6 border border-purple-100">
+                <span className="font-medium text-purple-900">Total to Pay</span>
+                <span className="text-2xl font-bold text-purple-900">
                   £{paymentProps.amount.toFixed(2)}
                 </span>
               </div>
@@ -1477,7 +1459,15 @@ export default function CoachingIntake() {
                 consultationSlotId={paymentProps.consultationSlotId}
                 returnUrl={paymentProps.returnUrl}
                 onSuccess={paymentProps.onSuccess}
+                onCancel={() => setShowPaymentModal(false)}
               />
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(false)}
+                className="mt-4 w-full text-center text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                Go Back
+              </button>
             </div>
           </div>
         )}

@@ -20,6 +20,7 @@ import { toast } from "react-toastify";
 import apiService from "@/lib/api";
 import { useBranding } from "@/contexts/BrandingContext";
 import { SUPPORT_AREAS } from "@/lib/constants";
+import WeeklyAvailabilityPicker from "@/components/WeeklyAvailabilityPicker";
 
 export default function VanquishClientIntake() {
   const { branding, loading: brandingLoading } = useBranding();
@@ -122,10 +123,11 @@ export default function VanquishClientIntake() {
         const services = await apiService.getAllServices();
         const generalSetting = services.find(
           (s) =>
+            s.service_name === "Low Cost" ||
             s.service_name === "General Assessment" ||
             s.service_name === "TrafftBooking",
         );
-        if (generalSetting) {
+        if (generalSetting && generalSetting.consultation_price) {
           setBaseFee(parseFloat(generalSetting.consultation_price));
         }
       } catch (err) {
@@ -165,7 +167,8 @@ export default function VanquishClientIntake() {
   const handleApplyDiscount = async () => {
     const code = formData.discountCode?.trim().toUpperCase();
 
-    if (!code) {
+    const cleanCode = (code || "").trim();
+    if (!cleanCode) {
       setDiscountAmount(0);
       setIsDiscountApplied(false);
       return;
@@ -179,13 +182,13 @@ export default function VanquishClientIntake() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({ code: cleanCode }),
         },
       );
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || "Invalid discount code");
+        throw new Error(data.message || "This code is not valid. Please check it or continue to payment.");
       }
 
       const coupon = await response.json();
@@ -207,7 +210,7 @@ export default function VanquishClientIntake() {
         `Discount code applied! You saved £${Number(newDiscountAmount).toFixed(2)}`,
       );
     } catch (error) {
-      toast.error(error.message || "Invalid discount code");
+      toast.error(error.message || "This code is not valid. Please check it or continue to payment.");
       setDiscountAmount(0);
       setIsDiscountApplied(false);
     }
@@ -1154,10 +1157,7 @@ export default function VanquishClientIntake() {
                     style={{ color: "var(--text-secondary)" }}
                   >
                     By completing this form, you (client) are giving permission
-                    for your information to be shared within{" "}
-                    {branding.company_name ||
-                      process.env.NEXT_PUBLIC_APP_NAME ||
-                      "Vanquish Therapies"}{" "}
+                    for your information to be shared within Vanquish Therapies{" "}
                     for the purpose of matching you with the appropriate
                     Counsellor, for appointment scheduling, and in the event of
                     an emergency. If you are submitting this form on behalf of
@@ -1962,167 +1962,20 @@ export default function VanquishClientIntake() {
 
             {/* Step 5: Availability - moved up from step 6 */}
             {currentStep === 5 && (
-              <div className="space-y-4 md:space-y-6">
-                <div>
-                  <h2
-                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    Your Availability To Attend Weekly Sessions
-                  </h2>
-                  <p
-                    className="text-base md:text-lg "
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    Select all day and time slots when you're available to
-                    attend weekly counselling sessions.
-                  </p>
-                </div>
-
-                {errors.availability && (
-                  <div className="bg-red-50 border border-red-300 rounded-lg p-3 mb-4">
-                    <p className="text-red-600 text-lg font-medium">
-                      {errors.availability}
-                    </p>
-                  </div>
-                )}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-base text-blue-900">
-                    <strong>Important:</strong> To avoid any delays - Please
-                    select the accurate day and time you are available to
-                    attend weekly counselling sessions in UK time, as the
-                    practice is based in the UK. Please note that the last session is at 6pm
-                    from Monday to Thursday, and at 5pm on Friday.
-                  </p>
-                </div>
-
-                <div data-field="availability" className="space-y-4">
-                  {["monday", "tuesday", "wednesday", "thursday", "friday"].map(
-                    (day) => {
-                      const slotsToShow =
-                        day === "friday" ? fridayTimeSlots : timeSlots;
-                      return (
-                        <div
-                          key={day}
-                          className={`border rounded-lg overflow-hidden ${
-                            errors.availability
-                              ? "border-red-300"
-                              : "border-gray-300"
-                          }`}
-                        >
-                          <div
-                            className="px-4 py-3 font-semibold text-sm capitalize  border-b "
-                            style={{
-                              borderColor: "var(--input-border)",
-                              backgroundColor: "var(--hover-bg)",
-                              color: "#6f1d56",
-                            }}
-                          >
-                            {day}
-                            {day === "friday" && (
-                              <span
-                                className="ml-2 text-sm font-normal "
-                                style={{ color: "var(--text-secondary)" }}
-                              >
-                                (Last session at 5:00 PM - 5:50 PM)
-                              </span>
-                            )}
-                          </div>
-                          <div className="p-4">
-                            <div className="space-y-2">
-                              {slotsToShow.map((slot) => (
-                                <label
-                                  key={slot.value}
-                                  className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover: border  transition-colors"
-                                  style={{
-                                    borderColor: "var(--border-color)",
-                                    backgroundColor: "var(--bg-secondary)",
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={formData.availability[
-                                      day
-                                    ].includes(slot.value)}
-                                    onChange={() =>
-                                      handleAvailabilityToggle(day, slot.value)
-                                    }
-                                    className="w-5 h-5 rounded"
-                                    style={{
-                                      borderColor: "var(--input-border)",
-                                      accentColor: "#6f1d56",
-                                    }}
-                                  />
-                                  <div className="flex-1">
-                                    <span
-                                      className="text-lg font-medium "
-                                      style={{ color: "var(--text-primary)" }}
-                                    >
-                                      {slot.label}
-                                    </span>
-                                    <span
-                                      className="ml-2 text-sm px-2 py-0.5 rounded"
-                                      style={{
-                                        backgroundColor:
-                                          slot.category === "Morning"
-                                            ? "#fef3c7"
-                                            : slot.category === "Afternoon"
-                                              ? "#dbeafe"
-                                              : "#fce7f3",
-                                        color:
-                                          slot.category === "Morning"
-                                            ? "#92400e"
-                                            : slot.category === "Afternoon"
-                                              ? "#1e40af"
-                                              : "#9f1239",
-                                      }}
-                                    >
-                                      {slot.category}
-                                    </span>
-                                  </div>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    },
-                  )}
-                </div>
-
-                {Object.values(formData.availability).some(
-                  (day) => day.length > 0,
-                ) && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <p className="text-base text-green-900 font-medium mb-2">
-                      Your selected availability:
-                    </p>
-                    {Object.entries(formData.availability).map(
-                      ([day, slots]) => {
-                        const slotsToUse =
-                          day === "friday" ? fridayTimeSlots : timeSlots;
-                        return (
-                          slots.length > 0 && (
-                            <p
-                              key={day}
-                              className="text-base text-green-800 capitalize"
-                            >
-                              <strong>{day}:</strong>{" "}
-                              {slots
-                                .map(
-                                  (s) =>
-                                    slotsToUse.find((t) => t.value === s)
-                                      ?.label,
-                                )
-                                .join(", ")}
-                            </p>
-                          )
-                        );
-                      },
-                    )}
-                  </div>
-                )}
-              </div>
+              <WeeklyAvailabilityPicker
+                value={formData.availability}
+                onChange={(newAvail) => {
+                  setFormData((prev) => ({ ...prev, availability: newAvail }));
+                  if (errors.availability) {
+                    setErrors((prev) => {
+                      const newErrors = { ...prev };
+                      delete newErrors.availability;
+                      return newErrors;
+                    });
+                  }
+                }}
+                error={errors.availability}
+              />
             )}
 
             {/* Step 6: Counsellor Preferences - moved up from step 7 */}

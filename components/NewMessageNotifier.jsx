@@ -5,9 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
 import { getEcho } from "@/lib/echo";
 import { showBrowserNotification, requestNotificationPermission } from "@/lib/notifications";
-import { playNotificationChime, unlockAudio } from "@/lib/audio";
+import { playNotificationChime, unlockAudio, isAudioMuted, toggleAudioMuted } from "@/lib/audio";
 import apiService from "@/lib/api";
-import { MessageSquare, X, ChevronRight, Bell } from "lucide-react";
+import { MessageSquare, X, ChevronRight, Bell, Volume2, VolumeX } from "lucide-react";
 import Link from "next/link";
 
 /**
@@ -25,10 +25,18 @@ export default function NewMessageNotifier() {
   const router = useRouter();
 
   const [toasts, setToasts] = useState([]);
+  const [isMuted, setIsMuted] = useState(false);
   const shownMessageIdsRef = useRef(new Set());
   const timeoutsRef = useRef({});
   const lastUnreadCountRef = useRef(null);
   const isPollingRef = useRef(false);
+
+  useEffect(() => {
+    setIsMuted(isAudioMuted());
+    const handler = (e) => setIsMuted(!!e.detail?.muted);
+    window.addEventListener("vqt-audio-mute-changed", handler);
+    return () => window.removeEventListener("vqt-audio-mute-changed", handler);
+  }, []);
 
   // Determine target chat route based on user role
   const chatRoute = user?.role === "counsellor" ? "/counsellor-portal/messages" : "/dashboard/messages";
@@ -249,17 +257,32 @@ export default function NewMessageNotifier() {
                 </div>
               </div>
 
-              {/* Close Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  dismissToast(toast.toastId);
-                }}
-                className="p-1 -mt-1 -mr-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors flex-shrink-0"
-                aria-label="Dismiss message notification"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              {/* Actions: Mute & Close */}
+              <div className="flex items-center gap-1 -mt-1 -mr-1 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleAudioMuted();
+                  }}
+                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  title={isMuted ? "Unmute message chime" : "Mute message chime"}
+                  aria-label={isMuted ? "Unmute message chime" : "Mute message chime"}
+                >
+                  {isMuted ? <VolumeX className="w-4 h-4 text-red-500" /> : <Volume2 className="w-4 h-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dismissToast(toast.toastId);
+                  }}
+                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  aria-label="Dismiss message notification"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         ))}

@@ -1,12 +1,14 @@
 "use client";
 
+import BuildIdentifier from "./BuildIdentifier";
+
 /**
  * PublicFormWrapper - Ensures public forms respect the theme system
  * Adds theme-aware CSS classes to override hardcoded Tailwind colors
  */
-export default function PublicFormWrapper({ children }) {
+export default function PublicFormWrapper({ children, showBuildId = true }) {
   return (
-    <div className="public-form-theme-wrapper">
+    <div className="public-form-theme-wrapper flex flex-col min-h-screen">
       <style jsx global>{`
         .public-form-theme-wrapper {
           /* Override hardcoded gray backgrounds */
@@ -78,7 +80,12 @@ export default function PublicFormWrapper({ children }) {
           background-color: var(--card-bg) !important;
         }
       `}</style>
-      {children}
+      <div className="flex-1">{children}</div>
+      {showBuildId && (
+        <div className="py-4">
+          <BuildIdentifier />
+        </div>
+      )}
     </div>
   );
 }

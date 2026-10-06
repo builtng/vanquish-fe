@@ -13,6 +13,7 @@ import {
 import apiService from "@/lib/api";
 import { toast } from "react-toastify";
 import { THERAPY_TOPICS } from "@/lib/constants";
+import BuildIdentifier from "@/components/BuildIdentifier";
 
 export default function TCProfileForm() {
   const [formData, setFormData] = useState({
@@ -771,6 +772,9 @@ export default function TCProfileForm() {
             </div>
           </div>
         )}
+      </div>
+      <div className="py-4 text-center">
+        <BuildIdentifier />
       </div>
     </div>
   );

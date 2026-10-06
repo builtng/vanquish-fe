@@ -40,7 +40,7 @@ export default function AgreementClauses({ variant }) {
       <Clause>
         Agreement between (Full legal name, as entered above) (referred to as
         &ldquo;you&rdquo;, &ldquo;your&rdquo; and &ldquo;client/clients&rdquo;) and{" "}
-        <strong>Vanquish Therapies</strong> (VQT). (Your assigned Trainee
+        <strong>Vanquish Therapies</strong>. (Your assigned Trainee
         Counsellor/Coach will contract with you verbally).
       </Clause>
 
@@ -181,7 +181,7 @@ export default function AgreementClauses({ variant }) {
         Trainee Counsellor/Coach outside of the session. For bookings,
         rescheduling, cancellations, or general enquiries, the client will
         contact <strong>Vanquish Therapies</strong> via email or WhatsApp.
-        Please note &ndash; VQT and online Counselling/Coaching are{" "}
+        Please note &ndash; Vanquish Therapies and online Counselling/Coaching are{" "}
         <strong>not</strong> a crisis or emergency service. If you need to
         speak to someone immediately, please contact your{" "}
         <strong>GP</strong>, <strong>NHS (111)</strong>, or the{" "}

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Lock, Mail, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -222,12 +223,12 @@ export default function LoginPage() {
                   Remember me
                 </label>
               </div>
-              <a
-                href="#"
+              <Link
+                href="/forgot-password"
                 className="text-sm font-medium hover:opacity-80 text-[var(--button-primary-bg)]"
               >
                 Forgot password?
-              </a>
+              </Link>
             </div>
 
             {/* Submit Button */}

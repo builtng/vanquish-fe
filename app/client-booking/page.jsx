@@ -20,6 +20,7 @@ import {
   Send,
 } from "lucide-react";
 import CalendarPicker from "@/components/CalendarPicker";
+import BuildIdentifier from "@/components/BuildIdentifier";
 
 function ClientBookingContent() {
   const searchParams = useSearchParams();
@@ -216,13 +217,17 @@ function ClientBookingContent() {
 
     let amount = 0;
     if (serviceType === "Low Cost") {
-      amount = parseFloat(servicePricing?.block_price || 25.0);
+      amount = parseFloat(servicePricing?.block_price || 72.0);
     } else {
       const practitionerPrice = clientData?.client?.matched_tc?.session_price;
-      const sessionFee = parseFloat(
-        practitionerPrice ?? servicePricing?.session_price ?? 40.0,
-      );
-      amount = sessionFee * sessionsCount;
+      if (sessionsCount === 4 && servicePricing?.block_price) {
+        amount = parseFloat(servicePricing.block_price);
+      } else {
+        const sessionFee = parseFloat(
+          practitionerPrice ?? servicePricing?.session_price ?? 40.0,
+        );
+        amount = sessionFee * sessionsCount;
+      }
     }
 
     // Store booking data for after payment
@@ -247,7 +252,7 @@ function ClientBookingContent() {
     }
 
     const servicePricing = pricing["Low Cost"];
-    const amount = parseFloat(servicePricing?.block_price || 25.0);
+    const amount = parseFloat(servicePricing?.block_price || 72.0);
 
     setPendingBookingData({
       client_uuid: clientData.client.uuid,
@@ -529,8 +534,8 @@ function ClientBookingContent() {
                 </div>
                 <p className="text-sm text-blue-700">
                   {client?.service_type === "Low Cost"
-                    ? `Therapy sessions are £${Number(pricing["Low Cost"]?.block_price || 25).toFixed(2)} for a block of sessions (£${Number(pricing["Low Cost"]?.session_price || 6.25).toFixed(2)} per session).`
-                    : `Therapy sessions for ${client?.service_type} are billed at £${Number(pricing[client?.service_type]?.session_price || 40).toFixed(2)} per session.`}
+                    ? `Therapy sessions are £${Number(pricing["Low Cost"]?.block_price || 72).toFixed(2)} for a block of sessions (£${Number(pricing["Low Cost"]?.session_price || 18).toFixed(2)} per session).`
+                    : `Therapy sessions for ${client?.service_type} are billed at £${Number(pricing[client?.service_type]?.session_price || 40).toFixed(2)} per session${pricing[client?.service_type]?.block_price ? ` (£${Number(pricing[client?.service_type]?.block_price).toFixed(2)} for a block of 4)` : ""}.`}
                 </p>
               </div>
             </div>
@@ -750,29 +755,17 @@ function ClientBookingContent() {
                           </div>
                         </div>
                       ) : (
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Select Your Weekly Time Slot
-                          </label>
-                          {nextBlockSlots?.message && (
-                            <div className="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                              <p className="text-xs text-amber-800">
-                                {nextBlockSlots.message}
-                              </p>
-                            </div>
-                          )}
-                          <p className="text-xs text-gray-500 mb-3">
-                            You'll have this same day and time every week going
-                            forward.
+                        <div className="mb-4 bg-purple-50/70 border border-purple-200 rounded-xl p-6 text-center">
+                          <Clock className="w-10 h-10 text-[#6f1d56] mx-auto mb-3" />
+                          <h4 className="font-semibold text-gray-900 mb-1">
+                            Session Time Being Assigned
+                          </h4>
+                          <p className="text-sm text-gray-600 max-w-md mx-auto">
+                            For Low Cost Counselling, your regular weekly session day and time is assigned by our administration team based on your submitted availability and counsellor schedule.
                           </p>
-                          <CalendarPicker
-                            availableSlots={availableSlots}
-                            selectedSlot={selectedSlot}
-                            onSelect={(slot) => {
-                              setSelectedSlot(slot);
-                              setSelectedDate(slot.date);
-                            }}
-                          />
+                          <p className="text-xs text-gray-500 mt-3">
+                            Once assigned by your coordinator, your block of sessions will appear here for you to confirm and book.
+                          </p>
                         </div>
                       )}
                     </>
@@ -854,17 +847,17 @@ function ClientBookingContent() {
                   <button
                     onClick={
                       bookingType === "block"
-                        ? client?.service_type === "Low Cost" &&
-                          nextBlockSlots?.auto
+                        ? client?.service_type === "Low Cost"
                           ? handleConfirmAutoBlock
                           : handleBookBlock
                         : handleBookSession
                     }
                     disabled={
-                      bookingType === "block" &&
-                      client?.service_type === "Low Cost" &&
-                      (loadingNextBlockSlots ||
-                        (nextBlockSlots?.auto && !nextBlockSlots.slots?.length))
+                      bookingType === "block"
+                        ? client?.service_type === "Low Cost"
+                          ? loadingNextBlockSlots || !nextBlockSlots?.auto || !nextBlockSlots?.slots?.length
+                          : !selectedDate && !selectedSlot
+                        : !selectedSlot
                     }
                     className="flex-1 px-4 py-2 bg-[#6f1d56] text-white rounded-lg hover:bg-[#5a1745] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -977,6 +970,9 @@ function ClientBookingContent() {
           </div>
         </>
       )}
+      <footer className="py-6 text-center">
+        <BuildIdentifier />
+      </footer>
     </div>
   );
 }

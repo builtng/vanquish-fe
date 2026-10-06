@@ -25,10 +25,13 @@ import {
   BarChart2,
   Search,
   X,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useBranding } from "@/contexts/BrandingContext";
 import { useTheme } from "next-themes";
 import apiService from "@/lib/api";
+import { isAudioMuted, toggleAudioMuted } from "@/lib/audio";
 
 export default function CounsellorSidebar({ unreadCount = 0 }) {
   const pathname = usePathname();
@@ -36,6 +39,41 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
   const { sidebarOpen, setSidebarOpen } = useSidebar();
   const { branding } = useBranding();
   const { theme } = useTheme();
+
+  const [liveUnreadCount, setLiveUnreadCount] = useState(unreadCount);
+  const [muted, setMuted] = useState(false);
+
+  useEffect(() => {
+    setMuted(isAudioMuted());
+    const handler = (e) => setMuted(!!e.detail?.muted);
+    window.addEventListener("vqt-audio-mute-changed", handler);
+    return () => window.removeEventListener("vqt-audio-mute-changed", handler);
+  }, []);
+
+  useEffect(() => {
+    if (typeof unreadCount === "number" && unreadCount > 0) {
+      setLiveUnreadCount(unreadCount);
+    }
+  }, [unreadCount]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchUnread = async () => {
+      try {
+        const res = await apiService.getUnreadMessageCount();
+        if (isMounted && res && typeof res.count === "number") {
+          setLiveUnreadCount(res.count);
+        }
+      } catch (e) {}
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 20000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const [expandedItems, setExpandedItems] = useState({
     messages: pathname?.startsWith("/counsellor-portal/messages"),
@@ -70,7 +108,7 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
       id: "messages",
       icon: MessageSquare,
       label: "Messages",
-      badge: unreadCount,
+      badge: liveUnreadCount,
       href: "/counsellor-portal/messages",
     },
     /* {
@@ -434,6 +472,26 @@ export default function CounsellorSidebar({ unreadCount = 0 }) {
           />
           {sidebarOpen && <span className="text-xs font-medium">Settings</span>}
         </Link>
+        <button
+          type="button"
+          onClick={() => toggleAudioMuted()}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] ${
+            sidebarOpen ? "" : "justify-center"
+          }`}
+          title={muted ? "Unmute message sounds" : "Mute message sounds"}
+          aria-label={muted ? "Unmute message sounds" : "Mute message sounds"}
+        >
+          {muted ? (
+            <VolumeX className="w-4 h-4 flex-shrink-0 text-red-500" />
+          ) : (
+            <Volume2 className="w-4 h-4 flex-shrink-0 text-gray-400" />
+          )}
+          {sidebarOpen && (
+            <span className="text-xs font-medium">
+              {muted ? "Muted" : "Alert Sounds"}
+            </span>
+          )}
+        </button>
         <button
           onClick={logout}
           className={`w-full flex items-center gap-3 px-3 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors ${

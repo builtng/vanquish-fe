@@ -1,13 +1,14 @@
 "use client";
 import PageGuard from "@/components/PageGuard";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import apiService from "@/lib/api";
 import { useToast } from "@/contexts/ToastContext";
 import SearchableSelect from "@/components/SearchableSelect";
 import { formatName, getCounsellorPrefixType } from "@/lib/nameFormatter";
+import { computeOverlapSchedule } from "@/lib/availabilityMatcher";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import { useModal } from "@/contexts/ModalContext";
@@ -57,6 +58,45 @@ export default function CompletedMatchesPage() {
   const [sortDirection, setSortDirection] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
+
+  // Assign Session Time states
+  const [assignSlotClient, setAssignSlotClient] = useState(null);
+  const [slotSaving, setSlotSaving] = useState(false);
+  const [selectedSlotToAssign, setSelectedSlotToAssign] = useState(null);
+  const [slotFilter, setSlotFilter] = useState("overlap_only");
+  const [activeDayTab, setActiveDayTab] = useState("all");
+
+  const slotOverlapSchedule = useMemo(() => {
+    if (!assignSlotClient) return null;
+    const clientAvail = assignSlotClient.availability || {};
+    const tcAvail = assignSlotClient.matchedTcData?.availability || {};
+    return computeOverlapSchedule(
+      clientAvail,
+      typeof tcAvail === "object" ? tcAvail : {},
+    );
+  }, [assignSlotClient]);
+
+  const handleSaveAssignedSlot = async () => {
+    if (!selectedSlotToAssign) {
+      showError("Please select a weekly day and time slot.");
+      return;
+    }
+    try {
+      setSlotSaving(true);
+      await apiService.updateClient(assignSlotClient.uuid || assignSlotClient.id, {
+        allocated_day: selectedSlotToAssign.day,
+        allocated_time: selectedSlotToAssign.slot,
+      });
+      success(`Session time assigned: ${selectedSlotToAssign.day}s at ${selectedSlotToAssign.label}`);
+      setAssignSlotClient(null);
+      setSelectedSlotToAssign(null);
+      await fetchClients();
+    } catch (err) {
+      showError(err.message || "Failed to assign session time");
+    } finally {
+      setSlotSaving(false);
+    }
+  };
 
   // Data states
   const [allClients, setAllClients] = useState([]);
@@ -123,6 +163,10 @@ export default function CompletedMatchesPage() {
         feedbackCount: client.feedback_count || 0,
         lastFeedbackSentAt: client.last_feedback_sent_at || null,
         lastFeedbackDate: client.last_feedback_date || null,
+        allocatedDay: client.allocated_day || null,
+        allocatedTime: client.allocated_time || null,
+        availability: client.availability || {},
+        matchedTcData: client.matched_tc || null,
       }));
 
       setAllClients(transformedData);
@@ -388,7 +432,7 @@ export default function CompletedMatchesPage() {
               <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
                 <User className="w-5 h-5 text-purple-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="font-medium text-gray-900">
                   {formatName(client.matchedTC, getCounsellorPrefixType(client.matchedTcType, client.serviceType))}
                 </p>
@@ -396,6 +440,37 @@ export default function CompletedMatchesPage() {
                   {client.matchedTcType === "Qualified" || client.serviceType !== "Low Cost" ? "Qualified Counsellor" : "Trainee Counsellor"}
                 </p>
               </div>
+            </div>
+
+            {/* Weekly Session Slot */}
+            <div className="mt-3 border border-gray-200 dark:border-[var(--card-border)] rounded-lg p-4 bg-gray-50/50 dark:bg-[var(--card-bg)]">
+              <div className="flex items-center justify-between mb-1.5">
+                <h4 className="text-xs font-bold text-gray-700 dark:text-[var(--text-secondary)] uppercase tracking-wider flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-[#6f1d56]" />
+                  Assigned Session Time
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssignSlotClient(client);
+                    setSelectedSlotToAssign(null);
+                    setSlotFilter("overlap_only");
+                    setActiveDayTab("all");
+                  }}
+                  className="text-xs font-semibold text-[#6f1d56] hover:underline"
+                >
+                  {client.allocatedDay && client.allocatedTime ? "Change Slot" : "Assign Time"}
+                </button>
+              </div>
+              {client.allocatedDay && client.allocatedTime ? (
+                <p className="text-sm font-semibold text-gray-900 dark:text-[var(--text-primary)]">
+                  {client.allocatedDay}s at {client.allocatedTime}
+                </p>
+              ) : (
+                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                  ⚠️ No regular weekly slot assigned yet
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -760,9 +835,31 @@ export default function CompletedMatchesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {client.matchedTC ? (
-                            <span className="text-sm text-gray-900 dark:text-[var(--text-primary)]">
-                              {formatName(client.matchedTC, getCounsellorPrefixType(client.matchedTcType, client.serviceType))}
-                            </span>
+                            <div>
+                              <span className="text-sm text-gray-900 dark:text-[var(--text-primary)] font-medium">
+                                {formatName(client.matchedTC, getCounsellorPrefixType(client.matchedTcType, client.serviceType))}
+                              </span>
+                              {client.allocatedDay && client.allocatedTime ? (
+                                <p className="text-xs text-purple-700 dark:text-purple-300 font-medium flex items-center gap-1 mt-0.5">
+                                  <Clock className="w-3 h-3 text-[#6f1d56]" />
+                                  {client.allocatedDay}s at {client.allocatedTime}
+                                </p>
+                              ) : client.serviceType === "Low Cost" ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setAssignSlotClient(client);
+                                    setSelectedSlotToAssign(null);
+                                    setSlotFilter("overlap_only");
+                                    setActiveDayTab("all");
+                                  }}
+                                  className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold hover:underline flex items-center gap-1 mt-0.5"
+                                >
+                                  ⚠️ Assign session time
+                                </button>
+                              ) : null}
+                            </div>
                           ) : (
                             <span className="text-sm text-gray-400 dark:text-[var(--text-tertiary)] italic">
                               Not assigned
@@ -798,6 +895,21 @@ export default function CompletedMatchesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-2">
+                            {client.matchedTC && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAssignSlotClient(client);
+                                  setSelectedSlotToAssign(null);
+                                  setSlotFilter("overlap_only");
+                                  setActiveDayTab("all");
+                                }}
+                                className="p-2 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-colors text-[#6f1d56] dark:text-purple-400"
+                                title="Assign Session Time"
+                              >
+                                <Clock className="w-4 h-4" />
+                              </button>
+                            )}
                             <Link
                               href={`/dashboard/client-details/${client.uuid || client.id}`}
                               className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
@@ -931,6 +1043,261 @@ export default function CompletedMatchesPage() {
               client={selectedClient}
               onClose={() => setSelectedClient(null)}
             />
+          </>
+        )}
+
+        {/* Assign Session Time Modal */}
+        {assignSlotClient && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm transition-opacity"
+              onClick={() => {
+                if (!slotSaving) {
+                  setAssignSlotClient(null);
+                  setSelectedSlotToAssign(null);
+                }
+              }}
+            />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-[var(--card-bg)] rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col border border-gray-200 dark:border-[var(--card-border)] overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-[var(--card-border)] flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-[var(--text-primary)] flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-[#6f1d56]" />
+                      Assign Session Time
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-0.5">
+                      Assign weekly session day and time for <strong>{assignSlotClient.name}</strong> with <strong>{assignSlotClient.matchedTC}</strong>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (!slotSaving) {
+                        setAssignSlotClient(null);
+                        setSelectedSlotToAssign(null);
+                      }
+                    }}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-[var(--hover-bg)] rounded-lg text-gray-500"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-6 overflow-y-auto space-y-4">
+                  {/* Filter and Overview */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 dark:border-[var(--card-border)] pb-3">
+                    <p className="text-xs font-semibold text-gray-700 dark:text-[var(--text-secondary)] uppercase tracking-wider">
+                      Overlapping Availability
+                    </p>
+                    {slotOverlapSchedule && (
+                      <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[var(--bg-secondary)] p-1 rounded-lg text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setSlotFilter("overlap_only")}
+                          className={`px-2.5 py-1 font-semibold rounded-md transition-colors ${
+                            slotFilter === "overlap_only"
+                              ? "bg-white dark:bg-[var(--card-bg)] text-[#6f1d56] shadow-sm"
+                              : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
+                          }`}
+                        >
+                          ⭐ Overlapping Only ({slotOverlapSchedule.totalOverlapCount})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSlotFilter("all")}
+                          className={`px-2.5 py-1 font-semibold rounded-md transition-colors ${
+                            slotFilter === "all"
+                              ? "bg-white dark:bg-[var(--card-bg)] text-gray-900 dark:text-[var(--text-primary)] shadow-sm"
+                              : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
+                          }`}
+                        >
+                          All Slots ({slotOverlapSchedule.totalTCSlots})
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Day Tabs */}
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setActiveDayTab("all")}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                        activeDayTab === "all"
+                          ? "bg-[#6f1d56] text-white shadow-sm"
+                          : "bg-gray-100 dark:bg-[var(--bg-secondary)] text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-200"
+                      }`}
+                    >
+                      All Days
+                    </button>
+                    {slotOverlapSchedule?.days.map((day) => (
+                      <button
+                        key={day.key}
+                        type="button"
+                        onClick={() => setActiveDayTab(day.key)}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-all ${
+                          activeDayTab === day.key
+                            ? "bg-[#6f1d56] text-white shadow-sm"
+                            : "bg-gray-100 dark:bg-[var(--bg-secondary)] text-gray-700 dark:text-[var(--text-secondary)] hover:bg-gray-200"
+                        }`}
+                      >
+                        {day.label}
+                        {day.overlapCount > 0 && (
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${activeDayTab === day.key ? "bg-white text-[#6f1d56]" : "bg-emerald-100 text-emerald-800"}`}>
+                            {day.overlapCount} ⭐
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Slots list */}
+                  <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
+                    {slotOverlapSchedule?.days
+                      .filter((day) => activeDayTab === "all" || activeDayTab === day.key)
+                      .map((day) => {
+                        const slotsToRender = day.slots.filter((slot) => {
+                          if (slotFilter === "overlap_only") return slot.isOverlap;
+                          return slot.isTCAvailable || slot.isClientAvailable;
+                        });
+
+                        if (slotsToRender.length === 0) {
+                          if (activeDayTab !== "all") {
+                            return (
+                              <div key={day.key} className="py-6 text-center text-xs text-gray-400 italic">
+                                No {slotFilter === "overlap_only" ? "overlapping" : "available"} slots on {day.label}.
+                              </div>
+                            );
+                          }
+                          return null;
+                        }
+
+                        return (
+                          <div key={day.key} className="border border-gray-200 dark:border-[var(--card-border)] rounded-xl p-3.5 bg-gray-50/40 dark:bg-[var(--card-bg)]">
+                            <div className="flex items-center justify-between mb-2.5">
+                              <h4 className="text-xs font-bold text-gray-900 dark:text-[var(--text-primary)] uppercase tracking-wider">
+                                {day.label}
+                              </h4>
+                              <span className="text-[11px] text-gray-500">
+                                {day.overlapCount > 0 ? `${day.overlapCount} overlapping slot(s)` : "No overlap"}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                              {slotsToRender.map((slot) => {
+                                const isSelected =
+                                  selectedSlotToAssign?.day?.toLowerCase() === day.label.toLowerCase() &&
+                                  selectedSlotToAssign?.slot === slot.value;
+
+                                return (
+                                  <div
+                                    key={slot.value}
+                                    onClick={() => {
+                                      setSelectedSlotToAssign({
+                                        day: day.label,
+                                        slot: slot.value,
+                                        label: slot.label,
+                                      });
+                                    }}
+                                    className={`relative p-3 rounded-xl border transition-all cursor-pointer select-none flex flex-col justify-between gap-2 ${
+                                      isSelected
+                                        ? "border-[#6f1d56] bg-purple-50/80 dark:bg-purple-950/40 shadow-sm ring-2 ring-[#6f1d56]"
+                                        : slot.isOverlap
+                                          ? "border-emerald-300 dark:border-emerald-700/60 bg-emerald-50/30 dark:bg-emerald-950/10 hover:border-emerald-400 hover:bg-emerald-50/60"
+                                          : "border-gray-200 dark:border-[var(--card-border)] bg-white dark:bg-[var(--card-bg)] hover:border-purple-300"
+                                    }`}
+                                  >
+                                    <div>
+                                      <div className="flex items-start justify-between gap-1 mb-1">
+                                        <span className="font-bold text-xs text-gray-900 dark:text-[var(--text-primary)]">
+                                          {slot.label}
+                                        </span>
+                                        <input
+                                          type="radio"
+                                          name="selected_slot_modal"
+                                          checked={isSelected}
+                                          onChange={() => {}}
+                                          className="w-4 h-4 text-[#6f1d56] accent-[#6f1d56] cursor-pointer mt-0.5"
+                                        />
+                                      </div>
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {slot.isOverlap && (
+                                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 font-bold flex items-center gap-1">
+                                            ⭐ Overlap Match
+                                          </span>
+                                        )}
+                                        {!slot.isOverlap && slot.isTCAvailable && (
+                                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                                            Counsellor Free
+                                          </span>
+                                        )}
+                                        {!slot.isTCAvailable && slot.isClientAvailable && (
+                                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-gray-100 text-gray-600 font-medium">
+                                            Client Requested
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+
+                  {/* Summary of Selected */}
+                  {selectedSlotToAssign && (
+                    <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-200 flex items-center justify-between">
+                      <p className="text-xs font-bold text-[#6f1d56] flex items-center gap-1.5">
+                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                        Selected Weekly Slot: {selectedSlotToAssign.day} at {selectedSlotToAssign.label}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSlotToAssign(null)}
+                        className="text-xs text-gray-500 hover:text-red-600 font-medium"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-gray-200 dark:border-[var(--card-border)] bg-gray-50 dark:bg-[var(--bg-secondary)] flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAssignSlotClient(null);
+                      setSelectedSlotToAssign(null);
+                    }}
+                    disabled={slotSaving}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 text-sm font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveAssignedSlot}
+                    disabled={slotSaving || !selectedSlotToAssign}
+                    className="px-5 py-2 bg-[#6f1d56] text-white rounded-lg hover:bg-[#5a1745] text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {slotSaving ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Session Time"
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
           </>
         )}
       </DashboardLayout>

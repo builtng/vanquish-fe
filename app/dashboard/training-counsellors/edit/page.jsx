@@ -384,7 +384,7 @@ function EditTrainingCounsellorContent() {
     try {
       setDeleteLoading(true);
       await apiService.deleteTrainingCounsellor(tcId);
-      success('Trainee Counsellor deleted successfully!');
+      success('Practitioner archived successfully!');
       router.push('/dashboard/training-counsellors');
     } catch (err) {
       console.error('Error deleting TC:', err);
@@ -466,7 +466,7 @@ function EditTrainingCounsellorContent() {
                   className="px-4 py-2 border border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Delete
+                  Archive
                 </button>
               </div>
             </div>
@@ -1118,15 +1118,15 @@ function EditTrainingCounsellorContent() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Archive Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={showDeleteConfirmModal}
         onClose={() => setShowDeleteConfirmModal(false)}
         onConfirm={confirmDelete}
-        title="Delete Trainee Counsellor"
-        message={`Are you sure you want to delete ${formData.name}? This action cannot be undone.`}
+        title="Archive Practitioner"
+        message={`Are you sure you want to archive ${formData.name}? The record will be archived and kept in history.`}
         itemName={formData.name}
-        confirmText="Delete"
+        confirmText="Archive"
         cancelText="Cancel"
         loading={deleteLoading}
       />

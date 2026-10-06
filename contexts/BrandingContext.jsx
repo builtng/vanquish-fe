@@ -7,7 +7,7 @@ const BrandingContext = createContext();
 
 export function BrandingProvider({ children }) {
   const [branding, setBranding] = useState({
-    company_name: typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_APP_NAME || "Vanquish Therapies") : "Vanquish Therapies",
+    company_name: "Vanquish Therapies",
     company_tagline: "Admin",
     platform_logo_url: "",
     platform_logo_base64: "",
@@ -22,7 +22,15 @@ export function BrandingProvider({ children }) {
     try {
       const data = await apiService.getCompanySettings();
       if (data) {
-        setBranding(prev => ({ ...prev, ...data }));
+        // Prevent legacy/placeholder names from overriding 'Vanquish Therapies'
+        if (
+          !data.company_name ||
+          data.company_name.toLowerCase().includes("vqt") ||
+          data.company_name.toLowerCase().includes("training")
+        ) {
+          data.company_name = "Vanquish Therapies";
+        }
+        setBranding((prev) => ({ ...prev, ...data }));
       }
     } catch (err) {
       console.error("Failed to fetch branding:", err);

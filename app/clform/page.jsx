@@ -13,6 +13,8 @@ import apiService from "@/lib/api";
 import { toast } from "react-toastify";
 import { useBranding } from "@/contexts/BrandingContext";
 import { SUPPORT_AREAS } from "@/lib/constants";
+import BuildIdentifier from "@/components/BuildIdentifier";
+import WeeklyAvailabilityPicker from "@/components/WeeklyAvailabilityPicker";
 
 export default function ClientInformationSheet() {
   const { branding, loading: brandingLoading } = useBranding();
@@ -44,6 +46,13 @@ export default function ClientInformationSheet() {
     modality: "",
 
     // Availability
+    availability: {
+      monday: [],
+      tuesday: [],
+      wednesday: [],
+      thursday: [],
+      friday: [],
+    },
     selectedDay: "",
     selectedTimeBlock: "",
 
@@ -66,6 +75,7 @@ export default function ClientInformationSheet() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState({});
   const [capacityStatus, setCapacityStatus] = useState({
     full: false,
     message: "",
@@ -144,6 +154,20 @@ export default function ClientInformationSheet() {
   };
 
   const handleSubmit = async () => {
+    // Validate availability
+    const hasAvailability = Object.values(formData.availability || {}).some(
+      (slots) => Array.isArray(slots) && slots.length > 0
+    );
+    if (!hasAvailability) {
+      toast.error("Please select at least one availability slot.");
+      setCurrentStep(3);
+      setErrors((prev) => ({
+        ...prev,
+        availability: "Please select at least one time slot before booking",
+      }));
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -162,9 +186,7 @@ export default function ClientInformationSheet() {
         service_type: "Partner Service Intake",
         support_areas: formData.issues,
         modality: formData.modality,
-        availability: {
-          [formData.selectedDay]: [formData.selectedTimeBlock],
-        },
+        availability: formData.availability || {},
         emergency_contact_name: formData.emergencyContactName,
         emergency_contact_phone: formData.emergencyContactPhone,
         emergency_contact_email: formData.emergencyContactEmail,
@@ -214,15 +236,19 @@ export default function ClientInformationSheet() {
             perfect counsellor. You'll receive a confirmation email within 24
             hours.
           </p>
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-purple-800">
-              <strong>Your booking:</strong>{" "}
-              {formData.selectedDay.charAt(0).toUpperCase() +
-                formData.selectedDay.slice(1)}{" "}
-              {formData.selectedTimeBlock}
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6 text-left">
+            <p className="text-sm font-semibold text-purple-900 mb-2">
+              Your session availability:
             </p>
-            <p className="text-sm text-purple-700 mt-1">
-              This is a recurring booking for ongoing therapy sessions.
+            {Object.entries(formData.availability || {}).map(([day, slots]) =>
+              Array.isArray(slots) && slots.length > 0 ? (
+                <p key={day} className="text-xs text-purple-800 capitalize mb-1">
+                  <strong>{day}:</strong> {slots.join(", ")}
+                </p>
+              ) : null
+            )}
+            <p className="text-xs text-purple-700 mt-2">
+              Our team will match you with a therapist based on these weekly slots.
             </p>
           </div>
           <button
@@ -593,91 +619,20 @@ export default function ClientInformationSheet() {
 
             {/* Step 3: Availability */}
             {currentStep === 3 && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                    When would you like your sessions?
-                  </h2>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Select ONE day and time block for your recurring therapy
-                    sessions
-                  </p>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <p className="text-sm text-blue-800">
-                    <strong>Important:</strong> This will be your regular therapy
-                    day and time. Sessions are ongoing (not one-off).
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Preferred Day <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {days.map((day) => (
-                      <label
-                        key={day.value}
-                        className="flex items-center gap-2 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-purple-50 hover:border-purple-300 transition-colors"
-                      >
-                        <input
-                          type="radio"
-                          name="selectedDay"
-                          value={day.value}
-                          checked={formData.selectedDay === day.value}
-                          onChange={(e) =>
-                            handleInputChange("selectedDay", e.target.value)
-                          }
-                          className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-600"
-                        />
-                        <span className="text-sm font-medium text-gray-900">
-                          {day.label}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Preferred Time Block <span className="text-red-500">*</span>
-                  </label>
-                  <div className="space-y-2">
-                    {timeBlocks.map((block) => (
-                      <label
-                        key={block.value}
-                        className="flex items-center gap-3 p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-purple-50 hover:border-purple-300 transition-colors"
-                      >
-                        <input
-                          type="radio"
-                          name="timeBlock"
-                          value={block.value}
-                          checked={formData.selectedTimeBlock === block.value}
-                          onChange={(e) =>
-                            handleInputChange("selectedTimeBlock", e.target.value)
-                          }
-                          className="w-5 h-5 text-purple-600 border-gray-300 focus:ring-purple-600"
-                        />
-                        <span className="text-sm font-medium text-gray-900">
-                          {block.label}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {formData.selectedDay && formData.selectedTimeBlock && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <p className="text-sm text-green-800">
-                      <strong>Your recurring session time:</strong> Every{" "}
-                      {formData.selectedDay.charAt(0).toUpperCase() +
-                        formData.selectedDay.slice(1)}{" "}
-                      {formData.selectedTimeBlock}
-                    </p>
-                  </div>
-                )}
-              </div>
+              <WeeklyAvailabilityPicker
+                value={formData.availability}
+                onChange={(newAvail) => {
+                  setFormData((prev) => ({ ...prev, availability: newAvail }));
+                  if (errors.availability) {
+                    setErrors((prev) => {
+                      const newErrors = { ...prev };
+                      delete newErrors.availability;
+                      return newErrors;
+                    });
+                  }
+                }}
+                error={errors.availability}
+              />
             )}
 
             {/* Step 4: Emergency Contact */}
@@ -936,14 +891,22 @@ export default function ClientInformationSheet() {
                       <p className="text-sm font-medium text-purple-900">
                         Booking Summary
                       </p>
-                      <p className="text-xs text-purple-700 mt-1">
-                        {formData.selectedDay.charAt(0).toUpperCase() +
-                          formData.selectedDay.slice(1)}{" "}
-                        •{" "}
-                        {formData.selectedTimeBlock.charAt(0).toUpperCase() +
-                          formData.selectedTimeBlock.slice(1)}
-                      </p>
-                      <p className="text-xs text-purple-700">
+                      <div className="text-xs text-purple-700 mt-1 space-y-0.5">
+                        {Object.entries(formData.availability || {}).map(
+                          ([day, slots]) =>
+                            Array.isArray(slots) && slots.length > 0 ? (
+                              <p key={day} className="capitalize">
+                                <strong>{day}:</strong> {slots.length} time slot{slots.length > 1 ? "s" : ""}
+                              </p>
+                            ) : null
+                        )}
+                        {!Object.values(formData.availability || {}).some(
+                          (slots) => Array.isArray(slots) && slots.length > 0
+                        ) && (
+                          <p className="italic text-purple-600">No slots selected</p>
+                        )}
+                      </div>
+                      <p className="text-xs text-purple-700 mt-2">
                         {formData.modality || "Standard therapy session"}
                       </p>
                     </div>
@@ -1085,9 +1048,22 @@ export default function ClientInformationSheet() {
 
                   {currentStep < 6 ? (
                     <button
-                      onClick={() =>
-                        setCurrentStep((prev) => Math.min(6, prev + 1))
-                      }
+                      onClick={() => {
+                        if (currentStep === 3) {
+                          const hasAvail = Object.values(
+                            formData.availability || {}
+                          ).some((s) => Array.isArray(s) && s.length > 0);
+                          if (!hasAvail) {
+                            setErrors((prev) => ({
+                              ...prev,
+                              availability:
+                                "Please select at least one time slot before proceeding",
+                            }));
+                            return;
+                          }
+                        }
+                        setCurrentStep((prev) => Math.min(6, prev + 1));
+                      }}
                       className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
                     >
                       Next
@@ -1106,6 +1082,9 @@ export default function ClientInformationSheet() {
             </div>
           </div>
         )}
+      </div>
+      <div className="py-4 text-center">
+        <BuildIdentifier />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -19,6 +20,9 @@ import {
   User,
   Calendar,
   Code,
+  Inbox,
+  FileText,
+  SlidersHorizontal,
 } from "lucide-react";
 
 export default function EmailManagement() {
@@ -146,7 +150,33 @@ export default function EmailManagement() {
         </p>
       </DashboardHeader>
 
-      <div className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-gray-200 dark:border-gray-700 space-x-6 text-sm font-medium">
+          <Link
+            href="/dashboard/email-logs"
+            className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 pb-3 flex items-center space-x-2"
+          >
+            <Inbox className="w-4 h-4" />
+            <span>Email Delivery Logs</span>
+          </Link>
+          <Link
+            href="/dashboard/email-management"
+            className="border-b-2 border-[#6f1d56] text-[#6f1d56] dark:text-[#f472b6] pb-3 flex items-center space-x-2 font-semibold"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Email Templates</span>
+          </Link>
+          <Link
+            href="/dashboard/settings/email-senders"
+            className="border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 pb-3 flex items-center space-x-2"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span>Sender Routing Settings</span>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar - Template List */}
         <div className="lg:col-span-1 space-y-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -401,6 +431,7 @@ export default function EmailManagement() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </DashboardLayout>
   );

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Calendar, Clock, CheckCircle, Video, User, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
+import BuildIdentifier from "@/components/BuildIdentifier";
 
 function TraineeInterviewBookingContent() {
   const searchParams = useSearchParams();
@@ -210,6 +211,9 @@ function TraineeInterviewBookingContent() {
             </div>
           </div>
         </div>
+      </div>
+      <div className="py-4 text-center">
+        <BuildIdentifier />
       </div>
     </div>
   );
