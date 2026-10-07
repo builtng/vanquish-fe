@@ -12,7 +12,7 @@ import {
 
 import apiService from "@/lib/api";
 import { toast } from "react-toastify";
-import { THERAPY_TOPICS } from "@/lib/constants";
+import { THERAPY_TOPICS, MODALITY_OPTIONS } from "@/lib/constants";
 import BuildIdentifier from "@/components/BuildIdentifier";
 
 export default function TCProfileForm() {
@@ -78,20 +78,7 @@ export default function TCProfileForm() {
     checkMaintenance();
   }, []);
 
-  const modalities = [
-    "Person-Centred Counselling",
-    "Cognitive Behavioral Therapy (CBT)",
-    "Integrative Counselling and Therapy",
-    "Psychodynamic Therapy",
-    "Gestalt Therapy",
-    "Humanistic Therapy",
-    "Solution-Focused Brief Therapy",
-    "Acceptance and Commitment Therapy (ACT)",
-    "Dialectical Behavior Therapy (DBT)",
-    "Art Therapy",
-    "Play Therapy",
-    "Family Therapy",
-  ];
+  const modalities = MODALITY_OPTIONS;
 
   const sensitiveTopics = THERAPY_TOPICS;
 

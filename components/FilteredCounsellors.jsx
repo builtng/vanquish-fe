@@ -122,7 +122,7 @@ const FALLBACK_COUNSELLORS = [
     qualification_title: "Registered Counsellor (RPC)",
     years_of_experience: "8+ years experience",
     photo_url: FEMALE_PORTRAITS[0],
-    modality: "Integrative",
+    modality: "Integrative Therapy",
     specialty: "Couples Counsellor",
     qualified_to_work_with: ["Individuals", "Couples"],
     bio: "I help individuals and couples heal from trauma, improve communication and build healthier, more connected relationships.",
@@ -153,7 +153,7 @@ const FALLBACK_COUNSELLORS = [
     qualification_title: "Registered Counsellor (RPC)",
     years_of_experience: "6+ years experience",
     photo_url: FEMALE_PORTRAITS[1],
-    modality: "Integrative",
+    modality: "Integrative Therapy",
     specialty: "Couples Counsellor",
     qualified_to_work_with: ["Individuals", "Couples"],
     bio: "Specializing in trauma recovery and supporting couples to create stronger, healthier connections.",
@@ -184,7 +184,7 @@ const FALLBACK_COUNSELLORS = [
     qualification_title: "Registered Counsellor (RPC)",
     years_of_experience: "5+ years experience",
     photo_url: FEMALE_PORTRAITS[2],
-    modality: "Integrative",
+    modality: "Integrative Therapy",
     specialty: "Couples Counsellor",
     qualified_to_work_with: ["Individuals", "Couples"],
     bio: "I support clients in healing from past experiences, managing anxiety and building safe, fulfilling relationships.",
@@ -879,7 +879,7 @@ export default function FilteredCounsellors({
                             <div className="flex flex-wrap gap-2 mt-2.5">
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
                                 <span className="text-[#2d5a3f]">⬡</span>
-                                {counsellor.modality || "Integrative"}
+                                {counsellor.modality || "Integrative Therapy"}
                               </span>
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
                                 <Users className="w-3.5 h-3.5 text-[#2d5a3f]" />
@@ -1022,7 +1022,7 @@ export default function FilteredCounsellors({
                   <div className="flex flex-wrap gap-2">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
                       <span className="text-[#2d5a3f]">⬡</span>
-                      {selectedCounsellorObj.modality || "Integrative"}
+                      {selectedCounsellorObj.modality || "Integrative Therapy"}
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
                       <Users className="w-3.5 h-3.5 text-[#2d5a3f]" />
@@ -1582,7 +1582,7 @@ export default function FilteredCounsellors({
                   <span>Modality</span>
                 </div>
                 <p className="text-sm font-semibold text-gray-900">
-                  {activeProfileModal.modality || "Integrative"}
+                  {activeProfileModal.modality || "Integrative Therapy"}
                 </p>
               </div>
 

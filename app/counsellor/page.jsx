@@ -16,7 +16,7 @@ import {
 import apiService from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
-import { THERAPY_TOPICS } from "@/lib/constants";
+import { THERAPY_TOPICS, MODALITY_OPTIONS } from "@/lib/constants";
 
 export default function VanquishTCApplication() {
   const [formData, setFormData] = useState({
@@ -163,21 +163,7 @@ export default function VanquishTCApplication() {
     { value: "5pm-6pm", label: "5:00 PM - 6:00 PM", category: "Evening" },
   ];
 
-  const theoreticalApproaches = [
-    "Person-Centred",
-    "Cognitive Behavioural Therapy (CBT)",
-    "Psychodynamic",
-    "Integrative",
-    "Humanistic",
-    "Gestalt",
-    "Solution-Focused Brief Therapy",
-    "Acceptance and Commitment Therapy (ACT)",
-    "Dialectical Behaviour Therapy (DBT)",
-    "Transactional Analysis (TA)",
-    "Existential",
-    "Systemic/Family Therapy",
-    "Other",
-  ];
+  const theoreticalApproaches = MODALITY_OPTIONS;
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

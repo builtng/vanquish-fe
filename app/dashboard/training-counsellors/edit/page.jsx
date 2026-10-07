@@ -10,7 +10,7 @@ import ConfirmationModal from '@/components/ConfirmationModal';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal';
 import DashboardLayout from '@/components/DashboardLayout';
 import SearchableSelect from '@/components/SearchableSelect';
-import { THERAPY_TOPICS } from '@/lib/constants';
+import { THERAPY_TOPICS, MODALITY_SELECT_OPTIONS } from '@/lib/constants';
 
 import { 
   Edit, Trash2, X, Save, ChevronRight, User, Mail, Phone, 
@@ -524,11 +524,7 @@ function EditTrainingCounsellorContent() {
                     onChange={(e) => handleInputChange('modality', e.target.value)}
                     options={[
                       { value: '', label: 'Select Modality' },
-                      { value: 'CBT', label: 'CBT' },
-                      { value: 'Person-Centred', label: 'Person-Centred' },
-                      { value: 'Integrative', label: 'Integrative' },
-                      { value: 'Psychodynamic', label: 'Psychodynamic' },
-                      { value: 'Other', label: 'Other' }
+                      ...MODALITY_SELECT_OPTIONS,
                     ]}
                     placeholder="Select Modality"
                   />

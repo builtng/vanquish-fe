@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { formatName } from "@/lib/nameFormatter";
 import SearchableSelect from "@/components/SearchableSelect";
+import { MODALITY_SELECT_OPTIONS } from "@/lib/constants";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 
@@ -1473,14 +1474,7 @@ function ConsultationsManagementPageFixed() {
                               recommendedModality: e.target.value,
                             })
                           }
-                          options={[
-                            { value: "CBT", label: "CBT" },
-                            {
-                              value: "Person-Centred",
-                              label: "Person-Centred",
-                            },
-                            { value: "Integrative", label: "Integrative" },
-                          ]}
+                          options={MODALITY_SELECT_OPTIONS}
                           placeholder="Select modality..."
                         />
                       </div>

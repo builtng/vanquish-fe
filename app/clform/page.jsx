@@ -12,7 +12,7 @@ import {
 import apiService from "@/lib/api";
 import { toast } from "react-toastify";
 import { useBranding } from "@/contexts/BrandingContext";
-import { SUPPORT_AREAS } from "@/lib/constants";
+import { SUPPORT_AREAS, MODALITY_OPTIONS } from "@/lib/constants";
 import BuildIdentifier from "@/components/BuildIdentifier";
 import WeeklyAvailabilityPicker from "@/components/WeeklyAvailabilityPicker";
 
@@ -116,13 +116,7 @@ export default function ClientInformationSheet() {
 
   const issues = SUPPORT_AREAS;
 
-  const modalities = [
-    "Person-Centred Counselling",
-    "Cognitive Behavioral Therapy (CBT)",
-    "Integrative Counselling and Therapy",
-    "Psychodynamic Therapy",
-    "No specific preference",
-  ];
+  const modalities = ["No specific preference", ...MODALITY_OPTIONS];
 
   const days = [
     { value: "monday", label: "Monday" },

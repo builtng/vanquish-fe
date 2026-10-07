@@ -27,7 +27,7 @@ import apiService from "@/lib/api";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { useBranding } from "@/contexts/BrandingContext";
 import SearchableSelect from "@/components/SearchableSelect";
-import { THERAPY_TOPICS } from "@/lib/constants";
+import { THERAPY_TOPICS, MODALITY_OPTIONS } from "@/lib/constants";
 import OtherOption from "@/components/OtherOption";
 
 const GENDER_OPTIONS = [
@@ -99,35 +99,6 @@ const QUALIFIED_WORK_WITH_OPTIONS = [
   "Couples",
   "Families",
   "Children & Young people",
-];
-
-const MODALITY_OPTIONS = [
-  "Integrative",
-  "Person Centred",
-  "Psychodynamic Therapy",
-  "Integrative Therapy",
-  "Gestalt Therapy",
-  "Existential Therapy",
-  "Acceptance and Commitment Therapy (ACT)",
-  "Compassion-Focused Therapy (CFT)",
-  "Systemic / Family Therapy",
-  "Emotion-Focused Therapy (EFT)",
-  "Trauma-Informed Therapy",
-  "Mindfulness-Based Approaches",
-  "Creative / Arts-Based Therapy",
-  "Counselling & Coaching",
-  "Pluralistic",
-  "Psychoanalytic Therapy",
-  "Humanistic Therapy",
-  "Transactional Analysis (TA)",
-  "Solution-Focused Brief Therapy (SFBT)",
-  "Dialectical Behaviour Therapy (DBT)",
-  "Schema Therapy",
-  "Narrative Therapy",
-  "Attachment-Based Therapy",
-  "Eye Movement Desensitisation and Reprocessing (EMDR)",
-  "Couples / Relationship Therapy",
-  "Other (not listed above)",
 ];
 
 const EXPERIENCE_AREAS_OPTIONS = [

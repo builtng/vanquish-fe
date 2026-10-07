@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { formatName, getCounsellorPrefixType } from "@/lib/nameFormatter";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
+import { MODALITY_SELECT_OPTIONS } from "@/lib/constants";
 
 import {
   Users,
@@ -667,19 +668,7 @@ function ViewAllTrainingCounsellorsContent() {
               onChange={(e) => setFilterModality(e.target.value)}
               options={[
                 { value: 'all', label: 'All Modalities' },
-                { value: 'CBT', label: 'CBT - Cognitive Behavioral Therapy' },
-                { value: 'Person-Centred', label: 'Person-Centred' },
-                { value: 'Integrative', label: 'Integrative' },
-                { value: 'Psychodynamic', label: 'Psychodynamic' },
-                { value: 'Humanistic', label: 'Humanistic' },
-                { value: 'Gestalt', label: 'Gestalt' },
-                { value: 'Solution-Focused', label: 'Solution-Focused' },
-                { value: 'Transactional Analysis', label: 'Transactional Analysis' },
-                { value: 'EMDR', label: 'EMDR' },
-                { value: 'Mindfulness-Based', label: 'Mindfulness-Based' },
-                { value: 'Narrative Therapy', label: 'Narrative Therapy' },
-                { value: 'Systemic', label: 'Systemic' },
-                { value: 'Existential', label: 'Existential' },
+                ...MODALITY_SELECT_OPTIONS,
               ]}
               placeholder="All Modalities"
             />
@@ -1299,11 +1288,11 @@ function ViewAllTrainingCounsellorsContent() {
                     className="w-full px-4 py-2 border border-border bg-background text-foreground rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"
                   >
                     <option value="">Select...</option>
-                    <option value="CBT">CBT</option>
-                    <option value="Person-Centred">Person-Centred</option>
-                    <option value="Integrative">Integrative</option>
-                    <option value="Psychodynamic">Psychodynamic</option>
-                    <option value="Other">Other</option>
+                    {MODALITY_SELECT_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
