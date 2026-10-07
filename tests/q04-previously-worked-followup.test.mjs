@@ -79,4 +79,36 @@ describe("FIX Q04: 'Previously worked with Vanquish' follow-up tests", () => {
       "General counselling training details must be bound to counsellorTrainingDetails"
     );
   });
+
+  it("6. Admin View screen displays 'previously worked with Vanquish' answer and follow-up text", () => {
+    const adminPageContent = fs.readFileSync(
+      new URL("../app/dashboard/qualified-applications/page.jsx", import.meta.url),
+      "utf8"
+    );
+    const adminDetailPageContent = fs.readFileSync(
+      new URL("../app/dashboard/qualified-applications/[id]/page.jsx", import.meta.url),
+      "utf8"
+    );
+
+    // Detail modal in list page
+    assert.ok(
+      adminPageContent.includes("Previously Worked With Vanquish"),
+      "Admin detail modal must display 'Previously Worked With Vanquish'"
+    );
+    assert.ok(
+      adminPageContent.includes("selectedApp.areas_to_improve || selectedApp.answers?.areas_to_improve"),
+      "Admin detail modal must display follow-up areas_to_improve"
+    );
+
+    // Dedicated [id] page
+    assert.ok(
+      adminDetailPageContent.includes("Previously Worked With Vanquish"),
+      "Admin [id] page must display 'Previously Worked With Vanquish'"
+    );
+    assert.ok(
+      adminDetailPageContent.includes("areasToImprove"),
+      "Admin [id] page must display follow-up areasToImprove"
+    );
+  });
 });
+

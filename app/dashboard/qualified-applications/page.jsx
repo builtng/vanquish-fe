@@ -916,6 +916,26 @@ function QualifiedApplicationsContent() {
                   </p>
                 </div>
 
+                {/* Previously Worked With Vanquish */}
+                <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/80">
+                  <h3 className="font-semibold text-gray-800 text-xs uppercase tracking-wider mb-1">
+                    Previously Worked With Vanquish
+                  </h3>
+                  <p className="text-gray-900 font-medium">
+                    {selectedApp.previous_vanquish_work || selectedApp.answers?.previous_vanquish_work || "N/A"}
+                  </p>
+                  {(selectedApp.areas_to_improve || selectedApp.answers?.areas_to_improve) && (
+                    <div className="mt-2.5 pt-2.5 border-t border-purple-100">
+                      <span className="text-xs font-semibold text-purple-900 block mb-1">
+                        Areas to Improve / Development Details:
+                      </span>
+                      <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        {selectedApp.areas_to_improve || selectedApp.answers?.areas_to_improve}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Modalities & Experience */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>

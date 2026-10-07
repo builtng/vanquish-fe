@@ -1329,10 +1329,10 @@ export default function FilteredCounsellors({
                 </div>
               </div>
             </div>
-            </div>
-          )
-        )
-      )}
+          </div>
+        </div>
+      )
+    )}
 
       {/* ───────────────── PROFILE MODAL ───────────────── */}
       {activeProfileModal && (

@@ -3272,6 +3272,7 @@ export default function VanquishClientIntake() {
                     amount={paymentProps.amount}
                     paymentType="consultation"
                     couponCode={paymentProps.couponCode}
+                    consultationSlotId={paymentProps.consultationSlotId}
                     returnUrl={paymentProps.returnUrl}
                     onSuccess={() => {
                       paymentProps.onSuccess();
