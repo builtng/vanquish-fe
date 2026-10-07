@@ -582,7 +582,7 @@ function MidRangeClientIntakeContent() {
         break;
 
       case 10: // Filtered Counsellors & Consultation Slot
-        if (!formData.consultationSlotId && !formData.consultationDatetime)
+        if (!formData.consultationSlotId)
           stepErrors.consultationSlotId =
             "Please choose a counsellor and select an available consultation slot";
         break;
@@ -2865,23 +2865,28 @@ function MidRangeClientIntakeContent() {
                     ...prev,
                     consultationWithTcUuid: counsellor.uuid,
                     consultationWithTcName: counsellor.name,
+                    consultationWithTcId:
+                      counsellor.id || counsellor.training_counsellor_id || null,
+                    consultationSlotId: "",
+                    consultationDatetime: "",
                   }));
                 }}
                 onSelectSlot={(slotData) => {
-                  // Only store a slot ID if it's a real numeric DB record from
-                  // the consultation_slots table. Fake display IDs ("s1", "s2" etc.)
-                  // or counsellor-generated slot IDs must NOT be sent to the backend
-                  // or they will fail the exists:consultation_slots,id validation.
                   const rawId = slotData.id;
-                  const isRealDbSlot = rawId && /^\d+$/.test(String(rawId));
                   const datetime =
                     slotData.consultation_datetime ||
                     slotData.datetime ||
                     "";
                   setFormData((prev) => ({
                     ...prev,
-                    consultationSlotId: isRealDbSlot ? rawId : "",
+                    consultationSlotId: rawId ? String(rawId) : "",
                     consultationDatetime: datetime,
+                    consultationWithTcId:
+                      slotData.counsellorId || prev.consultationWithTcId || null,
+                    consultationWithTcUuid:
+                      slotData.counsellorUuid || prev.consultationWithTcUuid || "",
+                    consultationWithTcName:
+                      slotData.counsellorName || prev.consultationWithTcName || "",
                   }));
                   setErrors((prev) => {
                     const updated = { ...prev };
@@ -3073,6 +3078,37 @@ function MidRangeClientIntakeContent() {
                 </div>
 
                 <div className="bg-purple-50 border border-purple-200 rounded-xl p-6 mb-6">
+                  {formData.consultationWithTcName && (
+                    <div className="flex justify-between items-center mb-3 pb-3 border-b border-purple-100">
+                      <span className="text-sm font-medium text-gray-700">
+                        Selected Counsellor:
+                      </span>
+                      <span className="text-base font-semibold text-gray-900">
+                        {formData.consultationWithTcName}
+                      </span>
+                    </div>
+                  )}
+                  {formData.consultationDatetime && (
+                    <div className="flex justify-between items-center mb-3 pb-3 border-b border-purple-100">
+                      <span className="text-sm font-medium text-gray-700">
+                        Consultation Date &amp; Time:
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {new Date(
+                          formData.consultationDatetime.replace(" ", "T")
+                        ).toLocaleString("en-GB", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}{" "}
+                        (UK time)
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-lg font-medium text-gray-700">
                       Initial Consultation Fee ({formData.serviceType}):

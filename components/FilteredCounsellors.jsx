@@ -35,27 +35,9 @@ const FEMALE_PORTRAITS = [
   "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=800&auto=format&fit=crop",
 ];
 
-export function formatYearsOfExperience(raw) {
-  if (!raw && raw !== 0) return "5+ years experience";
-  if (typeof raw === "number") {
-    const rounded = Math.ceil(raw);
-    return `${rounded}+ years experience`;
-  }
-  if (typeof raw === "string") {
-    const clean = raw.trim();
-    if (clean.includes("years experience") && !clean.match(/\d+\.\d+/)) {
-      return clean;
-    }
-    const match = clean.match(/(\d+(?:\.\d+)?)/);
-    if (match) {
-      const num = parseFloat(match[1]);
-      const rounded = Math.ceil(num);
-      return `${rounded}+ years experience`;
-    }
-    return clean;
-  }
-  return "5+ years experience";
-}
+
+export const NO_MATCH_MESSAGE =
+  "No counsellors match all your preferences right now. Please widen your availability or preferences, or contact help@vanquishtherapies.co.uk.";
 
 export function resolveCounsellorPhoto(counsellor, index = 0) {
   if (
@@ -113,102 +95,6 @@ function CounsellorAvatar({
   );
 }
 
-const FALLBACK_COUNSELLORS = [
-  {
-    uuid: "counsellor-sarah-mitchell",
-    name: "Sarah Mitchell",
-    first_name: "Sarah",
-    gender: "Female",
-    qualification_title: "Registered Counsellor (RPC)",
-    years_of_experience: "8+ years experience",
-    photo_url: FEMALE_PORTRAITS[0],
-    modality: "Integrative Therapy",
-    specialty: "Couples Counsellor",
-    qualified_to_work_with: ["Individuals", "Couples"],
-    bio: "I help individuals and couples heal from trauma, improve communication and build healthier, more connected relationships.",
-    topics_with_experience: [
-      "Trauma",
-      "Domestic Violence",
-      "Anxiety",
-      "Abuse",
-    ],
-    availability_summary: "Available: Mon, Tue, Fri (11am – 5pm)",
-    match_score: 100,
-    fit_label: "Best Fit",
-    session_type: "Online (Video) or In-Person",
-    languages: "English",
-    insurance: "Not accepted",
-    education_credentials: [
-      "Master of Counselling Psychology - Yorkville University",
-      "Registered Professional Counsellor (RPC) - CRPO",
-      "Trauma-Informed Therapy Certificate - The Trauma Centre",
-    ],
-    show_own_consultation_availability: true,
-  },
-  {
-    uuid: "counsellor-jessica-thompson",
-    name: "Jessica Thompson",
-    first_name: "Jessica",
-    gender: "Female",
-    qualification_title: "Registered Counsellor (RPC)",
-    years_of_experience: "6+ years experience",
-    photo_url: FEMALE_PORTRAITS[1],
-    modality: "Integrative Therapy",
-    specialty: "Couples Counsellor",
-    qualified_to_work_with: ["Individuals", "Couples"],
-    bio: "Specializing in trauma recovery and supporting couples to create stronger, healthier connections.",
-    topics_with_experience: [
-      "Trauma",
-      "Domestic Violence",
-      "Anxiety",
-      "Abuse",
-    ],
-    availability_summary: "Available: Mon, Tue, Fri (11am – 5pm)",
-    match_score: 92,
-    fit_label: "Great Fit",
-    session_type: "Online (Video) or In-Person",
-    languages: "English",
-    insurance: "Not accepted",
-    education_credentials: [
-      "Postgraduate Diploma in Integrative Psychotherapy",
-      "Registered Professional Counsellor (RPC) - CRPO",
-      "Certificate in Couples & Relational Therapy",
-    ],
-    show_own_consultation_availability: true,
-  },
-  {
-    uuid: "counsellor-emily-rose",
-    name: "Emily Rose",
-    first_name: "Emily",
-    gender: "Female",
-    qualification_title: "Registered Counsellor (RPC)",
-    years_of_experience: "5+ years experience",
-    photo_url: FEMALE_PORTRAITS[2],
-    modality: "Integrative Therapy",
-    specialty: "Couples Counsellor",
-    qualified_to_work_with: ["Individuals", "Couples"],
-    bio: "I support clients in healing from past experiences, managing anxiety and building safe, fulfilling relationships.",
-    topics_with_experience: [
-      "Trauma",
-      "Domestic Violence",
-      "Anxiety",
-      "Abuse",
-    ],
-    availability_summary: "Available: Mon, Tue, Fri (11am – 5pm)",
-    match_score: 85,
-    fit_label: "Good Fit",
-    session_type: "Online (Video) or In-Person",
-    languages: "English",
-    insurance: "Not accepted",
-    education_credentials: [
-      "Master of Clinical Counselling - University of Toronto",
-      "Registered Professional Counsellor (RPC) - CRPO",
-      "Mindfulness-Based Relational Practice",
-    ],
-    show_own_consultation_availability: true,
-  },
-];
-
 export default function FilteredCounsellors({
   formData = {},
   onSelectCounsellor = () => {},
@@ -235,7 +121,6 @@ export default function FilteredCounsellors({
   const [slotSource, setSlotSource] = useState("counsellor");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
-  const [timezone, setTimezone] = useState("Europe/London");
   const [faqExpanded, setFaqExpanded] = useState(false);
 
   // Format client availability summary text
@@ -281,7 +166,7 @@ export default function FilteredCounsellors({
       !formData.genderPreference ||
       formData.genderPreference === "No preference"
     ) {
-      return "Female Counsellor";
+      return "No preference";
     }
     return formData.genderPreference.includes("Counsellor")
       ? formData.genderPreference
@@ -304,7 +189,7 @@ export default function FilteredCounsellors({
           is_couples: !!formData.isCouples,
           support_areas: formData.supportAreas || [],
           availability: formData.availability || {},
-          gender_preference: formData.genderPreference || "Female",
+          gender_preference: formData.genderPreference || "No preference",
           age_preference: formData.agePreference || "No preference",
           ethnicity_preference: formData.ethnicityPreference || "No preference",
           orientation_preference:
@@ -320,59 +205,36 @@ export default function FilteredCounsellors({
           ) {
             const enhanced = res.counsellors.map((c, index) => {
               const photo = resolveCounsellorPhoto(c, index);
-              const fallback =
-                FALLBACK_COUNSELLORS[index % FALLBACK_COUNSELLORS.length];
               return {
-                ...fallback,
                 ...c,
                 first_name:
                   c.first_name ||
-                  (c.name ? c.name.split(" ")[0] : fallback.first_name),
+                  (c.name ? c.name.split(" ")[0] : "Counsellor"),
                 photo_url: photo,
-                qualification_title:
-                  c.qualification_title || fallback.qualification_title,
-                years_of_experience: formatYearsOfExperience(
-                  c.years_of_experience || fallback.years_of_experience
-                ),
-                bio: c.bio || fallback.bio,
+                bio: c.bio || "",
                 topics_with_experience:
-                  c.topics_with_experience &&
-                  c.topics_with_experience.length > 0
+                  Array.isArray(c.topics_with_experience) && c.topics_with_experience.length > 0
                     ? c.topics_with_experience
-                    : fallback.topics_with_experience,
-                availability_summary:
-                  c.availability_summary || fallback.availability_summary,
-                match_score: c.match_score || fallback.match_score,
-                fit_label: c.fit_label || fallback.fit_label,
-                session_type: c.session_type || fallback.session_type,
-                languages: c.languages || fallback.languages,
-                insurance: c.insurance || fallback.insurance,
-                education_credentials:
-                  c.education_credentials || fallback.education_credentials,
+                    : [],
+                availability_summary: c.availability_summary || "",
+                match_score: c.match_score || 0,
+                fit_label: c.fit_label || "Matched",
+                modality: c.modality || "Integrative Therapy",
+                specialty: c.specialty || clientSpecialtyLabel,
                 show_own_consultation_availability:
-                  c.show_own_consultation_availability ??
-                  fallback.show_own_consultation_availability,
+                  c.show_own_consultation_availability,
               };
             });
             setCounsellors(enhanced);
-
-            if (!selectedCounsellorUuid && enhanced.length > 0) {
-              onSelectCounsellor(enhanced[0]);
-            }
+            // Do not auto-select counsellor on load
           } else {
-            setCounsellors(FALLBACK_COUNSELLORS);
-            if (!selectedCounsellorUuid) {
-              onSelectCounsellor(FALLBACK_COUNSELLORS[0]);
-            }
+            setCounsellors([]);
           }
         }
       } catch (err) {
         console.error("Failed to load filtered counsellors:", err);
         if (isMounted) {
-          setCounsellors(FALLBACK_COUNSELLORS);
-          if (!selectedCounsellorUuid) {
-            onSelectCounsellor(FALLBACK_COUNSELLORS[0]);
-          }
+          setCounsellors([]);
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -396,16 +258,23 @@ export default function FilteredCounsellors({
 
   // Fetch slots for selected counsellor
   useEffect(() => {
-    if (!selectedCounsellorUuid) return;
+    if (!selectedCounsellorUuid) {
+      setCounsellorSlots([]);
+      setSelectedCalendarDate(null);
+      return;
+    }
 
     let isMounted = true;
+    const currentUuid = selectedCounsellorUuid;
+    setSelectedCalendarDate(null);
+
     const fetchCounsellorSlots = async () => {
       setLoadingCounsellorSlots(true);
       try {
         const res = await apiService.getCounsellorConsultationAvailability(
-          selectedCounsellorUuid
+          currentUuid
         );
-        if (isMounted && res) {
+        if (isMounted && currentUuid === selectedCounsellorUuid && res) {
           setSlotSource(res.source || "counsellor");
           if (Array.isArray(res.slots) && res.slots.length > 0) {
             setCounsellorSlots(res.slots);
@@ -418,12 +287,14 @@ export default function FilteredCounsellors({
           "Error fetching counsellor consultation availability:",
           err
         );
-        if (isMounted) {
+        if (isMounted && currentUuid === selectedCounsellorUuid) {
           setSlotSource("vanquish");
           setCounsellorSlots(availableSlots);
         }
       } finally {
-        if (isMounted) setLoadingCounsellorSlots(false);
+        if (isMounted && currentUuid === selectedCounsellorUuid) {
+          setLoadingCounsellorSlots(false);
+        }
       }
     };
 
@@ -440,12 +311,6 @@ export default function FilteredCounsellors({
       case "best_fit":
       case "score_desc":
         return list.sort((a, b) => (b.match_score || 0) - (a.match_score || 0));
-      case "experience_desc":
-        return list.sort((a, b) => {
-          const numA = parseInt(a.years_of_experience || "0", 10) || 0;
-          const numB = parseInt(b.years_of_experience || "0", 10) || 0;
-          return numB - numA;
-        });
       case "name_asc":
         return list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       default:
@@ -458,10 +323,9 @@ export default function FilteredCounsellors({
   };
 
   const selectedCounsellorObj = useMemo(() => {
+    if (!selectedCounsellorUuid) return null;
     return (
-      counsellors.find((c) => c.uuid === selectedCounsellorUuid) ||
-      counsellors[0] ||
-      FALLBACK_COUNSELLORS[0]
+      counsellors.find((c) => c.uuid === selectedCounsellorUuid) || null
     );
   }, [counsellors, selectedCounsellorUuid]);
 
@@ -504,7 +368,7 @@ export default function FilteredCounsellors({
   const firstName =
     selectedCounsellorObj?.first_name ||
     selectedCounsellorObj?.name?.split(" ")[0] ||
-    "Sarah";
+    "Counsellor";
 
   const formatDisplayDate = (dateStr) => {
     if (!dateStr) return "";
@@ -537,7 +401,7 @@ export default function FilteredCounsellors({
                 <span className="font-semibold text-emerald-800 uppercase tracking-wide">
                   FILTERED
                 </span>{" "}
-                these counsellors for you.
+                these counsellors for you. Choose a counsellor to see consultation times.
               </p>
             </div>
 
@@ -802,6 +666,25 @@ export default function FilteredCounsellors({
                     Matching and filtering counsellors...
                   </p>
                 </div>
+              ) : sortedCounsellors.length === 0 ? (
+                <div className="bg-white rounded-2xl p-12 text-center border border-gray-200/80 shadow-2xs space-y-4">
+                  <div className="w-12 h-12 rounded-full bg-emerald-50 text-[#2d5a3f] flex items-center justify-center mx-auto">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    No Matching Counsellors
+                  </h3>
+                  <p className="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+                    No counsellors match all your preferences right now. Please widen your availability or preferences, or contact{" "}
+                    <a
+                      href="mailto:help@vanquishtherapies.co.uk"
+                      className="text-[#2d5a3f] font-semibold underline"
+                    >
+                      help@vanquishtherapies.co.uk
+                    </a>
+                    .
+                  </p>
+                </div>
               ) : (
                 sortedCounsellors.map((counsellor, cIdx) => {
                   const isFav = !!favorites[counsellor.uuid];
@@ -850,14 +733,6 @@ export default function FilteredCounsellors({
                                 <h2 className="font-serif text-2xl md:text-[26px] font-semibold text-gray-900 leading-tight">
                                   {counsellor.name}
                                 </h2>
-                                <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                                  {counsellor.qualification_title}
-                                </p>
-                                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-                                  {formatYearsOfExperience(
-                                    counsellor.years_of_experience
-                                  )}
-                                </p>
                               </div>
 
                               {/* Fit Score Badge Box */}
@@ -951,12 +826,27 @@ export default function FilteredCounsellors({
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════════ */}
-      {/* VIEW MODE 2: DEDICATED INITIAL CONSULTATION BOOKING VIEW           */}
-      {/* ═══════════════════════════════════════════════════════════════════ */}
       {viewMode === "booking" && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          {/* Back button */}
+        !selectedCounsellorObj ? (
+          <div className="bg-white rounded-2xl border border-gray-200/80 p-12 text-center shadow-2xs space-y-4">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 text-[#2d5a3f] flex items-center justify-center mx-auto">
+              <Users className="w-6 h-6" />
+            </div>
+            <p className="text-gray-700 font-semibold text-base">
+              Choose a counsellor to see consultation times.
+            </p>
+            <button
+              type="button"
+              onClick={() => setViewMode("directory")}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2d4a3e] hover:bg-[#223930] text-white text-sm font-semibold transition cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Choose a Counsellor</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Back button */}
           <div className="flex items-center justify-between">
             <button
               type="button"
@@ -1008,14 +898,6 @@ export default function FilteredCounsellors({
                         </svg>
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-600 font-normal mt-1">
-                      {selectedCounsellorObj.qualification_title}
-                    </p>
-                    <p className="text-xs text-gray-500 font-normal mt-0.5">
-                      {formatYearsOfExperience(
-                        selectedCounsellorObj.years_of_experience
-                      )}
-                    </p>
                   </div>
 
                   {/* Modality & Specialty Pills */}
@@ -1062,14 +944,6 @@ export default function FilteredCounsellors({
                   {/* Quick Icon Details */}
                   <div className="space-y-2.5 pt-3 border-t border-gray-100 text-xs sm:text-sm text-gray-700">
                     <div className="flex items-start gap-2.5">
-                      <MapPin className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                      <span>
-                        <strong>Session Type:</strong>{" "}
-                        {selectedCounsellorObj.session_type ||
-                          "Online (Video) or In-Person"}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2.5">
                       <Calendar className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
                       <span>
                         <strong>Availability:</strong>{" "}
@@ -1090,31 +964,11 @@ export default function FilteredCounsellors({
                         {selectedCounsellorObj.languages || "English"}
                       </span>
                     </div>
-                    <div className="flex items-start gap-2.5">
-                      <ShieldCheck className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                      <span>
-                        <strong>Insurance:</strong>{" "}
-                        {selectedCounsellorObj.insurance || "Not accepted"}
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Education & Credentials Card */}
-              <div className="bg-white rounded-2xl border border-gray-200/80 shadow-2xs p-6 space-y-4">
-                <h3 className="text-base font-bold text-gray-900">
-                  Education & Credentials
-                </h3>
-                <ul className="space-y-2.5 text-xs sm:text-sm text-gray-600">
-                  {(selectedCounsellorObj.education_credentials || []).map((cred, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-[#2d5a3f] mt-0.5 font-bold">•</span>
-                      <span>{cred}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+
             </div>
 
             {/* Right Column: Consultation Booking Calendar */}
@@ -1177,22 +1031,9 @@ export default function FilteredCounsellors({
                     Select a Date & Time
                   </h3>
 
-                  <div className="flex items-center gap-1.5 text-xs text-gray-600 self-start sm:self-auto">
+                  <div className="flex items-center gap-1.5 text-xs text-gray-600 self-start sm:self-auto font-medium">
                     <Globe className="w-4 h-4 text-gray-500" />
-                    <span>All times shown in</span>
-                    <div className="relative inline-flex items-center">
-                      <select
-                        value={timezone}
-                        onChange={(e) => setTimezone(e.target.value)}
-                        className="appearance-none bg-transparent pr-5 text-xs font-semibold text-gray-800 focus:outline-none cursor-pointer"
-                      >
-                        <option value="AEST">(AEST)</option>
-                        <option value="Europe/London">(UK / GMT)</option>
-                        <option value="EST">(EST)</option>
-                        <option value="PST">(PST)</option>
-                      </select>
-                      <ChevronDown className="w-3.5 h-3.5 text-gray-500 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
+                    <span>All times are UK time.</span>
                   </div>
                 </div>
 
@@ -1311,23 +1152,23 @@ export default function FilteredCounsellors({
                                 month + 1
                               ).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
                               const hasSlots =
-                                (groupedSlots[dateStr] &&
-                                groupedSlots[dateStr].length > 0) ||
-                                [20, 21, 24, 27, 28, 31].includes(d);
-                              const isSelected =
-                                selectedCalendarDate === dateStr ||
-                                (!selectedCalendarDate && d === 20);
+                                !!(groupedSlots[dateStr] &&
+                                groupedSlots[dateStr].length > 0);
+                              const isSelected = selectedCalendarDate === dateStr;
 
                               cells.push(
                                 <button
                                   key={`day-${d}`}
                                   type="button"
+                                  disabled={!hasSlots}
                                   onClick={() => {
-                                    setSelectedCalendarDate(dateStr);
+                                    if (hasSlots) {
+                                      setSelectedCalendarDate(dateStr);
+                                    }
                                   }}
                                   className={`p-2 w-full aspect-square rounded-full flex items-center justify-center text-xs transition-all ${
                                     isSelected
-                                      ? "bg-[#2d4a3e] text-white shadow-xs font-bold"
+                                      ? "bg-[#2d4a3e] text-white shadow-xs font-bold cursor-pointer"
                                       : hasSlots
                                       ? "border border-gray-300 text-gray-800 hover:bg-emerald-50 hover:border-[#2d4a3e] cursor-pointer"
                                       : "text-gray-300 cursor-not-allowed"
@@ -1354,11 +1195,19 @@ export default function FilteredCounsellors({
                         <h4 className="text-sm md:text-base font-bold text-gray-900">
                           {selectedCalendarDate
                             ? formatDisplayDate(selectedCalendarDate)
-                            : "Monday, 20 May 2024"}
+                            : "Choose a Date"}
                         </h4>
 
                         <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                           {(() => {
+                            if (!selectedCalendarDate) {
+                              return (
+                                <p className="text-xs sm:text-sm text-gray-500 py-4">
+                                  Please select an available date from the calendar.
+                                </p>
+                              );
+                            }
+
                             const dateSlots = activeSlots.filter((slot) => {
                               const dtStr =
                                 slot.consultation_datetime || slot.datetime;
@@ -1372,30 +1221,28 @@ export default function FilteredCounsellors({
                               return dateStr === selectedCalendarDate;
                             });
 
-                            const displaySlots =
-                              dateSlots.length > 0
-                                ? dateSlots
-                                : [
-                                    { id: "s1", timeString: "11:00 AM – 11:15 AM" },
-                                    { id: "s2", timeString: "11:15 AM – 11:30 AM" },
-                                    { id: "s3", timeString: "11:30 AM – 11:45 AM" },
-                                    { id: "s4", timeString: "11:45 AM – 12:00 PM" },
-                                    { id: "s5", timeString: "12:00 PM – 12:15 PM" },
-                                    { id: "s6", timeString: "12:15 PM – 12:30 PM" },
-                                    { id: "s7", timeString: "12:30 PM – 12:45 PM" },
-                                    { id: "s8", timeString: "12:45 PM – 1:00 PM" },
-                                    { id: "s9", timeString: "1:00 PM – 1:15 PM" },
-                                    { id: "s10", timeString: "1:15 PM – 1:30 PM" },
-                                  ];
+                            if (dateSlots.length === 0) {
+                              return (
+                                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs sm:text-sm">
+                                  No times available on this date. Please choose another date.
+                                </div>
+                              );
+                            }
 
-                            return displaySlots.map((slot, index) => {
+                            return dateSlots.map((slot, index) => {
                               const slotLabel =
                                 slot.timeString ||
                                 slot.time_slot ||
-                                "11:00 AM – 11:15 AM";
-                              const isSlotChosen =
-                                selectedSlotId === slot.id ||
-                                (!selectedSlotId && index === 0);
+                                (slot.consultation_datetime || slot.datetime
+                                  ? new Date(
+                                      (slot.consultation_datetime || slot.datetime).replace(" ", "T")
+                                    ).toLocaleTimeString("en-GB", {
+                                      hour: "numeric",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                    })
+                                  : "Available Slot");
+                              const isSlotChosen = selectedSlotId === slot.id;
 
                               return (
                                 <button
@@ -1413,6 +1260,14 @@ export default function FilteredCounsellors({
                                         slot.consultation_datetime ||
                                         null,
                                       timeString: slotLabel,
+                                      counsellorId:
+                                        selectedCounsellorObj?.id ||
+                                        slot.training_counsellor_id ||
+                                        null,
+                                      counsellorUuid:
+                                        selectedCounsellorObj?.uuid || null,
+                                      counsellorName:
+                                        selectedCounsellorObj?.name || null,
                                     })
                                   }
                                   className={`w-full py-2.5 px-4 rounded-xl border text-xs sm:text-sm font-semibold transition text-center cursor-pointer ${
@@ -1474,8 +1329,9 @@ export default function FilteredCounsellors({
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+            </div>
+          )
+        )
       )}
 
       {/* ───────────────── PROFILE MODAL ───────────────── */}
@@ -1529,14 +1385,6 @@ export default function FilteredCounsellors({
                     </svg>
                   </span>
                 </div>
-                <p className="text-sm font-medium text-gray-600">
-                  {activeProfileModal.qualification_title}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {formatYearsOfExperience(
-                    activeProfileModal.years_of_experience
-                  )}
-                </p>
               </div>
             </div>
 
@@ -1597,20 +1445,7 @@ export default function FilteredCounsellors({
               </div>
             </div>
 
-            {/* Education & Credentials */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
-                Education & Credentials
-              </h4>
-              <ul className="space-y-2 text-xs md:text-sm text-gray-600 bg-gray-50 rounded-2xl p-4">
-                {(activeProfileModal.education_credentials || []).map((cred, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-[#2d5a3f] mt-0.5 font-bold">•</span>
-                    <span>{cred}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+
 
             {/* Modal Actions */}
             <div className="pt-4 border-t border-gray-100 flex gap-3">
