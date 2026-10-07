@@ -146,7 +146,8 @@ export default function WeeklyAvailabilityPicker({
         <Clock className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-blue-900 leading-relaxed">
           <strong>Important:</strong> All times are in <strong>UK Time</strong>.
-          Sessions run weekly at the same scheduled time. Monday to Thursday
+          {" "}The more availability you provide, the more options you will have.
+          {" "}Sessions run weekly at the same scheduled time. Monday to Thursday
           sessions run up to 6:50 PM; Friday sessions conclude by 5:50 PM.
         </div>
       </div>
