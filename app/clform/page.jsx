@@ -746,9 +746,6 @@ export default function ClientInformationSheet() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                   >
                     <option value="No preference">No preference</option>
-                    <option value="Younger">
-                      Prefer younger counsellor (close to my age)
-                    </option>
                     <option value="Older">Prefer older counsellor</option>
                     <option value="Custom range">Custom age range</option>
                   </select>

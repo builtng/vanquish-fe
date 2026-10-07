@@ -2480,10 +2480,6 @@ function MidRangeClientIntakeContent() {
                       className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     >
                       <option value="No preference">No preference</option>
-                      <option value="Younger">
-                        Prefer younger counsellor (close to my age) (subject to
-                        availability)
-                      </option>
                       <option value="Older">
                         Prefer older counsellor (subject to availability)
                       </option>

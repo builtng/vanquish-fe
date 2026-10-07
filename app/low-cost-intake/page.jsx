@@ -2049,10 +2049,6 @@ export default function VanquishClientIntake() {
                       style={{ borderColor: "var(--input-border)" }}
                     >
                       <option value="No preference">No preference</option>
-                      <option value="Younger">
-                        Prefer younger counsellor (close to my age) (subject to
-                        availability)
-                      </option>
                       <option value="Older">
                         Prefer older counsellor (subject to availability)
                       </option>
