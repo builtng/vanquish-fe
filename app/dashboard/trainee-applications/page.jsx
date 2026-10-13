@@ -161,7 +161,7 @@ function TraineeApplicationsDashboardContent() {
                   Assessment Settings
                 </Link>
                 <a
-                  href="/trainee-application"
+                  href="/counsellor"
                   target="_blank"
                   className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all font-medium shadow-sm text-sm"
                 >

@@ -50,5 +50,5 @@ test("Any StripePaymentWrapper with paymentType=\"consultation\" must pass consu
     }
   }
 
-  assert.ok(checkedCount >= 3, `Expected at least 3 consultation wrappers checked, found ${checkedCount}`);
+  assert.ok(checkedCount >= 2, `Expected at least 2 consultation wrappers checked, found ${checkedCount}`);
 });

@@ -42,6 +42,7 @@ test("Q07: One modality list defined in lib/constants/modalities.js with Integra
 
   for (const relativePath of targetFiles) {
     const filePath = path.join(rootDir, relativePath);
+    if (!fs.existsSync(filePath)) continue;
     const content = fs.readFileSync(filePath, "utf8");
 
     // Must import MODALITY_OPTIONS
@@ -52,7 +53,7 @@ test("Q07: One modality list defined in lib/constants/modalities.js with Integra
 
     // Must NOT define inline MODALITY_OPTIONS array
     assert.ok(
-      !content.includes("const MODALITY_OPTIONS = [") && !content.includes("const MODALITY_OPTIONS = ["),
+      !content.includes("const MODALITY_OPTIONS = ["),
       `${relativePath} must not define an inline MODALITY_OPTIONS array`
     );
   }

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function IshRedirectPage() {
-  redirect("/coaching");
+  redirect("/mid-range-intake?service=coaching");
 }

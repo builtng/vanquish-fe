@@ -129,8 +129,28 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: "/coaching",
+        destination: "/mid-range-intake?service=coaching",
+        permanent: true,
+      },
+      {
+        source: "/clform",
+        destination: "/low-cost-intake",
+        permanent: true,
+      },
+      {
+        source: "/tcform",
+        destination: "/counsellor",
+        permanent: true,
+      },
+      {
+        source: "/trainee-application",
+        destination: "/counsellor",
+        permanent: true,
+      },
+      {
         source: "/ish",
-        destination: "/coaching",
+        destination: "/mid-range-intake?service=coaching",
         permanent: true,
       },
     ];
