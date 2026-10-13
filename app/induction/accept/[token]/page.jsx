@@ -89,9 +89,6 @@ export default function AcceptInductionPage() {
               <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
                 <h3 className="font-semibold text-gray-900 mb-3">Induction Details:</h3>
                 <div className="space-y-2 text-sm text-gray-700">
-                  {induction.training_counsellor?.name && (
-                    <p><strong>Conducted by:</strong> {induction.training_counsellor.name}</p>
-                  )}
                   <p><strong>Date & Time:</strong> {formatDateTime(induction.scheduled_at, induction.scheduled_end_at)}</p>
                   {induction.location && (
                     <p><strong>Location:</strong> {induction.location}</p>
