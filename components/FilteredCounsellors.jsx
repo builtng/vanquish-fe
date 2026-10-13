@@ -291,6 +291,8 @@ export default function FilteredCounsellors({
                 specialty: c.specialty || "",
                 show_own_consultation_availability:
                   c.show_own_consultation_availability,
+                show_vanquish_consultation_availability:
+                  c.show_vanquish_consultation_availability,
               };
             });
             setCounsellors(enhanced);
@@ -354,11 +356,14 @@ export default function FilteredCounsellors({
           currentUuid
         );
         if (isMounted && currentUuid === selectedCounsellorUuid && res) {
-          setSlotSource(res.source || "counsellor");
-          if (Array.isArray(res.slots) && res.slots.length > 0) {
+          const source = res.source || "none";
+          setSlotSource(source);
+          if (source === "counsellor" && Array.isArray(res.slots) && res.slots.length > 0) {
             setCounsellorSlots(res.slots);
-          } else {
+          } else if (source === "vanquish") {
             setCounsellorSlots(availableSlots);
+          } else {
+            setCounsellorSlots([]);
           }
         }
       } catch (err) {
@@ -367,8 +372,8 @@ export default function FilteredCounsellors({
           err
         );
         if (isMounted && currentUuid === selectedCounsellorUuid) {
-          setSlotSource("vanquish");
-          setCounsellorSlots(availableSlots);
+          setSlotSource("none");
+          setCounsellorSlots([]);
         }
       } finally {
         if (isMounted && currentUuid === selectedCounsellorUuid) {
@@ -410,8 +415,11 @@ export default function FilteredCounsellors({
 
   // Effective slots to display in calendar
   const activeSlots = useMemo(() => {
+    if (slotSource === "none") return [];
+    if (slotSource === "counsellor") return counsellorSlots;
+    if (slotSource === "vanquish") return availableSlots;
     return counsellorSlots.length > 0 ? counsellorSlots : availableSlots;
-  }, [counsellorSlots, availableSlots]);
+  }, [slotSource, counsellorSlots, availableSlots]);
 
   // Auto-align calendar date with active slots
   useEffect(() => {
@@ -435,14 +443,8 @@ export default function FilteredCounsellors({
   }, [activeSlots, selectedCalendarDate]);
 
   const isDelegatedToVanquish = useMemo(() => {
-    if (selectedCounsellorObj?.show_own_consultation_availability === false) {
-      return true;
-    }
-    if (selectedCounsellorObj?.show_own_consultation_availability === true) {
-      return false;
-    }
     return slotSource === "vanquish";
-  }, [slotSource, selectedCounsellorObj]);
+  }, [slotSource]);
 
   const firstName =
     (selectedCounsellorObj?.name ? selectedCounsellorObj.name.replace(/^(Dr|Mr|Mrs|Ms|Miss|Prof)\.?\s+/i, "").trim().split(" ")[0] : null) ||
@@ -892,16 +894,23 @@ export default function FilteredCounsellors({
                               </span>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onSelectCounsellor(counsellor);
-                                setViewMode("booking");
-                              }}
-                              className="py-2 px-6 rounded-lg bg-[#2d4a3e] hover:bg-[#223930] text-white text-xs sm:text-sm font-semibold shadow-xs transition text-center cursor-pointer shrink-0"
-                            >
-                              View profile and book consultation
-                            </button>
+                            {counsellor.show_own_consultation_availability === false &&
+                            counsellor.show_vanquish_consultation_availability === false ? (
+                              <div className="p-2.5 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-900 text-xs sm:text-sm font-medium">
+                                This counsellor is not taking new consultations at the moment.
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onSelectCounsellor(counsellor);
+                                  setViewMode("booking");
+                                }}
+                                className="py-2 px-6 rounded-lg bg-[#2d4a3e] hover:bg-[#223930] text-white text-xs sm:text-sm font-semibold shadow-xs transition text-center cursor-pointer shrink-0"
+                              >
+                                View profile and book consultation
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1095,21 +1104,23 @@ export default function FilteredCounsellors({
 
             {/* Right Column: Consultation Booking Calendar */}
             <div className="lg:col-span-8 space-y-6">
-              {/* Notice Banner */}
-              <div className="bg-[#fffdf5] rounded-2xl border border-[#fef3c7] p-4 md:p-5 shadow-2xs flex items-start gap-3.5">
-                <div className="w-6 h-6 rounded-full border border-amber-500 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5 font-serif font-bold text-sm">
-                  i
+              {/* Notice Banner - shown when falling back to Vanquish slots */}
+              {slotSource === "vanquish" && (
+                <div className="bg-[#fffdf5] rounded-2xl border border-[#fef3c7] p-4 md:p-5 shadow-2xs flex items-start gap-3.5">
+                  <div className="w-6 h-6 rounded-full border border-amber-500 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5 font-serif font-bold text-sm">
+                    i
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs sm:text-sm font-bold text-gray-900">
+                      This counsellor does not have availability for a consultation in the next few weeks.
+                    </h4>
+                    <p className="text-xs text-gray-600 leading-relaxed">
+                      However, choose any of these slots to book a consultation with Vanquish Therapies.
+                      After the consultation, you can begin sessions with {firstName}.
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-0.5">
-                  <h4 className="text-xs sm:text-sm font-bold text-gray-900">
-                    This counsellor does not have availability for a consultation in the next few weeks.
-                  </h4>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    However, choose any of these slots to book a consultation with Vanquish Therapies.
-                    After the consultation, you can begin sessions with {firstName}.
-                  </p>
-                </div>
-              </div>
+              )}
 
               {/* Book a Consultation Card */}
               <div className="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-2xs space-y-4">
@@ -1170,6 +1181,15 @@ export default function FilteredCounsellors({
                     <Loader2 className="w-8 h-8 animate-spin text-[#2d5a3f]" />
                     <p className="text-sm text-gray-500">
                       Loading available consultation slots...
+                    </p>
+                  </div>
+                ) : slotSource === "none" || activeSlots.length === 0 ? (
+                  <div className="p-8 bg-amber-50 border border-amber-200/80 rounded-2xl text-center space-y-2">
+                    <p className="text-sm sm:text-base font-semibold text-amber-900">
+                      This counsellor is not taking new consultations at the moment.
+                    </p>
+                    <p className="text-xs sm:text-sm text-amber-700">
+                      Please return to the counsellor list to choose another counsellor.
                     </p>
                   </div>
                 ) : (

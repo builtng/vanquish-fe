@@ -606,7 +606,7 @@ function ProfilePageContent() {
           )}
 
           {/* Consultation Availability Toggle (Qualified counsellors only) */}
-          {tcData?.counsellor_type === "Qualified" && (
+          {String(tcData?.counsellor_type || "").toLowerCase() === "qualified" && (
             <section className="bg-white dark:bg-[var(--card-bg)] rounded-2xl border border-gray-200 dark:border-[var(--card-border)] shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100 dark:border-[var(--card-border)] flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -734,7 +734,8 @@ function ProfilePageContent() {
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
                       • When you have open consultation slots and <strong>"Show clients my consultation availability"</strong> is enabled, clients will see your direct availability.<br />
-                      • Where you have no consultation availability or prefer not to conduct them, <strong>Vanquish Therapies' consultation availability</strong> is displayed instead.
+                      • Where you have no consultation availability or prefer not to conduct them, <strong>Vanquish Therapies' consultation availability</strong> is displayed instead when enabled.<br />
+                      • If both toggles are off, no consultation slots are offered.
                     </p>
                   </div>
                 </div>
