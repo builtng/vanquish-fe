@@ -62,6 +62,7 @@ import {
   DollarSign,
   Repeat,
   Building2,
+  UserX,
 } from "lucide-react";
 
 function ConsultationsManagementPageFixed() {
@@ -103,6 +104,7 @@ function ConsultationsManagementPageFixed() {
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
+  const [showNoShowConfirmModal, setShowNoShowConfirmModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -221,7 +223,7 @@ function ConsultationsManagementPageFixed() {
       router.push(`/admin/book-consultation?bookClientUuid=${bookClientUuid}`);
     }
     const tabParam = searchParams.get("tab");
-    if (tabParam && ["today", "upcoming", "completed", "rescheduled", "cancelled", "all"].includes(tabParam)) {
+    if (tabParam && ["today", "upcoming", "past_not_completed", "completed", "rescheduled", "cancelled", "all"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [searchParams, router]);
@@ -229,11 +231,43 @@ function ConsultationsManagementPageFixed() {
   // Helper to parse backend date strings safely in all browsers (including Safari)
   const parseBackendDate = (dateStr) => {
     if (!dateStr) return null;
-    const normalizedStr = dateStr.includes(" ") && !dateStr.includes("T") 
-      ? dateStr.replace(" ", "T") 
-      : dateStr;
-    const d = new Date(normalizedStr);
+    if (dateStr instanceof Date) return dateStr;
+    let s = String(dateStr).trim();
+    if (!s) return null;
+    if (!s.includes("T") && s.includes(" ")) {
+      s = s.replace(" ", "T");
+    }
+    // If no timezone offset or Z, assume UTC/UK (append Z)
+    if (!/(Z|[+-]\d{2}(:?\d{2})?)$/i.test(s)) {
+      s = s + "Z";
+    }
+    const d = new Date(s);
     return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Helper to format a Date or date string to YYYY-MM-DD in Europe/London (UK) timezone
+  const formatUkDate = (dateObjOrStr) => {
+    if (!dateObjOrStr) return null;
+    const d = dateObjOrStr instanceof Date ? dateObjOrStr : parseBackendDate(dateObjOrStr);
+    if (!d || isNaN(d.getTime())) return null;
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/London",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  };
+
+  // Helper to format a Date or date string to HH:mm in Europe/London (UK) timezone
+  const formatUkTime = (dateObjOrStr) => {
+    if (!dateObjOrStr) return null;
+    const d = dateObjOrStr instanceof Date ? dateObjOrStr : parseBackendDate(dateObjOrStr);
+    if (!d || isNaN(d.getTime())) return null;
+    return d.toLocaleTimeString("en-GB", {
+      timeZone: "Europe/London",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   // Transform API consultation data to match component structure
@@ -257,15 +291,11 @@ function ConsultationsManagementPageFixed() {
         clientUuid: consultation.client?.uuid || consultation.client_id, // Use UUID, fallback to ID for backward compatibility
         clientName: consultation.client?.name || "Unknown Client",
         clientAge: consultation.client?.age || null,
-        date: scheduledDateObj
-          ? `${scheduledDateObj.getFullYear()}-${String(scheduledDateObj.getMonth() + 1).padStart(2, "0")}-${String(scheduledDateObj.getDate()).padStart(2, "0")}`
-          : null,
-        time: scheduledDateObj
-          ? scheduledDateObj.toLocaleTimeString("en-GB", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : null,
+        scheduledAt: consultation.scheduled_at,
+        scheduledDateObj,
+        createdDateObj,
+        date: formatUkDate(scheduledDateObj),
+        time: formatUkTime(scheduledDateObj),
         status:
           consultation.status === "scheduled"
             ? "Booked"
@@ -289,9 +319,7 @@ function ConsultationsManagementPageFixed() {
             ? 25
             : consultation.payment_amount || 13,
         conductedBy: consultation.tc?.name || "Not Assigned",
-        bookedAt: createdDateObj
-          ? `${createdDateObj.getFullYear()}-${String(createdDateObj.getMonth() + 1).padStart(2, "0")}-${String(createdDateObj.getDate()).padStart(2, "0")}`
-          : null,
+        bookedAt: formatUkDate(createdDateObj),
         notes: consultation.notes || "",
         completedAt: consultation.completed_at || null,
         duration: consultation.duration_minutes
@@ -319,34 +347,48 @@ function ConsultationsManagementPageFixed() {
       );
     }
 
+    const now = new Date();
+    const todayUk = formatUkDate(now);
+
     switch (activeTab) {
       case "today":
         filtered = filtered.filter(
           (c) =>
-            (c.date === today ||
-              (c.date === null && c.bookedAt && c.bookedAt === today)) &&
+            (c.date === todayUk ||
+              (c.date === null && c.bookedAt && c.bookedAt === todayUk)) &&
             c.status === "Booked",
         );
         break;
 
       case "upcoming":
-        filtered = filtered.filter((c) => c.status === "Booked");
+        filtered = filtered.filter(
+          (c) =>
+            c.status === "Booked" &&
+            c.scheduledDateObj &&
+            c.scheduledDateObj.getTime() > now.getTime(),
+        );
+        break;
 
+      case "past_not_completed":
+        filtered = filtered.filter(
+          (c) =>
+            c.status === "Booked" &&
+            (c.scheduledDateObj
+              ? c.scheduledDateObj.getTime() <= now.getTime()
+              : true),
+        );
         break;
 
       case "completed":
         filtered = filtered.filter((c) => c.status === "Completed");
-
         break;
 
       case "rescheduled":
         filtered = filtered.filter((c) => c.status === "Rescheduled");
-
         break;
 
       case "cancelled":
         filtered = filtered.filter((c) => c.status === "Cancelled");
-
         break;
 
       default:
@@ -359,9 +401,9 @@ function ConsultationsManagementPageFixed() {
 
   const filteredConsultations = getFilteredConsultations();
 
-  // Calculate actual counts from consultations data
-  const todayObj = new Date();
-  const today = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, "0")}-${String(todayObj.getDate()).padStart(2, "0")}`;
+  // Calculate actual counts from consultations data (in UK time)
+  const now = new Date();
+  const today = formatUkDate(now);
   const todayCount = consultations.filter(
     (c) =>
       (c.date === today ||
@@ -369,7 +411,17 @@ function ConsultationsManagementPageFixed() {
       c.status === "Booked",
   ).length;
   const upcomingCount = consultations.filter(
-    (c) => c.status === "Booked",
+    (c) =>
+      c.status === "Booked" &&
+      c.scheduledDateObj &&
+      c.scheduledDateObj.getTime() > now.getTime(),
+  ).length;
+  const pastNotCompletedCount = consultations.filter(
+    (c) =>
+      c.status === "Booked" &&
+      (c.scheduledDateObj
+        ? c.scheduledDateObj.getTime() <= now.getTime()
+        : true),
   ).length;
   const completedCount = consultations.filter(
     (c) => c.status === "Completed",
@@ -1026,6 +1078,18 @@ function ConsultationsManagementPageFixed() {
                       <button
                         onClick={() => {
                           setSelectedConsultation(consultation);
+                          setShowNoShowConfirmModal(true);
+                        }}
+                        className="px-3 py-2 border border-red-300 text-red-700 hover:bg-red-50 rounded-lg text-sm font-medium flex items-center gap-1.5"
+                        title="Mark Did Not Attend"
+                      >
+                        <UserX className="w-4 h-4" />
+                        Did Not Attend
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedConsultation(consultation);
                           // Pre-fill reschedule form with current date/time
                           const currentDate = consultation.date || "";
                           const currentTime = consultation.time || "";
@@ -1227,35 +1291,36 @@ function ConsultationsManagementPageFixed() {
             </div>
 
             {viewMode === "list" && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 {[
                   { id: "today", label: "Today", count: todayCount },
                   { id: "upcoming", label: "Upcoming", count: upcomingCount },
-
+                  {
+                    id: "past_not_completed",
+                    label: "Past, not marked complete",
+                    count: pastNotCompletedCount,
+                  },
                   {
                     id: "completed",
                     label: "Completed",
                     count: completedCount,
                   },
-
                   {
                     id: "rescheduled",
                     label: "Rescheduled",
                     count: rescheduledCount,
                   },
-
                   {
                     id: "cancelled",
                     label: "Cancelled",
                     count: cancelledCount,
                   },
-
                   { id: "all", label: "All", count: consultations.length },
                 ].map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                       activeTab === tab.id
                         ? "bg-purple-100 text-purple-900"
                         : "text-gray-700 hover:bg-gray-100"
@@ -1890,6 +1955,36 @@ function ConsultationsManagementPageFixed() {
           message={`Are you sure you want to cancel the consultation for ${selectedConsultation?.clientName || "Unknown Client"} on ${selectedConsultation?.date}? This action cannot be undone.`}
           confirmText="Cancel Consultation"
           cancelText="Keep Consultation"
+          type="danger"
+          loading={actionLoading}
+          confirmButtonColor="#dc2626"
+        />
+
+        {/* Did Not Attend Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={showNoShowConfirmModal}
+          onClose={() => setShowNoShowConfirmModal(false)}
+          onConfirm={async () => {
+            try {
+              setActionLoading(true);
+              await apiService.markConsultationNoShow(selectedConsultation.id);
+              success("Consultation marked as Did Not Attend successfully!");
+              setShowNoShowConfirmModal(false);
+              await refreshData();
+            } catch (err) {
+              console.error("Error marking consultation as did not attend:", err);
+              showError(
+                err.message ||
+                  "Failed to mark consultation as did not attend. Please try again.",
+              );
+            } finally {
+              setActionLoading(false);
+            }
+          }}
+          title="Mark as Did Not Attend"
+          message={`Are you sure you want to mark the consultation for ${selectedConsultation?.clientName || "Unknown Client"} on ${selectedConsultation?.date} as Did Not Attend?`}
+          confirmText="Confirm Did Not Attend"
+          cancelText="Back"
           type="danger"
           loading={actionLoading}
           confirmButtonColor="#dc2626"
