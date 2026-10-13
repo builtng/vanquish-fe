@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Users,
   Calendar,
@@ -122,6 +122,61 @@ export default function FilteredCounsellors({
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
   const [faqExpanded, setFaqExpanded] = useState(false);
+
+  // Active counsellor ref to ignore late responses
+  const activeCounsellorUuidRef = useRef(selectedCounsellorUuid);
+  activeCounsellorUuidRef.current = selectedCounsellorUuid;
+
+  const prevCounsellorUuidRef = useRef(selectedCounsellorUuid);
+
+  // When counsellor changes from parent or outside, clear chosen date and slot
+  useEffect(() => {
+    if (
+      prevCounsellorUuidRef.current &&
+      prevCounsellorUuidRef.current !== selectedCounsellorUuid
+    ) {
+      setSelectedCalendarDate(null);
+      setCounsellorSlots([]);
+      const newCounsellor = (counsellors || []).find(
+        (c) => c.uuid === selectedCounsellorUuid
+      );
+      if (onSelectSlot) {
+        onSelectSlot({
+          id: "",
+          datetime: "",
+          consultation_datetime: "",
+          counsellorId:
+            newCounsellor?.id ||
+            newCounsellor?.training_counsellor_id ||
+            null,
+          counsellorUuid: selectedCounsellorUuid || "",
+          counsellorName: newCounsellor?.name || "",
+        });
+      }
+    }
+    prevCounsellorUuidRef.current = selectedCounsellorUuid;
+  }, [selectedCounsellorUuid, onSelectSlot, counsellors]);
+
+  const handleSelectCounsellor = (counsellor) => {
+    if (!counsellor) return;
+    const isDifferent = counsellor.uuid !== selectedCounsellorUuid;
+    if (isDifferent) {
+      setSelectedCalendarDate(null);
+      setCounsellorSlots([]);
+      if (onSelectSlot) {
+        onSelectSlot({
+          id: "",
+          datetime: "",
+          consultation_datetime: "",
+          counsellorId: counsellor.id || counsellor.training_counsellor_id || null,
+          counsellorUuid: counsellor.uuid || "",
+          counsellorName: counsellor.name || "",
+        });
+      }
+    }
+    onSelectCounsellor(counsellor);
+    setViewMode("booking");
+  };
 
   // Format client availability summary text from their actual selected days and times
   const clientAvailabilitySummary = useMemo(() => {
@@ -348,6 +403,7 @@ export default function FilteredCounsellors({
     let isMounted = true;
     const currentUuid = selectedCounsellorUuid;
     setSelectedCalendarDate(null);
+    setCounsellorSlots([]);
 
     const fetchCounsellorSlots = async () => {
       setLoadingCounsellorSlots(true);
@@ -355,7 +411,16 @@ export default function FilteredCounsellors({
         const res = await apiService.getCounsellorConsultationAvailability(
           currentUuid
         );
-        if (isMounted && currentUuid === selectedCounsellorUuid && res) {
+        // Ignore slot responses for a counsellor who is no longer selected
+        if (
+          !isMounted ||
+          activeCounsellorUuidRef.current !== currentUuid ||
+          currentUuid !== selectedCounsellorUuid
+        ) {
+          return;
+        }
+
+        if (res) {
           const source = res.source || "none";
           setSlotSource(source);
           if (source === "counsellor" && Array.isArray(res.slots) && res.slots.length > 0) {
@@ -371,12 +436,20 @@ export default function FilteredCounsellors({
           "Error fetching counsellor consultation availability:",
           err
         );
-        if (isMounted && currentUuid === selectedCounsellorUuid) {
+        if (
+          isMounted &&
+          activeCounsellorUuidRef.current === currentUuid &&
+          currentUuid === selectedCounsellorUuid
+        ) {
           setSlotSource("none");
           setCounsellorSlots([]);
         }
       } finally {
-        if (isMounted && currentUuid === selectedCounsellorUuid) {
+        if (
+          isMounted &&
+          activeCounsellorUuidRef.current === currentUuid &&
+          currentUuid === selectedCounsellorUuid
+        ) {
           setLoadingCounsellorSlots(false);
         }
       }
@@ -902,10 +975,7 @@ export default function FilteredCounsellors({
                             ) : (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  onSelectCounsellor(counsellor);
-                                  setViewMode("booking");
-                                }}
+                                onClick={() => handleSelectCounsellor(counsellor)}
                                 className="py-2 px-6 rounded-lg bg-[#2d4a3e] hover:bg-[#223930] text-white text-xs sm:text-sm font-semibold shadow-xs transition text-center cursor-pointer shrink-0"
                               >
                                 View profile and book consultation
@@ -947,17 +1017,41 @@ export default function FilteredCounsellors({
           </div>
         ) : (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Back button */}
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setViewMode("directory")}
-              className="inline-flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-[#1b3b2b] transition py-1 group cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              <span>Back to filtered counsellors</span>
-            </button>
-          </div>
+            {/* Back button & quick switch */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setViewMode("directory")}
+                className="inline-flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-[#1b3b2b] transition py-1 group cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                <span>Back to filtered counsellors</span>
+              </button>
+
+              {counsellors.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs sm:text-sm text-gray-600 font-medium">Switch counsellor:</span>
+                  <select
+                    id="switch-counsellor-select"
+                    aria-label="Switch counsellor"
+                    value={selectedCounsellorUuid || ""}
+                    onChange={(e) => {
+                      const found = counsellors.find((c) => c.uuid === e.target.value);
+                      if (found) {
+                        handleSelectCounsellor(found);
+                      }
+                    }}
+                    className="bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#2d5a3f] cursor-pointer"
+                  >
+                    {counsellors.map((c) => (
+                      <option key={c.uuid} value={c.uuid}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Sidebar: Detailed Counsellor Card */}
@@ -1597,9 +1691,8 @@ export default function FilteredCounsellors({
               <button
                 type="button"
                 onClick={() => {
-                  onSelectCounsellor(activeProfileModal);
+                  handleSelectCounsellor(activeProfileModal);
                   setActiveProfileModal(null);
-                  setViewMode("booking");
                 }}
                 className="flex-1 bg-[#243f32] hover:bg-[#1a2f25] text-white text-sm font-bold py-3 px-6 rounded-xl shadow-xs transition cursor-pointer"
               >

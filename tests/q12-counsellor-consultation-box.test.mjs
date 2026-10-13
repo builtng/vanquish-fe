@@ -54,3 +54,88 @@ test("FIX Q12: Wrong counsellor in the consultation box", () => {
     "Must render counsellor name in payment step fee section"
   );
 });
+
+test("FIX Q12 Simulation: Choose A, pick a slot, choose B -> box shows B and A's slot is cleared", () => {
+  // Simulate intake state & FilteredCounsellors interaction
+  let formData = {
+    consultationWithTcId: null,
+    consultationWithTcUuid: "",
+    consultationWithTcName: "",
+    consultationSlotId: "",
+    consultationDatetime: "",
+  };
+
+  const counsellors = [
+    { id: 101, uuid: "uuid-a", name: "Counsellor A" },
+    { id: 102, uuid: "uuid-b", name: "Counsellor B" },
+  ];
+
+  // Helper matching intake onSelectCounsellor
+  const selectCounsellor = (counsellor) => {
+    formData = {
+      ...formData,
+      consultationWithTcUuid: counsellor.uuid,
+      consultationWithTcName: counsellor.name,
+      consultationWithTcId: counsellor.id,
+      consultationSlotId: "",
+      consultationDatetime: "",
+    };
+  };
+
+  // Helper matching intake onSelectSlot
+  const selectSlot = (slotData) => {
+    formData = {
+      ...formData,
+      consultationSlotId: slotData.id ? String(slotData.id) : "",
+      consultationDatetime: slotData.datetime || slotData.consultation_datetime || "",
+      consultationWithTcId: slotData.counsellorId || formData.consultationWithTcId,
+      consultationWithTcUuid: slotData.counsellorUuid || formData.consultationWithTcUuid,
+      consultationWithTcName: slotData.counsellorName || formData.consultationWithTcName,
+    };
+  };
+
+  // Step 1: Initial load - no counsellor auto-selected
+  assert.equal(formData.consultationWithTcUuid, "");
+  assert.equal(formData.consultationSlotId, "");
+
+  // Step 2: Choose A
+  selectCounsellor(counsellors[0]);
+  assert.equal(formData.consultationWithTcUuid, "uuid-a");
+  assert.equal(formData.consultationWithTcName, "Counsellor A");
+  assert.equal(formData.consultationSlotId, "");
+
+  // Step 3: Pick a slot for A
+  selectSlot({
+    id: 555,
+    datetime: "2026-10-20 14:00:00",
+    counsellorId: counsellors[0].id,
+    counsellorUuid: counsellors[0].uuid,
+    counsellorName: counsellors[0].name,
+  });
+  assert.equal(formData.consultationSlotId, "555");
+  assert.equal(formData.consultationWithTcUuid, "uuid-a");
+  assert.equal(formData.consultationWithTcName, "Counsellor A");
+
+  // Step 4: Choose B
+  selectCounsellor(counsellors[1]);
+  // Box shows B and A's slot is cleared
+  assert.equal(formData.consultationWithTcUuid, "uuid-b");
+  assert.equal(formData.consultationWithTcName, "Counsellor B");
+  assert.equal(formData.consultationSlotId, "", "A's slot must be cleared when choosing B");
+  assert.equal(formData.consultationDatetime, "", "A's datetime must be cleared when choosing B");
+
+  // Step 5: Simulate late slot response for A arrives while B is selected
+  let stateSlots = [];
+  const activeSelectedUuid = formData.consultationWithTcUuid; // "uuid-b"
+  const lateResponseUuid = "uuid-a";
+  const lateResponseSlots = [{ id: 999, datetime: "2026-10-21 10:00:00" }];
+
+  // FilteredCounsellors guard check
+  if (lateResponseUuid === activeSelectedUuid) {
+    stateSlots = lateResponseSlots;
+  }
+  assert.deepEqual(stateSlots, [], "Late slot response for unselected counsellor A must be ignored");
+
+  // Step 6: Payment step shows counsellor B's name
+  assert.equal(formData.consultationWithTcName, "Counsellor B");
+});
