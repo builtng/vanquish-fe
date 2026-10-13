@@ -4,7 +4,7 @@ import React from "react";
 
 export default function BuildIdentifier({ className = "" }) {
   const buildInfo =
-    process.env.NEXT_PUBLIC_BUILD_IDENTIFIER || "Build 2026-10-01 b63bba7";
+    process.env.NEXT_PUBLIC_BUILD_IDENTIFIER || "Build unknown";
 
   return (
     <div

@@ -275,8 +275,9 @@ export default function FilteredCounsellors({
               return {
                 ...c,
                 first_name:
+                  (c.name ? c.name.replace(/^(Dr|Mr|Mrs|Ms|Miss|Prof)\.?\s+/i, "").trim().split(" ")[0] : null) ||
                   c.first_name ||
-                  (c.name ? c.name.split(" ")[0] : "Counsellor"),
+                  "Counsellor",
                 photo_url: photo,
                 bio: c.bio || "",
                 topics_with_experience:
@@ -444,8 +445,8 @@ export default function FilteredCounsellors({
   }, [slotSource, selectedCounsellorObj]);
 
   const firstName =
+    (selectedCounsellorObj?.name ? selectedCounsellorObj.name.replace(/^(Dr|Mr|Mrs|Ms|Miss|Prof)\.?\s+/i, "").trim().split(" ")[0] : null) ||
     selectedCounsellorObj?.first_name ||
-    selectedCounsellorObj?.name?.split(" ")[0] ||
     "Counsellor";
 
   const formatDisplayDate = (dateStr) => {
@@ -899,7 +900,7 @@ export default function FilteredCounsellors({
                               }}
                               className="py-2 px-6 rounded-lg bg-[#2d4a3e] hover:bg-[#223930] text-white text-xs sm:text-sm font-semibold shadow-xs transition text-center cursor-pointer shrink-0"
                             >
-                              View Profile
+                              View profile and book consultation
                             </button>
                           </div>
                         </div>
@@ -909,6 +910,10 @@ export default function FilteredCounsellors({
                 })
               )}
             </div>
+
+            <p className="text-center text-xs sm:text-sm text-gray-600 pt-2">
+              Choose a counsellor to see consultation times.
+            </p>
           </div>
         </div>
       )}

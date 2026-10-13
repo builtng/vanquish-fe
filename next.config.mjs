@@ -8,15 +8,17 @@ function getCommitHash() {
     return process.env.VERCEL_GIT_COMMIT_SHA.slice(0, 7);
   }
   try {
-    return execSync("git rev-parse --short HEAD").toString().trim();
+    return execSync("git rev-parse --short HEAD").toString().trim().slice(0, 7);
   } catch {
-    return "b63bba7";
+    return "";
   }
 }
 
 const buildHash = getCommitHash();
 const buildDate = new Date().toISOString().slice(0, 10);
-const buildIdentifier = `Build ${buildDate} ${buildHash}`;
+const buildIdentifier = buildHash ? `Build ${buildDate} ${buildHash}` : "Build unknown";
+
+process.env.NEXT_PUBLIC_BUILD_IDENTIFIER = buildIdentifier;
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -42,7 +44,14 @@ const nextConfig = {
     NEXT_PUBLIC_APP_NAME: "Vanquish Therapies",
   },
 
-  // Optimize production builds
+  webpack: (config, { webpack }) => {
+    config.plugins.push(
+      new webpack.DefinePlugin({
+        "process.env.NEXT_PUBLIC_BUILD_IDENTIFIER": JSON.stringify(buildIdentifier),
+      })
+    );
+    return config;
+  },
 
   // Headers for SEO, security, and cache prevention
   async headers() {
