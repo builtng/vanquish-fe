@@ -143,7 +143,7 @@ export default function VanquishClientIntake() {
         setIsSlotsLoading(true);
         try {
           const res = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/consultation-slots/available`,
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/consultation-slots/available?order=asc`,
           );
           if (res.ok) {
             const data = await res.json();

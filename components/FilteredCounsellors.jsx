@@ -123,41 +123,72 @@ export default function FilteredCounsellors({
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
   const [faqExpanded, setFaqExpanded] = useState(false);
 
-  // Format client availability summary text
+  // Format client availability summary text from their actual selected days and times
   const clientAvailabilitySummary = useMemo(() => {
-    if (!formData.availability) return "Mon, Tue, Fri (11am – 5pm)";
-    const days = [];
-    const dayMap = {
-      monday: "Mon",
-      tuesday: "Tue",
-      wednesday: "Wed",
-      thursday: "Thu",
-      friday: "Fri",
-      saturday: "Sat",
-      sunday: "Sun",
-    };
-    Object.keys(formData.availability).forEach((d) => {
-      if (
-        Array.isArray(formData.availability[d]) &&
-        formData.availability[d].length > 0
-      ) {
-        days.push(dayMap[d.toLowerCase()] || d);
-      }
-    });
-    if (days.length === 0) return "Mon, Tue, Fri (11am – 5pm)";
-    return `${days.join(", ")} (11am – 5pm)`;
+    if (!formData.availability) return "";
+    if (typeof formData.availability === "string") {
+      return formData.availability.trim();
+    }
+    if (Array.isArray(formData.availability)) {
+      return formData.availability.filter(Boolean).join(", ");
+    }
+    if (typeof formData.availability === "object") {
+      const dayMap = {
+        monday: "Mon",
+        tuesday: "Tue",
+        wednesday: "Wed",
+        thursday: "Thu",
+        friday: "Fri",
+        saturday: "Sat",
+        sunday: "Sun",
+      };
+
+      const formatSlotLabel = (val) => {
+        if (!val || typeof val !== "string") return "";
+        const match = val.match(/^(\d{1,2})(am|pm)-(\d{1,2})(\d{2})(am|pm)$/i);
+        if (match) {
+          const [, startH, startMeridiem, endH, endM, endMeridiem] = match;
+          return `${startH}${startMeridiem.toLowerCase()}–${endH}:${endM}${endMeridiem.toLowerCase()}`;
+        }
+        return val;
+      };
+
+      const dayParts = [];
+      Object.keys(formData.availability).forEach((d) => {
+        const slots = formData.availability[d];
+        if (Array.isArray(slots) && slots.length > 0) {
+          const dayName =
+            dayMap[d.toLowerCase()] ||
+            (d.charAt(0).toUpperCase() + d.slice(1));
+          const timeList = slots.map(formatSlotLabel).filter(Boolean);
+          if (timeList.length > 0) {
+            dayParts.push(`${dayName} (${timeList.join(", ")})`);
+          } else {
+            dayParts.push(dayName);
+          }
+        } else if (typeof slots === "string" && slots.trim() !== "") {
+          const dayName =
+            dayMap[d.toLowerCase()] ||
+            (d.charAt(0).toUpperCase() + d.slice(1));
+          dayParts.push(`${dayName} (${slots.trim()})`);
+        }
+      });
+
+      return dayParts.join("; ");
+    }
+    return "";
   }, [formData.availability]);
 
   // Format client support areas text
   const clientSupportAreasText = useMemo(() => {
-    if (
-      !formData.supportAreas ||
-      !Array.isArray(formData.supportAreas) ||
-      formData.supportAreas.length === 0
-    ) {
-      return "Trauma, Domestic Violence, Anxiety, Abuse";
+    if (!formData.supportAreas) return "";
+    if (Array.isArray(formData.supportAreas)) {
+      return formData.supportAreas.filter(Boolean).join(", ");
     }
-    return formData.supportAreas.join(", ");
+    if (typeof formData.supportAreas === "string") {
+      return formData.supportAreas.trim();
+    }
+    return "";
   }, [formData.supportAreas]);
 
   // Format client gender preference text
@@ -172,6 +203,20 @@ export default function FilteredCounsellors({
       ? formData.genderPreference
       : `${formData.genderPreference} Counsellor`;
   }, [formData.genderPreference]);
+
+  // Modality (only if client actually selected one)
+  const clientModality = useMemo(() => {
+    if (formData.modality && typeof formData.modality === "string" && formData.modality.trim()) {
+      return formData.modality.trim();
+    }
+    if (Array.isArray(formData.modalities) && formData.modalities.length > 0) {
+      return formData.modalities.filter(Boolean).join(", ");
+    }
+    if (formData.preferredModality && typeof formData.preferredModality === "string" && formData.preferredModality.trim()) {
+      return formData.preferredModality.trim();
+    }
+    return null;
+  }, [formData.modality, formData.modalities, formData.preferredModality]);
 
   // Specialty label shown in the filter criteria sidebar
   const clientSpecialtyLabel = formData.isCouples
@@ -457,102 +502,82 @@ export default function FilteredCounsellors({
                   </p>
                 </div>
 
-                {/* 5 Criteria Items with Progress Bars */}
+                {/* Filter Criteria Items */}
                 <div className="space-y-4 pt-1">
-                  {/* 1. Availability Match */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-gray-600" />
-                      <span className="text-xs font-bold text-gray-800">
-                        Availability Match
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 pl-5.5 font-medium">
-                      {clientAvailabilitySummary}
-                    </p>
-                    <div className="flex items-center gap-3 pl-5.5">
-                      <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                        <div className="h-full bg-[#3d654c] rounded-full w-full" />
+                  {/* 1. Availability */}
+                  {clientAvailabilitySummary && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-gray-600" />
+                        <span className="text-xs font-bold text-gray-800">
+                          Availability
+                        </span>
                       </div>
-                      <span className="text-xs font-bold text-gray-800">100%</span>
+                      <p className="text-xs text-gray-600 pl-5.5 font-medium leading-relaxed">
+                        {clientAvailabilitySummary}
+                      </p>
                     </div>
-                  </div>
+                  )}
 
-                  {/* 2. Areas of Support Match */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Heart className="w-3.5 h-3.5 text-gray-600" />
-                      <span className="text-xs font-bold text-gray-800">
-                        Areas of Support Match
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 pl-5.5 font-medium">
-                      {clientSupportAreasText}
-                    </p>
-                    <div className="flex items-center gap-3 pl-5.5">
-                      <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                        <div className="h-full bg-[#3d654c] rounded-full w-full" />
+                  {/* 2. Areas of Support */}
+                  {clientSupportAreasText && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Heart className="w-3.5 h-3.5 text-gray-600" />
+                        <span className="text-xs font-bold text-gray-800">
+                          Areas of Support
+                        </span>
                       </div>
-                      <span className="text-xs font-bold text-gray-800">100%</span>
+                      <p className="text-xs text-gray-600 pl-5.5 font-medium leading-relaxed">
+                        {clientSupportAreasText}
+                      </p>
                     </div>
-                  </div>
+                  )}
 
-                  {/* 3. Modality Match */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-3.5 h-3.5 text-gray-600" />
-                      <span className="text-xs font-bold text-gray-800">
-                        Modality Match
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 pl-5.5 font-medium">
-                      Integrative Counsellor
-                    </p>
-                    <div className="flex items-center gap-3 pl-5.5">
-                      <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                        <div className="h-full bg-[#3d654c] rounded-full w-full" />
+                  {/* 3. Modality (only if chosen) */}
+                  {clientModality && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-gray-600" />
+                        <span className="text-xs font-bold text-gray-800">
+                          Modality
+                        </span>
                       </div>
-                      <span className="text-xs font-bold text-gray-800">100%</span>
+                      <p className="text-xs text-gray-600 pl-5.5 font-medium leading-relaxed">
+                        {clientModality}
+                      </p>
                     </div>
-                  </div>
+                  )}
 
-                  {/* 4. Specialty Match */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-3.5 h-3.5 text-gray-600" />
-                      <span className="text-xs font-bold text-gray-800">
-                        Specialty Match
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 pl-5.5 font-medium">
-                      {clientSpecialtyLabel}
-                    </p>
-                    <div className="flex items-center gap-3 pl-5.5">
-                      <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                        <div className="h-full bg-[#3d654c] rounded-full w-full" />
+                  {/* 4. Specialty */}
+                  {clientSpecialtyLabel && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5 text-gray-600" />
+                        <span className="text-xs font-bold text-gray-800">
+                          Specialty
+                        </span>
                       </div>
-                      <span className="text-xs font-bold text-gray-800">100%</span>
+                      <p className="text-xs text-gray-600 pl-5.5 font-medium leading-relaxed">
+                        {clientSpecialtyLabel}
+                      </p>
                     </div>
-                  </div>
+                  )}
 
                   {/* 5. Counsellor Preference */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-gray-600" />
-                      <span className="text-xs font-bold text-gray-800">
-                        Counsellor Preference
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 pl-5.5 font-medium">
-                      {clientPreferenceSummary}
-                    </p>
-                    <div className="flex items-center gap-3 pl-5.5">
-                      <div className="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                        <div className="h-full bg-[#3d654c] rounded-full w-full" />
+                  {clientPreferenceSummary && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-gray-600" />
+                        <span className="text-xs font-bold text-gray-800">
+                          Counsellor Preference
+                        </span>
                       </div>
-                      <span className="text-xs font-bold text-gray-800">100%</span>
+                      <p className="text-xs text-gray-600 pl-5.5 font-medium leading-relaxed">
+                        {clientPreferenceSummary}
+                      </p>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* About These Results Callout */}
@@ -580,79 +605,89 @@ export default function FilteredCounsellors({
 
                 <div className="space-y-3.5">
                   {/* Areas of Support */}
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
-                      <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                  {clientSupportAreasText && (
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
+                        <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-800">
+                          Areas of Support
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {clientSupportAreasText}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-800">
-                        Areas of Support
-                      </h4>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {clientSupportAreasText}
-                      </p>
-                    </div>
-                  </div>
+                  )}
 
-                  {/* Modality */}
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
-                      <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                  {/* Modality (only if chosen) */}
+                  {clientModality && (
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
+                        <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-800">
+                          Modality
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {clientModality}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-800">
-                        Modality
-                      </h4>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Integrative Counsellor
-                      </p>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Specialty */}
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
-                      <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                  {clientSpecialtyLabel && (
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
+                        <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-800">
+                          Specialty
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {clientSpecialtyLabel}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-800">
-                        Specialty
-                      </h4>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {clientSpecialtyLabel}
-                      </p>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Availability */}
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
-                      <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                  {clientAvailabilitySummary && (
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
+                        <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-800">
+                          Availability
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {clientAvailabilitySummary}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-800">
-                        Availability
-                      </h4>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {clientAvailabilitySummary}
-                      </p>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Counsellor Preference */}
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
-                      <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                  {clientPreferenceSummary && (
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
+                        <Check className="w-2.5 h-2.5 stroke-[2.5]" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-800">
+                          Counsellor Preference
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {clientPreferenceSummary}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-800">
-                        Counsellor Preference
-                      </h4>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {clientPreferenceSummary}
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>

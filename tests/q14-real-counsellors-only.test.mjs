@@ -82,4 +82,35 @@ test("FIX Q14: Show only real counsellors, and enough of them", () => {
     /\{Array\.isArray\(counsellor\.topics_with_experience\)\s*&&\s*counsellor\.topics_with_experience\.length\s*>\s*0\s*&&\s*\(/,
     "Must conditionally render topics_with_experience only when non-empty array"
   );
+
+  // 5. Filter criteria and preferences panels show real client choices with no fixed mock strings
+  assert.ok(
+    !filteredCounsellorsContent.includes("11am – 5pm"),
+    "Must not contain hardcoded '11am – 5pm'"
+  );
+  assert.ok(
+    !filteredCounsellorsContent.includes("Mon, Tue, Fri"),
+    "Must not contain hardcoded 'Mon, Tue, Fri'"
+  );
+  assert.ok(
+    !filteredCounsellorsContent.includes("Integrative Counsellor"),
+    "Must not contain fixed text 'Integrative Counsellor'"
+  );
+  assert.ok(
+    !filteredCounsellorsContent.includes("Trauma, Domestic Violence, Anxiety, Abuse"),
+    "Must not contain hardcoded default support areas"
+  );
+
+  // 6. Fixed 100% progress bars in filter criteria are removed
+  assert.ok(
+    !filteredCounsellorsContent.includes('<span className="text-xs font-bold text-gray-800">100%</span>'),
+    "Must not contain fixed 100% match score bars"
+  );
+
+  // 7. Modality line is conditionally rendered only when client chose a modality
+  assert.match(
+    filteredCounsellorsContent,
+    /\{clientModality\s*&&\s*\(/,
+    "Modality line must only be rendered when client selected a modality"
+  );
 });
