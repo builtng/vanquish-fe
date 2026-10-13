@@ -114,7 +114,7 @@ const CLIENT2_JORDAN = {
   orientationPreference: 'No preference',
 };
 
-test('CHECK E04: Matching gives sensible results with score breakdown for each pair', () => {
+test('CHECK E04: Matching gives sensible results with VQT six weights and exact exclusion', () => {
   const counsellors = [TC1_SARAH, TC2_DAVID, TC3_PRIYA];
   const clients = [CLIENT1_ALEX, CLIENT2_JORDAN];
 
@@ -128,7 +128,7 @@ test('CHECK E04: Matching gives sensible results with score breakdown for each p
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 1. Confirm "Not ready for" always excludes
+  // 1. Confirm "Not ready for" always excludes (exact name match)
   // ─────────────────────────────────────────────────────────────
   const pairAlexSarah = matrix.find(
     (p) => p.client.id === 'cl-001' && p.tc.id === 'tc-001'
@@ -157,8 +157,25 @@ test('CHECK E04: Matching gives sensible results with score breakdown for each p
   assert.equal(exclusionCheck.isExcluded, true);
   assert.equal(exclusionCheck.matchedIssue, 'Domestic Violence');
 
+  // Substring/partial match must NOT exclude
+  const clientChildhoodTrauma = { primaryIssues: ['Childhood Trauma'] };
+  const tcTraumaOnly = { topics_not_ready_for: ['Trauma'] };
+  assert.equal(
+    checkNotReadyExclusion(clientChildhoodTrauma, tcTraumaOnly).isExcluded,
+    false,
+    'Childhood Trauma must NOT be excluded by Trauma'
+  );
+
+  const clientEating = { primaryIssues: ['Eating'] };
+  const tcEatingDisorders = { topics_not_ready_for: ['Eating Disorders'] };
+  assert.equal(
+    checkNotReadyExclusion(clientEating, tcEatingDisorders).isExcluded,
+    false,
+    'Eating must NOT be excluded by Eating Disorders'
+  );
+
   // ─────────────────────────────────────────────────────────────
-  // 2. Confirm "No preference" never lowers a score
+  // 2. Confirm "No preference" never lowers a score across VQT weights
   // ─────────────────────────────────────────────────────────────
   for (const tc of counsellors) {
     const pair = matrix.find(
@@ -173,11 +190,26 @@ test('CHECK E04: Matching gives sensible results with score breakdown for each p
       `Modality score for Jordan + ${tc.name} must be 20 (max) because Jordan has No preference`
     );
 
-    // Demographics: all "No preference" gives maximum 15 points
+    // Demographic categories: all "No preference" gives maximum points
     assert.equal(
-      b.counsellorPreferences.score,
-      15,
-      `Demographic preferences score for Jordan + ${tc.name} must be 15 (max) because Jordan has No preference`
+      b.genderPreference.score,
+      20,
+      `Gender score for Jordan + ${tc.name} must be 20 (max)`
+    );
+    assert.equal(
+      b.ethnicityPreference.score,
+      10,
+      `Ethnicity score for Jordan + ${tc.name} must be 10 (max)`
+    );
+    assert.equal(
+      b.sexualOrientationPreference.score,
+      5,
+      `Sexual orientation score for Jordan + ${tc.name} must be 5 (max)`
+    );
+    assert.equal(
+      b.agePreference.score,
+      5,
+      `Age score for Jordan + ${tc.name} must be 5 (max)`
     );
   }
 
@@ -191,18 +223,6 @@ test('CHECK E04: Matching gives sensible results with score breakdown for each p
     scoreNoAvail.matchBreakdown.availability.score,
     40,
     'Empty availability preference must award full 40 points without penalty'
-  );
-
-  // Client with empty clinical issues gets full 15 clinical issues score
-  const clientNoIssuesPref = {
-    ...CLIENT2_JORDAN,
-    primaryIssues: [],
-  };
-  const scoreNoIssues = scorePractitioner(clientNoIssuesPref, TC2_DAVID);
-  assert.equal(
-    scoreNoIssues.matchBreakdown.clinicalIssues.score,
-    15,
-    'Empty clinical issues must award full 15 points without penalty'
   );
 
   // ─────────────────────────────────────────────────────────────
@@ -261,22 +281,40 @@ test('CHECK E04: Matching gives sensible results with score breakdown for each p
   );
 
   // ─────────────────────────────────────────────────────────────
-  // 4. Verify Total Ranking Order
+  // 4. Verify Total Ranking Order using VQT's six weights
   // ─────────────────────────────────────────────────────────────
   // For Alex:
-  // Priya Patel should be top match (78 points)
-  // David Chen has low match (18 points)
+  // Priya Patel: 20 (avail) + 20 (mod) + 20 (gender) + 10 (eth) + 5 (ori) + 5 (age) = 80 points
+  // David Chen: 0 (avail) + 0 (mod) + 0 (gender) + 10 (eth) + 5 (ori) + 0 (age) = 15 points
   // Sarah Johnson is excluded (0 points)
   assert.equal(suggestedForAlex[0].id, 'tc-003');
-  assert.equal(suggestedForAlex[0].matchScore, 78);
+  assert.equal(suggestedForAlex[0].matchScore, 80);
   assert.equal(suggestedForAlex[1].id, 'tc-002');
-  assert.equal(suggestedForAlex[1].matchScore, 18);
+  assert.equal(suggestedForAlex[1].matchScore, 15);
 
   // For Jordan:
-  // David Chen should be top match (40 + 20 + 15 + 15 + 3 = 93 points)
-  // Priya Patel: 0 + 20 + 15 + 15 + 8 = 58 points
-  // Sarah Johnson: 0 + 20 + 15 + 15 + 7 = 57 points
+  // David Chen: 40 + 20 + 20 + 10 + 5 + 5 = 100 points
+  // Priya Patel: 0 + 20 + 20 + 10 + 5 + 5 = 60 points
+  // Sarah Johnson: 0 + 20 + 20 + 10 + 5 + 5 = 60 points
   const suggestedForJordan = computeSuggestedTCs(CLIENT2_JORDAN, counsellors, { limit: 10 });
   assert.equal(suggestedForJordan[0].id, 'tc-002');
-  assert.equal(suggestedForJordan[0].matchScore, 93);
+  assert.equal(suggestedForJordan[0].matchScore, 100);
+
+  // ─────────────────────────────────────────────────────────────
+  // 5. Changing weight changes score dynamically
+  // ─────────────────────────────────────────────────────────────
+  const customWeights = {
+    weights: {
+      availability_weight: 20,
+      modality_weight: 20,
+      gender_weight: 40,
+      ethnicity_weight: 10,
+      sexual_orientation_weight: 5,
+      age_weight: 5,
+    },
+  };
+  const scoreAlexPriyaUpdated = scorePractitioner(CLIENT1_ALEX, TC3_PRIYA, customWeights);
+  // Avail: 50% * 20 = 10; Mod: 20; Gender: 40; Eth: 10; Ori: 5; Age: 5 = 90
+  assert.equal(scoreAlexPriyaUpdated.matchScore, 90);
+  assert.notEqual(scoreAlexPriyaUpdated.matchScore, suggestedForAlex[0].matchScore);
 });

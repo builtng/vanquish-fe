@@ -54,11 +54,12 @@ import {
 } from "lucide-react";
 
 const MATCH_STEPS = [
-  { label: "Checking availability", icon: Calendar },
-  { label: "Evaluating counsellor preferences", icon: UserCheck },
-  { label: "Matching clinical issues", icon: Shield },
+  { label: "Checking availability overlap", icon: Calendar },
   { label: "Aligning therapy modality", icon: RefreshCw },
-  { label: "Balancing caseload", icon: Star },
+  { label: "Evaluating gender preference", icon: UserCheck },
+  { label: "Evaluating ethnicity preference", icon: UserCheck },
+  { label: "Evaluating sexual orientation preference", icon: Shield },
+  { label: "Evaluating age preference", icon: Clock },
 ];
 
 const STEP_DELAY_MS = 450;
@@ -118,6 +119,10 @@ function transformPendingMatchClient(client) {
 const BREAKDOWN_LABELS = {
   availability: "Availability",
   modalityMatch: "Modality Match",
+  genderPreference: "Gender Preference",
+  ethnicityPreference: "Ethnicity Preference",
+  sexualOrientationPreference: "Sexual Orientation Preference",
+  agePreference: "Age Preference",
   clinicalIssues: "Clinical Issues",
   counsellorPreferences: "Counsellor Preferences",
   caseloadBalance: "Caseload Balance",
@@ -146,7 +151,19 @@ const PendingMatchRow = ({
       setStepIndex(i);
       await new Promise((resolve) => setTimeout(resolve, STEP_DELAY_MS));
     }
-    const results = computeSuggestedTCs(client, trainingCounsellors);
+    try {
+      const clientId = client.uuid || client.id || client.client_id;
+      const res = await apiService.getMatchSuggestions(clientId);
+      if (res && Array.isArray(res.suggestions)) {
+        onMatchComputed(res.suggestions);
+        setRunningMatch(false);
+        return;
+      }
+    } catch (err) {
+      console.warn("Could not fetch backend match suggestions, falling back to local computation:", err);
+    }
+    const settings = await apiService.getMatchingAlgorithmSettings().catch(() => null);
+    const results = computeSuggestedTCs(client, trainingCounsellors, { weights: settings });
     onMatchComputed(results);
     setRunningMatch(false);
   };
@@ -511,8 +528,9 @@ const PendingMatchRow = ({
 
                         {/* Why this practitioner: matched vs unmatched criteria */}
                         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-[var(--card-border)] grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {Object.entries(tc.matchBreakdown).map(
-                            ([key, value]) => (
+                          {Object.entries(tc.matchBreakdown)
+                            .filter(([key]) => !['clinicalIssues', 'counsellorPreferences', 'caseloadBalance'].includes(key))
+                            .map(([key, value]) => (
                               <div
                                 key={key}
                                 title={value.detail}
