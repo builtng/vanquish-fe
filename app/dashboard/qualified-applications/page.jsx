@@ -311,6 +311,36 @@ function QualifiedApplicationsContent() {
       );
     }
     switch (status) {
+      case "Stage 3 Interview Booked":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <Clock className="w-3.5 h-3.5" /> Interview Booked
+          </span>
+        );
+      case "Interview Attended":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200">
+            <Check className="w-3.5 h-3.5" /> Interview Attended
+          </span>
+        );
+      case "Interview No Show":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+            <XCircle className="w-3.5 h-3.5" /> Interview No Show
+          </span>
+        );
+      case "Induction Attended":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <CheckCircle className="w-3.5 h-3.5" /> Induction Attended
+          </span>
+        );
+      case "Induction No-Show":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+            <XCircle className="w-3.5 h-3.5" /> Induction No-Show
+          </span>
+        );
       case "Accepted":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
