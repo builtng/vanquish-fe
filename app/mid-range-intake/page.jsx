@@ -1068,7 +1068,7 @@ function MidRangeClientIntakeContent() {
             </p>
 
             <p className="mt-12 text-xs text-gray-400">
-              © {new Date().getFullYear()} {branding?.company_name || process.env.NEXT_PUBLIC_APP_NAME || "Vanquish Therapies"}. All rights reserved.
+              © {new Date().getFullYear()} Vanquish Therapies. All rights reserved.
             </p>
           </div>
         </div>
@@ -1086,48 +1086,32 @@ function MidRangeClientIntakeContent() {
           {/* Header with Logo */}
           <div className="card rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border">
             <div className="flex flex-col items-center justify-center mb-4 md:mb-6 text-center">
-              {brandingLoading ? (
-                <div className="flex flex-col items-center animate-pulse">
-                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-200 rounded-full mb-4"></div>
-                  <div className="h-8 w-48 bg-gray-200 rounded"></div>
-                </div>
-              ) : (
-                <>
-                  <div className="inline-flex items-center justify-center mb-4">
-                    {branding.platform_logo_url ? (
-                      <img
-                        src={apiService.getStorageUrl(
-                          branding.platform_logo_url
-                        )}
-                        alt={branding.company_name}
-                        className="max-h-20 md:max-h-24 object-contain"
-                      />
-                    ) : (
-                      <div
-                        className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-white font-bold text-xl md:text-2xl"
-                        style={{ backgroundColor: "#6f1d56" }}
-                      >
-                        {branding.company_name
-                          ? branding.company_name
-                            .split(" ")
-                            .map((word) => word[0])
-                            .join("")
-                            .substring(0, 2)
-                            .toUpperCase()
-                          : "VT"}
-                      </div>
+              <div className="inline-flex items-center justify-center mb-4">
+                {brandingLoading ? (
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-200 rounded-full animate-pulse" />
+                ) : branding.platform_logo_url ? (
+                  <img
+                    src={apiService.getStorageUrl(
+                      branding.platform_logo_url
                     )}
-                  </div>
-                  <h1
-                    className="text-2xl md:text-3xl font-bold"
-                    style={{ color: "var(--text-primary)" }}
+                    alt="Vanquish Therapies"
+                    className="max-h-20 md:max-h-24 object-contain"
+                  />
+                ) : (
+                  <div
+                    className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-white font-bold text-xl md:text-2xl"
+                    style={{ backgroundColor: "#6f1d56" }}
                   >
-                    {branding.company_name ||
-                      process.env.NEXT_PUBLIC_APP_NAME ||
-                      "Vanquish Therapies"}
-                  </h1>
-                </>
-              )}
+                    VT
+                  </div>
+                )}
+              </div>
+              <h1
+                className="text-2xl md:text-3xl font-bold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Vanquish Therapies
+              </h1>
             </div>
 
             {/* Mobile Progress - Simple */}
@@ -2378,10 +2362,7 @@ function MidRangeClientIntakeContent() {
                     Crisis Support
                   </p>
                   <p className="text-base text-red-800">
-                    {branding.company_name ||
-                      process.env.NEXT_PUBLIC_APP_NAME ||
-                      "Vanquish Therapies"}{" "}
-                    is not a crisis or emergency service. If you need immediate
+                    Vanquish Therapies is not a crisis or emergency service. If you need immediate
                     help, please contact your GP, NHS (111), or the Samaritans
                     (116 123).
                   </p>

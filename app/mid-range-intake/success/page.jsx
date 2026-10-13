@@ -65,7 +65,7 @@ function SuccessContent() {
         </p>
 
         <p className="mt-12 text-xs text-gray-400">
-          © {new Date().getFullYear()} {branding?.company_name || process.env.NEXT_PUBLIC_APP_NAME || "Vanquish Therapies"}. All rights reserved.
+          © {new Date().getFullYear()} Vanquish Therapies. All rights reserved.
         </p>
       </div>
     </div>

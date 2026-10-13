@@ -26,7 +26,9 @@ export function BrandingProvider({ children }) {
         if (
           !data.company_name ||
           data.company_name.toLowerCase().includes("vqt") ||
-          data.company_name.toLowerCase().includes("training")
+          data.company_name.toLowerCase().includes("training") ||
+          data.company_name.toLowerCase().includes("vqt management") ||
+          data.company_name.trim().toLowerCase() === "management"
         ) {
           data.company_name = "Vanquish Therapies";
         }

@@ -654,7 +654,7 @@ export default function DashboardSidebar() {
               )}
               <div className="min-w-0">
                 <h1 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)] truncate">
-                  {branding.company_name || "Vanquish"}
+                  {branding.company_name || "Vanquish Therapies"}
                 </h1>
                 <p className="text-[10px] text-gray-600 dark:text-[var(--text-secondary)] truncate">
                   {branding.company_tagline || (isAdmin ? "Admin Portal" : "Practitioner")}

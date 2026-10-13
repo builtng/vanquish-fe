@@ -243,7 +243,7 @@ export default function VanquishServicesLanding() {
             {branding?.platform_logo_url ? (
               <img
                 src={branding.platform_logo_url}
-                alt={branding?.company_name || "Vanquish Therapies"}
+                alt="Vanquish Therapies"
                 className="h-8 sm:h-10 w-auto object-contain transition-transform duration-200 group-hover:scale-105 shrink-0"
               />
             ) : (
@@ -251,12 +251,12 @@ export default function VanquishServicesLanding() {
                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl text-white font-bold text-base sm:text-lg flex items-center justify-center shadow-md shadow-[#6f1d56]/20 transition-transform duration-200 group-hover:scale-105 shrink-0"
                 style={{ backgroundColor: "#6f1d56" }}
               >
-                {branding?.company_name?.substring(0, 2).toUpperCase() || "VT"}
+                VT
               </div>
             )}
             <div className="flex flex-col min-w-0">
               <span className="font-bold text-base sm:text-lg tracking-tight text-slate-900 dark:text-white group-hover:text-[#6f1d56] dark:group-hover:text-pink-400 transition-colors truncate max-w-[140px] xs:max-w-[200px] sm:max-w-none">
-                {branding?.company_name || "Vanquish Therapies"}
+                Vanquish Therapies
               </span>
               <span className="hidden xs:block text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
                 Clinical Services Portal
@@ -866,7 +866,7 @@ export default function VanquishServicesLanding() {
       <footer className="border-t border-slate-200/80 dark:border-slate-800/80 bg-white/60 dark:bg-slate-950/60 py-8 sm:py-10 mt-auto">
         <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
           <div>
-            &copy; {new Date().getFullYear()} {branding?.company_name || "Vanquish Therapies"}. All rights reserved. Registered in England &amp; Wales.
+            &copy; {new Date().getFullYear()} Vanquish Therapies. All rights reserved. Registered in England &amp; Wales.
           </div>
 
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-5 gap-y-2">

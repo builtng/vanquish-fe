@@ -625,50 +625,34 @@ export default function CoachingIntake() {
         <div className="max-w-4xl mx-auto">
           <div className="card rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border bg-white">
             <div className="flex flex-col items-center w-full gap-4 mb-4 md:mb-6">
-              {brandingLoading ? (
-                <div className="flex flex-col items-center animate-pulse w-full">
-                  <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-200 rounded-full mb-2"></div>
-                  <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-4 w-full bg-gray-200 rounded"></div>
-                  <div className="h-4 w-2/3 bg-gray-200 rounded mt-2"></div>
-                </div>
-              ) : (
-                <>
-                  <div className="inline-flex items-center justify-center">
-                    {branding.platform_logo_url ? (
-                      <img
-                        src={apiService.getStorageUrl(branding.platform_logo_url)}
-                        alt={branding.company_name}
-                        className="max-h-16 md:max-h-20 object-contain"
-                      />
-                    ) : (
-                      <div
-                        className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl"
-                        style={{ backgroundColor: "#6f1d56" }}
-                      >
-                        {branding.company_name
-                          ? branding.company_name
-                              .split(" ")
-                              .map((word) => word[0])
-                              .join("")
-                              .substring(0, 2)
-                              .toUpperCase()
-                          : "VT"}
-                      </div>
-                    )}
+              <div className="inline-flex items-center justify-center">
+                {brandingLoading ? (
+                  <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-200 rounded-full animate-pulse" />
+                ) : branding.platform_logo_url ? (
+                  <img
+                    src={apiService.getStorageUrl(branding.platform_logo_url)}
+                    alt="Vanquish Therapies"
+                    className="max-h-16 md:max-h-20 object-contain"
+                  />
+                ) : (
+                  <div
+                    className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl"
+                    style={{ backgroundColor: "#6f1d56" }}
+                  >
+                    VT
                   </div>
-                  <div className="text-center">
-                    <h1 className="text-xl md:text-3xl font-bold text-primary mb-2">
-                      Client Information Sheet
-                    </h1>
-                    <p className="text-sm mt-0.5 md:mt-1 text-secondary">
-                      By completing this form, you (client) are giving permission
-                      for your information to be shared within Vanquish Therapies
-                      for the purpose of appointment scheduling.
-                    </p>
-                  </div>
-                </>
-              )}
+                )}
+              </div>
+              <div className="text-center">
+                <h1 className="text-xl md:text-3xl font-bold text-primary mb-2">
+                  Client Information Sheet
+                </h1>
+                <p className="text-sm mt-0.5 md:mt-1 text-secondary">
+                  By completing this form, you (client) are giving permission
+                  for your information to be shared within Vanquish Therapies
+                  for the purpose of appointment scheduling.
+                </p>
+              </div>
             </div>
 
             <div className="hidden md:block">

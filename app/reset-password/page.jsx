@@ -106,7 +106,7 @@ function ResetPasswordForm() {
             )}
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            {branding.company_name || "Vanquish"}
+            {branding.company_name || "Vanquish Therapies"}
           </h1>
           <p className="text-muted-foreground">Set New Password</p>
         </div>

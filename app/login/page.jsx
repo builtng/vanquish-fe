@@ -85,7 +85,7 @@ export default function LoginPage() {
             )}
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            {branding.company_name || "Vanquish"}
+            {branding.company_name || "Vanquish Therapies"}
           </h1>
           <p className="text-muted-foreground">Admin Dashboard Login</p>
         </div>
@@ -270,7 +270,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-sm text-muted-foreground mt-6">
-          © {new Date().getFullYear()} {branding.company_name || "Vanquish"}. All rights reserved.
+          © {new Date().getFullYear()} {branding.company_name || "Vanquish Therapies"}. All rights reserved.
         </p>
       </div>
     </div>

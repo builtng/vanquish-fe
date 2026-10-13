@@ -264,42 +264,30 @@ export default function ClientInformationSheet() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6 text-center">
-          {brandingLoading ? (
-            <div className="flex flex-col items-center animate-pulse w-full">
-              <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-200 rounded-full mb-2"></div>
-              <div className="h-6 w-48 bg-gray-200 rounded"></div>
+          <div className="flex flex-col items-center justify-center mb-4 md:mb-6">
+            <div className="inline-flex items-center justify-center mb-4">
+              {brandingLoading ? (
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-200 rounded-full animate-pulse" />
+              ) : branding.platform_logo_url ? (
+                <img
+                  src={apiService.getStorageUrl(branding.platform_logo_url)}
+                  alt="Vanquish Therapies"
+                  className="max-h-16 md:max-h-20 object-contain"
+                />
+              ) : (
+                <div
+                  className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl"
+                  style={{ backgroundColor: "#6f1d56" }}
+                >
+                  VT
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center mb-4 md:mb-6">
-              <div className="inline-flex items-center justify-center mb-4">
-                {branding.platform_logo_url ? (
-                  <img
-                    src={apiService.getStorageUrl(branding.platform_logo_url)}
-                    alt={branding.company_name}
-                    className="max-h-16 md:max-h-20 object-contain"
-                  />
-                ) : (
-                  <div
-                    className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl"
-                    style={{ backgroundColor: "#6f1d56" }}
-                  >
-                    {branding.company_name
-                      ? branding.company_name
-                          .split(" ")
-                          .map((word) => word[0])
-                          .join("")
-                          .substring(0, 2)
-                          .toUpperCase()
-                      : "VT"}
-                  </div>
-                )}
-              </div>
-              <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-                {branding.company_name || "Vanquish Therapies"} - Professional counselling support
-              </h1>
-              <div className="text-sm text-gray-500 mt-4">Step {currentStep} of 6</div>
-            </div>
-          )}
+            <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+              Vanquish Therapies - Professional counselling support
+            </h1>
+            <div className="text-sm text-gray-500 mt-4">Step {currentStep} of 6</div>
+          </div>
 
           {/* Progress Steps */}
           <div className="flex items-center justify-between border-t pt-6">
@@ -307,31 +295,28 @@ export default function ClientInformationSheet() {
               <React.Fragment key={step.number}>
                 <div className="flex flex-col items-center flex-1">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      currentStep >= step.number
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${currentStep >= step.number
                         ? "bg-purple-600 text-white"
                         : "bg-gray-200 text-gray-600"
-                    }`}
+                      }`}
                   >
                     <step.icon className="w-5 h-5" />
                   </div>
                   <span
-                    className={`text-xs mt-2 text-center ${
-                      currentStep >= step.number
+                    className={`text-xs mt-2 text-center ${currentStep >= step.number
                         ? "text-purple-600 font-medium"
                         : "text-gray-500"
-                    }`}
+                      }`}
                   >
                     {step.title}
                   </span>
                 </div>
                 {index < steps.length - 1 && (
                   <div
-                    className={`h-1 flex-1 mx-2 rounded ${
-                      currentStep > step.number
+                    className={`h-1 flex-1 mx-2 rounded ${currentStep > step.number
                         ? "bg-purple-600"
                         : "bg-gray-200"
-                    }`}
+                      }`}
                   />
                 )}
               </React.Fragment>
@@ -490,27 +475,27 @@ export default function ClientInformationSheet() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Ethnicity <span className="text-red-500">*</span>
                     </label>
-                      <select
-                        value={formData.ethnicity}
-                        onChange={(e) =>
-                          handleInputChange("ethnicity", e.target.value)
-                        }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                      >
-                        <option value="">Select ethnicity</option>
-                        <option value="Caucasian/White">Caucasian/White</option>
-                        <option value="African/Caribbean/Black">African/Caribbean/Black</option>
-                        <option value="North African">North African</option>
-                        <option value="Hispanic/Latino">Hispanic/Latino</option>
-                        <option value="South Asian">South Asian</option>
-                        <option value="Southeast Asian">Southeast Asian</option>
-                        <option value="East Asian">East Asian</option>
-                        <option value="Central Asian">Central Asian</option>
-                        <option value="West Asian (Middle Eastern)">West Asian (Middle Eastern)</option>
-                        <option value="North Asian">North Asian</option>
-                        <option value="Mixed/Multiracial">Mixed/Multiracial</option>
-                        <option value="Other">Other (Please use the box below to specify)</option>
-                      </select>
+                    <select
+                      value={formData.ethnicity}
+                      onChange={(e) =>
+                        handleInputChange("ethnicity", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    >
+                      <option value="">Select ethnicity</option>
+                      <option value="Caucasian/White">Caucasian/White</option>
+                      <option value="African/Caribbean/Black">African/Caribbean/Black</option>
+                      <option value="North African">North African</option>
+                      <option value="Hispanic/Latino">Hispanic/Latino</option>
+                      <option value="South Asian">South Asian</option>
+                      <option value="Southeast Asian">Southeast Asian</option>
+                      <option value="East Asian">East Asian</option>
+                      <option value="Central Asian">Central Asian</option>
+                      <option value="West Asian (Middle Eastern)">West Asian (Middle Eastern)</option>
+                      <option value="North Asian">North Asian</option>
+                      <option value="Mixed/Multiracial">Mixed/Multiracial</option>
+                      <option value="Other">Other (Please use the box below to specify)</option>
+                    </select>
                   </div>
 
                   <div className="md:col-span-2">
@@ -894,8 +879,8 @@ export default function ClientInformationSheet() {
                         {!Object.values(formData.availability || {}).some(
                           (slots) => Array.isArray(slots) && slots.length > 0
                         ) && (
-                          <p className="italic text-purple-600">No slots selected</p>
-                        )}
+                            <p className="italic text-purple-600">No slots selected</p>
+                          )}
                       </div>
                       <p className="text-xs text-purple-700 mt-2">
                         {formData.modality || "Standard therapy session"}
@@ -1024,11 +1009,10 @@ export default function ClientInformationSheet() {
                       setCurrentStep((prev) => Math.max(1, prev - 1))
                     }
                     disabled={currentStep === 1}
-                    className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                      currentStep === 1
+                    className={`px-6 py-2 rounded-lg font-medium transition-colors ${currentStep === 1
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
+                      }`}
                   >
                     Previous
                   </button>
