@@ -22,6 +22,8 @@ import {
   Upload,
   Trash2,
   CalendarClock,
+  FileText,
+  Check,
 } from "lucide-react";
 
 function ProfilePageContent() {
@@ -63,6 +65,10 @@ function ProfilePageContent() {
   });
   const [savingToggle, setSavingToggle] = useState(null);
 
+  // Bio state (Qualified counsellors only, max 1,200 chars)
+  const [bio, setBio] = useState("");
+  const [savingBio, setSavingBio] = useState(false);
+
   useEffect(() => {
     if (authUser) {
       setProfileForm({
@@ -85,6 +91,7 @@ function ProfilePageContent() {
         if (res.tc.photo_url || res.tc.photo) {
           setPhotoPreview(apiService.getStorageUrl(res.tc.photo_url || res.tc.photo));
         }
+        setBio(res.tc.bio || "");
         setConsultationToggles({
           show_own_consultation_availability: !!res.tc.show_own_consultation_availability,
           show_vanquish_consultation_availability: !!res.tc.show_vanquish_consultation_availability,
@@ -217,12 +224,34 @@ function ProfilePageContent() {
     }
   };
 
+  const handleSaveBio = async () => {
+    if (bio.length > 1200) {
+      showError("Bio cannot exceed 1,200 characters.");
+      return;
+    }
+    setSavingBio(true);
+    try {
+      await apiService.updateCounsellorBio(bio);
+      success("Bio updated successfully.");
+      await loadData();
+    } catch (err) {
+      showError(err?.message || "Failed to update bio");
+    } finally {
+      setSavingBio(false);
+    }
+  };
+
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await apiService.updateProfile(profileForm);
+      const payload = { ...profileForm };
+      if (tcData?.counsellor_type === "Qualified") {
+        payload.bio = bio;
+      }
+      await apiService.updateProfile(payload);
       await refreshUser();
+      await loadData();
       success("Profile updated successfully");
     } catch (err) {
       showError(err.message || "Failed to update profile");
@@ -502,6 +531,79 @@ function ProfilePageContent() {
               </div>
             </form>
           </section>
+
+          {/* Practitioner Bio Section (Qualified counsellors only) */}
+          {tcData?.counsellor_type === "Qualified" && (
+            <section
+              id="counsellor-bio-section"
+              className="bg-white dark:bg-[var(--card-bg)] rounded-xl border border-gray-200 dark:border-[var(--card-border)] shadow-sm overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-[var(--card-border)] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#6f1d56]" />
+                  <h2 className="font-bold text-gray-900 dark:text-[var(--text-primary)]">
+                    Practitioner Bio
+                  </h2>
+                </div>
+                <span className="text-xs px-2.5 py-1 rounded-full bg-purple-50 dark:bg-purple-900/20 text-[#6f1d56] dark:text-purple-300 font-semibold">
+                  Qualified Practitioner
+                </span>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] leading-relaxed">
+                  Your bio is displayed on your counsellor card and profile modal when clients browse and select counsellors on the intake form. Plain text only, maximum 1,200 characters.
+                </p>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label
+                      htmlFor="counsellor-bio"
+                      className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)]"
+                    >
+                      Bio
+                    </label>
+                    <span
+                      id="bio-char-count"
+                      className={`text-xs ${
+                        bio.length >= 1200
+                          ? "text-rose-600 dark:text-rose-400 font-bold"
+                          : "text-gray-500 dark:text-[var(--text-secondary)]"
+                      }`}
+                    >
+                      {bio.length} / 1,200 characters
+                    </span>
+                  </div>
+                  <textarea
+                    id="counsellor-bio"
+                    rows={6}
+                    maxLength={1200}
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Write a brief introduction about your background, approach, and practice..."
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-[var(--card-border)] bg-white dark:bg-[var(--input-bg)] text-gray-900 dark:text-[var(--text-primary)] rounded-lg text-sm focus:ring-2 focus:ring-[#6f1d56] outline-none transition resize-y"
+                  />
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                    Plain text only • Maximum 1,200 characters
+                  </p>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    id="save-bio-btn"
+                    onClick={handleSaveBio}
+                    disabled={savingBio}
+                    className="px-6 py-2 bg-[#6f1d56] hover:bg-[#5a1645] text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-sm disabled:opacity-50"
+                  >
+                    {savingBio ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save Bio
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Consultation Availability Toggle (Qualified counsellors only) */}
           {tcData?.counsellor_type === "Qualified" && (
