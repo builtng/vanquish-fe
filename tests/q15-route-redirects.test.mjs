@@ -7,6 +7,20 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 
+test("FIX Q15: next.config.js must not exist alongside next.config.mjs", () => {
+  const nextConfigJsPath = path.join(rootDir, "next.config.js");
+  const nextConfigMjsPath = path.join(rootDir, "next.config.mjs");
+
+  assert.ok(
+    fs.existsSync(nextConfigMjsPath),
+    "next.config.mjs must exist as the primary configuration file"
+  );
+  assert.ok(
+    !fs.existsSync(nextConfigJsPath),
+    "next.config.js must NOT exist alongside next.config.mjs (causes Next.js to ignore redirects in next.config.mjs)"
+  );
+});
+
 test("FIX Q15: Permanent redirects in next.config.mjs and deleted page folders", async () => {
   const nextConfigModule = await import(path.join(rootDir, "next.config.mjs"));
   const nextConfig = nextConfigModule.default;
@@ -19,6 +33,8 @@ test("FIX Q15: Permanent redirects in next.config.mjs and deleted page folders",
     { source: "/clform", destination: "/low-cost-intake", permanent: true },
     { source: "/tcform", destination: "/counsellor", permanent: true },
     { source: "/trainee-application", destination: "/counsellor", permanent: true },
+    { source: "/ish", destination: "/mid-range-intake?service=coaching", permanent: true },
+    { source: "/low-cost", destination: "/low-cost-intake", permanent: true },
   ];
 
   for (const req of requiredRedirects) {
@@ -29,8 +45,16 @@ test("FIX Q15: Permanent redirects in next.config.mjs and deleted page folders",
       req.destination,
       `Redirect for ${req.source} must point to ${req.destination}`
     );
-    assert.equal(found.permanent, true, `Redirect for ${req.source} must be permanent (301)`);
+    assert.equal(found.permanent, true, `Redirect for ${req.source} must be permanent (308)`);
   }
+
+  // /therapy-form must NOT be in redirects so it serves 200
+  const therapyRedirect = redirects.find((r) => r.source === "/therapy-form");
+  assert.ok(!therapyRedirect, "/therapy-form must not be redirected so it returns 200");
+  assert.ok(
+    fs.existsSync(path.join(rootDir, "app/therapy-form/page.jsx")),
+    "app/therapy-form/page.jsx must exist to return 200"
+  );
 
   // Verify the four page folders are deleted
   const deletedFolders = [
