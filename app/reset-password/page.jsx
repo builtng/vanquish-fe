@@ -138,7 +138,7 @@ function ResetPasswordForm() {
                 </p>
               </div>
               <Link
-                href="/login"
+                href="/"
                 className="w-full py-3 px-4 rounded-lg text-white font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-2 bg-[var(--button-primary-bg)]"
               >
                 Proceed to Login
@@ -280,7 +280,7 @@ function ResetPasswordForm() {
 
               <div className="text-center pt-2">
                 <Link
-                  href="/login"
+                  href="/"
                   className="inline-flex items-center gap-2 text-sm font-medium hover:opacity-80 text-[var(--button-primary-bg)]"
                 >
                   <ArrowLeft className="w-4 h-4" />

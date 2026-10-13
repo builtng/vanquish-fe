@@ -114,6 +114,11 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: "/login",
+        destination: "/",
+        permanent: true,
+      },
+      {
         source: "/client",
         destination: "/low-cost-intake",
         permanent: true,

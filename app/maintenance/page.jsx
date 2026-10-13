@@ -116,7 +116,7 @@ export default function MaintenancePage() {
         <p className="text-white/40 text-sm">
           Are you staff?{" "}
           <a
-            href="/login"
+            href="/"
             className="text-[#c45fa0] hover:text-[#e07abd] underline underline-offset-2 transition-colors"
           >
             Log in here

@@ -10,12 +10,6 @@ export default function sitemap() {
       priority: 1,
     },
     {
-      url: `${baseUrl}/login`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
       url: `${baseUrl}/client-booking`,
       lastModified: new Date(),
       changeFrequency: 'weekly',

@@ -121,7 +121,7 @@ export default function PageGuard({ menuId, children }) {
                 Retry
               </button>
               <button 
-                onClick={() => apiService.clearToken() || (window.location.href = "/login")}
+                onClick={() => apiService.clearToken() || (window.location.href = "/")}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-[var(--text-secondary)] rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Log Out

@@ -87,7 +87,7 @@ export default function CounsellorLoginPage() {
       {/* Admin Login link - Fixed Top Left */}
       <div className="fixed top-4 left-4 z-50">
         <Link
-          href="/login"
+          href="/"
           className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
         >
           ← Admin Login

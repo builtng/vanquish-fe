@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
     // Protect dashboard and counsellor-portal routes
     if (!isLoading) {
       const isDashboardRoute = pathname?.startsWith("/dashboard");
-      const isLoginRoute = pathname === "/login";
+      const isLoginRoute = pathname === "/login" || pathname === "/";
       const isCounsellorPortalRoute =
         pathname?.startsWith("/counsellor-portal");
       const isCounsellorLoginRoute = pathname === "/counsellor-login";
@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
       // Admin dashboard protection
       if (isDashboardRoute) {
         if (!user) {
-          router.push("/login");
+          router.push("/");
         } else if (user.role === "counsellor") {
           router.push("/counsellor-portal");
         }
@@ -104,7 +104,7 @@ export function AuthProvider({ children }) {
       if (role === "counsellor") {
         router.push("/counsellor-login");
       } else {
-        router.push("/login");
+        router.push("/");
       }
     }
   };

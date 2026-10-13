@@ -98,7 +98,7 @@ export default function ForgotPasswordPage() {
                 Please check your inbox (and spam folder) for the password reset email. The link is valid for 60 minutes.
               </p>
               <Link
-                href="/login"
+                href="/"
                 className="w-full py-3 px-4 rounded-lg text-white font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-2 bg-[var(--button-primary-bg)]"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -167,7 +167,7 @@ export default function ForgotPasswordPage() {
 
               <div className="text-center pt-2">
                 <Link
-                  href="/login"
+                  href="/"
                   className="inline-flex items-center gap-2 text-sm font-medium hover:opacity-80 text-[var(--button-primary-bg)]"
                 >
                   <ArrowLeft className="w-4 h-4" />

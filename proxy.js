@@ -17,7 +17,7 @@ export default async function proxy(request) {
   const { pathname } = request.nextUrl;
 
   // Let assets and login pages through without any check
-  if (ALWAYS_BYPASS.some((p) => pathname.startsWith(p))) {
+  if (pathname === "/" || ALWAYS_BYPASS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
