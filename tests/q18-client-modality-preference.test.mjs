@@ -64,9 +64,37 @@ test("FIX Q18: Client modality preference with 'Unsure'", () => {
     "Modality criteria block must be guarded by clientModality"
   );
 
-  // 5. Recalculate list when client goes back and changes answers
+  // 6. "Other (not listed above)" must NOT be offered to clients on Mid Range form
   assert.ok(
-    filteredCounsellors.includes("formData.modalityPreference"),
-    "useEffect dependencies must include formData.modalityPreference for re-fetching"
+    midRangePage.includes('modality !== "Other (not listed above)"'),
+    "Must filter out 'Other (not listed above)' from client modality options on Mid Range form"
+  );
+
+  // 7. Admin client-details and clients/edit include modality preference
+  const clientDetailsPage = fs.readFileSync(
+    path.join(rootDir, "app/dashboard/client-details/[uuid]/page.jsx"),
+    "utf8"
+  );
+  assert.ok(
+    clientDetailsPage.includes("Modality Preference"),
+    "client-details must display Modality Preference"
+  );
+  assert.ok(
+    clientDetailsPage.includes("modality_preference: preferencesForm.modalityPreference"),
+    "client-details must save modality_preference"
+  );
+
+  const clientEditPage = fs.readFileSync(
+    path.join(rootDir, "app/dashboard/clients/edit/page.jsx"),
+    "utf8"
+  );
+  assert.ok(
+    clientEditPage.includes("Modality Preference"),
+    "clients/edit must display Modality Preference"
+  );
+  assert.ok(
+    clientEditPage.includes("modality_preference: formData.modalityPreference"),
+    "clients/edit must save modality_preference"
   );
 });
+

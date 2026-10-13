@@ -77,6 +77,7 @@ function transformPendingMatchClient(client) {
     agePreference: client.age_preference || intake?.age_preference || "No preference",
     ethnicityPreference: client.ethnicity_preference || intake?.ethnicity_preference || "No preference",
     orientationPreference: client.orientation_preference || intake?.orientation_preference || "No preference",
+    modalityPreference: client.modality_preference || intake?.modality_preference || "Unsure",
     submittedDate: client.submitted_date || null,
     daysWaiting: client.days_waiting || 0,
     waitingText: client.waiting_days_text,
@@ -599,6 +600,11 @@ const PendingMatchRow = ({
                     {client.orientationPreference && client.orientationPreference !== "No preference" && (
                       <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] rounded-full font-medium border border-purple-200">
                         Orientation: {client.orientationPreference}
+                      </span>
+                    )}
+                    {client.modalityPreference && client.modalityPreference !== "Unsure" && client.modalityPreference !== "No preference" && (
+                      <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] rounded-full font-medium border border-purple-200">
+                        Modality: {client.modalityPreference}
                       </span>
                     )}
                     {client.primaryIssues.map((issue) => (

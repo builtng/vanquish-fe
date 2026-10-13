@@ -121,6 +121,36 @@ export default function EmailManagement() {
 
   const selectedTemplate = templates.find((t) => t.type === selectedType);
 
+  const getTemplateName = (template) => {
+    if (!template) return "";
+    if (template.name) return template.name;
+    const type = template.type || "";
+    if (type.startsWith("qc_")) {
+      return (
+        "Qualified Counsellor: " +
+        type
+          .slice(3)
+          .split("_")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ")
+      );
+    }
+    if (type.startsWith("trainee_")) {
+      return (
+        "Trainee: " +
+        type
+          .slice(8)
+          .split("_")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ")
+      );
+    }
+    return type
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+  };
+
   if (loading) {
     return (
       <PageGuard menuId="email-management">
@@ -201,13 +231,7 @@ export default function EmailManagement() {
                     <p
                       className={`text-sm font-semibold ${selectedType === template.type ? "text-purple-700 dark:text-purple-400" : "text-gray-700 dark:text-gray-300"}`}
                     >
-                      {template.type
-                        .split("_")
-                        .map(
-                          (word) =>
-                            word.charAt(0).toUpperCase() + word.slice(1),
-                        )
-                        .join(" ")}
+                      {getTemplateName(template)}
                     </p>
                     <p className="text-xs text-gray-500 truncate max-w-[150px]">
                       {template.subject}
@@ -247,13 +271,7 @@ export default function EmailManagement() {
               <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900 rounded-t-xl">
                 <div>
                   <h2 className="font-bold text-gray-900 dark:text-white">
-                    Edit{" "}
-                    {selectedType
-                      .split("_")
-                      .map(
-                        (word) => word.charAt(0).toUpperCase() + word.slice(1),
-                      )
-                      .join(" ")}
+                    Edit {getTemplateName(selectedTemplate)}
                   </h2>
                   <p className="text-xs text-gray-500">
                     Version: {selectedTemplate?.version || 1}

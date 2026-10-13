@@ -2437,7 +2437,7 @@ function MidRangeClientIntakeContent() {
                       className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
                     >
                       <option value="Unsure">Unsure</option>
-                      {MODALITY_OPTIONS.map((modality) => (
+                      {MODALITY_OPTIONS.filter((modality) => modality !== "Other (not listed above)").map((modality) => (
                         <option key={modality} value={modality}>
                           {modality}
                         </option>

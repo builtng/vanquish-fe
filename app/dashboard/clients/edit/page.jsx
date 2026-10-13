@@ -10,6 +10,7 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import DashboardLayout from "@/components/DashboardLayout";
 import { SUPPORT_AREAS } from "@/lib/constants";
+import { CLIENT_MODALITY_OPTIONS } from "@/lib/constants/modalities";
 
 import {
   Users,
@@ -125,6 +126,7 @@ function EditClientPageContent() {
     agePreference: "No preference",
     ethnicityPreference: "No preference",
     orientationPreference: "No preference",
+    modalityPreference: "Unsure",
 
     // Service Selection
     serviceType: "Low Cost Counselling",
@@ -236,6 +238,7 @@ function EditClientPageContent() {
           agePreference: client.age_preference || intake?.age_preference || "No preference",
           ethnicityPreference: client.ethnicity_preference || intake?.ethnicity_preference || "No preference",
           orientationPreference: client.orientation_preference || intake?.orientation_preference || "No preference",
+          modalityPreference: client.modality_preference || intake?.modality_preference || "Unsure",
           serviceType: (() => {
             const val = client.service_type || intake?.service_type;
             if (!val) return "Low Cost Counselling";
@@ -411,6 +414,7 @@ function EditClientPageContent() {
           age_preference: formData.agePreference,
           ethnicity_preference: formData.ethnicityPreference,
           orientation_preference: formData.orientationPreference,
+          modality_preference: formData.modalityPreference,
           address: formData.address,
           postcode: formData.postcode,
           voicemail_permission: formData.voicemailPermission,
@@ -496,6 +500,7 @@ function EditClientPageContent() {
         age_preference: pendingFormData.agePreference,
         ethnicity_preference: pendingFormData.ethnicityPreference,
         orientation_preference: pendingFormData.orientationPreference,
+        modality_preference: pendingFormData.modalityPreference,
         address: pendingFormData.address,
         postcode: pendingFormData.postcode,
         voicemail_permission: pendingFormData.voicemailPermission,
@@ -1130,6 +1135,21 @@ function EditClientPageContent() {
                             { value: "Other", label: "Other" },
                           ]}
                           placeholder="Select sexual orientation preference"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                          Modality Preference
+                        </label>
+                        <SearchableSelect
+                          value={formData.modalityPreference}
+                          onChange={(e) => handleInputChange("modalityPreference", e.target.value)}
+                          options={[
+                            { value: "Unsure", label: "Unsure" },
+                            { value: "No preference", label: "No preference" },
+                            ...CLIENT_MODALITY_OPTIONS.map((m) => ({ value: m, label: m })),
+                          ]}
+                          placeholder="Select modality preference"
                         />
                       </div>
                     </div>

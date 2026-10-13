@@ -17,6 +17,7 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import DashboardLayout from "@/components/DashboardLayout";
 import RichTextEditor from "@/components/RichTextEditor";
 import SearchableSelect from "@/components/SearchableSelect";
+import { CLIENT_MODALITY_OPTIONS } from "@/lib/constants/modalities";
 
 import {
   Users,
@@ -155,6 +156,7 @@ export default function IndividualClientDetailPage() {
     agePreference: "No preference",
     ethnicityPreference: "No preference",
     orientationPreference: "No preference",
+    modalityPreference: "Unsure",
   });
   const [savingPreferences, setSavingPreferences] = useState(false);
 
@@ -187,6 +189,7 @@ export default function IndividualClientDetailPage() {
       agePreference: client.agePreference || "No preference",
       ethnicityPreference: client.ethnicityPreference || "No preference",
       orientationPreference: client.orientationPreference || "No preference",
+      modalityPreference: client.modalityPreference || "Unsure",
     });
     setShowEditPreferencesModal(true);
   };
@@ -200,6 +203,7 @@ export default function IndividualClientDetailPage() {
         age_preference: preferencesForm.agePreference,
         ethnicity_preference: preferencesForm.ethnicityPreference,
         orientation_preference: preferencesForm.orientationPreference,
+        modality_preference: preferencesForm.modalityPreference,
       });
       success("Counsellor preferences updated successfully!");
       setShowEditPreferencesModal(false);
@@ -247,6 +251,7 @@ export default function IndividualClientDetailPage() {
       agePreference: data.age_preference || intake?.age_preference || "No preference",
       ethnicityPreference: data.ethnicity_preference || intake?.ethnicity_preference || "No preference",
       orientationPreference: data.orientation_preference || intake?.orientation_preference || "No preference",
+      modalityPreference: data.modality_preference || intake?.modality_preference || "Unsure",
       stage: data.stage || "Consultation Booked",
       status: data.status || "active",
       daysInSystem: data.submitted_date
@@ -2138,6 +2143,24 @@ export default function IndividualClientDetailPage() {
                             </span>
                           </div>
                         </div>
+
+                        {/* Modality Preference */}
+                        <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">
+                            Modality Preference
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold ${
+                                client.modalityPreference && client.modalityPreference !== "Unsure" && client.modalityPreference !== "No preference"
+                                  ? "bg-purple-100 text-purple-800 border border-purple-200"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}
+                            >
+                              {client.modalityPreference || "Unsure"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
@@ -3925,6 +3948,27 @@ export default function IndividualClientDetailPage() {
                         { value: "Other", label: "Other" },
                       ]}
                       placeholder="Select sexual orientation preference"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Modality Preference
+                    </label>
+                    <SearchableSelect
+                      value={preferencesForm.modalityPreference}
+                      onChange={(e) =>
+                        setPreferencesForm((prev) => ({
+                          ...prev,
+                          modalityPreference: e.target.value,
+                        }))
+                      }
+                      options={[
+                        { value: "Unsure", label: "Unsure" },
+                        { value: "No preference", label: "No preference" },
+                        ...CLIENT_MODALITY_OPTIONS.map((m) => ({ value: m, label: m })),
+                      ]}
+                      placeholder="Select modality preference"
                     />
                   </div>
 
