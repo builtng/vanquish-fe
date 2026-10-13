@@ -24,6 +24,7 @@ import { toast } from "react-toastify";
 import apiService from "@/lib/api";
 import { useBranding } from "@/contexts/BrandingContext";
 import { SUPPORT_AREAS } from "@/lib/constants";
+import { MODALITY_OPTIONS } from "@/lib/constants/modalities";
 import WeeklyAvailabilityPicker from "@/components/WeeklyAvailabilityPicker";
 
 function MidRangeClientIntakeContent() {
@@ -98,6 +99,7 @@ function MidRangeClientIntakeContent() {
     agePreference: "No preference",
     ethnicityPreference: "No preference",
     orientationPreference: "No preference",
+    modalityPreference: "Unsure",
 
     // Step 8: Referral
     hearAboutUs: "",
@@ -932,6 +934,8 @@ function MidRangeClientIntakeContent() {
               sanitizeText(formData.ethnicityPreference) || "No preference",
             orientation_preference:
               sanitizeText(formData.orientationPreference) || "No preference",
+            modality_preference:
+              sanitizeText(formData.modalityPreference) || "Unsure",
             hear_about_us: sanitizeText(formData.hearAboutUs) || null,
             referral_reason: sanitizeText(formData.referralReason) || null,
             referrer_name: sanitizeText(formData.referrerName) || null,
@@ -2415,6 +2419,32 @@ function MidRangeClientIntakeContent() {
                 </div>
 
                 <div className="space-y-4 md:space-y-6">
+                  <div>
+                    <label
+                      htmlFor="modalityPreference"
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Which therapeutic approaches or modalities would you prefer to work with?
+                    </label>
+                    <select
+                      name="modalityPreference"
+                      id="modalityPreference"
+                      value={formData.modalityPreference}
+                      onChange={(e) =>
+                        handleInputChange("modalityPreference", e.target.value)
+                      }
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    >
+                      <option value="Unsure">Unsure</option>
+                      {MODALITY_OPTIONS.map((modality) => (
+                        <option key={modality} value={modality}>
+                          {modality}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div>
                     <label
                       className="block text-lg font-medium mb-2"

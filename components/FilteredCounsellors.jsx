@@ -204,24 +204,44 @@ export default function FilteredCounsellors({
       : `${formData.genderPreference} Counsellor`;
   }, [formData.genderPreference]);
 
-  // Modality (only if client actually selected one)
+  // Modality (only if client actually selected one and not "Unsure")
   const clientModality = useMemo(() => {
-    if (formData.modality && typeof formData.modality === "string" && formData.modality.trim()) {
-      return formData.modality.trim();
+    const candidate =
+      formData.modalityPreference ||
+      formData.modality ||
+      formData.preferredModality;
+
+    if (candidate && typeof candidate === "string" && candidate.trim()) {
+      const trimmed = candidate.trim();
+      if (!["unsure", "no preference", "any", "all"].includes(trimmed.toLowerCase())) {
+        return trimmed;
+      }
     }
     if (Array.isArray(formData.modalities) && formData.modalities.length > 0) {
-      return formData.modalities.filter(Boolean).join(", ");
-    }
-    if (formData.preferredModality && typeof formData.preferredModality === "string" && formData.preferredModality.trim()) {
-      return formData.preferredModality.trim();
+      const filtered = formData.modalities.filter(
+        (m) => m && !["unsure", "no preference", "any", "all"].includes(String(m).trim().toLowerCase())
+      );
+      if (filtered.length > 0) {
+        return filtered.join(", ");
+      }
     }
     return null;
-  }, [formData.modality, formData.modalities, formData.preferredModality]);
+  }, [formData.modalityPreference, formData.modality, formData.modalities, formData.preferredModality]);
 
   // Specialty label shown in the filter criteria sidebar
   const clientSpecialtyLabel = formData.isCouples
     ? "Couples Counsellor"
     : "Individual Counsellor";
+
+  // Keys for deep change detection when client navigates back and edits answers
+  const supportAreasKey = useMemo(
+    () => (formData.supportAreas || []).join(","),
+    [formData.supportAreas],
+  );
+  const availabilityKey = useMemo(
+    () => JSON.stringify(formData.availability || {}),
+    [formData.availability],
+  );
 
   // Fetch filtered counsellors from backend
   useEffect(() => {
@@ -239,6 +259,8 @@ export default function FilteredCounsellors({
           ethnicity_preference: formData.ethnicityPreference || "No preference",
           orientation_preference:
             formData.orientationPreference || "No preference",
+          modality_preference:
+            formData.modalityPreference || formData.modality || "Unsure",
         };
 
         const res = await apiService.getFilteredCounsellors(payload);
@@ -271,9 +293,18 @@ export default function FilteredCounsellors({
               };
             });
             setCounsellors(enhanced);
-            // Do not auto-select counsellor on load
+            // If the previously selected counsellor no longer matches after changing answers, deselect
+            if (enhanced.length > 0 && selectedCounsellorUuid) {
+              const stillMatches = enhanced.some((c) => c.uuid === selectedCounsellorUuid);
+              if (!stillMatches && onSelectCounsellor) {
+                onSelectCounsellor({ uuid: "", name: "", id: null });
+              }
+            }
           } else {
             setCounsellors([]);
+            if (selectedCounsellorUuid && onSelectCounsellor) {
+              onSelectCounsellor({ uuid: "", name: "", id: null });
+            }
           }
         }
       } catch (err) {
@@ -293,12 +324,14 @@ export default function FilteredCounsellors({
   }, [
     formData.serviceType,
     formData.isCouples,
-    formData.supportAreas,
-    formData.availability,
+    supportAreasKey,
+    availabilityKey,
     formData.genderPreference,
     formData.agePreference,
     formData.ethnicityPreference,
     formData.orientationPreference,
+    formData.modalityPreference,
+    formData.modality,
   ]);
 
   // Fetch slots for selected counsellor
@@ -789,10 +822,26 @@ export default function FilteredCounsellors({
                             {(counsellor.modality || counsellor.specialty) && (
                               <div className="flex flex-wrap gap-2 mt-2.5">
                                 {counsellor.modality && (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
-                                    <span className="text-[#2d5a3f]">⬡</span>
-                                    {counsellor.modality}
-                                  </span>
+                                  counsellor.modality.includes(",") ? (
+                                    counsellor.modality
+                                      .split(",")
+                                      .map((m) => m.trim())
+                                      .filter(Boolean)
+                                      .map((mod, i) => (
+                                        <span
+                                          key={i}
+                                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]"
+                                        >
+                                          <span className="text-[#2d5a3f]">⬡</span>
+                                          {mod}
+                                        </span>
+                                      ))
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
+                                      <span className="text-[#2d5a3f]">⬡</span>
+                                      {counsellor.modality}
+                                    </span>
+                                  )
                                 )}
                                 {counsellor.specialty && (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
@@ -942,10 +991,26 @@ export default function FilteredCounsellors({
                   {(selectedCounsellorObj.modality || selectedCounsellorObj.specialty) && (
                     <div className="flex flex-wrap gap-2">
                       {selectedCounsellorObj.modality && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
-                          <span className="text-[#2d5a3f]">⬡</span>
-                          {selectedCounsellorObj.modality}
-                        </span>
+                        selectedCounsellorObj.modality.includes(",") ? (
+                          selectedCounsellorObj.modality
+                            .split(",")
+                            .map((m) => m.trim())
+                            .filter(Boolean)
+                            .map((mod, i) => (
+                              <span
+                                key={i}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]"
+                              >
+                                <span className="text-[#2d5a3f]">⬡</span>
+                                {mod}
+                              </span>
+                            ))
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
+                            <span className="text-[#2d5a3f]">⬡</span>
+                            {selectedCounsellorObj.modality}
+                          </span>
+                        )
                       )}
                       {selectedCounsellorObj.specialty && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
