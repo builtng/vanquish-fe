@@ -52,4 +52,34 @@ test("FIX Q14: Show only real counsellors, and enough of them", () => {
     filteredCounsellorsContent.includes("return \"No preference\";"),
     "clientPreferenceSummary must return 'No preference' when gender preference is not set"
   );
+
+  // 4. Hide empty fields and do not invent profile data
+  assert.ok(
+    !filteredCounsellorsContent.includes('modality: c.modality || "Integrative Therapy"'),
+    "Must not fall back to 'Integrative Therapy' for empty modality"
+  );
+  assert.ok(
+    !filteredCounsellorsContent.includes('["Trauma", "Anxiety", "Depression", "Relationships"]'),
+    "Must not invent hardcoded sample list for topics_with_experience"
+  );
+  assert.match(
+    filteredCounsellorsContent,
+    /\{counsellor\.bio\s*&&\s*\(/,
+    "Must conditionally render counsellor bio only when present"
+  );
+  assert.match(
+    filteredCounsellorsContent,
+    /\{counsellor\.modality\s*&&\s*\(/,
+    "Must conditionally render counsellor modality only when present"
+  );
+  assert.match(
+    filteredCounsellorsContent,
+    /\{counsellor\.specialty\s*&&\s*\(/,
+    "Must conditionally render counsellor specialty only when present"
+  );
+  assert.match(
+    filteredCounsellorsContent,
+    /\{Array\.isArray\(counsellor\.topics_with_experience\)\s*&&\s*counsellor\.topics_with_experience\.length\s*>\s*0\s*&&\s*\(/,
+    "Must conditionally render topics_with_experience only when non-empty array"
+  );
 });

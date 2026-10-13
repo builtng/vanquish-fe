@@ -600,15 +600,12 @@ function QualifiedApplicationsContent() {
                           </td>
 
                           <td className="py-4 px-4 text-right space-x-2">
-                            <button
-                              onClick={() => {
-                                setSelectedApp(app);
-                                setShowDetailModal(true);
-                              }}
-                              className="px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                            <Link
+                              href={`/dashboard/qualified-applications/${app.id}`}
+                              className="inline-block px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
                             >
                               View
-                            </button>
+                            </Link>
 
                             {isArchived ? (
                               isAdmin && (

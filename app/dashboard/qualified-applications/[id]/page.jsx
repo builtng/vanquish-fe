@@ -20,22 +20,38 @@ import DashboardHeader from "@/components/DashboardHeader";
 import PageGuard from "@/components/PageGuard";
 import apiService from "@/lib/api";
 
-export default function QualifiedApplicationDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const id = params?.id;
+export function resolveApplicationData(res) {
+  if (!res) return null;
+  // Use the response itself; fall back to res.data only if present
+  if (res.id || res.uuid || res.name || res.email) {
+    return res;
+  }
+  return res.data ?? res;
+}
 
-  const [loading, setLoading] = useState(true);
-  const [app, setApp] = useState(null);
+export default function QualifiedApplicationDetailPage({ initialApp = null } = {}) {
+  const params = typeof useParams === "function" ? useParams() : null;
+  const router = typeof useRouter === "function" ? useRouter() : null;
+  const id = params?.id || initialApp?.id;
+
+  const resolvedInitial = initialApp ? resolveApplicationData(initialApp) : null;
+  const [loading, setLoading] = useState(!resolvedInitial);
+  const [app, setApp] = useState(resolvedInitial);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (initialApp) {
+      setApp(resolveApplicationData(initialApp));
+      setLoading(false);
+      return;
+    }
     if (!id) return;
     const fetchApp = async () => {
       try {
         setLoading(true);
         const res = await apiService.get(`/qc-applications/${id}`);
-        setApp(res.data);
+        const appData = resolveApplicationData(res);
+        setApp(appData);
       } catch (err) {
         console.error("Failed to load QC application:", err);
         setError("Failed to load qualified counsellor application.");
@@ -45,8 +61,28 @@ export default function QualifiedApplicationDetailPage() {
       }
     };
     fetchApp();
-  }, [id]);
+  }, [id, initialApp]);
 
+  return (
+    <PageGuard requirePrivilege="training_counsellors">
+      <DashboardLayout>
+        <QualifiedApplicationDetailView
+          app={app}
+          loading={loading}
+          error={error}
+          onBack={() => router?.push?.("/dashboard/qualified-applications")}
+        />
+      </DashboardLayout>
+    </PageGuard>
+  );
+}
+
+export function QualifiedApplicationDetailView({
+  app,
+  loading = false,
+  error = null,
+  onBack = null,
+}) {
   const renderStatusBadge = (status) => {
     const s = status || "New Application";
     let colorClass = "bg-blue-100 text-blue-800 border-blue-200";
@@ -64,12 +100,11 @@ export default function QualifiedApplicationDetailPage() {
   const areasToImprove = app?.areas_to_improve || app?.answers?.areas_to_improve;
 
   return (
-    <PageGuard requirePrivilege="training_counsellors">
-      <DashboardLayout>
-        <DashboardHeader
-          title={app ? `QC-APP-${String(app.id).padStart(4, "0")} — ${app.name}` : "Application Details"}
-          subtitle="Qualified Counsellor Application"
-        />
+    <>
+      <DashboardHeader
+        title={app ? `QC-APP-${String(app.id).padStart(4, "0")} — ${app.name}` : "Application Details"}
+        subtitle="Qualified Counsellor Application"
+      />
 
         <div className="p-6 max-w-5xl mx-auto space-y-6">
           <Link
@@ -254,7 +289,6 @@ export default function QualifiedApplicationDetailPage() {
             </div>
           )}
         </div>
-      </DashboardLayout>
-    </PageGuard>
-  );
-}
+      </>
+    );
+  }

@@ -219,8 +219,8 @@ export default function FilteredCounsellors({
                 availability_summary: c.availability_summary || "",
                 match_score: c.match_score || 0,
                 fit_label: c.fit_label || "Matched",
-                modality: c.modality || "Integrative Therapy",
-                specialty: c.specialty || clientSpecialtyLabel,
+                modality: c.modality || "",
+                specialty: c.specialty || "",
                 show_own_consultation_availability:
                   c.show_own_consultation_availability,
               };
@@ -751,47 +751,50 @@ export default function FilteredCounsellors({
                             </div>
 
                             {/* Modality & Specialty Badges */}
-                            <div className="flex flex-wrap gap-2 mt-2.5">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
-                                <span className="text-[#2d5a3f]">⬡</span>
-                                {counsellor.modality || "Integrative Therapy"}
-                              </span>
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
-                                <Users className="w-3.5 h-3.5 text-[#2d5a3f]" />
-                                {counsellor.specialty || clientSpecialtyLabel}
-                              </span>
-                            </div>
+                            {(counsellor.modality || counsellor.specialty) && (
+                              <div className="flex flex-wrap gap-2 mt-2.5">
+                                {counsellor.modality && (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
+                                    <span className="text-[#2d5a3f]">⬡</span>
+                                    {counsellor.modality}
+                                  </span>
+                                )}
+                                {counsellor.specialty && (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
+                                    <Users className="w-3.5 h-3.5 text-[#2d5a3f]" />
+                                    {counsellor.specialty}
+                                  </span>
+                                )}
+                              </div>
+                            )}
 
                             {/* Bio */}
-                            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mt-2.5">
-                              {counsellor.bio}
-                            </p>
+                            {counsellor.bio && (
+                              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mt-2.5">
+                                {counsellor.bio}
+                              </p>
+                            )}
 
                             {/* Areas of Support */}
-                            <div className="mt-3">
-                              <span className="text-xs font-semibold text-gray-900 block mb-1.5">
-                                Areas of Support
-                              </span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {(
-                                  counsellor.topics_with_experience || [
-                                    "Trauma",
-                                    "Domestic Violence",
-                                    "Anxiety",
-                                    "Abuse",
-                                  ]
-                                )
-                                  .slice(0, 4)
-                                  .map((topic, i) => (
-                                    <span
-                                      key={i}
-                                      className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#f4f5f2] text-gray-700 border border-gray-200/60"
-                                    >
-                                      {topic}
-                                    </span>
-                                  ))}
+                            {Array.isArray(counsellor.topics_with_experience) && counsellor.topics_with_experience.length > 0 && (
+                              <div className="mt-3">
+                                <span className="text-xs font-semibold text-gray-900 block mb-1.5">
+                                  Areas of Support
+                                </span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {counsellor.topics_with_experience
+                                    .slice(0, 4)
+                                    .map((topic, i) => (
+                                      <span
+                                        key={i}
+                                        className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#f4f5f2] text-gray-700 border border-gray-200/60"
+                                      >
+                                        {topic}
+                                      </span>
+                                    ))}
+                                </div>
                               </div>
-                            </div>
+                            )}
                           </div>
 
                           {/* Bottom Row: Availability + View Profile Button */}
@@ -901,70 +904,84 @@ export default function FilteredCounsellors({
                   </div>
 
                   {/* Modality & Specialty Pills */}
-                  <div className="flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
-                      <span className="text-[#2d5a3f]">⬡</span>
-                      {selectedCounsellorObj.modality || "Integrative Therapy"}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
-                      <Users className="w-3.5 h-3.5 text-[#2d5a3f]" />
-                      {selectedCounsellorObj.specialty || clientSpecialtyLabel}
-                    </span>
-                  </div>
+                  {(selectedCounsellorObj.modality || selectedCounsellorObj.specialty) && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCounsellorObj.modality && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
+                          <span className="text-[#2d5a3f]">⬡</span>
+                          {selectedCounsellorObj.modality}
+                        </span>
+                      )}
+                      {selectedCounsellorObj.specialty && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
+                          <Users className="w-3.5 h-3.5 text-[#2d5a3f]" />
+                          {selectedCounsellorObj.specialty}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Areas of Support */}
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-semibold text-gray-900 block">
-                      Areas of Support
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(
-                        selectedCounsellorObj.topics_with_experience || [
-                          "Trauma",
-                          "Domestic Violence",
-                          "Anxiety",
-                          "Abuse",
-                        ]
-                      ).map((topic, i) => (
-                        <span
-                          key={i}
-                          className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#f4f5f2] text-gray-700 border border-gray-200/60"
-                        >
-                          {topic}
-                        </span>
-                      ))}
+                  {Array.isArray(selectedCounsellorObj.topics_with_experience) && selectedCounsellorObj.topics_with_experience.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-xs font-semibold text-gray-900 block">
+                        Areas of Support
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedCounsellorObj.topics_with_experience.map((topic, i) => (
+                          <span
+                            key={i}
+                            className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#f4f5f2] text-gray-700 border border-gray-200/60"
+                          >
+                            {topic}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Bio */}
-                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed pt-1">
-                    {selectedCounsellorObj.bio}
-                  </p>
+                  {selectedCounsellorObj.bio && (
+                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed pt-1">
+                      {selectedCounsellorObj.bio}
+                    </p>
+                  )}
 
                   {/* Quick Icon Details */}
-                  <div className="space-y-2.5 pt-3 border-t border-gray-100 text-xs sm:text-sm text-gray-700">
-                    <div className="flex items-start gap-2.5">
-                      <Calendar className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                      <span>
-                        <strong>Availability:</strong>{" "}
-                        {selectedCounsellorObj.availability_summary ||
-                          clientAvailabilitySummary}
-                      </span>
+                  {(selectedCounsellorObj.availability_summary || clientAvailabilitySummary || selectedCounsellorObj.qualified_to_work_with || selectedCounsellorObj.languages) && (
+                    <div className="space-y-2.5 pt-3 border-t border-gray-100 text-xs sm:text-sm text-gray-700">
+                      {(selectedCounsellorObj.availability_summary || clientAvailabilitySummary) && (
+                        <div className="flex items-start gap-2.5">
+                          <Calendar className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                          <span>
+                            <strong>Availability:</strong>{" "}
+                            {selectedCounsellorObj.availability_summary ||
+                              clientAvailabilitySummary}
+                          </span>
+                        </div>
+                      )}
+                      {selectedCounsellorObj.qualified_to_work_with && (
+                        <div className="flex items-start gap-2.5">
+                          <Users className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                          <span>
+                            <strong>Works with:</strong>{" "}
+                            {Array.isArray(selectedCounsellorObj.qualified_to_work_with)
+                              ? selectedCounsellorObj.qualified_to_work_with.join(", ")
+                              : selectedCounsellorObj.qualified_to_work_with}
+                          </span>
+                        </div>
+                      )}
+                      {selectedCounsellorObj.languages && (
+                        <div className="flex items-start gap-2.5">
+                          <Globe className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                          <span>
+                            <strong>Language:</strong>{" "}
+                            {selectedCounsellorObj.languages}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-start gap-2.5">
-                      <Users className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                      <span>
-                        <strong>Works with:</strong> Individuals, Couples
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2.5">
-                      <Globe className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                      <span>
-                        <strong>Language:</strong>{" "}
-                        {selectedCounsellorObj.languages || "English"}
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -1389,61 +1406,64 @@ export default function FilteredCounsellors({
             </div>
 
             {/* Bio */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
-                About & Clinical Approach
-              </h4>
-              <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 rounded-2xl p-4">
-                {activeProfileModal.bio}
-              </p>
-            </div>
+            {activeProfileModal.bio && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                  About & Clinical Approach
+                </h4>
+                <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 rounded-2xl p-4">
+                  {activeProfileModal.bio}
+                </p>
+              </div>
+            )}
 
             {/* Areas of Support */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
-                Areas of Support
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {(
-                  activeProfileModal.topics_with_experience || [
-                    "Trauma",
-                    "Domestic Violence",
-                    "Anxiety",
-                    "Abuse",
-                  ]
-                ).map((topic, i) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200"
-                  >
-                    {topic}
-                  </span>
-                ))}
+            {Array.isArray(activeProfileModal.topics_with_experience) && activeProfileModal.topics_with_experience.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                  Areas of Support
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {activeProfileModal.topics_with_experience.map((topic, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200"
+                    >
+                      {topic}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Qualifications & Specialties */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="border border-gray-100 rounded-2xl p-4 space-y-1.5">
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  <Layers className="w-4 h-4 text-[#2d5a3f]" />
-                  <span>Modality</span>
-                </div>
-                <p className="text-sm font-semibold text-gray-900">
-                  {activeProfileModal.modality || "Integrative Therapy"}
-                </p>
-              </div>
+            {(activeProfileModal.modality || activeProfileModal.specialty) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {activeProfileModal.modality && (
+                  <div className="border border-gray-100 rounded-2xl p-4 space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <Layers className="w-4 h-4 text-[#2d5a3f]" />
+                      <span>Modality</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {activeProfileModal.modality}
+                    </p>
+                  </div>
+                )}
 
-              <div className="border border-gray-100 rounded-2xl p-4 space-y-1.5">
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  <Users className="w-4 h-4 text-[#2d5a3f]" />
-                  <span>Specialty</span>
-                </div>
-                <p className="text-sm font-semibold text-gray-900">
-                  {activeProfileModal.specialty || clientSpecialtyLabel}
-                </p>
+                {activeProfileModal.specialty && (
+                  <div className="border border-gray-100 rounded-2xl p-4 space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <Users className="w-4 h-4 text-[#2d5a3f]" />
+                      <span>Specialty</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {activeProfileModal.specialty}
+                    </p>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
 
 
