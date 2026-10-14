@@ -3686,19 +3686,6 @@ export default function IndividualClientDetailPage() {
 
                       <div className="mt-6 space-y-2">
                         <button
-                          onClick={handleProgressStage}
-                          disabled={
-                            actionLoading ||
-                            client.stage === "Active Therapy" ||
-                            client.status === "archived"
-                          }
-                          className="w-full py-2 text-white rounded-lg hover:opacity-90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                          style={{ backgroundColor: "#6f1d56" }}
-                        >
-                          Progress to Next Stage
-                        </button>
-
-                        <button
                           onClick={handleBookNextSession}
                           disabled={
                             actionLoading || client.status === "archived"

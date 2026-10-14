@@ -548,9 +548,6 @@ export default function CompletedMatchesPage() {
 
         {/* Actions */}
         <div className="space-y-3 pt-6 border-t border-gray-200">
-          <button className="w-full py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium">
-            Progress to Next Stage
-          </button>
           <button className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
             Book Consultation
           </button>
