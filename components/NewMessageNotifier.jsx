@@ -81,7 +81,9 @@ export default function NewMessageNotifier() {
     playNotificationChime();
 
     // Determine sender name
-    const senderName = msg.from_user?.name || msg.fromUser?.name || (msg.type === "counsellor_to_staff" ? "Counsellor" : "Admin Team");
+    const senderName = user?.role === "counsellor"
+      ? "Staff Support"
+      : (msg.from_user?.name || msg.fromUser?.name || (msg.type === "counsellor_to_staff" ? "Counsellor" : "Staff Support"));
     const toastId = `msg-${msg.id}-${Date.now()}`;
 
     const newToast = {

@@ -67,10 +67,10 @@ export default function CounsellorChatPage() {
       // Auto-select admin group if not already selected
       const adminConv = convs.find(c => c.peer_id === 'admin_group' && c.peer_type === 'group');
       if (adminConv && !activeChat) {
-        setActiveChat({ id: 'admin_group', type: 'group', name: 'Admin Support' });
+        setActiveChat({ id: 'admin_group', type: 'group', name: 'Staff Support' });
       } else if (convs.length > 0 && !activeChat) {
         const first = convs[0];
-        setActiveChat({ id: first.peer_id, type: first.peer_type, name: first.peer_name });
+        setActiveChat({ id: first.peer_id, type: first.peer_type, name: 'Staff Support' });
       }
     } catch (err) {
       console.error(err);
@@ -230,7 +230,7 @@ export default function CounsellorChatPage() {
     try {
       const body = new FormData();
       body.append("message", newMessage);
-      body.append("subject", "Admin Support");
+      body.append("subject", "Staff Support");
       if (attachment?.file) {
         body.append("attachment", attachment.file);
       }
@@ -351,19 +351,23 @@ export default function CounsellorChatPage() {
                     <div
                       key={staff.id}
                       onClick={() => {
-                        setActiveChat({ id: staff.id, type: 'user', name: staff.name });
+                        setActiveChat({ 
+                          id: staff.id, 
+                          type: staff.id === 'admin_group' ? 'group' : 'user', 
+                          name: 'Staff Support' 
+                        });
                         setShowSearchStaff(false);
                         setSearchQuery("");
                       }}
                       className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer flex items-center gap-4 transition-all"
                     >
                       <div className="w-11 h-11 rounded-full bg-accent/10 text-accent flex items-center justify-center font-bold text-lg">
-                        {staff.name?.[0]}
+                        S
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{staff.name}</p>
+                        <p className="text-sm font-bold text-gray-800 dark:text-gray-200">Staff Support</p>
                         <p className="text-[10px] text-gray-400 uppercase tracking-tighter">
-                          {staff.role.replace('_', ' ')}
+                          Support
                         </p>
                       </div>
                     </div>
@@ -444,12 +448,9 @@ export default function CounsellorChatPage() {
                     {activeChat.name?.[0]}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">{activeChat.name}</h3>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">Staff Support</h3>
                     <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
-                      {activeChat.id === 'admin_group'
-                        ? 'Group Chat with Staff Support'
-                        : 'Staff Support'
-                      }
+                      Staff Support
                     </p>
                   </div>
                 </div>
@@ -658,7 +659,7 @@ export default function CounsellorChatPage() {
               </div>
               <h2 className="text-2xl font-bold mb-2">Internal Support Hub</h2>
               <p className="text-sm max-w-sm leading-relaxed">
-                Connect directly with our administration team. 
+                Connect directly with Staff Support. 
                 Choose a conversation to begin your consultation.
               </p>
             </div>

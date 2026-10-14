@@ -89,7 +89,7 @@ function ClientDetailsContent() {
             className="px-4 py-2 bg-[#6f1d56] text-white rounded-lg hover:opacity-90 font-medium flex items-center gap-2 transition-all text-sm shadow-sm"
           >
             <MessageSquare className="w-4 h-4" />
-            Message Admin Team
+            Message Staff Support
           </Link>
         }
       >
