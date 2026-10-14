@@ -38,10 +38,12 @@ import {
   CreditCard,
   CheckCircle,
   Trash2,
+  MessageSquare,
 } from "lucide-react";
 import MenuPrivilegesSettings from "@/components/MenuPrivilegesSettings";
 import CompanyBrandingSettings from "@/components/CompanyBrandingSettings";
 import SystemModuleToggleSettings from "@/components/SystemModuleToggleSettings";
+import ClientFeedbackSettings from "@/components/ClientFeedbackSettings";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 
 export default function SettingsPage() {
@@ -623,6 +625,22 @@ export default function SettingsPage() {
                         <Mail className="w-4 h-4" />
                       </Link>
                     </div>
+                  </div>
+
+                  {/* Client Feedback Form Settings */}
+                  <div className="bg-white dark:bg-[var(--card-bg)] rounded-lg border border-gray-200 dark:border-[var(--card-border)] p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <MessageSquare className="w-5 h-5 text-purple-600" />
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)]">
+                          Client Feedback Settings
+                        </h2>
+                        <p className="text-xs text-gray-500 dark:text-[var(--text-secondary)] mt-1">
+                          Configure automatic feedback request emails triggered after completed therapy sessions.
+                        </p>
+                      </div>
+                    </div>
+                    <ClientFeedbackSettings />
                   </div>
                 </div>
               )}
