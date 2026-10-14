@@ -1,0 +1,768 @@
+================================================================================
+VANQUISH THERAPIES — SUMMARY OF FIXES & VERIFICATIONS COMPLETED TODAY
+Date: Tuesday, 13 October 2026
+================================================================================
+
+This document records all features, bugs, security checks, and workflow tests
+completed, verified, and deployed on 13 October 2026 across the backend and
+frontend codebases.
+
+--------------------------------------------------------------------------------
+1. CHECK E04 & E04 FOLLOW-UP: ONE MATCHING SCORE USING VQT'S WEIGHTS
+--------------------------------------------------------------------------------
+PROBLEM:
+- The admin Pending Matches page (app/dashboard/pending-matches/page.jsx via
+  lib/matchingAlgorithm.js) scored matches with its own hard-coded split
+  (Availability 40, Modality 20, Clinical Issues 15, Demographics 15, Caseload 10),
+  ignoring admin weight settings.
+- VQT's agreed weights (5 Aug) are Availability 40, Modality 20, Gender 20,
+  Ethnicity 10, Sexual Orientation 5, Age 5. Clinical Issues and Caseload were
+  dropped from the scoring weights.
+- Backend MatchScoringService previously scaled down VQT's six weights to inject
+  two fixed extras (Areas of Support 15, Specialty 10).
+- MatchScoringService::isExcluded used substring matching (str_contains), which
+  wrongly excluded counsellors on short/partial matches (e.g., "Trauma" vs "Childhood Trauma",
+  or "Eating" vs "Eating Disorders").
+
+FIX:
+  - Unified Pending Matches with backend MatchScoringService via new API endpoint:
+    GET /api/pending-matches/{client}/suggestions (and POST /api/pending-matches/match).
+    Pending Matches and client-facing list now show identical scores and breakdowns.
+  - Adopted VQT's six weights directly from admin MatchingAlgorithmSetting:
+    Availability (40), Modality (20), Gender (20), Ethnicity (10),
+    Sexual Orientation (5), Age (5). Removed the fixed Areas of Support and Specialty extras.
+  - Changed isExcluded to exact name matching only (trimmed, case-insensitive).
+    Removed substring matching (str_contains) so partial words never exclude.
+  - Updated frontend lib/matchingAlgorithm.js to mirror VQT's six weights and exact-name
+    exclusion as a fallback / display engine.
+  - Changing a weight in admin now dynamically updates the Pending Matches score.
+
+TESTS VERIFIED:
+  - Changing weight in admin changes Pending Matches score.
+  - Pending Matches and client-facing list give identical scores for same client & counsellor.
+  - Exact match in "not ready for" excludes; partial/substring match does NOT exclude.
+  - Backend: MatchScoringVqtWeightsTest passed (3 tests, 20 assertions).
+  - Frontend: e04-matching-sensible-results.test.mjs passed.
+
+FILES MODIFIED / CREATED:
+  - backend/app/Services/MatchScoringService.php
+  - backend/app/Http/Controllers/Api/ClientController.php
+  - backend/routes/api.php
+  - backend/tests/Feature/MatchScoringVqtWeightsTest.php (created)
+  - frontend/lib/matchingAlgorithm.js
+  - frontend/lib/api.js
+  - frontend/app/dashboard/pending-matches/page.jsx
+  - frontend/tests/e04-matching-sensible-results.test.mjs
+
+COMMITS:
+  - Backend:  0160893 (follow-up) / 23c4c11 (initial)
+  - Frontend: 59274f77 (follow-up) / 2c92eba6 (initial)
+
+
+--------------------------------------------------------------------------------
+2. CHECK E01: NEW CONSULTATION SHOWS AND NOTIFIES
+--------------------------------------------------------------------------------
+PROBLEM:
+Needed automated test coverage confirming that after a confirmed Stripe payment
+with a slot selection, the consultation booking appears in the Upcoming list,
+the Overview count increases, and exactly one admin notification is dispatched.
+
+FIX:
+  - Created test_E01_booking_shows_and_notifies in PaymentControllerConsultationTest.
+  - Created frontend/tests/e01-new-consultation.test.mjs testing UI state updates.
+  - Verified slot locking, status transition to 'booked', single notification
+    dispatch, and single confirmation email delivery.
+
+FILES MODIFIED / CREATED:
+  - backend/tests/Feature/PaymentControllerConsultationTest.php
+  - frontend/tests/e01-new-consultation.test.mjs (created)
+
+COMMITS:
+  - Frontend: 04ae8d34
+  - Backend:  8d3b9f4
+
+
+--------------------------------------------------------------------------------
+3. FIX Q12: CONSULTATION BOX COUNSELLOR SWITCH & SLOT SYNC
+--------------------------------------------------------------------------------
+PROBLEM:
+When a client switched between counsellors on the booking step, the previously
+selected date and slot remained active or stale network responses populated
+slots belonging to the wrong counsellor.
+
+FIX:
+  - Clear selected date, time slot, and slot ID whenever the active counsellor changes.
+  - Ignore/discard late responses from previously requested counsellor queries.
+  - Display the selected counsellor's profile box explicitly on the payment step.
+
+FILES MODIFIED:
+  - frontend/components/FilteredCounsellors.jsx
+  - frontend/app/mid-range-intake/page.jsx
+  - frontend/tests/q12-counsellor-consultation-box.test.mjs
+
+COMMIT:
+  - Frontend: 41989c0c
+
+
+--------------------------------------------------------------------------------
+4. FIX Q15: PERMANENT ROUTE REDIRECTS, CACHE HEADERS & BUILD IDENTIFIER
+--------------------------------------------------------------------------------
+PROBLEM:
+Legacy routes (/clform, /tcform, /trainee-application, /coaching, /ish, /low-cost)
+were still present in the filesystem and sitemap. Pages were prone to aggressive
+caching, and admin/counsellor pages lacked build metadata.
+(/therapy-form remains active and is intentionally kept as approved).
+
+FIX:
+  - Deleted empty next.config.js that had overridden next.config.mjs.
+  - Added permanent HTTP 308 redirects in next.config.mjs:
+      * /coaching             -> /mid-range-intake?service=coaching
+      * /ish                  -> /mid-range-intake?service=coaching
+      * /clform               -> /low-cost-intake
+      * /low-cost             -> /low-cost-intake
+      * /tcform               -> /counsellor
+      * /trainee-application  -> /counsellor
+      * Note: /therapy-form is kept active in place (returns HTTP 200, not redirected).
+  - Deleted legacy page directories (app/clform, app/tcform, app/trainee-application, app/coaching).
+  - Updated sitemap.js and admin "View Public Form" links.
+  - Added Cache-Control: no-cache, no-store, must-revalidate headers on dynamic routes.
+  - Added BuildIdentifier showing build date and commit hash in admin footer and intake forms.
+  - Updated backend Coaching capacity alternative URL to point to /low-cost-intake.
+  - Replaced legal_first_name leaks with public display name (first_name accessor).
+
+FILES MODIFIED / DELETED:
+  - frontend/next.config.js (deleted: empty file had overridden next.config.mjs)
+  - frontend/next.config.mjs (sole config file retained)
+  - frontend/app/sitemap.js
+  - frontend/components/BuildIdentifier.jsx
+  - frontend/tests/q15-route-redirects.test.mjs
+  - frontend/tests/q15-q12-followup-and-build.test.mjs
+  - backend/app/Http/Controllers/Api/ServiceController.php
+  - backend/app/Models/TrainingCounsellor.php
+  - backend/tests/Feature/Q15BackendCapacityLinkTest.php
+  - backend/tests/Feature/Q15CounsellorDisplayNameTest.php
+
+COMMITS:
+  - Frontend: 0c022d91, 2f0ae468, 8f82ec12
+  - Backend:  3c45135, 2359521
+
+
+--------------------------------------------------------------------------------
+5. FIX Q18 & Q19: MODALITY PREFERENCE "UNSURE" & SEPARATE QC PIPELINE EMAILS
+--------------------------------------------------------------------------------
+PROBLEM:
+  - Intake forms did not support an "Unsure" modality option, forcing clients into
+    modalities they might not understand.
+  - Qualified Counsellor (QC) interview and induction steps shared trainee email
+    templates, causing confusion regarding placement terms, fees, and requirements.
+
+FIX:
+  - Added "Unsure" modality option to client forms; saved to both clients and
+    client_intake_forms tables.
+  - When "Unsure" or "No preference" is chosen, all qualified counsellors appear
+    without filtering.
+  - Created separate QC email templates in the backend (9 qc_* templates):
+      * qc_interview_invitation
+      * qc_interview_reminder
+      * qc_interview_not_attended
+      * qc_induction_invitation
+      * qc_induction_not_attended
+      * qc_rejection
+      * qc_trafft_booking
+      * qc_trafft_reminder
+      * qc_acceptance_confirmation
+  - Added admin UI in client details and edit pages to view and update modality preference.
+  - Added clear human-readable labels for QC templates in Email Management.
+
+FILES MODIFIED / CREATED:
+  - backend/database/migrations/2026_10_13_150000_add_modality_preference_to_clients_and_intake_forms.php
+  - backend/database/migrations/2026_10_13_160000_create_qc_email_templates.php
+  - backend/app/Services/ApplicationPipelineService.php
+  - backend/tests/Feature/Q18ClientModalityPreferenceTest.php
+  - backend/tests/Feature/Q19QcPipelineInterviewInductionTest.php
+  - frontend/app/dashboard/clients/edit/page.jsx
+  - frontend/app/dashboard/client-details/[uuid]/page.jsx
+  - frontend/app/dashboard/email-management/page.jsx
+  - frontend/tests/q18-client-modality-preference.test.mjs
+  - frontend/tests/q19-email-templates.test.mjs
+
+COMMITS:
+  - Frontend: b659e27a, 7103b583, 824203c1
+  - Backend:  4e44429, 5511a56, b8d2bdd
+
+
+--------------------------------------------------------------------------------
+6. FIX H08: CONSULTATION AVAILABILITY TOGGLES & VANQUISH FALLBACK
+--------------------------------------------------------------------------------
+PROBLEM:
+MidRangeIntakeController::consultationAvailability ignored the
+show_vanquish_consultation_availability toggle, always falling back to Vanquish slots.
+
+FIX:
+  - Priority logic implemented:
+      1. Toggle 1 ON (show_own_consultation_availability) & own slots exist: returns own slots.
+      2. Toggle 1 OFF, Toggle 2 ON (show_vanquish_consultation_availability): returns Vanquish
+         slots, and the booking records this counsellor as the chosen counsellor.
+      3. Both toggles OFF: returns empty slots and card displays:
+         "This counsellor is not taking new consultations at the moment."
+  - Restricted toggle visibility in the counsellor portal profile to Qualified counsellors only.
+
+FILES MODIFIED:
+  - backend/app/Http/Controllers/Api/MidRangeIntakeController.php
+  - backend/tests/Feature/ConsultationTogglesH08Test.php
+  - frontend/components/FilteredCounsellors.jsx
+  - frontend/app/counsellor-portal/profile/page.jsx
+  - frontend/tests/h08-consultation-toggles.test.mjs
+
+COMMITS:
+  - Frontend: 73b166f6
+  - Backend:  3b1ca46
+
+
+--------------------------------------------------------------------------------
+7. FIX J02: PAST CONSULTATIONS UK TIMEZONE & DID NOT ATTEND ACTION
+--------------------------------------------------------------------------------
+PROBLEM:
+Scheduled consultations from yesterday were remaining in the "Upcoming" list due
+to UTC/timezone shifts. There was no mechanism to mark past consultations as
+"Did Not Attend" without completing them.
+
+FIX:
+  - Standardized consultation statistics and date calculations to UK timezone (Europe/London).
+  - Added "Past, not marked complete" tab on /dashboard/consultations.
+  - Added "Did Not Attend" action allowing staff to record missed consultations cleanly.
+
+FILES MODIFIED:
+  - backend/app/Http/Controllers/Api/ConsultationController.php
+  - backend/tests/Feature/ConsultationStatsAndNoShowTest.php
+  - frontend/app/dashboard/consultations/page.jsx
+  - frontend/tests/j02-past-consultations.test.mjs
+
+COMMITS:
+  - Frontend: eeba3247
+  - Backend:  2882903
+
+
+--------------------------------------------------------------------------------
+8. FIX J07: GDPR SPELLING IN EMAIL TEMPLATES
+--------------------------------------------------------------------------------
+PROBLEM:
+Attendance email templates contained typo / misspellings of "GDPR".
+
+FIX:
+  - Migration created updating email templates with correct "GDPR" spelling.
+
+FILES MODIFIED:
+  - backend/database/migrations/2026_10_13_140000_fix_gdpr_spelling_in_attendance_email_templates.php
+  - backend/tests/Feature/TraineeAttendanceEmailsTest.php
+
+COMMIT:
+  - Backend: 613a505
+
+
+--------------------------------------------------------------------------------
+9. FIX N04: INDUCTION ACCEPTANCE PAGE CLEANUP & TIME DISPLAY
+--------------------------------------------------------------------------------
+PROBLEM:
+Induction acceptance page displayed an unnecessary "Conducted by" line and lacked
+explicit UK start and end times.
+
+FIX:
+  - Removed "Conducted by" from app/induction/accept/[token]/page.jsx.
+  - Added induction start and end times in UK time format.
+
+FILES MODIFIED:
+  - frontend/app/induction/accept/[token]/page.jsx
+  - frontend/tests/n04-induction-no-conducted-by.test.mjs
+  - backend/app/Http/Controllers/Api/InductionController.php
+  - backend/tests/Feature/InductionDurationTest.php
+
+COMMITS:
+  - Frontend: a57825ce
+  - Backend:  6ae8565
+
+
+--------------------------------------------------------------------------------
+10. FIX N03: MESSAGE NOTIFICATION ANTI-FLOODING RATE LIMIT
+--------------------------------------------------------------------------------
+PROBLEM:
+Message email notifications risked flooding inboxes when multiple messages were
+exchanged in rapid succession.
+
+FIX:
+  - Added throttle of at most one email per conversation per 15 minutes while unread.
+  - Verified privacy: notification emails contain no message text content.
+
+FILES MODIFIED:
+  - backend/app/Http/Controllers/Api/ChatController.php
+  - backend/tests/Feature/MessageNotificationEmailTest.php
+
+COMMIT:
+  - Backend: 62708f3
+
+
+--------------------------------------------------------------------------------
+11. N05: LOW COST SESSION TIME ENFORCEMENT & ADMIN OVERLAP RESTRICTION
+--------------------------------------------------------------------------------
+PROBLEM:
+Low Cost client booking page (handleBookBlock) previously allowed date/time picking
+or silent override, and admin match assignment allowed selecting non-overlapping slots.
+
+FIX:
+  1. Admin: On Low Cost match assignment (pending-matches and completed-matches),
+     the "Assign session time" modal restricts slots exclusively to overlapping
+     availability between client and counsellor (hides 'All Slots' toggle, blocks selection).
+     Backend validates in assignMatch that assigned slot matches both schedules (HTTP 422 otherwise).
+  2. Client booking page: Low Cost client sees their assigned day and time (or pending status).
+     handleBookBlock delegates directly to handleConfirmAutoBlock, hiding calendar and slot picker.
+  3. Backend ClientBookingController strictly refuses Low Cost booking for any other time:
+     rejects custom time_slot, start_date, custom session_slots, or single session bookings with HTTP 422.
+  4. Mid Range and Coaching remain completely unchanged with flexible date/time selection.
+
+FILES MODIFIED:
+  - backend/app/Http/Controllers/Api/ClientBookingController.php
+  - backend/app/Http/Controllers/Api/ClientController.php
+  - backend/tests/Feature/LowCostPricingAndBookingRulesTest.php
+  - backend/tests/Feature/LowCostSlotAssignmentTest.php
+  - frontend/app/client-booking/page.jsx
+  - frontend/app/dashboard/pending-matches/page.jsx
+  - frontend/app/dashboard/completed-matches/page.jsx
+  - frontend/tests/n05-low-cost-session-times.test.mjs
+
+TESTS:
+  - Backend: test_N05_low_cost_cannot_choose_time (4 passed in LowCostSlotAssignmentTest)
+  - Frontend: tests/n05-low-cost-session-times.test.mjs (6 passed)
+
+COMMITS:
+  - Backend: 9e316c3 (builtng/vanquish-be:main)
+  - Frontend: 95f65578 (builtng/vanquish-fe:main)
+
+
+--------------------------------------------------------------------------------
+12. FIX Q17: QUALIFIED COUNSELLOR BIO IN PORTAL
+--------------------------------------------------------------------------------
+PROBLEM:
+Qualified counsellors could not edit their professional bio, and bio was not
+exposed to client-facing cards.
+
+FIX:
+  - Allowed Qualified counsellors to edit bio in /counsellor-portal/profile.
+  - Trainees are restricted from public bio edits.
+  - MidRangeIntakeController returns bio in the filtered counsellors API response.
+
+FILES MODIFIED:
+  - backend/app/Http/Controllers/Api/TrainingCounsellorController.php
+  - backend/tests/Feature/Q17CounsellorPortalBioTest.php
+  - frontend/app/counsellor-portal/profile/page.jsx
+  - frontend/tests/q17-counsellor-portal-bio.test.mjs
+
+COMMITS:
+  - Frontend: 20d0af78
+  - Backend:  c66605e
+
+
+--------------------------------------------------------------------------------
+13. FIX Q16: VANQUISH THERAPIES CLIENT-FACING BRANDING
+--------------------------------------------------------------------------------
+PROBLEM:
+Intake pages briefly flashed "VQT Management" under the logo before backend settings loaded.
+
+FIX:
+  - Hardcoded "Vanquish Therapies" default in BrandingContext.jsx and intake templates.
+  - Eliminated "VQT Management" from all client-facing templates.
+
+FILES MODIFIED:
+  - frontend/contexts/BrandingContext.jsx
+  - frontend/tests/q16-name-switch-under-logo.test.mjs
+
+COMMIT:
+  - Frontend: e6c045de
+
+
+--------------------------------------------------------------------------------
+14. FIX Q14: REAL COUNSELLORS ONLY (NO SYNTHETIC FALLBACKS)
+--------------------------------------------------------------------------------
+PROBLEM:
+When queries returned few counsellors, synthetic profiles were generated or
+empty fields defaulted to placeholder values.
+
+FIX:
+  - Removed FALLBACK_COUNSELLORS and Level 2 mock queries.
+  - Show only real registered counsellors.
+  - Display helpful no-match guidance message when preferences cannot be satisfied.
+
+FILES MODIFIED:
+  - backend/app/Http/Controllers/Api/MidRangeIntakeController.php
+  - frontend/components/FilteredCounsellors.jsx
+  - frontend/tests/q14-real-counsellors-only.test.mjs
+
+COMMITS:
+  - Frontend: 5fcf2652
+  - Backend:  4880c3f
+
+
+--------------------------------------------------------------------------------
+15. FIX H03: MID RANGE AND COACHING STEP ORDER & UNIQUE STEP NAMES
+--------------------------------------------------------------------------------
+PROBLEM:
+app/mid-range-intake/page.jsx progress bar showed duplicate step names (two steps
+called "Service") and Availability was positioned before Preferences.
+
+FIX:
+  - Reordered the 12 steps to:
+    1. Service information
+    2. Personal
+    3. About you
+    4. Support
+    5. Counsellor preferences
+    6. Referral
+    7. Assessment
+    8. Availability
+    9. Filtered counsellors
+    10. Consultation
+    11. Emergency
+    12. Payment
+  - Merged medical & disability questions (old second "Service" step) into Step 4 ("Support"),
+    ensuring all 12 step titles are unique.
+  - Aligned each step's validation with its rendered fields.
+  - Connected FilteredCounsellors so selecting a counsellor in Step 9 advances to Step 10
+    (Consultation slot booking), with "Back to filtered counsellors" returning to Step 9.
+
+FILES MODIFIED / CREATED:
+  - frontend/app/mid-range-intake/page.jsx
+  - frontend/components/FilteredCounsellors.jsx
+  - frontend/tests/h03-step-order.test.mjs
+
+COMMITS:
+  - Frontend: 7c5d531b (pushed to builtng-fe/main)
+
+--------------------------------------------------------------------------------
+16. FIX H04: AVAILABILITY INSTRUCTION TEXT (MID RANGE & COACHING)
+--------------------------------------------------------------------------------
+PROBLEM:
+The availability step in Mid Range and Coaching intake lacked the customized
+instruction clarifying recurring sessions and counsellor filtering.
+
+FIX:
+  - In app/mid-range-intake/page.jsx, set the availability step description to exactly:
+    "Select 1 day and time slot for your recurring weekly counselling sessions, the more slots you select the more counsellors or coaches to choose from."
+  - Maintained Q08 sentence ("The more availability you provide, the more options you will have.")
+    in WeeklyAvailabilityPicker.jsx.
+  - Verified "Please note if this info is not provided there can be a delay in matching you with a counsellor."
+    does not appear.
+
+FILES MODIFIED / CREATED:
+  - frontend/app/mid-range-intake/page.jsx
+  - frontend/tests/h04-availability-instruction.test.mjs
+
+COMMITS:
+  - Frontend: eea6ec9a (pushed to builtng-fe/main)
+
+--------------------------------------------------------------------------------
+17. FIX H05: SERVICE NAMES AND COACHING PRICE
+--------------------------------------------------------------------------------
+PROBLEM:
+Live showed "Mid Range Counselling, Starting from £40" and "Coaching & Counselling, Starting from £50".
+The live Coaching session price setting was £50, and app/mid-range-intake/page.jsx
+fell back to hardcoded £40 and £50 when prices did not load.
+
+FIX:
+  - Backend migration 2026_10_14_100000_update_coaching_session_price_to_60 created & ran,
+    setting service_settings for 'Counselling & Coaching' session_price = 60.00.
+    (Admin task confirmed/documented for Victor).
+  - Updated frontend/app/mid-range-intake/page.jsx to use client's exact labels:
+    - "Mid-range Counselling Service (£40+)" (dynamic from settings)
+    - "Coaching & Counselling Service (£60+)" (dynamic from settings)
+  - Removed hardcoded 40 and 50 fallbacks in sessionPricing state and sessionMap.
+  - If prices cannot load, displays exact message:
+    "We could not load the price. Please refresh the page or contact help@vanquishtherapies.co.uk."
+
+FILES MODIFIED / CREATED:
+  - backend/database/migrations/2026_10_14_100000_update_coaching_session_price_to_60.php
+  - frontend/app/mid-range-intake/page.jsx
+  - frontend/tests/h05-service-names-pricing.test.mjs
+
+COMMITS:
+  - Frontend: 75f02bd (pushed to builtng-fe/main)
+  - Backend:  59a85f2 (committed on main)
+
+--------------------------------------------------------------------------------
+18. FIX G03: MID RANGE BLOCK OF 4 AT £140
+--------------------------------------------------------------------------------
+PROBLEM:
+Live Mid Range block price was empty, so a block was charged 4 x £40 = £160.
+app/dashboard/client-details/[uuid]/page.jsx (getTotalSessions) hard-coded Mid Range
+as 8 sessions and included a "High Range" option that does not exist.
+
+FIX:
+  - Admin task: set the Mid Range block fee to £140 in Pricing & Fees. Created backend
+    migration 2026_10_14_110000_update_mid_range_block_price_to_140.php setting
+    ServiceSetting for 'Mid Range' block_price = 140.00.
+  - Updated frontend/app/client-booking/page.jsx so booking uses block_price for blocks
+    on every service (£140 for Mid Range, £72 for Low Cost), never session price x 4.
+  - Updated app/dashboard/client-details/[uuid]/page.jsx: package size comes from the
+    client's actual booking (single or block of 4), not a hard-coded number.
+    Removed hard-coded getTotalSessions and "High Range" completely.
+  - Updated app/dashboard/settings/page.jsx helper note to clarify block fee applies to
+    blocks of 4 sessions including Mid Range (£140).
+
+FILES MODIFIED / CREATED:
+  - backend/database/migrations/2026_10_14_110000_update_mid_range_block_price_to_140.php
+  - frontend/app/client-booking/page.jsx
+  - frontend/app/dashboard/client-details/[uuid]/page.jsx
+  - frontend/app/dashboard/settings/page.jsx
+  - frontend/tests/g03-mid-range-block-price.test.mjs
+
+COMMITS:
+  - Frontend: 91a7e43 (pushed to builtng-fe/main)
+  - Backend:  db3b8d6 (committed on main)
+
+--------------------------------------------------------------------------------
+19. FIX F03: SESSION NOTES REMINDER WORDING
+--------------------------------------------------------------------------------
+PROBLEM:
+app/counsellor-portal/pages/session-notes/page.jsx (around line 206) said:
+"All session notes must be submitted within 24 hours of completion."
+
+FIX:
+  - Changed session notes page reminder wording to exactly:
+    "All session notes must be submitted immediately after your session."
+  - Displayed on the counsellor portal dashboard (app/counsellor-portal/page.jsx) as well:
+    * Prominent compliance reminder banner above upcoming sessions
+    * Updated recent session notes section subtitle to match
+  - Also aligned backend/resources/views/emails/tc-welcome.blade.php key information note
+    to maintain consistent messaging across portal and emails.
+  - Added unit test frontend/tests/f03-session-notes-reminder.test.mjs to verify presence of
+    the new exact text and absence of the old 24 hours phrasing across both portal pages.
+
+FILES MODIFIED / CREATED:
+  - frontend/app/counsellor-portal/pages/session-notes/page.jsx
+  - frontend/app/counsellor-portal/page.jsx
+  - frontend/tests/f03-session-notes-reminder.test.mjs
+  - backend/resources/views/emails/tc-welcome.blade.php
+
+COMMITS:
+  - Frontend: 087fc2a (pushed to builtng-fe/main)
+  - Backend:  6f124a0 (committed on main)
+
+--------------------------------------------------------------------------------
+20. FIX E02: PLACEMENT APPLICATION FILE UPLOAD
+--------------------------------------------------------------------------------
+PROBLEM:
+On the trainee counsellor placement application form (/counsellor):
+- Large file uploads could exceed server limits and result in generic or swallowed errors.
+- All documents were bundled into one large multipart submission, meaning one slow or failing file could lose all others.
+- 413 (Payload Too Large) and 422 (Validation error) responses were not clearly displaying the server's real error messages to the applicant.
+- No progress indicators for individual document uploads.
+
+FIX:
+  1. Client-side file size check:
+     - Each document is validated before upload: if file exceeds 10 MB, the exact message is displayed:
+       "This file is larger than 10 MB. Please upload a smaller file."
+  2. Separate document upload with progress tracking:
+     - Document upload endpoint created on backend: POST /api/tc-intake/upload-document
+     - Each document uploads individually with a real-time progress bar (0% -> 100%).
+     - Document upload state is preserved independently so that one failure does not lose the others.
+     - On upload failure, applicant is given a "Retry upload" button for that document without losing previously uploaded files.
+  3. Real server error messages for 413 and 422:
+     - lib/api.js extracts clean, human-readable error messages from 413 and 422 responses (including Nginx/HTML 413 status pages and Laravel validation errors) instead of generic strings.
+  4. Backend TC Intake support:
+     - Backend tcIntake controller supports receiving pre-uploaded document URLs and individual file uploads up to 10 MB.
+
+FILES MODIFIED / CREATED:
+  - frontend/app/counsellor/page.jsx
+  - frontend/lib/api.js
+  - frontend/tests/e02-placement-application-upload.test.mjs
+  - backend/app/Http/Controllers/Api/IntakeFormController.php
+  - backend/routes/api.php
+  - backend/tests/Feature/E02PlacementApplicationUploadTest.php
+
+COMMITS:
+  - Frontend: 63238a4 (pushed to builtng-fe/main)
+  - Backend:  d512683 (committed on main)
+
+--------------------------------------------------------------------------------
+21. FIX D02: UK DATES EVERYWHERE
+--------------------------------------------------------------------------------
+PROBLEM:
+Several admin and portal pages called toLocaleDateString(), toLocaleString(), or
+toLocaleTimeString() with no locale or undefined/empty arguments, causing browsers
+with US locale settings to display dates like 9/3/2026 instead of 3 Sep 2026.
+
+FIX:
+  - Created central date formatting helper frontend/lib/dates.js enforcing "en-GB"
+    locale and "Europe/London" timezone:
+      * formatDate(val, options): formats date (e.g. "3 Sep 2026")
+      * formatDateTime(val, options): formats date and time (e.g. "3 Sep 2026, 14:05")
+      * formatTime(val, options): formats time (e.g. "14:05")
+      * formatDateNumeric(val, options): formats date as DD/MM/YYYY
+  - Replaced all bare and undefined toLocaleDateString(), toLocaleString(), and
+    toLocaleTimeString() calls across app/ and components/.
+  - Added unit test frontend/tests/d02-uk-dates.test.mjs asserting helper formatting,
+    safe null handling, and verifying zero bare or undefined locale calls remain.
+
+FILES MODIFIED / CREATED:
+  - frontend/lib/dates.js
+  - frontend/tests/d02-uk-dates.test.mjs
+  - frontend/app/dashboard/trainee-applications/page.jsx
+  - frontend/app/dashboard/trainee-applications/[id]/page.jsx
+  - frontend/app/dashboard/users/page.jsx
+  - frontend/app/dashboard/staff-notes/page.jsx
+  - frontend/app/dashboard/session-notes/page.jsx
+  - frontend/app/dashboard/coupons/page.jsx
+  - frontend/app/counsellor-portal/pages/session-notes/page.jsx
+  - frontend/app/counsellor-portal/page.jsx
+  - frontend/app/counsellor-portal/clients/page.jsx
+  - frontend/app/counsellor-portal/clients/[id]/page.jsx
+  - frontend/app/counsellor-portal/messages/page.jsx
+  - frontend/app/dashboard/messages/page.jsx
+  - frontend/app/client-booking/page.jsx
+  - frontend/app/trainee-interview-booking/page.jsx
+  - frontend/components/CalendarPicker.jsx
+  - frontend/app/dashboard/consultation-slots/page.jsx
+  - frontend/app/dashboard/placement-interview-slots/page.jsx
+  - frontend/components/SessionNoteDetailsModal.jsx
+  - frontend/components/MessageReadNotifier.jsx
+  - frontend/components/NewMessageNotifier.jsx
+  - frontend/components/RealtimeNotifications.jsx
+  - frontend/components/StaffNoteNotifier.jsx
+
+COMMITS:
+  - Frontend: c620253 (pushed to builtng-fe/main)
+
+--------------------------------------------------------------------------------
+22. FIX A10: TYPED DATE OF BIRTH & VALIDATION
+--------------------------------------------------------------------------------
+PROBLEM:
+app/counsellor/page.jsx (trainee counsellor application) and app/qualified-counsellor-form/page.jsx
+used HTML5 <input type="date"> which defaults to today's date in browser calendar pickers,
+forcing adult applicants to click backwards through decades of calendar months.
+
+FIX:
+  - Created reusable frontend/components/DateOfBirthInput.jsx providing three typed fields
+    (Day [DD], Month [MM], Year [YYYY]) conforming to UK GOV/NHS design system standards:
+      * Numeric keypad input (inputMode="numeric")
+      * Auto-advancing focus from Day (2 digits) to Month (2 digits) to Year (4 digits)
+      * Keyboard backspace auto-reversion from empty Year to Month and empty Month to Day
+      * Paste support auto-parsing DD/MM/YYYY or YYYY-MM-DD
+  - Added robust validation in frontend/lib/dates.js (validateDateOfBirth):
+      * Rejects empty or incomplete dates
+      * Rejects invalid day, month, and calendar dates (e.g. 31 Apr, non-leap Feb 29)
+      * Rejects future dates ("Date of birth cannot be in the future")
+      * Rejects applicants under 18 years old ("You must be at least 18 years old to apply")
+  - Applied DateOfBirthInput and validateDateOfBirth to both forms:
+      * frontend/app/counsellor/page.jsx
+      * frontend/app/qualified-counsellor-form/page.jsx
+  - Added automated unit test suite in frontend/tests/a10-typed-date-of-birth.test.mjs (6 passed).
+
+FILES MODIFIED / CREATED:
+  - frontend/components/DateOfBirthInput.jsx
+  - frontend/lib/dates.js
+  - frontend/app/counsellor/page.jsx
+  - frontend/app/qualified-counsellor-form/page.jsx
+  - frontend/tests/a10-typed-date-of-birth.test.mjs
+
+COMMITS:
+  - Frontend: f8a8b1b (pushed to builtng-fe/main)
+
+--------------------------------------------------------------------------------
+23. FIX A14: "A FEW QUESTIONS" IN TRAINEE STAGE 2 INVITE
+--------------------------------------------------------------------------------
+PROBLEM:
+The trainee Stage 2 video interview invitation template (trainee_stage_two_invite)
+referred to answering "5 structured questions" / "five simple questions". The interview
+format should state "a few questions" instead of specifying a fixed number of questions.
+
+FIX:
+  1. Default Email Templates in Code:
+     - Updated backend/app/Http/Controllers/Api/EmailTemplateController.php to change
+       "five simple questions" / "5 structured questions" to "a few questions".
+     - Updated backend/app/Mail/DynamicEmail.php to change
+       "five simple questions" / "5 structured questions" to "a few questions".
+  2. Database Migration:
+     - Created migration database/migrations/2026_10_14_120000_update_trainee_stage_two_invite_to_a_few_questions.php
+       which updates existing trainee_stage_two_invite records in email_templates to replace
+       "5 structured questions" / "five simple questions" with "a few questions".
+     - Executed migration successfully via php artisan migrate.
+  3. Testing:
+     - Added backend feature test backend/tests/Feature/TraineeStageTwoInviteWordingTest.php
+       verifying default controller template, DynamicEmail fallback, and database migration.
+     - All 3 tests in test suite passed (188 backend tests passing overall).
+
+FILES MODIFIED / CREATED:
+  - backend/app/Http/Controllers/Api/EmailTemplateController.php
+  - backend/app/Mail/DynamicEmail.php
+  - backend/database/migrations/2026_10_14_120000_update_trainee_stage_two_invite_to_a_few_questions.php
+  - backend/tests/Feature/TraineeStageTwoInviteWordingTest.php
+
+COMMITS:
+  - Backend: e0183fd (committed on main)
+
+--------------------------------------------------------------------------------
+24. FIX F05: APPLICANT DOCUMENT VIEWING
+--------------------------------------------------------------------------------
+PROBLEM:
+Documents attached to applications (Trainee Applications, Trainee Counsellor Details,
+and Qualified Applications) could not be viewed or downloaded reliably from admin
+dashboards (resulting in 404s, unauthorized responses, or storage path mismatches)
+because files stored in private disks were accessed via direct anchor links without
+Bearer authentication headers or because storage paths had differing disk prefixes.
+
+FIX:
+  1. Backend Endpoints & Multi-Disk Resolution:
+     - Verified and hardened authenticated document download endpoints for staff/admin:
+       * GET /api/training-counsellors/{uuid}/document/{field} (TrainingCounsellorController@downloadDocument)
+       * GET /api/trainee-applications/{id}/document/{field} (TraineeApplicationController@downloadDocument)
+       * GET /api/qc-applications/{id}/document/{field} (QcApplicationController@downloadDocument)
+     - Implemented resilient disk resolution helper in controllers checking private, public,
+       local, and absolute storage paths, plus MIME-type guessing and clean Content-Disposition headers.
+     - Ensured IntakeFormController and TraineeApplicationController consistently store documents to private disk.
+  2. Frontend Authenticated Fetching & Blob Streaming:
+     - In frontend/app/dashboard/trainee-applications/[id]/page.jsx, updated DocLink to perform
+       an authenticated fetch with Bearer token, create an object URL blob, and trigger download/preview in new tab.
+     - In frontend/app/dashboard/training-counsellors/details/[uuid]/page.jsx, fixed document URL resolution
+       and authenticated fetch handling.
+     - In frontend/app/dashboard/qualified-applications/[id]/page.jsx and page.jsx, replaced raw <a> links
+       with authenticated button handlers fetching with Bearer tokens and opening blobs.
+  3. Verification & Testing:
+     - Added backend feature test backend/tests/Feature/TrainingCounsellorDocumentTest.php (7 tests passing).
+     - Added frontend automated test frontend/tests/f05-applicant-documents.test.mjs (4 tests passing).
+     - All 110 frontend tests passed via npm test.
+     - Next.js production build succeeded with exit code 0.
+
+FILES MODIFIED / CREATED:
+  - backend/app/Http/Controllers/Api/IntakeFormController.php
+  - backend/app/Http/Controllers/Api/QcApplicationController.php
+  - backend/app/Http/Controllers/Api/TraineeApplicationController.php
+  - backend/app/Http/Controllers/Api/TrainingCounsellorController.php
+  - backend/config/filesystems.php
+  - backend/routes/api.php
+  - backend/tests/Feature/TrainingCounsellorDocumentTest.php
+  - backend/app/Console/Commands/MoveDocumentsToPrivate.php
+  - frontend/app/dashboard/trainee-applications/[id]/page.jsx
+  - frontend/app/dashboard/training-counsellors/details/[uuid]/page.jsx
+  - frontend/app/dashboard/qualified-applications/[id]/page.jsx
+  - frontend/app/dashboard/qualified-applications/page.jsx
+  - frontend/tests/f05-applicant-documents.test.mjs
+
+COMMITS:
+  - Backend: 848b628 (committed on main)
+  - Frontend: 2523d40 (pushed to builtng-fe/main)
+
+================================================================================
+TEST SUITE SUMMARY (AT END OF DAY)
+================================================================================
+Frontend:
+  - 110 test cases executed via node --test: ALL 110 PASSED (0 failed)
+  - Next.js production build: PASSED (exit code 0)
+
+Backend:
+  - 188 test cases / 1,306 assertions executed via php artisan test: ALL 188 PASSED (0 failed)
+
+Git Remote Status:
+  - Frontend pushed strictly to builtng-fe/main (commit 2523d40)
+  - Backend committed locally on main (commit 848b628)
+================================================================================
+
+
+
