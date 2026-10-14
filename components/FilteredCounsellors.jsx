@@ -105,6 +105,8 @@ export default function FilteredCounsellors({
   availableSlots = [],
   isSlotsLoading = false,
   errors = {},
+  viewMode: propViewMode,
+  onBackToDirectory,
 }) {
   const [counsellors, setCounsellors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +115,15 @@ export default function FilteredCounsellors({
   const [activeProfileModal, setActiveProfileModal] = useState(null);
 
   // View state: 'directory' (counsellor cards list) or 'booking' (focused consultation booking page)
-  const [viewMode, setViewMode] = useState("directory");
+  const [internalViewMode, setInternalViewMode] = useState("directory");
+  const viewMode = propViewMode || internalViewMode;
+
+  const setViewMode = (mode) => {
+    if (mode === "directory" && onBackToDirectory) {
+      onBackToDirectory();
+    }
+    setInternalViewMode(mode);
+  };
 
   // Counsellor consultation slot state
   const [counsellorSlots, setCounsellorSlots] = useState([]);

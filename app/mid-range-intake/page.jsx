@@ -16,6 +16,7 @@ import {
   Lock,
   Users,
   Loader2,
+  Clock,
 } from "lucide-react";
 import { StripePaymentWrapper } from "@/components/StripePayment";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
@@ -284,7 +285,7 @@ function MidRangeClientIntakeContent() {
   }, [formData.serviceType, servicePricing]);
 
   useEffect(() => {
-    if (currentStep === 10) {
+    if (currentStep === 9 || currentStep === 10) {
       const fetchSlots = async () => {
         setIsSlotsLoading(true);
         try {
@@ -441,12 +442,12 @@ function MidRangeClientIntakeContent() {
     const stepErrors = {};
 
     switch (step) {
-      case 1: // Service Selection
+      case 1: // Service information
         if (!formData.serviceType)
           stepErrors.serviceType = "Please select a service";
         break;
 
-      case 2: // Personal Information
+      case 2: // Personal
         if (!formData.firstName.trim())
           stepErrors.firstName = "First name is required";
         if (!formData.lastName.trim())
@@ -496,7 +497,7 @@ function MidRangeClientIntakeContent() {
         }
         break;
 
-      case 3: // Demographics (About You)
+      case 3: // About you
         if (!formData.gender) stepErrors.gender = "Gender is required";
         if (!formData.ethnicity) stepErrors.ethnicity = "Ethnicity is required";
         if (!formData.sexualOrientation)
@@ -513,7 +514,12 @@ function MidRangeClientIntakeContent() {
         }
         break;
 
-      case 4: // Medical & Disabilities
+      case 4: // Support (merges support areas, concerns, medication, and disabilities)
+        if (formData.supportAreas.length === 0)
+          stepErrors.supportAreas = "Please select at least one support area";
+        if (!formData.concernsDetails.trim())
+          stepErrors.concernsDetails =
+            "Please provide details about your concerns";
         if (!formData.onMedication)
           stepErrors.onMedication = "This field is required";
         if (
@@ -542,26 +548,10 @@ function MidRangeClientIntakeContent() {
         }
         break;
 
-      case 5: // Concerns (Support Areas)
-        if (formData.supportAreas.length === 0)
-          stepErrors.supportAreas = "Please select at least one support area";
-        if (!formData.concernsDetails.trim())
-          stepErrors.concernsDetails =
-            "Please provide details about your concerns";
+      case 5: // Counsellor preferences
         break;
 
-      case 6: // Availability
-        const hasAvailability = Object.values(formData.availability).some(
-          (day) => day.length > 0
-        );
-        if (!hasAvailability)
-          stepErrors.availability = "Please select at least one time slot";
-        break;
-
-      case 7: // Preferences
-        break;
-
-      case 8: // Referral
+      case 6: // Referral
         if (!formData.hearAboutUs) {
           stepErrors.hearAboutUs = "This field is required";
         } else if (formData.hearAboutUs === "Referral") {
@@ -576,20 +566,34 @@ function MidRangeClientIntakeContent() {
         }
         break;
 
-      case 9: // Assessment (CORE-34)
+      case 7: // Assessment (CORE-34)
         if (Object.keys(formData.core34).length < 34) {
           stepErrors.core34 =
             "Please answer all 34 questions before proceeding.";
         }
         break;
 
-      case 10: // Filtered Counsellors & Consultation Slot
-        if (!formData.consultationSlotId)
-          stepErrors.consultationSlotId =
-            "Please choose a counsellor and select an available consultation slot";
+      case 8: // Availability
+        const hasAvailability = Object.values(formData.availability).some(
+          (day) => day.length > 0
+        );
+        if (!hasAvailability)
+          stepErrors.availability = "Please select at least one time slot";
         break;
 
-      case 11: // Emergency Contact
+      case 9: // Filtered counsellors
+        if (!formData.consultationWithTcUuid)
+          stepErrors.consultationWithTcUuid =
+            "Please choose a counsellor to continue";
+        break;
+
+      case 10: // Consultation
+        if (!formData.consultationSlotId)
+          stepErrors.consultationSlotId =
+            "Please select an available consultation slot";
+        break;
+
+      case 11: // Emergency
         if (!formData.emergencyContactName.trim())
           stepErrors.emergencyContactName =
             "Emergency contact name is required";
@@ -1022,16 +1026,16 @@ function MidRangeClientIntakeContent() {
   };
 
   const steps = [
-    { number: 1, title: "Service", icon: Briefcase },
+    { number: 1, title: "Service information", icon: Briefcase },
     { number: 2, title: "Personal", icon: User },
-    { number: 3, title: "About", icon: Heart },
-    { number: 4, title: "Service", icon: Briefcase },
-    { number: 5, title: "Support", icon: MessageCircle },
-    { number: 6, title: "Availability", icon: Calendar },
-    { number: 7, title: "Preferences", icon: Heart },
-    { number: 8, title: "Referral", icon: User },
-    { number: 9, title: "Assessment", icon: CheckCircle },
-    { number: 10, title: "Counsellors", icon: Users },
+    { number: 3, title: "About you", icon: Heart },
+    { number: 4, title: "Support", icon: MessageCircle },
+    { number: 5, title: "Counsellor preferences", icon: Heart },
+    { number: 6, title: "Referral", icon: User },
+    { number: 7, title: "Assessment", icon: CheckCircle },
+    { number: 8, title: "Availability", icon: Calendar },
+    { number: 9, title: "Filtered counsellors", icon: Users },
+    { number: 10, title: "Consultation", icon: Clock },
     { number: 11, title: "Emergency", icon: AlertTriangle },
     { number: 12, title: "Payment", icon: CreditCard },
   ];
@@ -2069,7 +2073,7 @@ function MidRangeClientIntakeContent() {
               </div>
             )}
 
-            {/* ═══════════════ STEP 4: Medical & Service ═══════════════ */}
+            {/* ═══════════════ STEP 4: Support & Health Details ═══════════════ */}
             {currentStep === 4 && (
               <div className="space-y-4 md:space-y-6">
                 <div>
@@ -2077,11 +2081,131 @@ function MidRangeClientIntakeContent() {
                     className="text-2xl md:text-3xl font-bold mb-4 text-center"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    Service Information
+                    Areas You Require Support With
                   </h2>
                 </div>
 
-                <div className="space-y-4 md:space-y-6">
+                <div>
+                  <label
+                    className="block text-lg font-medium mb-3"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    We have listed a few areas below you may require support
+                    with. <span className="text-red-500">*</span>
+                    <span
+                      className="text-sm font-normal ml-2"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      (Select all that apply)
+                    </span>
+                  </label>
+                </div>
+
+                <div data-field="supportAreas">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {supportAreasList.map((area) => (
+                      <label
+                        key={area}
+                        className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${formData.supportAreas.includes(area)
+                            ? "bg-purple-50 border-[#6f1d56]"
+                            : "border-gray-200 hover:bg-gray-50"
+                          }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.supportAreas.includes(area)}
+                          onChange={() => handleSupportAreaToggle(area)}
+                          className="w-4 h-4 text-[#6f1d56] rounded focus:ring-[#6f1d56]"
+                        />
+                        <span
+                          className="text-sm font-medium"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {area}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.supportAreas && (
+                    <p className="text-red-500 text-sm mt-2">
+                      {errors.supportAreas}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-4 md:space-y-6 mt-6">
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Please use this box to specify and describe details
+                      related to the selected areas, or mention anything else
+                      not listed. <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="concernsDetails"
+                      id="concernsDetails"
+                      value={formData.concernsDetails}
+                      onChange={(e) =>
+                        handleInputChange("concernsDetails", e.target.value)
+                      }
+                      rows="4"
+                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.concernsDetails
+                          ? "border-red-500"
+                          : "border-gray-300"
+                        }`}
+                      placeholder="Please describe what brings you to therapy and what you hope to achieve..."
+                    />
+                    <p
+                      className="text-sm font-medium mt-2"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      For example - Family &amp; Relationship Issues: A &amp; I have
+                      been arguing frequently over how to manage our finances.
+                      The disagreement is causing tension in our relationship
+                      and affecting our family's overall well-being.
+                    </p>
+                    {errors.concernsDetails && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.concernsDetails}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      Please provide details of any identified risk issues or
+                      substance misuse
+                      {formData.isCouples
+                        ? " for You and Partner/Co-client"
+                        : ""}
+                    </label>
+                    <textarea
+                      name="riskIssues"
+                      id="riskIssues"
+                      value={formData.riskIssues}
+                      onChange={(e) =>
+                        handleInputChange("riskIssues", e.target.value)
+                      }
+                      rows="3"
+                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                      placeholder="Please describe any risk factors we should be aware of, or enter 'N/A' if none"
+                    />
+                  </div>
+                </div>
+
+                {/* Medical & Disability Information */}
+                <div className="border-t border-purple-200 pt-6 mt-6 space-y-4 md:space-y-6">
+                  <h3
+                    className="text-xl md:text-2xl font-bold mb-4"
+                    style={{ color: "#6f1d56" }}
+                  >
+                    Medical &amp; Disability Information
+                  </h3>
                   <div>
                     <label
                       className="block text-lg font-medium mb-2"
@@ -2233,134 +2357,6 @@ function MidRangeClientIntakeContent() {
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* ═══════════════ STEP 5: Support Areas (Concerns) ═══════════════ */}
-            {currentStep === 5 && (
-              <div className="space-y-4 md:space-y-6">
-                <div>
-                  <h2
-                    className="text-2xl md:text-3xl font-bold mb-4 text-center"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    Areas You Require Support With
-                  </h2>
-                </div>
-
-                <div>
-                  <label
-                    className="block text-lg font-medium mb-3"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    We have listed a few areas below you may require support
-                    with. <span className="text-red-500">*</span>
-                    <span
-                      className="text-sm font-normal ml-2"
-                      style={{ color: "var(--text-tertiary)" }}
-                    >
-                      (Select all that apply)
-                    </span>
-                  </label>
-                </div>
-
-                <div data-field="supportAreas">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {supportAreasList.map((area) => (
-                      <label
-                        key={area}
-                        className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${formData.supportAreas.includes(area)
-                            ? "bg-purple-50 border-[#6f1d56]"
-                            : "border-gray-200 hover:bg-gray-50"
-                          }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.supportAreas.includes(area)}
-                          onChange={() => handleSupportAreaToggle(area)}
-                          className="w-4 h-4 text-[#6f1d56] rounded focus:ring-[#6f1d56]"
-                        />
-                        <span
-                          className="text-sm font-medium"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          {area}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                  {errors.supportAreas && (
-                    <p className="text-red-500 text-sm mt-2">
-                      {errors.supportAreas}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-4 md:space-y-6 mt-6">
-                  <div>
-                    <label
-                      className="block text-lg font-medium mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Please use this box to specify and describe details
-                      related to the selected areas, or mention anything else
-                      not listed. <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      name="concernsDetails"
-                      id="concernsDetails"
-                      value={formData.concernsDetails}
-                      onChange={(e) =>
-                        handleInputChange("concernsDetails", e.target.value)
-                      }
-                      rows="4"
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.concernsDetails
-                          ? "border-red-500"
-                          : "border-gray-300"
-                        }`}
-                      placeholder="Please describe what brings you to therapy and what you hope to achieve..."
-                    />
-                    <p
-                      className="text-sm font-medium mt-2"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      For example - Family &amp; Relationship Issues: A &amp; I have
-                      been arguing frequently over how to manage our finances.
-                      The disagreement is causing tension in our relationship
-                      and affecting our family's overall well-being.
-                    </p>
-                    {errors.concernsDetails && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.concernsDetails}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      className="block text-lg font-medium mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Please provide details of any identified risk issues or
-                      substance misuse
-                      {formData.isCouples
-                        ? " for You and Partner/Co-client"
-                        : ""}
-                    </label>
-                    <textarea
-                      name="riskIssues"
-                      id="riskIssues"
-                      value={formData.riskIssues}
-                      onChange={(e) =>
-                        handleInputChange("riskIssues", e.target.value)
-                      }
-                      rows="3"
-                      className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                      placeholder="Please describe any risk factors we should be aware of, or enter 'N/A' if none"
-                    />
-                  </div>
-                </div>
-
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <p className="text-base text-red-900 font-medium mb-1">
                     Crisis Support
@@ -2374,26 +2370,8 @@ function MidRangeClientIntakeContent() {
               </div>
             )}
 
-            {/* ═══════════════ STEP 6: Availability ═══════════════ */}
-            {currentStep === 6 && (
-              <WeeklyAvailabilityPicker
-                value={formData.availability}
-                onChange={(newAvail) => {
-                  setFormData((prev) => ({ ...prev, availability: newAvail }));
-                  if (errors.availability) {
-                    setErrors((prev) => {
-                      const newErrors = { ...prev };
-                      delete newErrors.availability;
-                      return newErrors;
-                    });
-                  }
-                }}
-                error={errors.availability}
-              />
-            )}
-
-            {/* ═══════════════ STEP 7: Preferences ═══════════════ */}
-            {currentStep === 7 && (
+            {/* ═══════════════ STEP 5: Counsellor Preferences ═══════════════ */}
+            {currentStep === 5 && (
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
@@ -2559,8 +2537,8 @@ function MidRangeClientIntakeContent() {
               </div>
             )}
 
-            {/* ═══════════════ STEP 8: Referral ═══════════════ */}
-            {currentStep === 8 && (
+            {/* ═══════════════ STEP 6: Referral ═══════════════ */}
+            {currentStep === 6 && (
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
@@ -2714,8 +2692,8 @@ function MidRangeClientIntakeContent() {
               </div>
             )}
 
-            {/* ═══════════════ STEP 9: Assessment (CORE-34) ═══════════════ */}
-            {currentStep === 9 && (
+            {/* ═══════════════ STEP 7: Assessment (CORE-34) ═══════════════ */}
+            {currentStep === 7 && (
               <div className="space-y-4 md:space-y-6">
                 <div>
                   <h2
@@ -2864,13 +2842,82 @@ function MidRangeClientIntakeContent() {
               </div>
             )}
 
-            {/* ═══════════════ STEP 10: Filtered Counsellors & Consultation Slot ═══════════════ */}
+            {/* ═══════════════ STEP 8: Availability ═══════════════ */}
+            {currentStep === 8 && (
+              <WeeklyAvailabilityPicker
+                value={formData.availability}
+                onChange={(newAvail) => {
+                  setFormData((prev) => ({ ...prev, availability: newAvail }));
+                  if (errors.availability) {
+                    setErrors((prev) => {
+                      const newErrors = { ...prev };
+                      delete newErrors.availability;
+                      return newErrors;
+                    });
+                  }
+                }}
+                error={errors.availability}
+              />
+            )}
+
+            {/* ═══════════════ STEP 9: Filtered Counsellors ═══════════════ */}
+            {currentStep === 9 && (
+              <FilteredCounsellors
+                formData={formData}
+                selectedCounsellorUuid={formData.consultationWithTcUuid}
+                selectedSlotId={formData.consultationSlotId}
+                selectedDatetime={formData.consultationDatetime}
+                viewMode="directory"
+                onSelectCounsellor={(counsellor) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    consultationWithTcUuid: counsellor.uuid,
+                    consultationWithTcName: counsellor.name,
+                    consultationWithTcId:
+                      counsellor.id || counsellor.training_counsellor_id || null,
+                    consultationSlotId: "",
+                    consultationDatetime: "",
+                  }));
+                  setCurrentStep(10);
+                }}
+                onSelectSlot={(slotData) => {
+                  const rawId = slotData.id;
+                  const datetime =
+                    slotData.consultation_datetime ||
+                    slotData.datetime ||
+                    "";
+                  setFormData((prev) => ({
+                    ...prev,
+                    consultationSlotId: rawId ? String(rawId) : "",
+                    consultationDatetime: datetime,
+                    consultationWithTcId:
+                      slotData.counsellorId || prev.consultationWithTcId || null,
+                    consultationWithTcUuid:
+                      slotData.counsellorUuid || prev.consultationWithTcUuid || "",
+                    consultationWithTcName:
+                      slotData.counsellorName || prev.consultationWithTcName || "",
+                  }));
+                  setErrors((prev) => {
+                    const updated = { ...prev };
+                    delete updated.consultationSlotId;
+                    return updated;
+                  });
+                }}
+                availableSlots={availableSlots}
+                isSlotsLoading={isSlotsLoading}
+                errors={errors}
+              />
+            )}
+
+            {/* ═══════════════ STEP 10: Consultation Slot ═══════════════ */}
             {currentStep === 10 && (
               <FilteredCounsellors
                 formData={formData}
                 selectedCounsellorUuid={formData.consultationWithTcUuid}
                 selectedSlotId={formData.consultationSlotId}
                 selectedDatetime={formData.consultationDatetime}
+                viewMode="booking"
+                onBackToDirectory={() => setCurrentStep(9)}
                 onSelectCounsellor={(counsellor) => {
                   setFormData((prev) => ({
                     ...prev,
