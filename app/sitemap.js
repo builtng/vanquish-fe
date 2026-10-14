@@ -1,5 +1,5 @@
 export default function sitemap() {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vanquish.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vanquish0.vercel.app';
   
   // Static routes
   const routes = [
