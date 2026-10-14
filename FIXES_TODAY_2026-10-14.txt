@@ -16,11 +16,12 @@ TABLE OF CONTENTS — TODAY'S FIXES
  4. FIX H05: Service Names and Coaching Price (£60)
  5. FIX G03: Mid Range Block of 4 at £140 & Dynamic Package Size
  6. FIX F03: Session Notes Reminder Wording
- 7. FIX E02: Document Upload 10MB Limit, Progress & Real Error Display
+ 7. FIX E02: Document Upload 10MB Limit, Upload Tokenization & Security Hardening
  8. FIX D02: Standardized UK Date & Time Formatting (Europe/London)
  9. FIX A10: Typed 3-Field Date of Birth Input (DD / MM / YYYY)
 10. FIX A14: "A Few Questions" in Trainee Stage 2 Invite
 11. FIX F05: Applicant Document Viewing via Authenticated Endpoints & Multi-Disk Resolution
+ 12. FIX A11: Trainee Application "Other" Beliefs Conditional Input & Validation
 
 ================================================================================
 DETAILS OF TODAY'S FIXES
@@ -218,34 +219,55 @@ COMMITS:
 
 
 --------------------------------------------------------------------------------
-7. FIX E02: DOCUMENT UPLOAD 10MB LIMIT, PROGRESS & REAL ERROR DISPLAY
+7. FIX E02: DOCUMENT UPLOAD 10MB LIMIT, UPLOAD TOKENIZATION & SECURITY HARDENING (TC & QC)
 --------------------------------------------------------------------------------
 PROBLEM:
-Trainee Counsellor application form bundled all files in a single multipart POST payload,
-exceeding body limits (Cloudflare/Nginx 413) without individual progress or clear error feedback.
+  1. Trainee Counsellor application form bundled all files in a single multipart POST payload,
+     exceeding body limits (Cloudflare/Nginx 413) without individual progress or clear error feedback.
+  2. Public TC upload route (POST /api/tc-intake/upload-document) accepted application_id / trainee_application_id,
+     allowing unauthorized overwrites of applicant documents by guessing IDs.
+  3. Public QC upload route (POST /api/qualified-counsellor/upload-document) accepted qc_application_id, application_id,
+     or tc_id, allowing unauthorized overwrites of existing QC application documents.
+  4. The final submit steps (tcIntake and submitQualifiedForm) accepted arbitrary strings as document paths,
+     permitting outside URLs or raw storage paths.
+  5. TraineeApplicationController::downloadDocument and QcApplicationController::downloadDocument could redirect
+     admin users to untrusted external URLs.
 
 FIX:
-  1. Added dedicated single-file upload endpoint:
-     POST /api/trainee-counsellor/upload-document in IntakeFormController accepting
-     one document up to 10MB (10240 KB) and returning the stored path.
-  2. Frontend client-side validation immediately rejects files > 10MB before network call.
-  3. Individual uploads with live upload progress indicators ("Uploading... 45%") and
-     real error messages (413 / 422).
-  4. Final form submission sends pre-uploaded storage paths via JSON payload.
+  1. Dedicated single-file upload endpoints for both TC and QC forms:
+     - POST /api/tc-intake/upload-document (IntakeFormController)
+     - POST /api/qualified-counsellor/upload-document (TrainingCounsellorController)
+     Both routes accept one document up to 10MB (10240 KB), enforce mime & extension validation,
+     store strictly on the 'private' disk, and return a single-use 40-character upload token cached for 24 hours.
+  2. Removed all application_id, qc_application_id, tc_id, and uuid handling from both upload endpoints.
+  3. Both upload routes are protected by rate limiting (throttle:60,1).
+  4. Final submission handlers (tcIntake & submitQualifiedForm) accept only valid one-time upload tokens for pre-uploaded documents:
+     resolves token to stored private path, attaches to application and intake form, then deletes token from cache.
+  5. External URLs, raw storage paths, and invalid/expired tokens are strictly rejected with HTTP 422.
+  6. In both downloadDocument methods, external redirects are restricted strictly to trusted JotForm domains (*.jotform.com,
+     *.jotformeu.com, *.jotformpro.com, files.jotform.com), blocking untrusted redirects with HTTP 403.
+  7. Frontend client-side validation immediately rejects files > 10MB before network call.
+  8. Individual uploads with live upload progress indicators ("Uploading... 45%") and real error messages (413 / 422).
 
 FILES MODIFIED / CREATED:
   - backend/app/Http/Controllers/Api/IntakeFormController.php
+  - backend/app/Http/Controllers/Api/TraineeApplicationController.php
+  - backend/app/Http/Controllers/Api/TrainingCounsellorController.php
+  - backend/app/Http/Controllers/Api/QcApplicationController.php
   - backend/routes/api.php
   - backend/tests/Feature/E02PlacementApplicationUploadTest.php
+  - backend/tests/Feature/QcApplicationDocumentUploadSecurityTest.php
   - frontend/app/counsellor/page.jsx
   - frontend/tests/e02-placement-application-upload.test.mjs
 
 TESTS VERIFIED:
-  - Backend: E02PlacementApplicationUploadTest passed (all 5 passed).
-  - Frontend: tests/e02-placement-application-upload.test.mjs passed (all 4 passed).
+  - Backend TC Upload: E02PlacementApplicationUploadTest passed (all 8 passed, 36 assertions).
+  - Backend QC Upload: QcApplicationDocumentUploadSecurityTest passed (all 6 passed, 38 assertions).
+  - Frontend TC Upload: tests/e02-placement-application-upload.test.mjs passed (all 4 passed).
+  - Full Backend Test Suite: 201 passed (1,378 assertions, 0 failures).
 
 COMMITS:
-  - Backend:  d512683 (committed on main)
+  - Backend:  8e8624c (TC security fix) & 81e0751 (QC security fix) on builtng/vanquish-be main
   - Frontend: 63238a41 (pushed to builtng-fe/main)
 
 
@@ -385,17 +407,43 @@ COMMITS:
   - Frontend: 2523d40 (pushed to builtng-fe/main)
 
 
+--------------------------------------------------------------------------------
+12. FIX A11: TRAINEE APPLICATION "OTHER" BELIEFS CONDITIONAL INPUT & VALIDATION
+--------------------------------------------------------------------------------
+PROBLEM:
+On the Trainee Counsellor application form (frontend/app/counsellor/page.jsx),
+the "List if not mentioned above / Specific beliefs" input was unconditionally
+displayed even when "Other" was not selected, and lacked required validation
+when "Other" was selected.
+
+FIX:
+  1. Conditionally render the "List if not mentioned above / Specific beliefs"
+     text input only when "Other" (or "Other (Please specify)") is selected in formData.beliefs.
+  2. When "Other" is ticked, mark the field as required with an asterisk and enforce
+     validation in validateStep(1) ("Please specify your beliefs").
+  3. In handleBeliefsToggle, clearing/unticking "Other" resets otherBeliefs to ""
+     and removes any validation error.
+
+FILES MODIFIED / CREATED:
+  - frontend/app/counsellor/page.jsx
+  - frontend/tests/a11-other-beliefs.test.mjs
+
+TESTS VERIFIED:
+  - Frontend: tests/a11-other-beliefs.test.mjs passed (all 4 passed).
+  - Overall Frontend Tests: 114 test cases executed via node --test: ALL 114 PASSED (0 failed).
+
+
 ================================================================================
 OVERALL TEST SUITE & PRODUCTION BUILD STATUS (14 OCTOBER 2026)
 ================================================================================
 Frontend:
-  - 110 test cases executed via node --test: ALL 110 PASSED (0 failed)
+  - 114 test cases executed via node --test: ALL 114 PASSED (0 failed)
   - Next.js production build: PASSED (exit code 0)
 
 Backend:
-  - 188 test cases / 1,306 assertions executed via php artisan test: ALL 188 PASSED (0 failed)
+  - 201 test cases / 1,378 assertions executed via php artisan test: ALL 201 PASSED (0 failed)
 
 Git Remote Status:
   - Frontend pushed strictly to builtng-fe/main (latest commit 2523d40)
-  - Backend committed locally on main (latest commit 848b628)
+  - Backend pushed strictly to origin/main on builtng/vanquish-be (latest commit 81e0751)
 ================================================================================

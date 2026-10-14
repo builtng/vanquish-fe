@@ -139,7 +139,7 @@ export default function VanquishTCApplication() {
     "Sikhism",
     "Spiritual",
     "Taoism",
-    "Other (Please specify)",
+    "Other",
   ];
 
   // Comprehensive list of therapy topics/issues
@@ -185,17 +185,31 @@ export default function VanquishTCApplication() {
   };
 
   const handleBeliefsToggle = (belief) => {
-    setFormData((prev) => ({
-      ...prev,
-      beliefs: prev.beliefs.includes(belief)
+    const isOther = belief === "Other" || belief === "Other (Please specify)";
+    setFormData((prev) => {
+      const isCurrentlySelected = prev.beliefs.includes(belief);
+      const newBeliefs = isCurrentlySelected
         ? prev.beliefs.filter((b) => b !== belief)
-        : [...prev.beliefs, belief],
-    }));
+        : [...prev.beliefs, belief];
+
+      return {
+        ...prev,
+        beliefs: newBeliefs,
+        otherBeliefs: isCurrentlySelected && isOther ? "" : prev.otherBeliefs,
+      };
+    });
     // Clear error when user makes a selection
     if (errors.beliefs) {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors.beliefs;
+        return newErrors;
+      });
+    }
+    if (isOther && errors.otherBeliefs) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.otherBeliefs;
         return newErrors;
       });
     }
@@ -379,6 +393,13 @@ export default function VanquishTCApplication() {
           stepErrors.postcode = "Postcode is required";
         if (formData.beliefs.length === 0)
           stepErrors.beliefs = "Please select at least one belief";
+        if (
+          (formData.beliefs.includes("Other") ||
+            formData.beliefs.includes("Other (Please specify)")) &&
+          (!formData.otherBeliefs || !formData.otherBeliefs.trim())
+        ) {
+          stepErrors.otherBeliefs = "Please specify your beliefs";
+        }
         if (!formData.disabilities.trim())
           stepErrors.disabilities =
             "This field is required (enter 'None' if applicable)";
@@ -1338,20 +1359,35 @@ export default function VanquishTCApplication() {
                   )}
                 </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      List if not mentioned above / Specific beliefs
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.otherBeliefs}
-                      onChange={(e) =>
-                        handleInputChange("otherBeliefs", e.target.value)
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                      placeholder="Specify other beliefs or additional details"
-                    />
-                  </div>
+                  {(formData.beliefs.includes("Other") ||
+                    formData.beliefs.includes("Other (Please specify)")) && (
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        List if not mentioned above / Specific beliefs{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="otherBeliefs"
+                        id="otherBeliefs"
+                        value={formData.otherBeliefs}
+                        onChange={(e) =>
+                          handleInputChange("otherBeliefs", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
+                          errors.otherBeliefs
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        placeholder="Specify other beliefs or additional details"
+                      />
+                      {errors.otherBeliefs && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.otherBeliefs}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
