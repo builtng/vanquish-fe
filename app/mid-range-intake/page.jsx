@@ -154,9 +154,11 @@ function MidRangeClientIntakeContent() {
     "Counselling & Coaching": 20.0,
   });
   const [sessionPricing, setSessionPricing] = useState({
-    "Mid Range": 40.0,
-    "Counselling & Coaching": 50.0,
+    "Mid Range": null,
+    "Counselling & Coaching": null,
   });
+  const [pricingLoaded, setPricingLoaded] = useState(false);
+  const [pricingError, setPricingError] = useState(false);
 
   // Sync state from query parameters on mount or URL changes
   useEffect(() => {
@@ -234,8 +236,8 @@ function MidRangeClientIntakeContent() {
             "Counselling & Coaching": 20.0,
           };
           const sessionMap = {
-            "Mid Range": 40.0,
-            "Counselling & Coaching": 50.0,
+            "Mid Range": null,
+            "Counselling & Coaching": null,
           };
           services.forEach((s) => {
             const name = (s.service_name || "").toLowerCase().trim();
@@ -264,13 +266,25 @@ function MidRangeClientIntakeContent() {
           });
           setServicePricing(pricingMap);
           setSessionPricing(sessionMap);
+          setPricingLoaded(true);
+          if (
+            sessionMap["Mid Range"] === null ||
+            sessionMap["Counselling & Coaching"] === null
+          ) {
+            setPricingError(true);
+          }
           setBaseFee(
             pricingMap[formData.serviceType] ||
             (formData.serviceType === "Counselling & Coaching" ? 20.0 : 15.0)
           );
+        } else {
+          setPricingError(true);
+          setPricingLoaded(true);
         }
       } catch (err) {
         console.error("Failed to load dynamic pricing:", err);
+        setPricingError(true);
+        setPricingLoaded(true);
       }
     };
     fetchPricing();
@@ -1250,53 +1264,62 @@ function MidRangeClientIntakeContent() {
                     {[
                       {
                         val: "Mid Range",
-                        label: "Mid Range Counselling",
-                        price: `Starting from £${Math.round(sessionPricing["Mid Range"] || 40)}`,
+                        baseTitle: "Mid-range Counselling Service",
+                        price: sessionPricing["Mid Range"] != null ? Math.round(sessionPricing["Mid Range"]) : null,
                         desc: "One-to-one counselling with a qualified counsellor.",
                       },
                       {
                         val: "Counselling & Coaching",
-                        label: "Coaching & Counselling",
-                        price: `Starting from £${Math.round(sessionPricing["Counselling & Coaching"] || 50)}`,
+                        baseTitle: "Coaching & Counselling Service",
+                        price: sessionPricing["Counselling & Coaching"] != null ? Math.round(sessionPricing["Counselling & Coaching"]) : null,
                         desc: "An integrated coaching and counselling approach.",
                       },
-                    ].map((s) => (
-                      <label
-                        key={s.val}
-                        className={`border-2 rounded-2xl p-5 cursor-pointer transition-all ${formData.serviceType === s.val
-                            ? "border-[#6f1d56] bg-purple-50/60"
-                            : "border-gray-200 hover:border-purple-300"
-                          }`}
-                      >
-                        <input
-                          type="radio"
-                          name="serviceType"
-                          value={s.val}
-                          checked={formData.serviceType === s.val}
-                          onChange={() => handleInputChange("serviceType", s.val)}
-                          className="sr-only"
-                        />
-                        <div className="flex items-start gap-3.5">
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${formData.serviceType === s.val
-                                ? "border-[#6f1d56] bg-[#6f1d56]"
-                                : "border-gray-300"
-                              }`}
-                          >
-                            {formData.serviceType === s.val && (
-                              <div className="w-2 h-2 rounded-full bg-white" />
-                            )}
+                    ].map((s) => {
+                      const displayTitle = s.price != null
+                        ? `${s.baseTitle} (£${s.price}+)`
+                        : s.baseTitle;
+                      const showPriceError = (pricingLoaded || pricingError) && s.price == null;
+
+                      return (
+                        <label
+                          key={s.val}
+                          className={`border-2 rounded-2xl p-5 cursor-pointer transition-all ${formData.serviceType === s.val
+                              ? "border-[#6f1d56] bg-purple-50/60"
+                              : "border-gray-200 hover:border-purple-300"
+                            }`}
+                        >
+                          <input
+                            type="radio"
+                            name="serviceType"
+                            value={s.val}
+                            checked={formData.serviceType === s.val}
+                            onChange={() => handleInputChange("serviceType", s.val)}
+                            className="sr-only"
+                          />
+                          <div className="flex items-start gap-3.5">
+                            <div
+                              className={`w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${formData.serviceType === s.val
+                                  ? "border-[#6f1d56] bg-[#6f1d56]"
+                                  : "border-gray-300"
+                                }`}
+                            >
+                              {formData.serviceType === s.val && (
+                                <div className="w-2 h-2 rounded-full bg-white" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 text-base">{displayTitle}</p>
+                              {showPriceError && (
+                                <p className="text-red-600 text-xs mt-1 font-medium">
+                                  We could not load the price. Please refresh the page or contact help@vanquishtherapies.co.uk.
+                                </p>
+                              )}
+                              <p className="text-xs text-gray-500 mt-1">{s.desc}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold text-gray-900 text-base">{s.label}</p>
-                            <p className="text-[#6f1d56] font-semibold text-sm mt-0.5">
-                              {s.price}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">{s.desc}</p>
-                          </div>
-                        </div>
-                      </label>
-                    ))}
+                        </label>
+                      );
+                    })}
                   </div>
                   {errors.serviceType && (
                     <p className="text-red-500 text-sm mt-2">{errors.serviceType}</p>
