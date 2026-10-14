@@ -21,7 +21,9 @@ TABLE OF CONTENTS — TODAY'S FIXES
  9. FIX A10: Typed 3-Field Date of Birth Input (DD / MM / YYYY)
 10. FIX A14: "A Few Questions" in Trainee Stage 2 Invite
 11. FIX F05: Applicant Document Viewing via Authenticated Endpoints & Multi-Disk Resolution
- 12. FIX A11: Trainee Application "Other" Beliefs Conditional Input & Validation
+12. FIX A11: Trainee Application "Other" Beliefs Conditional Input & Validation
+13. FIX Z03: Server-Enforced Pricing on Payment Intents (Consultation, Session, Block)
+14. FIX Z04: Blind Client Booking Authentication & Enumeration Prevention
 
 ================================================================================
 DETAILS OF TODAY'S FIXES
@@ -433,17 +435,72 @@ TESTS VERIFIED:
   - Overall Frontend Tests: 114 test cases executed via node --test: ALL 114 PASSED (0 failed).
 
 
-================================================================================
+--------------------------------------------------------------------------------
+13. FIX Z03: SERVER-ENFORCED PRICING ON PAYMENT INTENTS (CONSULTATION, SESSION, BLOCK)
+--------------------------------------------------------------------------------
+PROBLEM:
+The browser was passing an `amount` field directly to POST /api/payments/create-intent.
+An adversary or manipulated client could tamper with the amount payload and pay 50p
+for a consultation, single session, or block of sessions.
+
+FIX:
+  1. Updated PaymentController::createPaymentIntent to ignore the browser-supplied amount
+     completely and calculate the authoritative price on the server:
+     - Consultation: fetched from ServiceSetting for client's service_type (consultation_price).
+     - Session: fetched from ServiceSetting (session_price) multiplied by count of session_ids.
+     - Block: fetched from ServiceSetting (block_price), falling back to 4x session_price.
+  2. Applied valid coupon discounts server-side against the server-computed amount.
+  3. Added automated feature tests in backend/tests/Feature/SecurityZ03Z04FixTest.php
+     verifying that arbitrary browser amounts (£0.50) are overridden by the live ServiceSetting price.
+
+FILES MODIFIED / CREATED:
+  - backend/app/Http/Controllers/Api/PaymentController.php
+  - backend/tests/Feature/SecurityZ03Z04FixTest.php
+
+TESTS VERIFIED:
+  - Backend: SecurityZ03Z04FixTest::test_z03_payment_intent_ignores_browser_amount_and_uses_service_setting_price passed.
+
+
+--------------------------------------------------------------------------------
+14. FIX Z04: BLIND CLIENT BOOKING AUTHENTICATION & ENUMERATION PREVENTION
+--------------------------------------------------------------------------------
+PROBLEM:
+POST /api/client-booking/authenticate previously accepted an email alone and returned
+the full client object (name, service type, allocated day/time, deadlines, matched counsellor).
+This allowed unauthenticated attackers to query arbitrary emails to determine if someone is
+a Vanquish client and expose their sensitive therapy details.
+
+FIX:
+  1. When a client visits the private booking page with their valid uuid (?uuid=...),
+     full booking and profile details are returned securely.
+  2. If only an email address is provided without a valid client uuid:
+     - The endpoint returns NO client data.
+     - It returns a generic message: "If this email is registered, we have sent you your booking link."
+     - If the email is registered, the backend dispatches an email to the client with their private booking link.
+     - If the email is not registered, the identical HTTP 200 generic message is returned, preventing email enumeration.
+  3. Added automated feature tests in backend/tests/Feature/SecurityZ03Z04FixTest.php verifying
+     identical response messages for registered vs unregistered emails, no client data leakage, and
+     successful authentication with valid uuid.
+
+FILES MODIFIED / CREATED:
+  - backend/app/Http/Controllers/Api/ClientBookingController.php
+  - backend/tests/Feature/SecurityZ03Z04FixTest.php
+
+TESTS VERIFIED:
+  - Backend: SecurityZ03Z04FixTest (all 5 passed).
+
+
+===============================================================================
 OVERALL TEST SUITE & PRODUCTION BUILD STATUS (14 OCTOBER 2026)
-================================================================================
+===============================================================================
 Frontend:
   - 114 test cases executed via node --test: ALL 114 PASSED (0 failed)
   - Next.js production build: PASSED (exit code 0)
 
 Backend:
-  - 201 test cases / 1,378 assertions executed via php artisan test: ALL 201 PASSED (0 failed)
+  - 206 test cases / 1,399 assertions executed via php artisan test: ALL 206 PASSED (0 failed)
 
 Git Remote Status:
-  - Frontend pushed strictly to builtng-fe/main (latest commit 2523d40)
-  - Backend pushed strictly to origin/main on builtng/vanquish-be (latest commit 81e0751)
-================================================================================
+  - Frontend pushed strictly to builtng-fe/main (latest commit 31bef498)
+  - Backend pushed strictly to origin/main on builtng/vanquish-be (latest commit 04a6785)
+===============================================================================
