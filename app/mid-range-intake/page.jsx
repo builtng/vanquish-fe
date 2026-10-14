@@ -526,14 +526,7 @@ function MidRangeClientIntakeContent() {
             stepErrors.partnerSexualOrientation =
               "Partner's sexual orientation is required";
         }
-        break;
 
-      case 4: // Support (merges support areas, concerns, medication, and disabilities)
-        if (formData.supportAreas.length === 0)
-          stepErrors.supportAreas = "Please select at least one support area";
-        if (!formData.concernsDetails.trim())
-          stepErrors.concernsDetails =
-            "Please provide details about your concerns";
         if (!formData.onMedication)
           stepErrors.onMedication = "This field is required";
         if (
@@ -560,6 +553,14 @@ function MidRangeClientIntakeContent() {
             stepErrors.partnerDisabilities =
               "This field is required (enter 'N/A' if none)";
         }
+        break;
+
+      case 4: // Support
+        if (formData.supportAreas.length === 0)
+          stepErrors.supportAreas = "Please select at least one support area";
+        if (!formData.concernsDetails.trim())
+          stepErrors.concernsDetails =
+            "Please provide details about your concerns";
         break;
 
       case 5: // Counsellor preferences
@@ -2084,6 +2085,165 @@ function MidRangeClientIntakeContent() {
                       )}
                     </div>
                   )}
+                  {/* Medical & Disability Information */}
+                  <div className="border-t border-purple-200 pt-6 mt-6 space-y-4 md:space-y-6">
+                    <h3
+                      className="text-xl md:text-2xl font-bold mb-4"
+                      style={{ color: "#6f1d56" }}
+                    >
+                      Medical &amp; Disability Information
+                    </h3>
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Are you currently on any medication?{" "}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="onMedication"
+                        id="onMedication"
+                        value={formData.onMedication}
+                        onChange={(e) =>
+                          handleInputChange("onMedication", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.onMedication
+                            ? "border-red-500"
+                            : "border-gray-300"
+                          }`}
+                      >
+                        <option value="">Please select</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                      {errors.onMedication && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.onMedication}
+                        </p>
+                      )}
+                    </div>
+
+                    {formData.onMedication === "Yes" && (
+                      <div>
+                        <label
+                          className="block text-lg font-medium mb-2"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Please mention your medication and what it is
+                          prescribed for <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          name="medicationDetails"
+                          id="medicationDetails"
+                          value={formData.medicationDetails}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "medicationDetails",
+                              e.target.value
+                            )
+                          }
+                          rows="3"
+                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.medicationDetails
+                              ? "border-red-500"
+                              : "border-gray-300"
+                            }`}
+                          placeholder="Please list your medications and conditions..."
+                        />
+                        {errors.medicationDetails && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors.medicationDetails}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Do you have any disabilities/impairments? If so, please
+                        specify <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        name="disabilities"
+                        id="disabilities"
+                        value={formData.disabilities}
+                        onChange={(e) =>
+                          handleInputChange("disabilities", e.target.value)
+                        }
+                        rows="3"
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.disabilities
+                            ? "border-red-500"
+                            : "border-gray-300"
+                          }`}
+                        placeholder="Please describe any disabilities or impairments, or enter 'N/A' if none"
+                      />
+                      {errors.disabilities && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.disabilities}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Partner Medical for Couples */}
+                    {formData.isCouples && (
+                      <div className="border-t border-purple-200 pt-6 mt-6 space-y-4 md:space-y-6">
+                        <h4 className="text-xl font-bold text-[#6f1d56]">
+                          Partner's Medical &amp; Accessibility Details
+                        </h4>
+                        <div>
+                          <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                            Is your partner currently on any medication? <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={formData.partnerOnMedication}
+                            onChange={(e) => handleInputChange("partnerOnMedication", e.target.value)}
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerOnMedication ? "border-red-500" : "border-gray-300"
+                              }`}
+                          >
+                            <option value="">Please select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                          </select>
+                          {errors.partnerOnMedication && <p className="text-red-500 text-sm mt-1">{errors.partnerOnMedication}</p>}
+                        </div>
+
+                        {formData.partnerOnMedication === "Yes" && (
+                          <div>
+                            <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                              Partner's Medication Details <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                              value={formData.partnerMedicationDetails}
+                              onChange={(e) => handleInputChange("partnerMedicationDetails", e.target.value)}
+                              rows="3"
+                              className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerMedicationDetails ? "border-red-500" : "border-gray-300"
+                                }`}
+                              placeholder="Please list partner's medications..."
+                            />
+                            {errors.partnerMedicationDetails && <p className="text-red-500 text-sm mt-1">{errors.partnerMedicationDetails}</p>}
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                            Does your partner have any physical disabilities or accessibility requirements? <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            value={formData.partnerDisabilities}
+                            onChange={(e) => handleInputChange("partnerDisabilities", e.target.value)}
+                            rows="3"
+                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerDisabilities ? "border-red-500" : "border-gray-300"
+                              }`}
+                            placeholder="Enter 'N/A' if none..."
+                          />
+                          {errors.partnerDisabilities && <p className="text-red-500 text-sm mt-1">{errors.partnerDisabilities}</p>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
@@ -2096,7 +2256,7 @@ function MidRangeClientIntakeContent() {
               </div>
             )}
 
-            {/* ═══════════════ STEP 4: Support & Health Details ═══════════════ */}
+            {/* ═══════════════ STEP 4: Support ═══════════════ */}
             {currentStep === 4 && (
               <div className="space-y-4 md:space-y-6">
                 <div>
@@ -2221,165 +2381,6 @@ function MidRangeClientIntakeContent() {
                   </div>
                 </div>
 
-                {/* Medical & Disability Information */}
-                <div className="border-t border-purple-200 pt-6 mt-6 space-y-4 md:space-y-6">
-                  <h3
-                    className="text-xl md:text-2xl font-bold mb-4"
-                    style={{ color: "#6f1d56" }}
-                  >
-                    Medical &amp; Disability Information
-                  </h3>
-                  <div>
-                    <label
-                      className="block text-lg font-medium mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Are you currently on any medication?{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="onMedication"
-                      id="onMedication"
-                      value={formData.onMedication}
-                      onChange={(e) =>
-                        handleInputChange("onMedication", e.target.value)
-                      }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.onMedication
-                          ? "border-red-500"
-                          : "border-gray-300"
-                        }`}
-                    >
-                      <option value="">Please select</option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </select>
-                    {errors.onMedication && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.onMedication}
-                      </p>
-                    )}
-                  </div>
-
-                  {formData.onMedication === "Yes" && (
-                    <div>
-                      <label
-                        className="block text-lg font-medium mb-2"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        Please mention your medication and what it is
-                        prescribed for <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        name="medicationDetails"
-                        id="medicationDetails"
-                        value={formData.medicationDetails}
-                        onChange={(e) =>
-                          handleInputChange(
-                            "medicationDetails",
-                            e.target.value
-                          )
-                        }
-                        rows="3"
-                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.medicationDetails
-                            ? "border-red-500"
-                            : "border-gray-300"
-                          }`}
-                        placeholder="Please list your medications and conditions..."
-                      />
-                      {errors.medicationDetails && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.medicationDetails}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  <div>
-                    <label
-                      className="block text-lg font-medium mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Do you have any disabilities/impairments? If so, please
-                      specify <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      name="disabilities"
-                      id="disabilities"
-                      value={formData.disabilities}
-                      onChange={(e) =>
-                        handleInputChange("disabilities", e.target.value)
-                      }
-                      rows="3"
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.disabilities
-                          ? "border-red-500"
-                          : "border-gray-300"
-                        }`}
-                      placeholder="Please describe any disabilities or impairments, or enter 'N/A' if none"
-                    />
-                    {errors.disabilities && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.disabilities}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Partner Medical for Couples */}
-                  {formData.isCouples && (
-                    <div className="border-t border-purple-200 pt-6 mt-6 space-y-4 md:space-y-6">
-                      <h4 className="text-xl font-bold text-[#6f1d56]">
-                        Partner's Medical &amp; Accessibility Details
-                      </h4>
-                      <div>
-                        <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                          Is your partner currently on any medication? <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={formData.partnerOnMedication}
-                          onChange={(e) => handleInputChange("partnerOnMedication", e.target.value)}
-                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerOnMedication ? "border-red-500" : "border-gray-300"
-                            }`}
-                        >
-                          <option value="">Please select</option>
-                          <option value="Yes">Yes</option>
-                          <option value="No">No</option>
-                        </select>
-                        {errors.partnerOnMedication && <p className="text-red-500 text-sm mt-1">{errors.partnerOnMedication}</p>}
-                      </div>
-
-                      {formData.partnerOnMedication === "Yes" && (
-                        <div>
-                          <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                            Partner's Medication Details <span className="text-red-500">*</span>
-                          </label>
-                          <textarea
-                            value={formData.partnerMedicationDetails}
-                            onChange={(e) => handleInputChange("partnerMedicationDetails", e.target.value)}
-                            rows="3"
-                            className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerMedicationDetails ? "border-red-500" : "border-gray-300"
-                              }`}
-                            placeholder="Please list partner's medications..."
-                          />
-                          {errors.partnerMedicationDetails && <p className="text-red-500 text-sm mt-1">{errors.partnerMedicationDetails}</p>}
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="block text-lg font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                          Does your partner have any physical disabilities or accessibility requirements? <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                          value={formData.partnerDisabilities}
-                          onChange={(e) => handleInputChange("partnerDisabilities", e.target.value)}
-                          rows="3"
-                          className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.partnerDisabilities ? "border-red-500" : "border-gray-300"
-                            }`}
-                          placeholder="Enter 'N/A' if none..."
-                        />
-                        {errors.partnerDisabilities && <p className="text-red-500 text-sm mt-1">{errors.partnerDisabilities}</p>}
-                      </div>
-                    </div>
-                  )}
-                </div>
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <p className="text-base text-red-900 font-medium mb-1">
                     Crisis Support

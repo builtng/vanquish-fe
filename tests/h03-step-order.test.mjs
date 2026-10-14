@@ -96,14 +96,24 @@ test("FIX H03: Mid Range and Coaching step order", async (t) => {
 
     const switchBody = validateStepMatch[2];
 
-    // Step 4 (Support) must validate support areas AND merged medical & disability fields
+    // Step 3 (About you) must validate demographics AND medication & disability fields
+    const case3Match = switchBody.match(/case\s+3:([\s\S]*?)(?=case\s+4:)/);
+    assert.ok(case3Match, "case 3 must exist in validateStep");
+    const case3Content = case3Match[1];
+    assert.ok(case3Content.includes("gender"), "case 3 must validate gender");
+    assert.ok(case3Content.includes("ethnicity"), "case 3 must validate ethnicity");
+    assert.ok(case3Content.includes("sexualOrientation"), "case 3 must validate sexualOrientation");
+    assert.ok(case3Content.includes("onMedication"), "case 3 must validate onMedication");
+    assert.ok(case3Content.includes("disabilities"), "case 3 must validate disabilities");
+
+    // Step 4 (Support) must validate support areas and concernsDetails, but NOT medication or disabilities
     const case4Match = switchBody.match(/case\s+4:([\s\S]*?)(?=case\s+5:)/);
     assert.ok(case4Match, "case 4 must exist in validateStep");
     const case4Content = case4Match[1];
     assert.ok(case4Content.includes("supportAreas"), "case 4 must validate supportAreas");
     assert.ok(case4Content.includes("concernsDetails"), "case 4 must validate concernsDetails");
-    assert.ok(case4Content.includes("onMedication"), "case 4 must validate onMedication");
-    assert.ok(case4Content.includes("disabilities"), "case 4 must validate disabilities");
+    assert.ok(!case4Content.includes("onMedication"), "case 4 must not validate onMedication");
+    assert.ok(!case4Content.includes("disabilities"), "case 4 must not validate disabilities");
 
     // Step 8 (Availability) must validate availability
     const case8Match = switchBody.match(/case\s+8:([\s\S]*?)(?=case\s+9:)/);
@@ -135,5 +145,22 @@ test("FIX H03: Mid Range and Coaching step order", async (t) => {
       expectedOrder,
       `JSX step blocks must render in sequence 1 through 12: got ${stepRenderMatches.join(", ")}`
     );
+  });
+
+  await t.test("6. Medication and disability questions render under Step 3 (About you) and not Step 4 (Support)", () => {
+    // Find Step 3 JSX block
+    const step3Match = fileContent.match(/currentStep\s*===\s*3\s*&&([\s\S]*?)currentStep\s*===\s*4/);
+    assert.ok(step3Match, "Step 3 JSX block must exist");
+    const step3Content = step3Match[1];
+    assert.ok(step3Content.includes('name="onMedication"'), "Step 3 must include onMedication input");
+    assert.ok(step3Content.includes('name="disabilities"'), "Step 3 must include disabilities input");
+
+    // Find Step 4 JSX block
+    const step4Match = fileContent.match(/currentStep\s*===\s*4\s*&&([\s\S]*?)currentStep\s*===\s*5/);
+    assert.ok(step4Match, "Step 4 JSX block must exist");
+    const step4Content = step4Match[1];
+    assert.ok(!step4Content.includes('name="onMedication"'), "Step 4 must NOT include onMedication input");
+    assert.ok(!step4Content.includes('name="disabilities"'), "Step 4 must NOT include disabilities input");
+    assert.ok(step4Content.includes('name="concernsDetails"'), "Step 4 must include concernsDetails");
   });
 });
