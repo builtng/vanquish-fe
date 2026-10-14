@@ -81,6 +81,10 @@ export default function CompletedMatchesPage() {
       showError("Please select a weekly day and time slot.");
       return;
     }
+    if (assignSlotClient?.serviceType === "Low Cost" && !selectedSlotToAssign.isOverlap) {
+      showError("Low Cost session time must be in both the client's and counsellor's availability.");
+      return;
+    }
     try {
       setSlotSaving(true);
       await apiService.updateClient(assignSlotClient.uuid || assignSlotClient.id, {
@@ -1092,30 +1096,36 @@ export default function CompletedMatchesPage() {
                       Overlapping Availability
                     </p>
                     {slotOverlapSchedule && (
-                      <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[var(--bg-secondary)] p-1 rounded-lg text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setSlotFilter("overlap_only")}
-                          className={`px-2.5 py-1 font-semibold rounded-md transition-colors ${
-                            slotFilter === "overlap_only"
-                              ? "bg-white dark:bg-[var(--card-bg)] text-[#6f1d56] shadow-sm"
-                              : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
-                          }`}
-                        >
-                          ⭐ Overlapping Only ({slotOverlapSchedule.totalOverlapCount})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSlotFilter("all")}
-                          className={`px-2.5 py-1 font-semibold rounded-md transition-colors ${
-                            slotFilter === "all"
-                              ? "bg-white dark:bg-[var(--card-bg)] text-gray-900 dark:text-[var(--text-primary)] shadow-sm"
-                              : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
-                          }`}
-                        >
-                          All Slots ({slotOverlapSchedule.totalTCSlots})
-                        </button>
-                      </div>
+                      assignSlotClient?.serviceType === "Low Cost" ? (
+                        <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                          ⭐ Overlapping Slots Only ({slotOverlapSchedule.totalOverlapCount})
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[var(--bg-secondary)] p-1 rounded-lg text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setSlotFilter("overlap_only")}
+                            className={`px-2.5 py-1 font-semibold rounded-md transition-colors ${
+                              slotFilter === "overlap_only"
+                                ? "bg-white dark:bg-[var(--card-bg)] text-[#6f1d56] shadow-sm"
+                                : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
+                            }`}
+                          >
+                            ⭐ Overlapping Only ({slotOverlapSchedule.totalOverlapCount})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSlotFilter("all")}
+                            className={`px-2.5 py-1 font-semibold rounded-md transition-colors ${
+                              slotFilter === "all"
+                                ? "bg-white dark:bg-[var(--card-bg)] text-gray-900 dark:text-[var(--text-primary)] shadow-sm"
+                                : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
+                            }`}
+                          >
+                            All Slots ({slotOverlapSchedule.totalTCSlots})
+                          </button>
+                        </div>
+                      )
                     )}
                   </div>
 
@@ -1155,52 +1165,61 @@ export default function CompletedMatchesPage() {
 
                   {/* Slots list */}
                   <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
-                    {slotOverlapSchedule?.days
-                      .filter((day) => activeDayTab === "all" || activeDayTab === day.key)
-                      .map((day) => {
-                        const slotsToRender = day.slots.filter((slot) => {
-                          if (slotFilter === "overlap_only") return slot.isOverlap;
-                          return slot.isTCAvailable || slot.isClientAvailable;
-                        });
+                    {assignSlotClient?.serviceType === "Low Cost" && slotOverlapSchedule?.totalOverlapCount === 0 ? (
+                      <div className="py-8 text-center text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800 p-4">
+                        No overlapping availability found between {assignSlotClient?.name} and {assignSlotClient?.matchedTC}. Low Cost session times must be an overlapping slot.
+                      </div>
+                    ) : (
+                      slotOverlapSchedule?.days
+                        .filter((day) => activeDayTab === "all" || activeDayTab === day.key)
+                        .map((day) => {
+                          const isLowCost = assignSlotClient?.serviceType === "Low Cost";
+                          const slotsToRender = day.slots.filter((slot) => {
+                            if (isLowCost) return slot.isOverlap;
+                            if (slotFilter === "overlap_only") return slot.isOverlap;
+                            return slot.isTCAvailable || slot.isClientAvailable;
+                          });
 
-                        if (slotsToRender.length === 0) {
-                          if (activeDayTab !== "all") {
-                            return (
-                              <div key={day.key} className="py-6 text-center text-xs text-gray-400 italic">
-                                No {slotFilter === "overlap_only" ? "overlapping" : "available"} slots on {day.label}.
-                              </div>
-                            );
+                          if (slotsToRender.length === 0) {
+                            if (activeDayTab !== "all") {
+                              return (
+                                <div key={day.key} className="py-6 text-center text-xs text-gray-400 italic">
+                                  No {isLowCost || slotFilter === "overlap_only" ? "overlapping" : "available"} slots on {day.label}.
+                                </div>
+                              );
+                            }
+                            return null;
                           }
-                          return null;
-                        }
 
-                        return (
-                          <div key={day.key} className="border border-gray-200 dark:border-[var(--card-border)] rounded-xl p-3.5 bg-gray-50/40 dark:bg-[var(--card-bg)]">
-                            <div className="flex items-center justify-between mb-2.5">
-                              <h4 className="text-xs font-bold text-gray-900 dark:text-[var(--text-primary)] uppercase tracking-wider">
-                                {day.label}
-                              </h4>
-                              <span className="text-[11px] text-gray-500">
-                                {day.overlapCount > 0 ? `${day.overlapCount} overlapping slot(s)` : "No overlap"}
-                              </span>
-                            </div>
+                          return (
+                            <div key={day.key} className="border border-gray-200 dark:border-[var(--card-border)] rounded-xl p-3.5 bg-gray-50/40 dark:bg-[var(--card-bg)]">
+                              <div className="flex items-center justify-between mb-2.5">
+                                <h4 className="text-xs font-bold text-gray-900 dark:text-[var(--text-primary)] uppercase tracking-wider">
+                                  {day.label}
+                                </h4>
+                                <span className="text-[11px] text-gray-500">
+                                  {day.overlapCount > 0 ? `${day.overlapCount} overlapping slot(s)` : "No overlap"}
+                                </span>
+                              </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                              {slotsToRender.map((slot) => {
-                                const isSelected =
-                                  selectedSlotToAssign?.day?.toLowerCase() === day.label.toLowerCase() &&
-                                  selectedSlotToAssign?.slot === slot.value;
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                                {slotsToRender.map((slot) => {
+                                  const isSelected =
+                                    selectedSlotToAssign?.day?.toLowerCase() === day.label.toLowerCase() &&
+                                    selectedSlotToAssign?.slot === slot.value;
 
-                                return (
-                                  <div
-                                    key={slot.value}
-                                    onClick={() => {
-                                      setSelectedSlotToAssign({
-                                        day: day.label,
-                                        slot: slot.value,
-                                        label: slot.label,
-                                      });
-                                    }}
+                                  return (
+                                    <div
+                                      key={slot.value}
+                                      onClick={() => {
+                                        if (isLowCost && !slot.isOverlap) return;
+                                        setSelectedSlotToAssign({
+                                          day: day.label,
+                                          slot: slot.value,
+                                          label: slot.label,
+                                          isOverlap: slot.isOverlap,
+                                        });
+                                      }}
                                     className={`relative p-3 rounded-xl border transition-all cursor-pointer select-none flex flex-col justify-between gap-2 ${
                                       isSelected
                                         ? "border-[#6f1d56] bg-purple-50/80 dark:bg-purple-950/40 shadow-sm ring-2 ring-[#6f1d56]"
@@ -1246,7 +1265,8 @@ export default function CompletedMatchesPage() {
                             </div>
                           </div>
                         );
-                      })}
+                      })
+                    )}
                   </div>
 
                   {/* Summary of Selected */}

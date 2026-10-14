@@ -1292,30 +1292,36 @@ export default function PendingMatchesPage() {
 
                         {/* Filter Toggles */}
                         {overlapSchedule && (
-                          <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[var(--bg-secondary)] p-1 rounded-lg">
-                            <button
-                              type="button"
-                              onClick={() => setSlotFilter("overlap_only")}
-                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                slotFilter === "overlap_only"
-                                  ? "bg-white dark:bg-[var(--card-bg)] text-[var(--purple-primary)] shadow-sm"
-                                  : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
-                              }`}
-                            >
-                              ⭐ Overlapping Only ({overlapSchedule.totalOverlapCount})
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setSlotFilter("all")}
-                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                slotFilter === "all"
-                                  ? "bg-white dark:bg-[var(--card-bg)] text-gray-900 dark:text-[var(--text-primary)] shadow-sm"
-                                  : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
-                              }`}
-                            >
-                              All Slots ({overlapSchedule.totalTCSlots})
-                            </button>
-                          </div>
+                          selectedClient?.serviceType === "Low Cost" ? (
+                            <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                              ⭐ Overlapping Slots Only ({overlapSchedule.totalOverlapCount})
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[var(--bg-secondary)] p-1 rounded-lg">
+                              <button
+                                type="button"
+                                onClick={() => setSlotFilter("overlap_only")}
+                                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                                  slotFilter === "overlap_only"
+                                    ? "bg-white dark:bg-[var(--card-bg)] text-[var(--purple-primary)] shadow-sm"
+                                    : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
+                                }`}
+                              >
+                                ⭐ Overlapping Only ({overlapSchedule.totalOverlapCount})
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSlotFilter("all")}
+                                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                                  slotFilter === "all"
+                                    ? "bg-white dark:bg-[var(--card-bg)] text-gray-900 dark:text-[var(--text-primary)] shadow-sm"
+                                    : "text-gray-600 dark:text-[var(--text-secondary)] hover:text-gray-900"
+                                }`}
+                              >
+                                All Slots ({overlapSchedule.totalTCSlots})
+                              </button>
+                            </div>
+                          )
                         )}
                       </div>
 
@@ -1333,7 +1339,11 @@ export default function PendingMatchesPage() {
                             </div>
                           ) : (
                             <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-900 dark:text-amber-200">
-                              ⚠️ <strong>No direct overlapping slots</strong> between the client's submitted times and counsellor's current schedule. You may still choose an available counsellor slot below after agreeing with the client.
+                              {selectedClient?.serviceType === "Low Cost" ? (
+                                <span>⚠️ <strong>No direct overlapping slots</strong> between the client's submitted times and counsellor's schedule. Low Cost matching requires a slot present in both schedules.</span>
+                              ) : (
+                                <span>⚠️ <strong>No direct overlapping slots</strong> between the client's submitted times and counsellor's current schedule. You may still choose an available counsellor slot below after agreeing with the client.</span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1383,11 +1393,17 @@ export default function PendingMatchesPage() {
                             <RefreshCw className="w-4 h-4 animate-spin text-[var(--purple-primary)]" />
                             Loading counsellor schedule & active bookings...
                           </div>
+                        ) : selectedClient?.serviceType === "Low Cost" && overlapSchedule?.totalOverlapCount === 0 ? (
+                          <div className="py-8 text-center text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800 p-4">
+                            No overlapping availability found between {selectedClient?.name} and {selectedTC?.name}. Low Cost session times must be an overlapping slot.
+                          </div>
                         ) : (
                           overlapSchedule?.days
                             .filter((day) => activeDayTab === "all" || activeDayTab === day.key)
                             .map((day) => {
+                              const isLowCost = selectedClient?.serviceType === "Low Cost";
                               const slotsToRender = day.slots.filter((slot) => {
+                                if (isLowCost) return slot.isOverlap;
                                 if (slotFilter === "overlap_only") return slot.isOverlap;
                                 return slot.isTCAvailable || slot.isClientAvailable;
                               });
@@ -1396,7 +1412,7 @@ export default function PendingMatchesPage() {
                                 if (activeDayTab !== "all") {
                                   return (
                                     <div key={day.key} className="py-6 text-center text-xs text-gray-400 italic">
-                                      No {slotFilter === "overlap_only" ? "overlapping" : "available"} slots on {day.label}.
+                                      No {isLowCost || slotFilter === "overlap_only" ? "overlapping" : "available"} slots on {day.label}.
                                     </div>
                                   );
                                 }
@@ -1428,11 +1444,13 @@ export default function PendingMatchesPage() {
                                         <div
                                           key={slot.value}
                                           onClick={() => {
+                                            if (isLowCost && !slot.isOverlap) return;
                                             setSelectedSlot({
                                               day: day.label,
                                               slot: slot.value,
                                               label: slot.label,
                                               category: slot.category,
+                                              isOverlap: slot.isOverlap,
                                               bookedCount,
                                               bookings,
                                             });
@@ -1615,9 +1633,15 @@ export default function PendingMatchesPage() {
                           return;
                         }
 
-                        if (selectedClient.serviceType === "Low Cost" && !selectedSlot) {
-                          showError("Please select a specific day and time slot for this Low Cost client.");
-                          return;
+                        if (selectedClient.serviceType === "Low Cost") {
+                          if (!selectedSlot) {
+                            showError("Please select an overlapping weekly day and time slot for this Low Cost client.");
+                            return;
+                          }
+                          if (!selectedSlot.isOverlap) {
+                            showError("Low Cost session time must be in both the client's and counsellor's availability.");
+                            return;
+                          }
                         }
 
                         const assignmentNotes =

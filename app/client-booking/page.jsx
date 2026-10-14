@@ -199,6 +199,11 @@ function ClientBookingContent() {
   };
 
   const handleBookBlock = async () => {
+    // Low Cost session times are set by Vanquish; clients cannot pick a start date or time.
+    if (clientData?.client?.service_type === "Low Cost") {
+      return handleConfirmAutoBlock();
+    }
+
     if (!selectedDate && !selectedSlot) {
       setError("Please select a start date and time slot");
       return;
@@ -213,21 +218,17 @@ function ClientBookingContent() {
 
     // Calculate payment amount based on service type
     const serviceType = clientData?.client?.service_type;
-    const servicePricing = pricing[serviceType] || pricing["Low Cost"];
+    const servicePricing = pricing[serviceType] || pricing["Mid Range"];
 
     let amount = 0;
-    if (serviceType === "Low Cost") {
-      amount = parseFloat(servicePricing?.block_price || 72.0);
+    const practitionerPrice = clientData?.client?.matched_tc?.session_price;
+    if (sessionsCount === 4 && servicePricing?.block_price) {
+      amount = parseFloat(servicePricing.block_price);
     } else {
-      const practitionerPrice = clientData?.client?.matched_tc?.session_price;
-      if (sessionsCount === 4 && servicePricing?.block_price) {
-        amount = parseFloat(servicePricing.block_price);
-      } else {
-        const sessionFee = parseFloat(
-          practitionerPrice ?? servicePricing?.session_price ?? 40.0,
-        );
-        amount = sessionFee * sessionsCount;
-      }
+      const sessionFee = parseFloat(
+        practitionerPrice ?? servicePricing?.session_price ?? 40.0,
+      );
+      amount = sessionFee * sessionsCount;
     }
 
     // Store booking data for after payment
@@ -480,7 +481,7 @@ function ClientBookingContent() {
               </div>
             )}
 
-            {client?.allocated_day && (
+            {client?.allocated_day ? (
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Allocated Day & Time
@@ -496,7 +497,19 @@ function ClientBookingContent() {
                   </p>
                 </div>
               </div>
-            )}
+            ) : client?.service_type === "Low Cost" ? (
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Allocated Day & Time
+                </p>
+                <div className="flex items-center gap-2 text-amber-700">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                  <p className="font-medium text-sm">
+                    Pending assignment by Vanquish
+                  </p>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-100">
