@@ -2846,6 +2846,7 @@ function MidRangeClientIntakeContent() {
             {currentStep === 8 && (
               <WeeklyAvailabilityPicker
                 value={formData.availability}
+                description="Select 1 day and time slot for your recurring weekly counselling sessions, the more slots you select the more counsellors or coaches to choose from."
                 onChange={(newAvail) => {
                   setFormData((prev) => ({ ...prev, availability: newAvail }));
                   if (errors.availability) {
