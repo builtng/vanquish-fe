@@ -427,8 +427,16 @@ export default function IndividualClientDetailPage() {
               day: "numeric",
             });
 
+          const isBlockBooking =
+            therapySessions.some((s) => s.is_block_booking) || totalSessions === 4;
+          const packageName = isBlockBooking
+            ? `${data.service_type || "Counselling"} Block of 4`
+            : `${data.service_type || "Counselling"} ${
+                totalSessions === 1 ? "Single Session" : `${totalSessions} Sessions Package`
+              }`;
+
           return {
-            name: `${data.service_type || "Counselling"} Package`,
+            name: packageName,
             totalSessions,
             sessionsCompleted,
             sessionsDNA,
@@ -439,16 +447,8 @@ export default function IndividualClientDetailPage() {
           };
         }
 
-        // No therapy sessions booked yet - fall back to a rough estimate
-        // based on service type so pre-booking clients still see a preview.
-        const getTotalSessions = (serviceType) => {
-          if (serviceType === "Low Cost") return 4;
-          if (serviceType === "Mid Range") return 8;
-          if (serviceType === "High Range") return 12;
-          return 4; // Default
-        };
-        const totalSessions = getTotalSessions(data.service_type);
-
+        // No therapy sessions booked yet — package size comes from the client's actual
+        // booking (single or block of 4), not a hard-coded number. High Range has been removed.
         let startDate = null;
         if (data.matched_date) {
           startDate = new Date(data.matched_date).toLocaleDateString(
@@ -459,10 +459,10 @@ export default function IndividualClientDetailPage() {
 
         return {
           name: `${data.service_type || "Counselling"} Package`,
-          totalSessions,
+          totalSessions: 0,
           sessionsCompleted: 0,
           sessionsDNA: 0,
-          sessionsRemaining: totalSessions,
+          sessionsRemaining: 0,
           status: "Not Started",
           startDate: startDate || "Not started",
           expectedEndDate: "Not calculated",
@@ -3510,8 +3510,9 @@ export default function IndividualClientDetailPage() {
                           </div>
 
                           <p className="text-sm text-purple-700">
-                            {client.packageDetails.totalSessions} Sessions
-                            Package
+                            {client.packageDetails.totalSessions > 0
+                              ? `${client.packageDetails.totalSessions} Sessions Package`
+                              : "No sessions booked yet"}
                           </p>
                         </div>
 

@@ -1442,7 +1442,7 @@ function PricingSettingsSection() {
             </div>
           </div>
           <p className="mt-2 text-[10px] text-gray-400">
-            * Block fee typically applies to Low Cost Counselling (4 sessions).
+            * Block fee applies to blocks of 4 sessions (e.g. Low Cost £72, Mid Range £140).
           </p>
         </div>
       ))}

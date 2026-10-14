@@ -113,6 +113,17 @@ function ClientBookingContent() {
         const pricingMap = {};
         services.forEach((s) => {
           pricingMap[s.service_name] = s;
+          const lower = (s.service_name || "").toLowerCase().trim();
+          pricingMap[lower] = s;
+          if (lower.includes("mid range") || lower.includes("mid-range")) {
+            pricingMap["Mid Range"] = s;
+          }
+          if (lower.includes("low cost") || lower.includes("low-cost")) {
+            pricingMap["Low Cost"] = s;
+          }
+          if (lower.includes("coaching")) {
+            pricingMap["Counselling & Coaching"] = s;
+          }
         });
         setPricing(pricingMap);
       } catch (err) {
@@ -218,12 +229,27 @@ function ClientBookingContent() {
 
     // Calculate payment amount based on service type
     const serviceType = clientData?.client?.service_type;
-    const servicePricing = pricing[serviceType] || pricing["Mid Range"];
+    const servicePricing =
+      pricing[serviceType] ||
+      (serviceType && pricing[serviceType.toLowerCase().trim()]) ||
+      pricing["Mid Range"];
 
     let amount = 0;
     const practitionerPrice = clientData?.client?.matched_tc?.session_price;
-    if (sessionsCount === 4 && servicePricing?.block_price) {
-      amount = parseFloat(servicePricing.block_price);
+    const configuredBlockPrice = parseFloat(servicePricing?.block_price);
+    const hasValidBlockPrice = !isNaN(configuredBlockPrice) && configuredBlockPrice > 0;
+
+    // FIX G03: Booking uses block_price for blocks on every service, never session price x 4.
+    if (sessionsCount === 4 || bookingType === "block") {
+      if (hasValidBlockPrice) {
+        amount = configuredBlockPrice;
+      } else if (serviceType === "Low Cost") {
+        amount = 72.0;
+      } else if (serviceType === "Mid Range" || !serviceType) {
+        amount = 140.0;
+      } else {
+        amount = 140.0;
+      }
     } else {
       const sessionFee = parseFloat(
         practitionerPrice ?? servicePricing?.session_price ?? 40.0,
@@ -548,7 +574,7 @@ function ClientBookingContent() {
                 <p className="text-sm text-blue-700">
                   {client?.service_type === "Low Cost"
                     ? `Therapy sessions are £${Number(pricing["Low Cost"]?.block_price || 72).toFixed(2)} for a block of sessions (£${Number(pricing["Low Cost"]?.session_price || 18).toFixed(2)} per session).`
-                    : `Therapy sessions for ${client?.service_type} are billed at £${Number(pricing[client?.service_type]?.session_price || 40).toFixed(2)} per session${pricing[client?.service_type]?.block_price ? ` (£${Number(pricing[client?.service_type]?.block_price).toFixed(2)} for a block of 4)` : ""}.`}
+                    : `Therapy sessions for ${client?.service_type} are billed at £${Number(pricing[client?.service_type]?.session_price || 40).toFixed(2)} per session${pricing[client?.service_type]?.block_price || client?.service_type === "Mid Range" ? ` (£${Number(pricing[client?.service_type]?.block_price || 140).toFixed(2)} for a block of 4)` : ""}.`}
                 </p>
               </div>
             </div>
