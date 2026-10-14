@@ -31,6 +31,7 @@ function ClientBookingContent() {
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [infoMessage, setInfoMessage] = useState(null);
   const [clientData, setClientData] = useState(null);
   const [email, setEmail] = useState(emailParam || "");
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -101,7 +102,7 @@ function ClientBookingContent() {
   }, [showBookingModal, bookingType, clientData]);
 
   useEffect(() => {
-    if (clientUuid) {
+    if (clientUuid || emailParam) {
       handleAuthenticate();
     } else {
       setLoading(false);
@@ -157,14 +158,25 @@ function ClientBookingContent() {
       if (data.client) {
         setClientData(data);
         setAuthenticated(true);
+        setError(null);
+        setInfoMessage(null);
+      } else if (
+        data.message &&
+        (data.message.toLowerCase().includes("booking link") ||
+          data.message.toLowerCase().includes("sent you"))
+      ) {
+        setInfoMessage(data.message);
+        setError(null);
       } else {
         setError(
           data.message ||
             "Unable to access booking portal. Please check your link.",
         );
+        setInfoMessage(null);
       }
     } catch (err) {
       setError(err.message || "Failed to access portal. Please try again.");
+      setInfoMessage(null);
     } finally {
       setLoading(false);
     }
@@ -358,6 +370,48 @@ function ClientBookingContent() {
   }
 
   if (!authenticated) {
+    if (infoMessage) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+            <Mail className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Check Your Email
+            </h1>
+            <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-4 mb-6 text-sm font-medium">
+              {infoMessage}
+            </div>
+            <p className="text-xs text-gray-500 mb-6">
+              If an account is associated with this email, your secure private booking link has been sent. Please check your inbox and spam folder.
+            </p>
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setInfoMessage(null);
+                  setError(null);
+                }}
+                className="text-sm font-semibold text-[#6f1d56] hover:underline"
+              >
+                ← Request with another email
+              </button>
+            </div>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-left">
+              <p className="text-sm text-gray-700">
+                Need help? Contact support at{" "}
+                <a
+                  href="mailto:support@vanquishtherapies.co.uk"
+                  className="underline font-semibold"
+                >
+                  support@vanquishtherapies.co.uk
+                </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
@@ -369,6 +423,30 @@ function ClientBookingContent() {
             {error ||
               "Please use the unique link sent to your email to access your booking portal."}
           </p>
+
+          <form onSubmit={handleAuthenticate} className="mb-6 text-left">
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
+              Request Your Booking Link by Email
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your.email@example.com"
+                required
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6f1d56]"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-4 py-2 bg-[#6f1d56] text-white text-sm font-semibold rounded-md hover:bg-[#5a1746] disabled:opacity-50 transition"
+              >
+                Send
+              </button>
+            </div>
+          </form>
+
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
             <p className="text-sm text-blue-800">
               Need help? Contact support at{" "}
