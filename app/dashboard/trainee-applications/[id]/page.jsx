@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft,
   User,
@@ -34,6 +34,7 @@ import {
   Loader2,
   AlertTriangle,
   Repeat,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -218,18 +219,100 @@ function DocLink({ label, url, field, appId, icon: Icon = FileText }) {
 }
 
 
-function PaperworkToggle({ label, status, onToggle }) {
+function PaperworkToggle({
+  label,
+  status,
+  meta,
+  onToggle,
+  onFileUpload,
+  uploading,
+  document,
+  applicationId,
+}) {
+  const fileInputRef = useRef(null);
+
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-        {label}
-      </span>
-      <button
-        onClick={() => onToggle(!status)}
-        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${status ? "bg-emerald-100 text-emerald-700 border border-emerald-200" : "bg-white border border-gray-200 text-gray-400"}`}
-      >
-        {status ? "DONE ✓" : "PENDING"}
-      </button>
+    <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          {label}
+        </span>
+        <button
+          onClick={() => onToggle(!status)}
+          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+            status
+              ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+              : "bg-white border border-gray-200 text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          {status ? "DONE ✓" : "PENDING"}
+        </button>
+      </div>
+
+      {meta && (meta.ticked_by || meta.source || meta.ticked_at) && (
+        <div className="mt-1.5 text-[11px] text-gray-500 flex flex-wrap items-center gap-1.5">
+          <span className="font-medium text-gray-700 dark:text-gray-300">
+            Ticked by: {meta.ticked_by || meta.source}
+          </span>
+          {meta.ticked_at && (
+            <>
+              <span>•</span>
+              <span>
+                {new Date(meta.ticked_at).toLocaleString("en-GB", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </span>
+            </>
+          )}
+        </div>
+      )}
+
+      {onFileUpload && (
+        <div className="mt-2.5 pt-2 border-t border-gray-200 dark:border-gray-700/60 flex items-center justify-between gap-2 text-xs">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={(e) => {
+              if (e.target.files?.[0]) {
+                onFileUpload(e.target.files[0]);
+              }
+            }}
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+            className="hidden"
+          />
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-medium inline-flex items-center gap-1.5 disabled:opacity-50"
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...
+              </>
+            ) : (
+              <>
+                <Upload className="w-3.5 h-3.5" />
+                {document ? "Replace signed agreement" : "Upload signed agreement"}
+              </>
+            )}
+          </button>
+
+          {document?.filename && (
+            <a
+              href={`/api/trainee-applications/${applicationId}/document/four_way_agreement`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 truncate max-w-[200px] underline inline-flex items-center gap-1"
+              title={document.filename}
+            >
+              <Download className="w-3 h-3" />
+              {document.filename}
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -329,6 +412,7 @@ export default function TraineeApplicationDetail() {
     useState(false);
   const [recordingInductionAttendance, setRecordingInductionAttendance] =
     useState(false);
+  const [uploadingAgreement, setUploadingAgreement] = useState(false);
   const { prompt, confirm } = useModal();
 
   const handleRestore = async () => {
@@ -591,6 +675,20 @@ export default function TraineeApplicationDetail() {
       fetchApplication();
     } catch {
       toast.error("Failed to update status.");
+    }
+  };
+
+  const handleAgreementUpload = async (file) => {
+    if (!file) return;
+    setUploadingAgreement(true);
+    try {
+      await apiService.uploadTraineeAgreement(id, file);
+      toast.success("Signed 4-way agreement uploaded and ticked!");
+      fetchApplication();
+    } catch (err) {
+      toast.error(err?.data?.message || err?.message || "Failed to upload agreement.");
+    } finally {
+      setUploadingAgreement(false);
     }
   };
 
@@ -1447,14 +1545,29 @@ export default function TraineeApplicationDetail() {
                             application.onboarding_data?.checklist
                               ?.four_way_agreement
                           }
+                          meta={
+                            application.onboarding_data?.checklist_meta
+                              ?.four_way_agreement
+                          }
                           onToggle={(s) =>
                             handlePaperworkUpdate("four_way_agreement", s)
                           }
+                          onFileUpload={handleAgreementUpload}
+                          uploading={uploadingAgreement}
+                          document={
+                            application.onboarding_data?.documents
+                              ?.four_way_agreement
+                          }
+                          applicationId={id}
                         />
                         <PaperworkToggle
                           label="Personal Therapy Form (JotForm)"
                           status={
                             application.onboarding_data?.checklist?.therapy_form
+                          }
+                          meta={
+                            application.onboarding_data?.checklist_meta
+                              ?.therapy_form
                           }
                           onToggle={(s) =>
                             handlePaperworkUpdate("therapy_form", s)
