@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import apiService from "@/lib/api";
 import SearchableSelect from "@/components/SearchableSelect";
+import DateOfBirthInput from "@/components/DateOfBirthInput";
+import { validateDateOfBirth } from "@/lib/dates";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { THERAPY_TOPICS, MODALITY_OPTIONS } from "@/lib/constants";
 
@@ -349,8 +351,8 @@ export default function VanquishTCApplication() {
           stepErrors.firstName = "First name is required";
         if (!formData.lastName.trim())
           stepErrors.lastName = "Last name is required";
-        if (!formData.dateOfBirth)
-          stepErrors.dateOfBirth = "Date of birth is required";
+        const dobError = validateDateOfBirth(formData.dateOfBirth);
+        if (dobError) stepErrors.dateOfBirth = dobError;
         if (!formData.gender) stepErrors.gender = "Gender is required";
         if (!formData.ethnicity) stepErrors.ethnicity = "Ethnicity is required";
         if (formData.ethnicity === "Other" && !formData.ethnicityOther.trim())
@@ -1082,24 +1084,16 @@ export default function VanquishTCApplication() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date of Birth <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
+                  <DateOfBirthInput
                     value={formData.dateOfBirth}
-                    onChange={(e) =>
-                      handleInputChange("dateOfBirth", e.target.value)
-                    }
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent ${
-                      errors.dateOfBirth ? "border-red-500" : "border-gray-300"
-                    }`}
+                    onChange={(val) => handleInputChange("dateOfBirth", val)}
+                    error={errors.dateOfBirth}
+                    id="dateOfBirth"
+                    name="dateOfBirth"
+                    label="Date of Birth"
+                    required
+                    labelClassName="block text-sm font-medium text-gray-700 mb-2"
                   />
-                  {errors.dateOfBirth && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.dateOfBirth}
-                    </p>
-                  )}
                 </div>
 
                 <div>

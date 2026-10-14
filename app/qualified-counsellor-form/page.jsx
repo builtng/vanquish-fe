@@ -23,6 +23,8 @@ import {
   Type,
 } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
+import DateOfBirthInput from "@/components/DateOfBirthInput";
+import { validateDateOfBirth } from "@/lib/dates";
 import apiService from "@/lib/api";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -421,8 +423,8 @@ function QualifiedCounsellorFormContent() {
           stepErrors.legalFirstName = "Legal first name is required";
         if (!formData.legalLastName.trim())
           stepErrors.legalLastName = "Legal last name is required";
-        if (!formData.dateOfBirth)
-          stepErrors.dateOfBirth = "Date of birth is required";
+        const dobError = validateDateOfBirth(formData.dateOfBirth);
+        if (dobError) stepErrors.dateOfBirth = dobError;
         if (!formData.gender || formData.gender === "Please Select")
           stepErrors.gender = "Please select your gender";
         if (!formData.ethnicity || formData.ethnicity === "Please Select")
@@ -1041,25 +1043,16 @@ function QualifiedCounsellorFormContent() {
 
                 {/* Date of Birth */}
                 <div>
-                  <label className="block text-sm font-semibold text-[#6f1d56] mb-1.5">
-                    Date of Birth <span className="text-red-500">*</span>
-                  </label>
-                  <div className="max-w-xs">
-                    <input
-                      type="date"
-                      name="dateOfBirth"
-                      id="dateOfBirth"
-                      value={formData.dateOfBirth}
-                      onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-                      className={`w-full px-4 py-2.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#6f1d56] outline-none transition-all ${
-                        errors.dateOfBirth ? "border-red-500 bg-red-50/20" : "border-gray-300"
-                      }`}
-                    />
-                    <span className="text-xs text-gray-500 mt-1 block">Date</span>
-                    {errors.dateOfBirth && (
-                      <p className="text-red-500 text-xs mt-0.5">{errors.dateOfBirth}</p>
-                    )}
-                  </div>
+                  <DateOfBirthInput
+                    value={formData.dateOfBirth}
+                    onChange={(val) => handleInputChange("dateOfBirth", val)}
+                    error={errors.dateOfBirth}
+                    id="dateOfBirth"
+                    name="dateOfBirth"
+                    label="Date of Birth"
+                    required
+                    labelClassName="block text-sm font-semibold text-[#6f1d56] mb-1.5"
+                  />
                 </div>
 
                 {/* Gender & Ethnicity */}
