@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getEcho } from "@/lib/echo";
 import { CheckCheck, X, ChevronRight, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { formatTime } from "@/lib/dates";
 
 /**
  * MessageReadNotifier
@@ -47,7 +48,7 @@ export default function MessageReadNotifier() {
       toastId,
       title: "Message Read",
       body: `${recipientName} has read your message: "${message.subject}"`,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      time: formatTime(new Date()),
       messageId: message.id
     };
 

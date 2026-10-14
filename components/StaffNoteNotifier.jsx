@@ -6,6 +6,7 @@ import apiService from "@/lib/api";
 import { getEcho } from "@/lib/echo";
 import { Bell, MessageSquare, X, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { formatTime } from "@/lib/dates";
 
 /**
  * StaffNoteNotifier
@@ -33,7 +34,7 @@ export default function StaffNoteNotifier() {
       toastId,
       title: `Note from ${note.admin?.name || "Admin"}`,
       body: note.note,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      time: formatTime(new Date()),
     };
 
     setToasts((prev) => [item, ...prev].slice(0, 5));

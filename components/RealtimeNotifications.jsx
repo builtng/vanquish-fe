@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { getEcho } from "@/lib/echo";
 import apiService from "@/lib/api";
+import { formatTime } from "@/lib/dates";
 
 export default function RealtimeNotifications() {
   const { user } = useAuth();
@@ -64,10 +65,7 @@ export default function RealtimeNotifications() {
         title: `Note from ${note.admin?.name || "Admin"}`,
         body: note.note,
         href: "/dashboard/staff-notes",
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        time: formatTime(new Date()),
       });
     });
 
@@ -79,10 +77,7 @@ export default function RealtimeNotifications() {
         title: `New Message from ${msg.from_user?.name || "Someone"}`,
         body: msg.message?.replace(/<[^>]+>/g, '') || "New attachment received",
         href: "/dashboard/messages",
-        time: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        time: formatTime(new Date()),
       });
     });
 

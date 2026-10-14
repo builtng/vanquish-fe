@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import apiService from "@/lib/api";
+import { formatDate } from "@/lib/dates";
 import { useModal } from "@/contexts/ModalContext";
 import {
   Tag,
@@ -307,7 +308,7 @@ export default function CouponsPage() {
                             }
                           >
                             Expires{" "}
-                            {new Date(coupon.expires_at).toLocaleDateString()}
+                            {formatDate(coupon.expires_at)}
                           </span>
                         ) : (
                           <span className="text-gray-400 italic">

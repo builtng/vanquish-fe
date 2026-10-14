@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Calendar, Clock, CheckCircle, Video, User, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
+import { formatDate, formatTime } from "@/lib/dates";
 import BuildIdentifier from "@/components/BuildIdentifier";
 
 function TraineeInterviewBookingContent() {
@@ -85,11 +86,11 @@ function TraineeInterviewBookingContent() {
           <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-left mb-8">
             <div className="flex items-center gap-3 mb-3">
               <Calendar className="w-5 h-5 text-purple-600" />
-              <span className="font-bold text-gray-800">{new Date(selectedSlot.consultation_datetime).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              <span className="font-bold text-gray-800">{formatDate(selectedSlot.consultation_datetime, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
             </div>
             <div className="flex items-center gap-3">
               <Clock className="w-5 h-5 text-purple-600" />
-              <span className="font-bold text-gray-800">{new Date(selectedSlot.consultation_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="font-bold text-gray-800">{formatTime(selectedSlot.consultation_datetime)}</span>
             </div>
           </div>
           <p className="text-sm text-gray-400">Please contact support if you need to reschedule.</p>
@@ -167,15 +168,15 @@ function TraineeInterviewBookingContent() {
                           <div className={`w-12 h-12 rounded-full flex flex-col items-center justify-center text-xs font-bold transition-colors ${
                             selectedSlot?.id === slot.id ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-purple-100 group-hover:text-purple-600'
                           }`}>
-                            <span>{new Date(slot.consultation_datetime).toLocaleString('en-US', { month: 'short' })}</span>
+                            <span>{formatDate(slot.consultation_datetime, { month: 'short' })}</span>
                             <span className="text-lg leading-none">{new Date(slot.consultation_datetime).getDate()}</span>
                           </div>
                           <div>
                             <div className="font-bold text-gray-900">
-                              {new Date(slot.consultation_datetime).toLocaleDateString(undefined, { weekday: 'long' })}
+                              {formatDate(slot.consultation_datetime, { weekday: 'long' })}
                             </div>
                             <div className="text-sm text-gray-500 flex items-center gap-1">
-                              <Clock className="w-3 h-3" /> {new Date(slot.consultation_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              <Clock className="w-3 h-3" /> {formatTime(slot.consultation_datetime)}
                             </div>
                           </div>
                         </div>

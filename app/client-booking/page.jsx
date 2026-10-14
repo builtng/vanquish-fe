@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import apiService from "@/lib/api";
+import { formatDate } from "@/lib/dates";
 import { formatTimeSlotDisplay } from "@/lib/timeFormatter";
 import { StripePaymentWrapper } from "@/components/StripePayment";
 import {
@@ -950,9 +951,7 @@ function ClientBookingContent() {
                       <>
                         Single Session on{" "}
                         {pendingBookingData?.scheduled_at &&
-                          new Date(
-                            pendingBookingData.scheduled_at,
-                          ).toLocaleDateString(undefined, {
+                          formatDate(pendingBookingData.scheduled_at, {
                             weekday: "short",
                             month: "short",
                             day: "numeric",
@@ -967,13 +966,9 @@ function ClientBookingContent() {
                         {pendingBookingData?.sessions_count} Sessions starting
                         from{" "}
                         {pendingBookingData?.start_date
-                          ? new Date(
-                              pendingBookingData.start_date,
-                            ).toLocaleDateString()
+                          ? formatDate(pendingBookingData.start_date)
                           : pendingBookingData?.session_slots?.[0]
-                            ? new Date(
-                                pendingBookingData.session_slots[0],
-                              ).toLocaleDateString()
+                            ? formatDate(pendingBookingData.session_slots[0])
                             : ""}
                       </>
                     )}

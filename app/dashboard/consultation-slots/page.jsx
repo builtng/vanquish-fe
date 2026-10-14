@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import apiService from "@/lib/api";
+import { formatDate, formatTime } from "@/lib/dates";
 import { useToast } from "@/contexts/ToastContext";
 import {
   Calendar,
@@ -668,7 +669,7 @@ export default function ConsultationSlotsAdminPage() {
                               <td className="p-4">
                                 <div className="flex flex-col">
                                   <span className="font-semibold text-gray-900 dark:text-[var(--text-primary)]">
-                                    {slotDate.toLocaleDateString(undefined, {
+                                    {formatDate(slotDate, {
                                       weekday: "long",
                                       year: "numeric",
                                       month: "short",
@@ -685,7 +686,7 @@ export default function ConsultationSlotsAdminPage() {
                               <td className="p-4">
                                 <span className="text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] flex items-center gap-1.5">
                                   <Clock className="w-3.5 h-3.5 text-purple-600" />
-                                  {slotDate.toLocaleTimeString(undefined, {
+                                  {formatTime(slotDate, {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                     timeZone: "UTC",
@@ -782,7 +783,7 @@ export default function ConsultationSlotsAdminPage() {
                                 {day.date}
                               </td>
                               <td className="p-4 text-gray-700 dark:text-[var(--text-secondary)]">
-                                {dateObj.toLocaleDateString(undefined, { weekday: "long", timeZone: "UTC" })}
+                                {formatDate(dateObj, { weekday: "long", timeZone: "UTC" })}
                               </td>
                               <td className="p-4 text-gray-600 dark:text-[var(--text-secondary)]">
                                 {day.reason || <span className="italic text-gray-400">Clinic Closed</span>}

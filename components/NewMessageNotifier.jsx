@@ -9,6 +9,7 @@ import { playNotificationChime, unlockAudio, isAudioMuted, toggleAudioMuted } fr
 import apiService from "@/lib/api";
 import { MessageSquare, X, ChevronRight, Bell, Volume2, VolumeX } from "lucide-react";
 import Link from "next/link";
+import { formatTime } from "@/lib/dates";
 
 /**
  * NewMessageNotifier
@@ -87,7 +88,7 @@ export default function NewMessageNotifier() {
       toastId,
       messageId: msg.id,
       title: `New message from ${senderName}`,
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      time: formatTime(new Date()),
       url: chatRoute,
     };
 

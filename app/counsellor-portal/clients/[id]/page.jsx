@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import apiService from "@/lib/api";
+import { formatDate, formatTime } from "@/lib/dates";
 import { getInitials, abbreviateLastName } from "@/lib/utils";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -180,7 +181,7 @@ function ClientDetailsContent() {
                         {client.service_type} Service
                       </p>
                       <p className="text-[10px] text-purple-600/70 dark:text-purple-400/70 mt-0.5">
-                        Matched on {client.matched_date ? new Date(client.matched_date).toLocaleDateString() : "unmatched"}
+                        Matched on {client.matched_date ? formatDate(client.matched_date) : "unmatched"}
                       </p>
                     </div>
                   </div>
@@ -311,7 +312,7 @@ function ClientDetailsContent() {
                                {note.type.replace('_', ' ')}
                             </span>
                             <span className="text-[10px] text-gray-400">
-                               {new Date(note.created_at).toLocaleDateString()}
+                               {formatDate(note.created_at)}
                             </span>
                          </div>
                          <div className="flex items-center justify-between">
@@ -376,7 +377,7 @@ function ClientDetailsContent() {
                           <p className="text-xs font-bold text-gray-900 dark:text-white truncate">Session #{idx + 1}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <Clock className="w-3 h-3 text-gray-400" />
-                            <span className="text-[10px] text-gray-500">{new Date(session.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="text-[10px] text-gray-500">{formatTime(session.scheduled_at)}</span>
                           </div>
                         </div>
                       </div>

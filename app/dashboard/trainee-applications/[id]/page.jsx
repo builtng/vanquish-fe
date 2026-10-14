@@ -46,6 +46,7 @@ import { useModal } from "@/contexts/ModalContext";
 import { useAuth } from "@/contexts/AuthContext";
 import EmbeddedZoomMeeting from "@/components/EmbeddedZoomMeeting";
 import { StatusBadge, SearchableStatusSelect } from "@/components/StatusBadge";
+import { formatDate, formatDateTime } from "@/lib/dates";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -1041,7 +1042,7 @@ export default function TraineeApplicationDetail() {
                       <span className="text-gray-500">•</span>
                       <span>{otherApp.status}</span>
                       <span className="text-gray-400 text-[11px]">
-                        {new Date(otherApp.created_at).toLocaleDateString()}
+                        {formatDate(otherApp.created_at)}
                       </span>
                       <ExternalLink className="w-3 h-3 text-purple-500 ml-0.5" />
                     </Link>
@@ -1297,9 +1298,9 @@ export default function TraineeApplicationDetail() {
                             ? "Candidate attended"
                             : "Candidate was a no-show"}{" "}
                           on{" "}
-                          {new Date(
+                          {formatDateTime(
                             application.interview_data.attendance.attended_at,
-                          ).toLocaleString()}
+                          )}
                         </div>
                         {application.interview_data.attendance.notes && (
                           <div className="mt-2 text-xs text-gray-500 italic bg-white p-2 rounded border border-gray-100">
@@ -1363,9 +1364,9 @@ export default function TraineeApplicationDetail() {
                           </h3>
                           <p className="text-xs text-purple-600 font-medium">
                             Recorded on{" "}
-                            {new Date(
+                            {formatDate(
                               application.interview_data.decision.decided_at,
-                            ).toLocaleDateString()}
+                            )}
                           </p>
                         </div>
                       </div>
@@ -1523,10 +1524,10 @@ export default function TraineeApplicationDetail() {
                             </div>
                             <div className="text-[10px] text-violet-600 font-medium">
                               Invitation sent on{" "}
-                              {new Date(
+                              {formatDate(
                                 application.onboarding_data
                                   ?.portal_invite_sent_at,
-                              ).toLocaleDateString()}
+                              )}
                             </div>
                           </div>
                         </div>

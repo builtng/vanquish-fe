@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import apiService from "@/lib/api";
+import { formatDate, formatTime } from "@/lib/dates";
 import {
   Search,
   Plus,
@@ -413,7 +414,7 @@ export default function CounsellorChatPage() {
                         <div className="flex justify-between items-start mb-1">
                           <h4 className={`text-sm truncate ${isUnread ? "font-bold text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300"}`}>{conv.peer_name}</h4>
                           <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">
-                            {new Date(conv.last_message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {formatTime(conv.last_message.created_at)}
                           </span>
                         </div>
                         <p className={`text-xs truncate line-clamp-1 italic ${isUnread ? "text-accent font-medium" : "text-gray-400"}`}>
@@ -522,7 +523,7 @@ export default function CounsellorChatPage() {
                         {showDate && (
                           <div className="flex justify-center my-8">
                             <span className="px-4 py-1 rounded-full bg-white dark:bg-white/5 border border-gray-100 dark:border-transparent text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] shadow-sm">
-                              {new Date(msg.created_at).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
+                              {formatDate(msg.created_at, { weekday: 'long', month: 'short', day: 'numeric' })}
                             </span>
                           </div>
                         )}
@@ -564,7 +565,7 @@ export default function CounsellorChatPage() {
                                 </div>
                               )}
                               <div className={`flex items-center gap-1.5 mt-2 justify-end ${isMe ? "text-white/60" : "text-gray-400"} text-[9px] font-bold`}>
-                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {formatTime(msg.created_at)}
                                 {isMe && (
                                    <span className="opacity-80">
                                      {msg.is_read ? <CheckCheck className="w-2.5 h-2.5" /> : <Check className="w-2.5 h-2.5" />}

@@ -7,6 +7,7 @@ import PageGuard from "@/components/PageGuard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/lib/toast";
 import apiService from "@/lib/api";
+import { formatDate } from "@/lib/dates";
 import {
   MessageSquare,
   Send,
@@ -251,7 +252,7 @@ export default function StaffNotesPage() {
                               </h4>
                               <span className="text-xs text-gray-400 flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                {new Date(note.created_at).toLocaleDateString()}
+                                {formatDate(note.created_at)}
                               </span>
                             </div>
                             <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">

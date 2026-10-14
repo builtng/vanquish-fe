@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import apiService from "@/lib/api";
+import { formatDate } from "@/lib/dates";
 import { getInitials, abbreviateLastName } from "@/lib/utils";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -185,9 +186,7 @@ function ClientsPageContent() {
                         <span>
                           Last Session:{" "}
                           {client.last_session_at
-                            ? new Date(
-                                client.last_session_at,
-                              ).toLocaleDateString()
+                            ? formatDate(client.last_session_at)
                             : "None"}
                         </span>
                       </div>

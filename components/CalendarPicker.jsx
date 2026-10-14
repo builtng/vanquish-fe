@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { formatDate } from "@/lib/dates";
 
 /**
  * A Calendly-style Calendar Picker
@@ -74,7 +75,7 @@ export default function CalendarPicker({
   const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
   const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
 
-  const monthName = currentMonth.toLocaleString("default", { month: "long" });
+  const monthName = formatDate(currentMonth, { month: "long" });
 
   const selectedDaySlots = slotsByDate[dateSelection] || [];
 
@@ -149,7 +150,7 @@ export default function CalendarPicker({
           <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Clock className="w-4 h-4 text-[#6f1d56]" />
             {dateSelection
-              ? new Date(dateSelection).toLocaleDateString(undefined, {
+              ? formatDate(dateSelection, {
                   weekday: "short",
                   day: "numeric",
                   month: "short",

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, Calendar, User, FileText, AlertTriangle, ChevronRight, Hash } from "lucide-react";
 import { getInitials, abbreviateLastName } from "@/lib/utils";
 import apiService from "@/lib/api";
+import { formatDate } from "@/lib/dates";
 
 export default function SessionNoteDetailsModal({ noteId, onClose }) {
   const [note, setNote] = useState(null);
@@ -83,7 +84,7 @@ export default function SessionNoteDetailsModal({ noteId, onClose }) {
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Date</span>
                   </div>
                   <p className="text-sm font-bold text-gray-900 dark:text-white">
-                    {note.content?.session_date ? new Date(note.content.session_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : "Not specified"}
+                    {note.content?.session_date ? formatDate(note.content.session_date, { day: 'numeric', month: 'long', year: 'numeric' }) : "Not specified"}
                   </p>
                 </div>
                 {note.content?.session_number && (
@@ -128,7 +129,7 @@ export default function SessionNoteDetailsModal({ noteId, onClose }) {
 
               {/* Footer */}
               <div className="pt-6 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center text-[10px] text-gray-400">
-                 <span>Submitted on {new Date(note.created_at).toLocaleDateString()}</span>
+                 <span>Submitted on {formatDate(note.created_at)}</span>
                  <span className="flex items-center gap-1">
                    <FileText className="w-3 h-3" />
                    Internal Digital Record

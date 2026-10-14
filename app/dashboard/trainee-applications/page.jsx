@@ -12,6 +12,7 @@ import { useModal } from "@/contexts/ModalContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { StatusBadge, SearchableStatusSelect } from "@/components/StatusBadge";
 import SearchableSelect from "@/components/SearchableSelect";
+import { formatDate } from "@/lib/dates";
 
 function TraineeApplicationsDashboardContent() {
   const router = useRouter();
@@ -333,7 +334,7 @@ function TraineeApplicationsDashboardContent() {
                               <span className="font-black text-gray-900 group-hover:text-purple-700 transition-colors leading-tight text-sm translate-y-[-1px]">{app.first_name} {app.last_name}</span>
                               {isArchived && (
                                 <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-gray-100 text-gray-600 border border-gray-300">
-                                  Archived {app.archived_at ? `(${new Date(app.archived_at).toLocaleDateString()})` : ''}
+                                  Archived {app.archived_at ? `(${formatDate(app.archived_at)})` : ''}
                                 </span>
                               )}
                             </div>
@@ -357,14 +358,14 @@ function TraineeApplicationsDashboardContent() {
                             {app.source.replace('_', ' ')}
                           </span>
                           <div className="text-[9px] text-gray-400 flex items-center gap-1 font-bold">
-                            <Clock className="w-2.5 h-2.5 opacity-50" /> {new Date(app.created_at).toLocaleDateString()}
+                            <Clock className="w-2.5 h-2.5 opacity-50" /> {formatDate(app.created_at)}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         {isArchived ? (
                           <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
-                            Archived {app.archived_at ? `(${new Date(app.archived_at).toLocaleDateString()})` : ''}
+                            Archived {app.archived_at ? `(${formatDate(app.archived_at)})` : ''}
                           </span>
                         ) : (
                           <div className="flex flex-col gap-2">

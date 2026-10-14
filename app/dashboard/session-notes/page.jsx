@@ -9,6 +9,7 @@ import {
   TrendingDown, AlertTriangle, CheckCircle, Clock
 } from "lucide-react";
 import apiService from "@/lib/api";
+import { formatDate } from "@/lib/dates";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import SearchableSelect from "@/components/SearchableSelect";
@@ -158,7 +159,7 @@ export default function SessionNotesPage() {
                             </div>
                             <div className="flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              <span>{new Date(note.created_at).toLocaleDateString()}</span>
+                              <span>{formatDate(note.created_at)}</span>
                             </div>
                             <div className="flex items-center gap-1 font-medium text-purple-600 dark:text-purple-400">
                               <span>{getTypeLabel(note.type)}</span>

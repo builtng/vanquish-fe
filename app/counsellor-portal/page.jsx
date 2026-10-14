@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import apiService from "@/lib/api";
+import { formatDate } from "@/lib/dates";
 import { getInitials, abbreviateLastName } from "@/lib/utils";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -365,7 +366,7 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes, conductSumm
                         {note.type.replace('_', ' ')}
                      </span>
                      <span className="text-[10px] text-gray-400">
-                        {new Date(note.created_at).toLocaleDateString()}
+                        {formatDate(note.created_at)}
                      </span>
                   </div>
                   <h4 className="text-sm font-bold text-gray-900 dark:text-[var(--text-primary)]">

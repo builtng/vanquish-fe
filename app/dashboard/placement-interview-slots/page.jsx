@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import apiService from "@/lib/api";
+import { formatDate, formatTime } from "@/lib/dates";
 import { useToast } from "@/contexts/ToastContext";
 import { Calendar, Clock, Plus, Trash2, Users, Save, X, Video, User } from "lucide-react";
 import PageGuard from "@/components/PageGuard";
@@ -159,9 +160,7 @@ export default function PlacementInterviewSlotsAdminPage() {
                         <td className="p-4">
                           <div className="flex flex-col">
                             <span className="font-medium text-gray-900 dark:text-[var(--text-primary)]">
-                              {new Date(
-                                slot.consultation_datetime,
-                              ).toLocaleDateString(undefined, {
+                              {formatDate(slot.consultation_datetime, {
                                 weekday: "long",
                                 year: "numeric",
                                 month: "long",
@@ -170,9 +169,7 @@ export default function PlacementInterviewSlotsAdminPage() {
                             </span>
                             <span className="text-sm text-gray-500 dark:text-[var(--text-secondary)] flex items-center gap-1 mt-1">
                               <Clock className="w-3 h-3" />{" "}
-                              {new Date(
-                                slot.consultation_datetime,
-                              ).toLocaleTimeString(undefined, {
+                              {formatTime(slot.consultation_datetime, {
                                 hour: "2-digit",
                                 minute: "2-digit",
                                 timeZone: "UTC",

@@ -7,6 +7,7 @@ import { useToast } from "@/lib/toast";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import apiService from "@/lib/api";
+import { formatDate } from "@/lib/dates";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import {
@@ -478,7 +479,7 @@ export default function UsersPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-[var(--text-secondary)]">
                           {user.created_at
-                            ? new Date(user.created_at).toLocaleDateString()
+                            ? formatDate(user.created_at)
                             : "N/A"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
