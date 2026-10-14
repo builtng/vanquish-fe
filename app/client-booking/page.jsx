@@ -400,10 +400,10 @@ function ClientBookingContent() {
               <p className="text-sm text-gray-700">
                 Need help? Contact support at{" "}
                 <a
-                  href="mailto:support@vanquishtherapies.co.uk"
+                  href="mailto:help@vanquishtherapies.co.uk"
                   className="underline font-semibold"
                 >
-                  support@vanquishtherapies.co.uk
+                  help@vanquishtherapies.co.uk
                 </a>
               </p>
             </div>
@@ -451,10 +451,10 @@ function ClientBookingContent() {
             <p className="text-sm text-blue-800">
               Need help? Contact support at{" "}
               <a
-                href="mailto:support@vanquishtherapies.co.uk"
+                href="mailto:help@vanquishtherapies.co.uk"
                 className="underline font-semibold"
               >
-                support@vanquishtherapies.co.uk
+                help@vanquishtherapies.co.uk
               </a>
             </p>
           </div>

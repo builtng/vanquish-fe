@@ -33,7 +33,7 @@ function PaymentSuccessContent() {
             : "Your payment could not be completed. Please return to the page you were on and try again."}
         </p>
         <a
-          href="mailto:support@vanquishtherapies.co.uk"
+          href="mailto:help@vanquishtherapies.co.uk"
           className="inline-block px-5 py-2.5 rounded-lg text-white font-semibold"
           style={{ backgroundColor: "#6f1d56" }}
         >
