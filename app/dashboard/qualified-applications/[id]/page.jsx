@@ -652,12 +652,12 @@ export function QualifiedApplicationDetailView({
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {[
-                  { label: "Qualification", path: app.qualification_document },
-                  { label: "DBS Certificate", path: app.dbs_certificate_qualified },
-                  { label: "Valid ID", path: app.valid_id_document },
-                  { label: "Professional Membership", path: app.professional_membership },
-                  { label: "Self-Employment Proof", path: app.self_employment_proof },
-                  { label: "Indemnity Insurance", path: app.insurance_qualified },
+                  { label: "Qualification", field: "qualification_document", path: app.qualification_document },
+                  { label: "DBS Certificate", field: "dbs_certificate_qualified", path: app.dbs_certificate_qualified },
+                  { label: "Valid ID", field: "valid_id_document", path: app.valid_id_document },
+                  { label: "Professional Membership", field: "professional_membership", path: app.professional_membership },
+                  { label: "Self-Employment Proof", field: "self_employment_proof", path: app.self_employment_proof },
+                  { label: "Indemnity Insurance", field: "insurance_qualified", path: app.insurance_qualified },
                 ].map((doc) => (
                   <div
                     key={doc.label}
@@ -665,14 +665,36 @@ export function QualifiedApplicationDetailView({
                   >
                     <span className="font-medium text-gray-700">{doc.label}</span>
                     {doc.path ? (
-                      <a
-                        href={apiService.getStorageUrl(doc.path)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-purple-700 hover:underline font-medium"
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+                          const token = apiService.getToken();
+                          const url = `${apiBase}/qc-applications/${id}/document/${doc.field}`;
+                          try {
+                            const response = await fetch(url, {
+                              headers: token ? { Authorization: `Bearer ${token}` } : {},
+                            });
+                            if (!response.ok) throw new Error("Failed to fetch document");
+                            const blob = await response.blob();
+                            const blobUrl = URL.createObjectURL(blob);
+                            const link = document.createElement("a");
+                            link.href = blobUrl;
+                            link.download = `${doc.label.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+                            link.target = "_blank";
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+                          } catch (err) {
+                            console.error("Document download error:", err);
+                            alert("Failed to open document. Please try again.");
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 text-purple-700 hover:underline font-medium cursor-pointer"
                       >
                         <ExternalLink className="w-3 h-3" /> View
-                      </a>
+                      </button>
                     ) : (
                       <span className="text-gray-400 italic">Not attached</span>
                     )}

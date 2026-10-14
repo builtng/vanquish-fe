@@ -140,50 +140,62 @@ function Badge({
   );
 }
 
-/**
- * Normalise a stored document URL so it always points to the current backend.
- * - Relative /storage/... paths → prepend backend base
- * - Absolute URLs with a different host (e.g. localhost) → rebase to current backend
- * - External CDN URLs (JotForm, etc.) → pass through unchanged
- */
-function resolveDocUrl(storedUrl) {
-  if (!storedUrl) return null;
-
-  // Derive backend base from the API URL (strip trailing /api)
+function DocLink({ label, url, field, appId, icon: Icon = FileText }) {
+  const hasUrl = !!url;
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-  const backendBase = apiBase.replace(/\/api\/?$/, "");
+  const cleanApiBase = apiBase.replace(/\/$/, "");
 
-  // Already a relative storage path
-  if (storedUrl.startsWith("/storage/")) {
-    return backendBase + storedUrl;
+  let resolvedUrl = null;
+  if (url) {
+    if ((url.startsWith("http://") || url.startsWith("https://")) && !url.includes("/storage/")) {
+      resolvedUrl = url;
+    } else if (appId && field) {
+      resolvedUrl = `${cleanApiBase}/trainee-applications/${appId}/document/${field}`;
+    }
   }
 
-  // Extract the /storage/... portion from any absolute URL
-  const match = storedUrl.match(/(\/storage\/.+)/);
-  if (match) {
-    // Rebase any /storage/ URL to the current backend base, as these are
-    // Laravel storage files that should always point to the active backend.
-    return backendBase + match[1];
-  }
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    if (!resolvedUrl) return;
 
-  // External URL (JotForm CDN, S3, etc.) — use as-is
-  return storedUrl;
-}
+    if (resolvedUrl.includes("/trainee-applications/")) {
+      try {
+        const token = apiService.getToken();
+        const response = await fetch(resolvedUrl, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!response.ok) throw new Error("Failed to fetch document");
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = `${label.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+        link.target = "_blank";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } catch (err) {
+        console.error("Document download error:", err);
+        alert("Failed to open document. Please try again.");
+      }
+    } else {
+      window.open(resolvedUrl, "_blank", "noopener,noreferrer");
+    }
+  };
 
-function DocLink({ label, url, icon: Icon = FileText }) {
-  const resolvedUrl = resolveDocUrl(url);
   return (
     <div
-      className={`flex items-center justify-between p-3 rounded-xl border transition-all ${resolvedUrl ? "bg-green-50 border-green-100 hover:bg-green-100" : "bg-gray-50 border-gray-100 opacity-50"}`}
+      className={`flex items-center justify-between p-3 rounded-xl border transition-all ${hasUrl ? "bg-green-50 border-green-100 hover:bg-green-100" : "bg-gray-50 border-gray-100 opacity-50"}`}
     >
       <div className="flex items-center gap-2.5">
         <Icon
-          className={`w-4 h-4 ${resolvedUrl ? "text-green-600" : "text-gray-400"}`}
+          className={`w-4 h-4 ${hasUrl ? "text-green-600" : "text-gray-400"}`}
         />
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
         </span>
-        {resolvedUrl ? (
+        {hasUrl ? (
           <span className="px-1.5 py-0.5 rounded-full bg-green-600 text-white text-[9px] font-bold uppercase">
             Uploaded
           </span>
@@ -193,15 +205,13 @@ function DocLink({ label, url, icon: Icon = FileText }) {
           </span>
         )}
       </div>
-      {resolvedUrl && (
-        <a
-          href={resolvedUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+      {hasUrl && (
+        <button
+          onClick={handleDownload}
           className="flex items-center gap-1 px-3 py-1 bg-white border border-green-200 text-green-700 rounded-lg text-xs font-semibold hover:bg-green-50 transition-colors"
         >
           <Download className="w-3 h-3" /> View
-        </a>
+        </button>
       )}
     </div>
   );
@@ -1561,31 +1571,43 @@ export default function TraineeApplicationDetail() {
                   <DocLink
                     label="Fitness to Practise Certificate"
                     url={application.doc_fitness_to_practise}
+                    field="doc_fitness_to_practise"
+                    appId={id}
                     icon={Shield}
                   />
                   <DocLink
                     label="Prior Counselling Qualifications"
                     url={application.doc_prior_qualifications}
+                    field="doc_prior_qualifications"
+                    appId={id}
                     icon={GraduationCap}
                   />
                   <DocLink
                     label="Enhanced DBS Certificate (Adult Workforce)"
                     url={application.doc_dbs_certificate}
+                    field="doc_dbs_certificate"
+                    appId={id}
                     icon={CheckCircle}
                   />
                   <DocLink
                     label="Full CV"
                     url={application.doc_cv}
+                    field="doc_cv"
+                    appId={id}
                     icon={FileText}
                   />
                   <DocLink
                     label="Valid ID (Passport or Driving Licence)"
                     url={application.doc_valid_id}
+                    field="doc_valid_id"
+                    appId={id}
                     icon={User}
                   />
                   <DocLink
                     label="Indemnity Insurance Certificate"
                     url={application.doc_indemnity_insurance}
+                    field="doc_indemnity_insurance"
+                    appId={id}
                     icon={Shield}
                   />
                 </div>

@@ -1000,12 +1000,12 @@ function QualifiedApplicationsContent() {
                   <h3 className="font-semibold text-gray-800 text-xs uppercase tracking-wider mb-2">Attached Documents</h3>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { label: "Qualification", path: selectedApp.qualification_document },
-                      { label: "DBS Certificate", path: selectedApp.dbs_certificate_qualified },
-                      { label: "Valid ID", path: selectedApp.valid_id_document },
-                      { label: "Professional Membership", path: selectedApp.professional_membership },
-                      { label: "Self-Employment Proof", path: selectedApp.self_employment_proof },
-                      { label: "Indemnity Insurance", path: selectedApp.insurance_qualified },
+                      { label: "Qualification", field: "qualification_document", path: selectedApp.qualification_document },
+                      { label: "DBS Certificate", field: "dbs_certificate_qualified", path: selectedApp.dbs_certificate_qualified },
+                      { label: "Valid ID", field: "valid_id_document", path: selectedApp.valid_id_document },
+                      { label: "Professional Membership", field: "professional_membership", path: selectedApp.professional_membership },
+                      { label: "Self-Employment Proof", field: "self_employment_proof", path: selectedApp.self_employment_proof },
+                      { label: "Indemnity Insurance", field: "insurance_qualified", path: selectedApp.insurance_qualified },
                     ].map((doc) => (
                       <div
                         key={doc.label}
@@ -1013,14 +1013,36 @@ function QualifiedApplicationsContent() {
                       >
                         <span className="font-medium text-gray-700">{doc.label}</span>
                         {doc.path ? (
-                          <a
-                            href={apiService.getStorageUrl(doc.path)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-purple-700 hover:underline"
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+                              const token = apiService.getToken();
+                              const url = `${apiBase}/qc-applications/${selectedApp.id}/document/${doc.field}`;
+                              try {
+                                const response = await fetch(url, {
+                                  headers: token ? { Authorization: `Bearer ${token}` } : {},
+                                });
+                                if (!response.ok) throw new Error("Failed to fetch document");
+                                const blob = await response.blob();
+                                const blobUrl = URL.createObjectURL(blob);
+                                const link = document.createElement("a");
+                                link.href = blobUrl;
+                                link.download = `${doc.label.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+                                link.target = "_blank";
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+                              } catch (err) {
+                                console.error("Document download error:", err);
+                                alert("Failed to open document. Please try again.");
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 text-purple-700 hover:underline cursor-pointer"
                           >
                             <ExternalLink className="w-3 h-3" /> View
-                          </a>
+                          </button>
                         ) : (
                           <span className="text-gray-400 italic">Not attached</span>
                         )}

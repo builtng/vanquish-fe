@@ -75,26 +75,27 @@ function resolveDocUrl(storedUrl, tcUuid, fieldName) {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
   const backendBase = apiBase.replace(/\/api\/?$/, "");
 
-  // If it's a local storage URL (contains /storage/), rebase it to the current backend base
-  const match = storedUrl.match(/(\/storage\/.+)/);
-  if (match) {
-    return backendBase + match[1];
+  // Profile photos remain public
+  if (fieldName === "photo") {
+    const match = storedUrl.match(/(\/storage\/.+)/);
+    if (match) return backendBase + match[1];
+    if (storedUrl.startsWith("http://") || storedUrl.startsWith("https://")) return storedUrl;
+    const cleanUrl = storedUrl.startsWith("/") ? storedUrl.slice(1) : storedUrl;
+    return `${backendBase}/storage/${cleanUrl}`;
   }
 
-  // Already an external URL — use directly
-  if (storedUrl.startsWith("http://") || storedUrl.startsWith("https://")) {
-    return storedUrl;
-  }
-
-  // Local file — route through authenticated API endpoint to avoid symlink/CORS issues
+  // Documents: route through authenticated API endpoint
   if (tcUuid && fieldName) {
     const cleanApiBase = apiBase.replace(/\/$/, "");
     return `${cleanApiBase}/training-counsellors/${tcUuid}/document/${fieldName}`;
   }
 
-  // Fallback: prepend storage base
-  const cleanUrl = storedUrl.startsWith("/") ? storedUrl.slice(1) : storedUrl;
-  return `${backendBase}/storage/${cleanUrl}`;
+  // External CDN URL (e.g. JotForm) — use directly if not local storage
+  if ((storedUrl.startsWith("http://") || storedUrl.startsWith("https://")) && !storedUrl.includes("/storage/")) {
+    return storedUrl;
+  }
+
+  return null;
 }
 
 // Trainee-only conduct/progress event types. Selecting one logs it (feeds
@@ -1498,7 +1499,7 @@ export default function IndividualTCDetailPage() {
                                     if (!resolvedUrl) return;
 
                                     // For external/storage URLs that go through the API, attach auth token
-                                    const isApiUrl = resolvedUrl.includes("/api/training-counsellors/");
+                                    const isApiUrl = resolvedUrl.includes("/training-counsellors/");
                                     if (isApiUrl) {
                                       try {
                                         const token = apiService.getToken();
