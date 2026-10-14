@@ -818,23 +818,13 @@ export default function IndividualTCDetailPage() {
                       // Initialize journey if not present
                       let journey = tc.journey || [];
                       if (journey.length === 0) {
-                        const stages =
-                          tc.counsellor_type === "Qualified"
-                            ? [
-                                "Application",
-                                "Interview",
-                                "Accepted",
-                                "Induction Confirmed",
-                                "Active",
-                              ]
-                            : [
-                                "Application",
-                                "Interview",
-                                "Accepted",
-                                "Induction Confirmed",
-                                "First Client",
-                                "Active",
-                              ];
+                        const stages = [
+                          "Application Received",
+                          "Interview Invited and Attended",
+                          "Accepted",
+                          "Induction Attended",
+                          "Active",
+                        ];
 
                         const currentStatus = tc.status || "Active";
                         const currentStageIndex = stages.findIndex(
@@ -844,7 +834,7 @@ export default function IndividualTCDetailPage() {
                               s === "Active") ||
                             (currentStatus === "On Leave" && s === "Active") ||
                             (currentStatus === "Inactive" &&
-                              s === "Application"),
+                              s === "Application Received"),
                         );
 
                         journey = stages.map((stage, index) => ({
@@ -894,11 +884,17 @@ export default function IndividualTCDetailPage() {
                                   : "text-gray-500"
                               }`}
                             >
-                              {stage.stage}
+                              {stage.stage || stage.name}
                             </p>
                             {stage.date && (
                               <p className="text-xs text-gray-500 mt-1">
-                                {stage.date}
+                                {isNaN(new Date(stage.date).getTime())
+                                  ? stage.date
+                                  : new Date(stage.date).toLocaleDateString("en-GB", {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    })}
                               </p>
                             )}
                           </div>

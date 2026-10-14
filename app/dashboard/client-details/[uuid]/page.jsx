@@ -252,7 +252,7 @@ export default function IndividualClientDetailPage() {
       ethnicityPreference: data.ethnicity_preference || intake?.ethnicity_preference || "No preference",
       orientationPreference: data.orientation_preference || intake?.orientation_preference || "No preference",
       modalityPreference: data.modality_preference || intake?.modality_preference || "Unsure",
-      stage: data.stage || "Consultation Booked",
+      stage: data.stage || "",
       status: data.status || "active",
       daysInSystem: data.submitted_date
         ? Math.floor(
@@ -299,12 +299,60 @@ export default function IndividualClientDetailPage() {
         const stages = [
           {
             name: "Consultation Booked",
-            date:
-              data.consultations && data.consultations.length > 0
-                ? data.consultations[0].created_at ||
-                  data.consultations[0].scheduled_at
-                : null,
-            isCompleted: data.consultations && data.consultations.length > 0,
+            date: (() => {
+              if (
+                data.stage === "Awaiting payment" ||
+                data.stage === "Application & Assessment form Submitted"
+              ) {
+                return null;
+              }
+              const validConsultation =
+                data.consultations?.find(
+                  (c) =>
+                    c.payment_status === "paid" ||
+                    c.status === "completed" ||
+                    c.status === "scheduled",
+                ) || data.consultations?.[0];
+
+              if (!validConsultation) return null;
+              if (
+                validConsultation.payment_status === "pending" &&
+                data.stage === "Awaiting payment"
+              ) {
+                return null;
+              }
+              return (
+                validConsultation.scheduled_at ||
+                validConsultation.created_at ||
+                null
+              );
+            })(),
+            isCompleted: Boolean(
+              data.consultations &&
+                data.consultations.length > 0 &&
+                data.stage !== "Awaiting payment" &&
+                data.stage !== "Application & Assessment form Submitted" &&
+                (data.payment_status === "paid" ||
+                  data.consultations.some(
+                    (c) =>
+                      c.payment_status === "paid" ||
+                      c.status === "completed" ||
+                      c.status === "scheduled",
+                  ) ||
+                  [
+                    "Consultation Booked",
+                    "Consultation Completed",
+                    "Agreement Sent",
+                    "Agreement Signed",
+                    "Matched with counsellor",
+                    "Matched With Counsellor",
+                    "Matched with TC",
+                    "Sessions Booked",
+                    "Sessions Bookable",
+                    "Active Therapy",
+                    "Completed",
+                  ].includes(data.stage)),
+            ),
           },
           {
             name: "Consultation Completed",
