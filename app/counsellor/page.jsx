@@ -113,6 +113,11 @@ export default function VanquishTCApplication() {
   const [showDocModal, setShowDocModal] = useState(false);
   const [hasConfirmedDocs, setHasConfirmedDocs] = useState(false);
 
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [uploadStatus, setUploadStatus] = useState({});
+  const [uploadedDocs, setUploadedDocs] = useState({});
+  const [uploadErrors, setUploadErrors] = useState({});
+
   const [currentStep, setCurrentStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(new Set());
@@ -248,17 +253,89 @@ export default function VanquishTCApplication() {
     }
   };
 
+  const uploadSingleDocument = async (field, file) => {
+    if (!file) return null;
+
+    // 1. Check file size before upload: over 10 MB shows "This file is larger than 10 MB. Please upload a smaller file."
+    if (file.size > 10 * 1024 * 1024) {
+      const sizeError = "This file is larger than 10 MB. Please upload a smaller file.";
+      setUploadErrors((prev) => ({ ...prev, [field]: sizeError }));
+      setErrors((prev) => ({ ...prev, [field]: sizeError }));
+      setUploadStatus((prev) => ({ ...prev, [field]: "error" }));
+      setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
+      return null;
+    }
+
+    setUploadStatus((prev) => ({ ...prev, [field]: "uploading" }));
+    setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
+    setUploadErrors((prev) => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+
+    try {
+      const response = await apiService.uploadTcDocument(field, file, (percent) => {
+        setUploadProgress((prev) => ({ ...prev, [field]: percent }));
+      });
+      const fileUrl = response.url || response.file_path;
+      setUploadedDocs((prev) => ({
+        ...prev,
+        [field]: {
+          url: fileUrl,
+          file_path: response.file_path,
+          name: file.name,
+        },
+      }));
+      setUploadStatus((prev) => ({ ...prev, [field]: "success" }));
+      setUploadProgress((prev) => ({ ...prev, [field]: 100 }));
+      return fileUrl;
+    } catch (err) {
+      console.error(`Upload error for ${field}:`, err);
+      // Show server's real message for 413 and 422
+      let msg = err.message || "Failed to upload file. Please try again.";
+      if (err.status === 413) {
+        msg =
+          err.message ||
+          "The uploaded file is too large for the server (413 Payload Too Large). Please upload a smaller file.";
+      } else if (err.status === 422) {
+        if (err.data && err.data.errors) {
+          const firstErr = Object.values(err.data.errors).flat()[0];
+          msg = firstErr || err.message || "Validation failed on uploaded file.";
+        } else {
+          msg = err.message || "Validation failed on uploaded file.";
+        }
+      }
+      setUploadErrors((prev) => ({ ...prev, [field]: msg }));
+      setErrors((prev) => ({ ...prev, [field]: msg }));
+      setUploadStatus((prev) => ({ ...prev, [field]: "error" }));
+      setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
+      // Do not throw here so one failure does not lose the others!
+      return null;
+    }
+  };
+
   const handleFileUpload = (field, files) => {
     if (files && files[0]) {
-      setFormData((prev) => ({ ...prev, [field]: files[0] }));
-      // Clear error when user uploads a file
-      if (errors[field]) {
-        setErrors((prev) => {
-          const newErrors = { ...prev };
-          delete newErrors[field];
-          return newErrors;
-        });
+      const file = files[0];
+      setFormData((prev) => ({ ...prev, [field]: file }));
+
+      if (file.size > 10 * 1024 * 1024) {
+        const sizeError = "This file is larger than 10 MB. Please upload a smaller file.";
+        setErrors((prev) => ({ ...prev, [field]: sizeError }));
+        setUploadErrors((prev) => ({ ...prev, [field]: sizeError }));
+        setUploadStatus((prev) => ({ ...prev, [field]: "error" }));
+        setUploadProgress((prev) => ({ ...prev, [field]: 0 }));
+        return;
       }
+
+      // Automatically upload this document separately with progress
+      uploadSingleDocument(field, file);
     }
   };
 
@@ -445,6 +522,23 @@ export default function VanquishTCApplication() {
         if (!formData.validId) stepErrors.validId = "Valid ID is required";
         if (!formData.insurance)
           stepErrors.insurance = "Insurance document is required";
+
+        // Check each file: over 10 MB shows "This file is larger than 10 MB. Please upload a smaller file."
+        const docKeysToValidate = [
+          "fitnessTopractice",
+          "qualifications",
+          "dbs",
+          "cv",
+          "validId",
+          "insurance",
+        ];
+        docKeysToValidate.forEach((key) => {
+          const file = formData[key];
+          if (file && typeof file === "object" && file.size > 10 * 1024 * 1024) {
+            stepErrors[key] =
+              "This file is larger than 10 MB. Please upload a smaller file.";
+          }
+        });
         break;
 
       case 7: // Review
@@ -566,11 +660,53 @@ export default function VanquishTCApplication() {
       return;
     }
 
+    const docKeys = [
+      'fitnessTopractice',
+      'qualifications',
+      'dbs',
+      'cv',
+      'validId',
+      'insurance',
+    ];
+
+    // 1. Check each file before upload: over 10 MB shows "This file is larger than 10 MB. Please upload a smaller file."
+    for (const key of docKeys) {
+      const file = formData[key];
+      if (file && typeof file === 'object' && file.size > 10 * 1024 * 1024) {
+        const errorMsg = "This file is larger than 10 MB. Please upload a smaller file.";
+        setErrors((prev) => ({ ...prev, [key]: errorMsg }));
+        setUploadErrors((prev) => ({ ...prev, [key]: errorMsg }));
+        setSubmitError(errorMsg);
+        if (formContentRef.current) {
+          formContentRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
-      // Create FormData for multipart/form-data submission
+      // 2. Upload each document separately with progress; one failure does not lose the others
+      for (const key of docKeys) {
+        const file = formData[key];
+        if (file && typeof file === 'object' && !uploadedDocs[key]) {
+          const uploadedUrl = await uploadSingleDocument(key, file);
+          if (!uploadedUrl) {
+            const errorMsg =
+              uploadErrors[key] ||
+              `Failed to upload ${key}. Please check the file and try again.`;
+            setSubmitError(errorMsg);
+            if (formContentRef.current) {
+              formContentRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            return;
+          }
+        }
+      }
+
+      // Create FormData for submission
       const formDataToSubmit = new FormData();
       
       // ── Core identity ──────────────────────────────────────────────
@@ -657,24 +793,15 @@ export default function VanquishTCApplication() {
         formDataToSubmit.append('availability_schedule', JSON.stringify(formData.availability));
       }
       
-      // ── Document files ──────────────────────────────────────────────
-      if (formData.fitnessTopractice) {
-        formDataToSubmit.append('fitnessTopractice', formData.fitnessTopractice);
-      }
-      if (formData.qualifications) {
-        formDataToSubmit.append('qualifications', formData.qualifications);
-      }
-      if (formData.dbs) {
-        formDataToSubmit.append('dbs', formData.dbs);
-      }
-      if (formData.cv) {
-        formDataToSubmit.append('cv', formData.cv);
-      }
-      if (formData.validId) {
-        formDataToSubmit.append('validId', formData.validId);
-      }
-      if (formData.insurance) {
-        formDataToSubmit.append('insurance', formData.insurance);
+      // ── Document URLs / Files ────────────────────────────────────────
+      for (const key of docKeys) {
+        if (uploadedDocs[key]?.url) {
+          formDataToSubmit.append(key, uploadedDocs[key].url);
+        } else if (uploadedDocs[key]?.file_path) {
+          formDataToSubmit.append(key, uploadedDocs[key].file_path);
+        } else if (formData[key]) {
+          formDataToSubmit.append(key, formData[key]);
+        }
       }
 
       // Submit the form
@@ -684,13 +811,19 @@ export default function VanquishTCApplication() {
     } catch (error) {
       console.error('Form submission error:', error);
       
-      // Check if error has validation errors from backend
-      if (error.data && error.data.errors) {
-        const validationErrors = error.data.errors;
-        const errorMessages = Object.entries(validationErrors)
-          .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-          .join('\n');
-        setSubmitError(`Validation failed:\n${errorMessages}`);
+      // 3. Show the server's real message for 413 and 422 errors
+      if (error.status === 413) {
+        setSubmitError(error.message || 'The uploaded file or request is too large for the server (413 Payload Too Large). Please upload smaller files.');
+      } else if (error.status === 422 || (error.data && error.data.errors)) {
+        if (error.data && error.data.errors) {
+          const validationErrors = error.data.errors;
+          const errorMessages = Object.entries(validationErrors)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n');
+          setSubmitError(`Validation failed:\n${errorMessages}`);
+        } else {
+          setSubmitError(error.message || 'Validation failed. Please check your form details.');
+        }
       } else {
         setSubmitError(error.message || 'Failed to submit form. Please try again.');
       }
@@ -2352,7 +2485,8 @@ export default function VanquishTCApplication() {
               )}
 
               <div className="space-y-4 md:space-y-6">
-                <div>
+                {/* Fitness to Practise */}
+                <div className="p-4 border rounded-xl bg-gray-50/50">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Fitness to Practise Document{" "}
                     <span className="text-red-500">*</span>
@@ -2362,21 +2496,52 @@ export default function VanquishTCApplication() {
                     onChange={(e) =>
                       handleFileUpload("fitnessTopractice", e.target.files)
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white"
                     accept=".pdf,.doc,.docx"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Accepted formats: PDF, Word (.doc, .docx). ONLY APPLY IF YOU
+                    Accepted formats: PDF, Word (.doc, .docx). Max size: 10 MB. ONLY APPLY IF YOU
                     HAVE RECEIVED THIS
                   </p>
-                  {formData.fitnessTopractice && (
-                    <p className="text-xs text-green-600 mt-1">
-                      ✓ {formData.fitnessTopractice.name}
+                  {(errors.fitnessTopractice || uploadErrors.fitnessTopractice) && (
+                    <p className="text-xs text-red-500 font-semibold mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                      {errors.fitnessTopractice || uploadErrors.fitnessTopractice}
                     </p>
+                  )}
+                  {uploadStatus.fitnessTopractice === "uploading" && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-xs text-gray-600">
+                        <span>Uploading {formData.fitnessTopractice?.name || "document"}...</span>
+                        <span>{uploadProgress.fitnessTopractice || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress.fitnessTopractice || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {uploadedDocs.fitnessTopractice && uploadStatus.fitnessTopractice !== "uploading" && (
+                    <p className="text-xs text-green-600 mt-1.5 font-medium flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      Uploaded: {uploadedDocs.fitnessTopractice.name || formData.fitnessTopractice?.name || "Document uploaded"}
+                    </p>
+                  )}
+                  {uploadStatus.fitnessTopractice === "error" && formData.fitnessTopractice && formData.fitnessTopractice.size <= 10 * 1024 * 1024 && (
+                    <button
+                      type="button"
+                      onClick={() => uploadSingleDocument("fitnessTopractice", formData.fitnessTopractice)}
+                      className="mt-1.5 text-xs text-primary hover:underline font-medium inline-block"
+                    >
+                      Retry upload
+                    </button>
                   )}
                 </div>
 
-                <div>
+                {/* Qualifications */}
+                <div className="p-4 border rounded-xl bg-gray-50/50">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Prior Counselling Qualifications{" "}
                     <span className="text-red-500">*</span>
@@ -2386,20 +2551,51 @@ export default function VanquishTCApplication() {
                     onChange={(e) =>
                       handleFileUpload("qualifications", e.target.files)
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
-                  <p className="text-xs text-black mt-1 font-bold">
-                    Accepted formats: PDF, Image (JPG, PNG), Word (.doc, .docx)
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted formats: PDF, Image (JPG, PNG), Word (.doc, .docx). Max size: 10 MB.
                   </p>
-                  {formData.qualifications && (
-                    <p className="text-xs text-green-600 mt-1">
-                      ✓ {formData.qualifications.name}
+                  {(errors.qualifications || uploadErrors.qualifications) && (
+                    <p className="text-xs text-red-500 font-semibold mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                      {errors.qualifications || uploadErrors.qualifications}
                     </p>
+                  )}
+                  {uploadStatus.qualifications === "uploading" && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-xs text-gray-600">
+                        <span>Uploading {formData.qualifications?.name || "document"}...</span>
+                        <span>{uploadProgress.qualifications || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress.qualifications || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {uploadedDocs.qualifications && uploadStatus.qualifications !== "uploading" && (
+                    <p className="text-xs text-green-600 mt-1.5 font-medium flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      Uploaded: {uploadedDocs.qualifications.name || formData.qualifications?.name || "Document uploaded"}
+                    </p>
+                  )}
+                  {uploadStatus.qualifications === "error" && formData.qualifications && formData.qualifications.size <= 10 * 1024 * 1024 && (
+                    <button
+                      type="button"
+                      onClick={() => uploadSingleDocument("qualifications", formData.qualifications)}
+                      className="mt-1.5 text-xs text-primary hover:underline font-medium inline-block"
+                    >
+                      Retry upload
+                    </button>
                   )}
                 </div>
 
-                <div>
+                {/* DBS */}
+                <div className="p-4 border rounded-xl bg-gray-50/50">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Enhanced DBS (Adult Workforce) - Max 2 years old{" "}
                     <span className="text-red-500">*</span>
@@ -2407,40 +2603,102 @@ export default function VanquishTCApplication() {
                   <input
                     type="file"
                     onChange={(e) => handleFileUpload("dbs", e.target.files)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
-                  <p className="text-xs text-black mt-1 font-bold">
-                    Accepted formats: PDF, Image (JPG, PNG), Word (.doc, .docx)
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted formats: PDF, Image (JPG, PNG), Word (.doc, .docx). Max size: 10 MB.
                   </p>
-                  {formData.dbs && (
-                    <p className="text-xs text-green-600 mt-1">
-                      ✓ {formData.dbs.name}
+                  {(errors.dbs || uploadErrors.dbs) && (
+                    <p className="text-xs text-red-500 font-semibold mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                      {errors.dbs || uploadErrors.dbs}
                     </p>
+                  )}
+                  {uploadStatus.dbs === "uploading" && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-xs text-gray-600">
+                        <span>Uploading {formData.dbs?.name || "document"}...</span>
+                        <span>{uploadProgress.dbs || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress.dbs || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {uploadedDocs.dbs && uploadStatus.dbs !== "uploading" && (
+                    <p className="text-xs text-green-600 mt-1.5 font-medium flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      Uploaded: {uploadedDocs.dbs.name || formData.dbs?.name || "Document uploaded"}
+                    </p>
+                  )}
+                  {uploadStatus.dbs === "error" && formData.dbs && formData.dbs.size <= 10 * 1024 * 1024 && (
+                    <button
+                      type="button"
+                      onClick={() => uploadSingleDocument("dbs", formData.dbs)}
+                      className="mt-1.5 text-xs text-primary hover:underline font-medium inline-block"
+                    >
+                      Retry upload
+                    </button>
                   )}
                 </div>
 
-                <div>
+                {/* CV */}
+                <div className="p-4 border rounded-xl bg-gray-50/50">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     CV <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="file"
                     onChange={(e) => handleFileUpload("cv", e.target.files)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white"
                     accept=".pdf,.doc,.docx"
                   />
-                  <p className="text-xs text-black mt-1 font-bold">
-                    Accepted formats: PDF, Word (.doc, .docx)
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted formats: PDF, Word (.doc, .docx). Max size: 10 MB.
                   </p>
-                  {formData.cv && (
-                    <p className="text-xs text-green-600 mt-1">
-                      ✓ {formData.cv.name}
+                  {(errors.cv || uploadErrors.cv) && (
+                    <p className="text-xs text-red-500 font-semibold mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                      {errors.cv || uploadErrors.cv}
                     </p>
+                  )}
+                  {uploadStatus.cv === "uploading" && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-xs text-gray-600">
+                        <span>Uploading {formData.cv?.name || "document"}...</span>
+                        <span>{uploadProgress.cv || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress.cv || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {uploadedDocs.cv && uploadStatus.cv !== "uploading" && (
+                    <p className="text-xs text-green-600 mt-1.5 font-medium flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      Uploaded: {uploadedDocs.cv.name || formData.cv?.name || "Document uploaded"}
+                    </p>
+                  )}
+                  {uploadStatus.cv === "error" && formData.cv && formData.cv.size <= 10 * 1024 * 1024 && (
+                    <button
+                      type="button"
+                      onClick={() => uploadSingleDocument("cv", formData.cv)}
+                      className="mt-1.5 text-xs text-primary hover:underline font-medium inline-block"
+                    >
+                      Retry upload
+                    </button>
                   )}
                 </div>
 
-                <div>
+                {/* Valid ID */}
+                <div className="p-4 border rounded-xl bg-gray-50/50">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Valid ID (Passport or Driving Licence){" "}
                     <span className="text-red-500">*</span>
@@ -2450,11 +2708,11 @@ export default function VanquishTCApplication() {
                     onChange={(e) =>
                       handleFileUpload("validId", e.target.files)
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white"
                     accept=".pdf,.jpg,.jpeg,.png"
                   />
-                  <p className="text-xs text-black mt-1 font-bold">
-                    Accepted formats: PDF, Image (JPG, PNG)
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted formats: PDF, Image (JPG, PNG). Max size: 10 MB.
                   </p>
                   <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mt-3">
                     <p className="text-sm text-red-900 font-bold">
@@ -2462,14 +2720,45 @@ export default function VanquishTCApplication() {
                       to Work in the UK
                     </p>
                   </div>
-                  {formData.validId && (
-                    <p className="text-xs text-green-600 mt-2">
-                      ✓ {formData.validId.name}
+                  {(errors.validId || uploadErrors.validId) && (
+                    <p className="text-xs text-red-500 font-semibold mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                      {errors.validId || uploadErrors.validId}
                     </p>
+                  )}
+                  {uploadStatus.validId === "uploading" && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-xs text-gray-600">
+                        <span>Uploading {formData.validId?.name || "document"}...</span>
+                        <span>{uploadProgress.validId || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress.validId || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {uploadedDocs.validId && uploadStatus.validId !== "uploading" && (
+                    <p className="text-xs text-green-600 mt-1.5 font-medium flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      Uploaded: {uploadedDocs.validId.name || formData.validId?.name || "Document uploaded"}
+                    </p>
+                  )}
+                  {uploadStatus.validId === "error" && formData.validId && formData.validId.size <= 10 * 1024 * 1024 && (
+                    <button
+                      type="button"
+                      onClick={() => uploadSingleDocument("validId", formData.validId)}
+                      className="mt-1.5 text-xs text-primary hover:underline font-medium inline-block"
+                    >
+                      Retry upload
+                    </button>
                   )}
                 </div>
 
-                <div>
+                {/* Insurance */}
+                <div className="p-4 border rounded-xl bg-gray-50/50">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Copy of Indemnity Insurance{" "}
                     <span className="text-red-500">*</span>
@@ -2479,16 +2768,46 @@ export default function VanquishTCApplication() {
                     onChange={(e) =>
                       handleFileUpload("insurance", e.target.files)
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent bg-white"
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
-                  <p className="text-xs text-black mt-1 font-bold">
-                    Accepted formats: PDF, Image (JPG, PNG), Word (.doc, .docx)
+                  <p className="text-xs text-gray-500 mt-1">
+                    Accepted formats: PDF, Image (JPG, PNG), Word (.doc, .docx). Max size: 10 MB.
                   </p>
-                  {formData.insurance && (
-                    <p className="text-xs text-green-600 mt-1">
-                      ✓ {formData.insurance.name}
+                  {(errors.insurance || uploadErrors.insurance) && (
+                    <p className="text-xs text-red-500 font-semibold mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                      {errors.insurance || uploadErrors.insurance}
                     </p>
+                  )}
+                  {uploadStatus.insurance === "uploading" && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-xs text-gray-600">
+                        <span>Uploading {formData.insurance?.name || "document"}...</span>
+                        <span>{uploadProgress.insurance || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress.insurance || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {uploadedDocs.insurance && uploadStatus.insurance !== "uploading" && (
+                    <p className="text-xs text-green-600 mt-1.5 font-medium flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      Uploaded: {uploadedDocs.insurance.name || formData.insurance?.name || "Document uploaded"}
+                    </p>
+                  )}
+                  {uploadStatus.insurance === "error" && formData.insurance && formData.insurance.size <= 10 * 1024 * 1024 && (
+                    <button
+                      type="button"
+                      onClick={() => uploadSingleDocument("insurance", formData.insurance)}
+                      className="mt-1.5 text-xs text-primary hover:underline font-medium inline-block"
+                    >
+                      Retry upload
+                    </button>
                   )}
                 </div>
               </div>
