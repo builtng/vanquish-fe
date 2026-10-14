@@ -212,6 +212,14 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes, conductSumm
         />
       </div>
 
+      {/* Session Notes Compliance Reminder */}
+      <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-4 flex items-center gap-3">
+        <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+        <p className="text-sm text-amber-900 dark:text-amber-200 font-medium">
+          All session notes must be submitted immediately after your session.
+        </p>
+      </div>
+
       {/* Upcoming sessions preview */}
       <div className="bg-white dark:bg-[var(--card-bg)] rounded-xl shadow-sm border border-gray-200 dark:border-[var(--card-border)] p-5">
         <div className="flex items-center justify-between mb-4">
@@ -331,7 +339,7 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes, conductSumm
                  Recent Session Notes
                </h2>
                <p className="text-sm text-gray-600 dark:text-[var(--text-secondary)]">
-                 Your most recent documentation submissions
+                 All session notes must be submitted immediately after your session.
                </p>
              </div>
            </div>

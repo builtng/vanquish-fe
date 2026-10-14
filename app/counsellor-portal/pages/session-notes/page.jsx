@@ -203,7 +203,7 @@ function SessionNotesPageContent() {
                     </h4>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-[var(--text-secondary)] leading-relaxed mb-4">
-                    All session notes must be submitted within 24 hours of completion.
+                    All session notes must be submitted immediately after your session.
                   </p>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2 text-amber-700 dark:text-amber-500">
