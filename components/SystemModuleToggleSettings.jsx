@@ -26,7 +26,7 @@ export default function SystemModuleToggleSettings() {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
     use_internal_session_notes: "0",
-    use_internal_psg_form: "0",
+    use_internal_psg_form: "1",
     use_internal_agreement_form: "0",
     use_internal_intake_form: "0",
     use_internal_trainee_application: "0",
@@ -58,7 +58,7 @@ export default function SystemModuleToggleSettings() {
       const data = await apiService.getCompanySettings();
       setSettings({
         use_internal_session_notes: data.use_internal_session_notes || "0",
-        use_internal_psg_form: data.use_internal_psg_form || "0",
+        use_internal_psg_form: (data.use_internal_psg_form !== undefined && data.use_internal_psg_form !== null && data.use_internal_psg_form !== "") ? data.use_internal_psg_form : "1",
         use_internal_agreement_form: data.use_internal_agreement_form || "0",
         use_internal_intake_form: data.use_internal_intake_form || "0",
         use_internal_trainee_application: data.use_internal_trainee_application || "0",

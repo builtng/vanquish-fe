@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import apiService from "@/lib/api";
 import { Send, CheckCircle } from "lucide-react";
 
-export default function InternalPSGForm({ onSuccess }) {
+export default function InternalPSGForm({ onSuccess, counsellorName: propCounsellorName }) {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -14,11 +16,21 @@ export default function InternalPSGForm({ onSuccess }) {
     attendance_date: new Date().toISOString().split("T")[0],
   });
 
+  const counsellorName =
+    propCounsellorName ||
+    user?.counsellor?.name ||
+    user?.name ||
+    [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
+    "Counsellor";
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await apiService.submitPSGReflection(formData);
+      await apiService.submitPSGReflection({
+        ...formData,
+        discussion: formData.reflection,
+      });
       setSubmitted(true);
       showToast("Discussion submitted successfully!");
       if (onSuccess) onSuccess();
@@ -54,6 +66,19 @@ export default function InternalPSGForm({ onSuccess }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label className="block text-sm font-bold text-gray-700 dark:text-[var(--text-primary)] mb-2">
+          Counsellor Name
+        </label>
+        <input
+          type="text"
+          readOnly
+          disabled
+          value={counsellorName}
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-[var(--card-border)] bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-not-allowed outline-none select-none font-medium"
+        />
+      </div>
+
       <div>
         <label className="block text-sm font-bold text-gray-700 dark:text-[var(--text-primary)] mb-2">
           Meeting Date

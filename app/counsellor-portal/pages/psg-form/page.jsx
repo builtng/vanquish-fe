@@ -92,13 +92,13 @@ function PSGFormPageContent() {
               </div>
             </div>
 
-            {settings?.use_internal_psg_form === "1" ? (
+            {settings?.use_internal_psg_form !== "0" ? (
               <div className="max-w-2xl mx-auto text-left">
                 <InternalPSGForm onSuccess={loadData} />
               </div>
             ) : (
               <a
-                href={settings?.jotform_psg_form_url || "https://jotform.com/vanquish/psg-reflection"}
+                href={settings?.jotform_psg_form_url || "https://jotform.com/vanquish/psg-discussion"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-8 py-4 bg-[#6f1d56] text-white rounded-xl font-black text-lg hover:opacity-90 transition-all shadow-lg hover:shadow-xl shadow-purple-500/20 active:scale-95"
