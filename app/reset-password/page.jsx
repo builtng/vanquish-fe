@@ -167,7 +167,7 @@ function ResetPasswordForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full px-4 py-3 border border-input bg-background/50 text-foreground rounded-lg focus:ring-2 focus:ring-[var(--button-primary-bg)] focus:border-transparent placeholder:text-muted-foreground"
-                  placeholder="name@vqtmanagement.com"
+                  placeholder="name@example.com"
                 />
               </div>
 

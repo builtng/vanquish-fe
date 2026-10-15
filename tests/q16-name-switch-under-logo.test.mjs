@@ -178,4 +178,17 @@ describe("FIX Q16: Name switch under the logo & client-facing branding", () => {
       "Under logo title must remain 'Vanquish Therapies' after 3s"
     );
   });
+
+  it("app/reset-password/page.jsx uses neutral placeholder name@example.com", () => {
+    const resetPasswordUrl = new URL("../app/reset-password/page.jsx", import.meta.url);
+    const content = fs.readFileSync(resetPasswordUrl, "utf8");
+    assert.ok(
+      content.includes('placeholder="name@example.com"'),
+      "app/reset-password/page.jsx must use neutral placeholder name@example.com"
+    );
+    assert.ok(
+      !content.includes("name@vqtmanagement.com"),
+      "app/reset-password/page.jsx must not contain name@vqtmanagement.com"
+    );
+  });
 });
