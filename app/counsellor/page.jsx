@@ -19,8 +19,10 @@ import DateOfBirthInput from "@/components/DateOfBirthInput";
 import { validateDateOfBirth } from "@/lib/dates";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 import { THERAPY_TOPICS, MODALITY_OPTIONS } from "@/lib/constants";
+import { useBranding } from "@/contexts/BrandingContext";
 
 export default function VanquishTCApplication() {
+  const { branding, loading: brandingLoading } = useBranding();
   const [formData, setFormData] = useState({
     // Personal Info
     firstName: "",
@@ -900,25 +902,39 @@ export default function VanquishTCApplication() {
     <PublicFormWrapper>
     <div className="min-h-screen py-4 md:py-8 px-4" style={{ background: 'var(--bg-secondary)' }}>
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
+        {/* Header with Logo */}
         <div className="card rounded-2xl shadow-sm p-4 md:p-8 mb-4 md:mb-6 border">
-          <div className="flex items-center justify-between mb-4 md:mb-6">
-            <div className="flex items-center gap-3 md:gap-4">
-              <div
-                className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl"
-                style={{ backgroundColor: "#6f1d56" }}
-              >
-                VT
-              </div>
-            <div className="flex-1 text-center">
-              <h1 className="text-lg md:text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                Vanquish Therapies
-              </h1>
-              <p className="text-sm md:text-base mt-0.5 md:mt-1" style={{ color: 'var(--text-secondary)' }}>
-                Trainee Counsellor Application (Stage 1)
-              </p>
+          <div className="flex flex-col items-center justify-center mb-4 md:mb-6 text-center">
+            <div className="inline-flex items-center justify-center mb-4">
+              {brandingLoading ? (
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-200 rounded-full animate-pulse" />
+              ) : branding?.platform_logo_url ? (
+                <img
+                  src={apiService.getStorageUrl(branding.platform_logo_url)}
+                  alt="Vanquish Therapies"
+                  className="max-h-20 md:max-h-24 object-contain"
+                />
+              ) : (
+                <div
+                  className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-white font-bold text-xl md:text-2xl"
+                  style={{ backgroundColor: "#6f1d56" }}
+                >
+                  VT
+                </div>
+              )}
             </div>
-            </div>
+            <h1
+              className="text-2xl md:text-3xl font-bold"
+              style={{ color: "var(--text-primary)" }}
+            >
+              Vanquish Therapies
+            </h1>
+            <p
+              className="text-sm md:text-base mt-0.5 md:mt-1"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Trainee Counsellor Application (Stage 1)
+            </p>
           </div>
 
           {/* Important Notice */}
