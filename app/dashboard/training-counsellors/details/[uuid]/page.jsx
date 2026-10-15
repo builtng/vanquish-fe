@@ -818,13 +818,24 @@ export default function IndividualTCDetailPage() {
                       // Initialize journey if not present
                       let journey = tc.journey || [];
                       if (journey.length === 0) {
-                        const stages = [
-                          "Application Received",
-                          "Interview Invited and Attended",
-                          "Accepted",
-                          "Induction Attended",
-                          "Active",
-                        ];
+                        const hasApplication = Boolean(
+                          tc.submission_history?.trainee_applications?.length ||
+                          tc.submission_history?.qc_applications?.length ||
+                          tc.trainee_application_id ||
+                          tc.qc_application_id
+                        );
+                        const stages = hasApplication
+                          ? [
+                              "Application Received",
+                              "Interview Invited and Attended",
+                              "Accepted",
+                              "Induction Attended",
+                              "Active",
+                            ]
+                          : [
+                              "Added by admin",
+                              "Active",
+                            ];
 
                         const currentStatus = tc.status || "Active";
                         const currentStageIndex = stages.findIndex(
@@ -834,19 +845,17 @@ export default function IndividualTCDetailPage() {
                               s === "Active") ||
                             (currentStatus === "On Leave" && s === "Active") ||
                             (currentStatus === "Inactive" &&
-                              s === "Application Received"),
+                              s === (hasApplication ? "Application Received" : "Added by admin")),
                         );
 
                         journey = stages.map((stage, index) => ({
                           stage,
-                          date: null,
+                          date: index === 0 ? tc.created_at || null : (stage === "Active" && currentStatus === "Active" ? tc.created_at || null : null),
                           completed:
                             currentStageIndex !== -1 &&
-                            index < currentStageIndex,
+                            index <= currentStageIndex,
                           current:
-                            index === currentStageIndex ||
-                            (currentStageIndex === -1 &&
-                              index === stages.length - 1),
+                            index === currentStageIndex,
                         }));
                       }
 

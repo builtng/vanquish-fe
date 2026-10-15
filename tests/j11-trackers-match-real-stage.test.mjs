@@ -163,3 +163,25 @@ test('FIX J11: TC tracker renders 5 canonical stages from pipeline journey data'
   assert.equal(tc.journey.every(s => s.completed), true);
   assert.equal(tc.journey[4].current, true);
 });
+
+test('FIX J11: Trainee added by hand shows only real stages (Added by admin and Active)', () => {
+  const manualTc = {
+    tc_id: 'TESTQA TC017',
+    name: 'TESTQA TC017',
+    status: 'Active',
+    journey: [
+      { stage: 'Added by admin', name: 'Added by admin', date: '2026-10-15T10:00:00Z', completed: true, current: false },
+      { stage: 'Active', name: 'Active', date: '2026-10-15T10:00:00Z', completed: true, current: true },
+    ],
+  };
+
+  const stages = manualTc.journey.map(s => s.stage);
+  assert.deepEqual(stages, ['Added by admin', 'Active']);
+  assert.equal(stages.includes('Application Received'), false);
+  assert.equal(stages.includes('Interview Invited and Attended'), false);
+  assert.equal(stages.includes('Accepted'), false);
+  assert.equal(stages.includes('Induction Attended'), false);
+  assert.equal(manualTc.journey.every(s => s.completed), true);
+  assert.equal(manualTc.journey[1].current, true);
+});
+
