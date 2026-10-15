@@ -15,8 +15,6 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[var(--background)] flex transition-colors duration-200">
       <StaffNoteNotifier />
-      <MessageReadNotifier />
-      <NewMessageNotifier />
       {/* Sidebar */}
       <DashboardSidebar />
 

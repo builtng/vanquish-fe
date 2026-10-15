@@ -18,8 +18,10 @@ import { formatTime } from "@/lib/dates";
  * 1. Plays an audio chime on new incoming messages.
  * 2. Renders an interactive in-system visual nudge banner/toast card.
  * 3. Sends a desktop browser notification when tab is in background/permission granted.
- * 4. Includes a 20s polling fallback in case WebSocket/Echo is unavailable.
+ * 4. Includes a 10s polling fallback in case WebSocket/Echo is unavailable.
  */
+const globalShownMessageIds = new Set();
+
 export default function NewMessageNotifier() {
   const { user } = useAuth();
   const pathname = usePathname();
@@ -51,14 +53,20 @@ export default function NewMessageNotifier() {
       unlockAudio();
       window.removeEventListener("click", handleFirstInteraction);
       window.removeEventListener("keydown", handleFirstInteraction);
+      window.removeEventListener("pointerdown", handleFirstInteraction);
+      window.removeEventListener("touchstart", handleFirstInteraction);
     };
 
     window.addEventListener("click", handleFirstInteraction, { once: true });
     window.addEventListener("keydown", handleFirstInteraction, { once: true });
+    window.addEventListener("pointerdown", handleFirstInteraction, { once: true });
+    window.addEventListener("touchstart", handleFirstInteraction, { once: true });
 
     return () => {
       window.removeEventListener("click", handleFirstInteraction);
       window.removeEventListener("keydown", handleFirstInteraction);
+      window.removeEventListener("pointerdown", handleFirstInteraction);
+      window.removeEventListener("touchstart", handleFirstInteraction);
     };
   }, []);
 
@@ -70,11 +78,12 @@ export default function NewMessageNotifier() {
     setToasts((prev) => prev.filter((t) => t.toastId !== toastId));
   }, []);
 
-  const triggerMessageNudge = useCallback((msg) => {
+  const triggerMessageNudge = useCallback((msg, peerNameOverride = null) => {
     if (!msg || !msg.id) return;
 
     // Avoid showing the same message multiple times
-    if (shownMessageIdsRef.current.has(msg.id)) return;
+    if (globalShownMessageIds.has(msg.id) || shownMessageIdsRef.current.has(msg.id)) return;
+    globalShownMessageIds.add(msg.id);
     shownMessageIdsRef.current.add(msg.id);
 
     // Play pleasant audio chime
@@ -83,7 +92,7 @@ export default function NewMessageNotifier() {
     // Determine sender name
     const senderName = user?.role === "counsellor"
       ? "Staff Support"
-      : (msg.from_user?.name || msg.fromUser?.name || (msg.type === "counsellor_to_staff" ? "Counsellor" : "Staff Support"));
+      : (peerNameOverride || msg.from_user?.name || msg.fromUser?.name || (msg.type === "counsellor_to_staff" ? "Counsellor" : "Staff Support"));
     const toastId = `msg-${msg.id}-${Date.now()}`;
 
     const newToast = {
@@ -169,7 +178,7 @@ export default function NewMessageNotifier() {
             for (const conv of convs) {
               const lastMsg = conv.last_message;
               if (lastMsg && lastMsg.id && String(lastMsg.from_user_id) !== String(user.id) && !lastMsg.is_read) {
-                triggerMessageNudge(lastMsg);
+                triggerMessageNudge(lastMsg, conv.peer_name);
               }
             }
           }
@@ -191,7 +200,7 @@ export default function NewMessageNotifier() {
       }
     };
 
-    const interval = setInterval(checkNewMessages, 30000);
+    const interval = setInterval(checkNewMessages, 10000);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
