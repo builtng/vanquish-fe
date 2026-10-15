@@ -117,6 +117,11 @@ export default function NewMessageNotifier() {
         url: chatRoute,
       });
     }
+
+    // Immediately notify sidebar to display unread badge
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("refresh-sidebar-data"));
+    }
   }, [chatRoute, dismissToast, isOnChatPage]);
 
   // ── 1. Real-Time WebSocket / Echo Listeners ──────────────────────────────
@@ -171,8 +176,16 @@ export default function NewMessageNotifier() {
         const res = await apiService.getUnreadMessageCount();
         const currentCount = res?.count ?? 0;
 
+        // Broadcast count to sidebar for immediate zero-latency badge updates
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("vqt-unread-messages-count", { detail: { count: currentCount } }));
+        }
+
         // If unread count has increased, fetch recent conversations to locate the newest message
         if (lastUnreadCountRef.current !== null && currentCount > lastUnreadCountRef.current) {
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("refresh-sidebar-data"));
+          }
           const convs = await apiService.request("/messages/conversations");
           if (Array.isArray(convs)) {
             for (const conv of convs) {

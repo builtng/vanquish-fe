@@ -250,10 +250,18 @@ export default function DashboardSidebar() {
     };
     window.addEventListener("refresh-sidebar-data", handleRefresh);
 
+    const handleUnreadCountUpdate = (e) => {
+      if (typeof e.detail?.count === "number") {
+        setUnreadMessageCount(e.detail.count);
+      }
+    };
+    window.addEventListener("vqt-unread-messages-count", handleUnreadCountUpdate);
+
     return () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("refresh-sidebar-data", handleRefresh);
+      window.removeEventListener("vqt-unread-messages-count", handleUnreadCountUpdate);
     };
   }, [isAdmin, user?.role]);
 
@@ -435,6 +443,7 @@ export default function DashboardSidebar() {
       id: "communications-group",
       icon: MessageSquare,
       label: "Communications",
+      badge: (unreadMessageCount || 0) + (unreadStaffNotesCount || 0),
       isExpandable: true,
       expanded: commExpanded,
       onToggle: () => setCommExpanded(!commExpanded),
@@ -716,28 +725,31 @@ export default function DashboardSidebar() {
             // Filter sub-items by role & menu privileges
             const allowedSubItems = item.subItems.filter((sub) => {
               const userRole = user?.role;
-              if (userRole === "admin") {
+              if (isAdmin) {
                 if (menuPrivileges && menuPrivileges.length > 0) {
                   const privilege = menuPrivileges.find(
                     (p) => p.menu_id === sub.id,
                   );
-                  if (privilege)
-                    return privilege.roles.includes("admin");
+                  if (privilege && Array.isArray(privilege.roles))
+                    return privilege.roles.includes("admin") || privilege.roles.includes("super_admin");
                 }
                 return true;
               }
               if (menuPrivileges && menuPrivileges.length > 0) {
                 return menuPrivileges.includes(sub.id);
               }
-              return userRole === "staff";
+              return userRole === "staff" || userRole === "consultation_staff" || userRole === "compliance_officer";
             });
 
             // Calculate aggregate unread / pending badge count for this entire group
-            const groupBadgeCount = allowedSubItems.reduce(
+            const subItemsBadgeSum = allowedSubItems.reduce(
               (sum, sub) =>
                 sum + (typeof sub.badge === "number" && sub.badge > 0 ? sub.badge : 0),
               0,
             );
+            const groupBadgeCount = (typeof item.badge === "number" && item.badge > 0)
+              ? item.badge
+              : subItemsBadgeSum;
 
             return (
               <div key={item.id} className="space-y-1">

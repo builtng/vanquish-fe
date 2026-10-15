@@ -56,3 +56,29 @@ test('Staff Support message notifications: DashboardLayout does not mount duplic
   const content = fs.readFileSync(layoutPath, 'utf8');
   assert.ok(!content.includes('<NewMessageNotifier />'), 'DashboardLayout must not duplicate NewMessageNotifier (mounted in Providers.jsx)');
 });
+
+test('Communications group badge: DashboardSidebar displays unread badge and updates on real-time events', () => {
+  const sidebarPath = path.resolve(process.cwd(), 'components/DashboardSidebar.jsx');
+  assert.ok(fs.existsSync(sidebarPath), 'DashboardSidebar.jsx must exist');
+
+  const content = fs.readFileSync(sidebarPath, 'utf8');
+
+  // Must define badge property on communications-group
+  assert.ok(
+    content.includes('id: "communications-group"') &&
+    content.includes('badge: (unreadMessageCount || 0) + (unreadStaffNotesCount || 0)'),
+    'Communications group must calculate badge from unread messages and staff notes'
+  );
+
+  // Must render badge pill with red background when groupBadgeCount > 0
+  assert.ok(
+    content.includes('{groupBadgeCount > 0 && (') &&
+    content.includes('bg-red-500 text-white') &&
+    content.includes('{groupBadgeCount}'),
+    'Must render red notification badge pill on expandable group'
+  );
+
+  // Must listen to refresh-sidebar-data and vqt-unread-messages-count
+  assert.ok(content.includes('refresh-sidebar-data'), 'Sidebar must listen for refresh-sidebar-data');
+  assert.ok(content.includes('vqt-unread-messages-count'), 'Sidebar must listen for vqt-unread-messages-count');
+});
