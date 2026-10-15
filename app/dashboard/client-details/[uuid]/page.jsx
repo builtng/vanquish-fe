@@ -1022,6 +1022,19 @@ export default function IndividualClientDetailPage() {
     }
   };
 
+  const handleDownloadSignature = async () => {
+    try {
+      setActionLoading(true);
+      await apiService.downloadClientSignature(client?.uuid || uuid);
+      success("Signature downloaded successfully!");
+    } catch (error) {
+      console.error("Error downloading signature:", error);
+      showError(error?.message || "Failed to download signature");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleResendAgreement = async () => {
     try {
       setActionLoading(true);
@@ -3056,17 +3069,15 @@ export default function IndividualClientDetailPage() {
                                 {client.agreement.signedDate}
                               </p>
                               {client.agreement.signatureUrl && (
-                                <a
-                                  href={apiService.getStorageUrl(
-                                    client.agreement.signatureUrl,
-                                  )}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="mt-2 inline-flex items-center gap-2 text-sm text-green-700 hover:text-green-900 underline"
+                                <button
+                                  type="button"
+                                  onClick={handleDownloadSignature}
+                                  disabled={actionLoading}
+                                  className="mt-2 inline-flex items-center gap-2 text-sm text-green-700 hover:text-green-900 underline cursor-pointer disabled:opacity-50"
                                 >
                                   <Eye className="w-4 h-4" />
                                   View Signature
-                                </a>
+                                </button>
                               )}
                             </div>
                           )}
