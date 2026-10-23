@@ -308,11 +308,17 @@ function ConsultationsManagementPageFixed() {
                   : consultation.status === "rescheduled"
                     ? "Rescheduled"
                     : consultation.status,
-        serviceRequested:
-          consultation.client?.service_type ||
-          consultation.service_type ||
-          consultation.client?.intake_form?.[0]?.service_type ||
-          "N/A",
+        serviceRequested: (() => {
+          const raw =
+            consultation.client?.service_type ||
+            consultation.service_type ||
+            consultation.client?.intake_form?.[0]?.service_type ||
+            "N/A";
+          if (typeof raw === "string" && ["low-cost", "low_cost", "low cost"].includes(raw.trim().toLowerCase())) {
+            return "Low Cost";
+          }
+          return raw;
+        })(),
         paymentStatus: "Paid", // TODO: Get from payment records
         paymentAmount:
           consultation.recommended_service === "Coaching/Counselling"

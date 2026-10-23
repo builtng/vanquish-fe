@@ -555,14 +555,14 @@ export default function CounsellorChatPage() {
                                     <p className="text-[10px] font-bold truncate">{msg.attachment_name}</p>
                                     <p className="text-[8px] opacity-70 uppercase tracking-tighter">Attachment</p>
                                   </div>
-                                  <a 
-                                    href={apiService.getStorageUrl(msg.attachment_path)} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
+                                  <button 
+                                    type="button"
+                                    onClick={() => apiService.downloadMessageAttachment(msg.id, msg.attachment_name)} 
                                     className={`p-1.5 rounded-lg ${isMe ? 'hover:bg-white/20' : 'hover:bg-accent/10'} transition-all`}
+                                    title="Download attachment"
                                   >
                                     <Download className="w-3 h-3" />
-                                  </a>
+                                  </button>
                                 </div>
                               )}
                               <div className={`flex items-center gap-1.5 mt-2 justify-end ${isMe ? "text-white/60" : "text-gray-400"} text-[9px] font-bold`}>

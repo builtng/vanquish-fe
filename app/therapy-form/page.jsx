@@ -1,48 +1,72 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   FileText,
-  ExternalLink,
-  Download,
   CheckCircle2,
   AlertCircle,
-  RefreshCw,
   Copy,
   Check,
-  ArrowLeft,
   ShieldCheck,
   HeartHandshake,
+  Loader2,
+  Printer,
+  Home,
+  UserCheck,
+  Award,
+  Calendar,
 } from "lucide-react";
 import PublicFormWrapper from "@/components/PublicFormWrapper";
 import apiService from "@/lib/api";
 
-const DEFAULT_JOTFORM_URL = "https://form.jotform.com/241002800146035";
+function TherapyFormContent() {
+  const searchParams = useSearchParams();
 
-export default function TherapyFormPage() {
-  const [jotformUrl, setJotformUrl] = useState(DEFAULT_JOTFORM_URL);
-  const [iframeLoading, setIframeLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    trainee_name: "",
+    trainee_email: "",
+    therapist_name: "",
+    therapist_email: "",
+    therapist_phone: "",
+    professional_body: "BACP",
+    other_professional_body: "",
+    membership_number: "",
+    therapy_modality: "",
+    therapy_frequency: "Weekly",
+    start_date: "",
+    confirmed: false,
+    signature: "",
+  });
+
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submissionResult, setSubmissionResult] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [settingsLoading, setSettingsLoading] = useState(true);
 
   useEffect(() => {
-    async function loadSettings() {
-      try {
-        const settings = await apiService.getCompanySettings();
-        if (settings?.jotform_therapy_form_url && settings.jotform_therapy_form_url.trim()) {
-          setJotformUrl(settings.jotform_therapy_form_url.trim());
-        }
-      } catch (err) {
-        // Fallback to default form
-        console.warn("Using default therapy form URL:", err);
-      } finally {
-        setSettingsLoading(false);
-      }
+    const emailParam = searchParams.get("email");
+    const nameParam = searchParams.get("name");
+
+    setFormData((prev) => ({
+      ...prev,
+      trainee_email: emailParam ? emailParam.trim() : prev.trainee_email,
+      trainee_name: nameParam ? nameParam.trim() : prev.trainee_name,
+    }));
+  }, [searchParams]);
+
+  const handleInputChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
     }
-    loadSettings();
-  }, []);
+  };
 
   const handleCopyLink = () => {
     if (typeof window !== "undefined") {
@@ -52,12 +76,99 @@ export default function TherapyFormPage() {
     }
   };
 
+  const validate = () => {
+    const newErrors = {};
+
+    if (!formData.trainee_email || !formData.trainee_email.trim()) {
+      newErrors.trainee_email = "Trainee email is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.trainee_email.trim())) {
+      newErrors.trainee_email = "Please enter a valid email address.";
+    }
+
+    if (!formData.therapist_name || !formData.therapist_name.trim()) {
+      newErrors.therapist_name = "Therapist full name is required.";
+    }
+
+    if (!formData.therapist_email || !formData.therapist_email.trim()) {
+      newErrors.therapist_email = "Therapist email is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.therapist_email.trim())) {
+      newErrors.therapist_email = "Please enter a valid email address.";
+    }
+
+    if (
+      formData.professional_body === "Other" &&
+      (!formData.other_professional_body || !formData.other_professional_body.trim())
+    ) {
+      newErrors.other_professional_body = "Please specify your professional body.";
+    }
+
+    if (!formData.membership_number || !formData.membership_number.trim()) {
+      newErrors.membership_number = "Membership / registration number is required.";
+    }
+
+    if (!formData.confirmed) {
+      newErrors.confirmed = "You must confirm the clinical therapy declaration.";
+    }
+
+    if (!formData.signature || !formData.signature.trim()) {
+      newErrors.signature = "Please provide your typed digital signature.";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        trainee_email: formData.trainee_email.trim(),
+        trainee_name: formData.trainee_name.trim() || undefined,
+        therapist_name: formData.therapist_name.trim(),
+        therapist_email: formData.therapist_email.trim(),
+        therapist_phone: formData.therapist_phone.trim() || undefined,
+        professional_body:
+          formData.professional_body === "Other"
+            ? formData.other_professional_body.trim()
+            : formData.professional_body,
+        membership_number: formData.membership_number.trim(),
+        therapy_modality: formData.therapy_modality.trim() || undefined,
+        therapy_frequency: formData.therapy_frequency || undefined,
+        start_date: formData.start_date || undefined,
+        confirmed: true,
+        signature: formData.signature.trim(),
+      };
+
+      const result = await apiService.submitPersonalTherapyConfirmation(payload);
+      setSubmissionResult({
+        ...payload,
+        submittedAt: new Date().toLocaleString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      });
+      setSubmitSuccess(true);
+    } catch (err) {
+      setErrors({
+        submit: err.message || "Failed to submit verification. Please check your connection and try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <PublicFormWrapper>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 text-gray-900 dark:text-gray-100 flex flex-col">
         {/* Header Navigation */}
         <header className="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-30 transition-colors">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
             <Link
               href="/"
               className="flex items-center gap-3 group transition-transform active:scale-95"
@@ -70,16 +181,17 @@ export default function TherapyFormPage() {
                   Vanquish Therapies
                 </span>
                 <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">
-                  Practitioner Onboarding
+                  Practitioner Onboarding &amp; Compliance
                 </span>
               </div>
             </Link>
 
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={handleCopyLink}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-all border border-gray-200 dark:border-gray-700"
-                title="Copy shareable link for your therapist"
+                title="Copy shareable link for therapist"
               >
                 {copied ? (
                   <>
@@ -93,22 +205,12 @@ export default function TherapyFormPage() {
                   </>
                 )}
               </button>
-
-              <a
-                href={jotformUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-[#6f1d56] hover:bg-[#852367] rounded-lg shadow-sm shadow-[#6f1d56]/20 transition-all active:scale-95"
-              >
-                <span>Open in JotForm</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
             </div>
           </div>
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6">
+        <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6">
           {/* Hero Banner */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#6f1d56] via-[#852367] to-[#421033] text-white p-6 sm:p-8 shadow-xl">
             <div className="relative z-10 space-y-3 max-w-3xl">
@@ -120,116 +222,411 @@ export default function TherapyFormPage() {
                 Confirmation of Personal Therapy
               </h1>
               <p className="text-sm sm:text-base text-pink-100/90 leading-relaxed">
-                As part of your trainee placement onboarding with Vanquish Therapies,
-                your qualified Personal Counsellor/Therapist is required to complete this
-                verification form confirming your ongoing personal therapy hours.
+                As part of trainee counsellor placement onboarding with Vanquish Therapies,
+                this verification is completed by the qualified personal therapist confirming
+                ongoing personal therapy hours in compliance with clinical training standards.
               </p>
             </div>
-
-            {/* Decorative background glow */}
             <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-pink-500/20 rounded-full blur-3xl pointer-events-none" />
           </div>
 
-          {/* Guidance and Related Downloads Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Instruction Card */}
-            <div className="md:col-span-2 p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm space-y-2.5">
-              <div className="flex items-center gap-2 text-[#6f1d56] dark:text-pink-400 font-bold text-sm">
-                <HeartHandshake className="w-4 h-4 shrink-0" />
-                <span>Instructions for Trainee &amp; Therapist</span>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-                You can have your therapist complete the embedded form below directly on
-                this page, or share the link with them using the{" "}
-                <strong className="text-gray-900 dark:text-white">Copy Link</strong>{" "}
-                button above. Once submitted, records are automatically logged for clinical compliance.
-              </p>
-            </div>
-
-            {/* 4-Way Agreement Quick Download */}
-            <div className="p-5 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 shadow-sm flex flex-col justify-between gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-bold text-xs">
-                  <FileText className="w-4 h-4 shrink-0" />
-                  <span>4-Way Agreement (.docx)</span>
+          {submitSuccess ? (
+            /* Success State Screen */
+            <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-white dark:bg-gray-900 shadow-xl p-8 sm:p-10 space-y-6 animate-fadeIn">
+              <div className="flex flex-col items-center text-center space-y-3">
+                <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-inner">
+                  <CheckCircle2 className="w-10 h-10" />
                 </div>
-                <p className="text-[11px] text-amber-700/90 dark:text-amber-400/90 leading-normal">
-                  Need to download your placement agreement template?
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  Personal Therapy Confirmed
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-300 max-w-md">
+                  Thank you. Your personal therapy confirmation has been successfully recorded
+                  and verified in the Vanquish Therapies compliance system.
                 </p>
               </div>
 
-              <a
-                href="/templates/4-way-agreement-trainee.docx"
-                download="4-way-agreement-trainee.docx"
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-amber-900 dark:text-amber-100 bg-amber-200/80 hover:bg-amber-200 dark:bg-amber-900/40 dark:hover:bg-amber-900/60 rounded-lg transition-colors w-full"
-              >
-                <Download className="w-3.5 h-3.5 shrink-0" />
-                <span>Download Agreement</span>
-              </a>
-            </div>
-          </div>
+              {/* Confirmation Details Card */}
+              <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-6 space-y-4">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-200 dark:border-gray-800 pb-2">
+                  Submission Summary
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Trainee Email:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{submissionResult?.trainee_email}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Therapist Name:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{submissionResult?.therapist_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Professional Body:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {submissionResult?.professional_body} (No: {submissionResult?.membership_number})
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Digital Signature:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{submissionResult?.signature}</span>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Confirmed At:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{submissionResult?.submittedAt}</span>
+                  </div>
+                </div>
+              </div>
 
-          {/* Form Container */}
-          <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-md overflow-hidden">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/75 dark:bg-gray-900/75 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span className="font-semibold flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                Official Personal Therapy Verification Form
-              </span>
-              <button
-                onClick={() => {
-                  setIframeLoading(true);
-                  const iframe = document.getElementById("jotform-therapy-iframe");
-                  if (iframe) iframe.src = jotformUrl;
-                }}
-                className="inline-flex items-center gap-1 hover:text-[#6f1d56] transition-colors"
-                title="Reload Form"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Refresh</span>
-              </button>
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print Confirmation</span>
+                </button>
+                <Link
+                  href="/"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#6f1d56] hover:bg-[#852367] text-white text-xs font-bold transition-all shadow-md shadow-[#6f1d56]/20"
+                >
+                  <Home className="w-4 h-4" />
+                  <span>Return to Home</span>
+                </Link>
+              </div>
             </div>
-
-            <div className="relative min-h-[850px] w-full bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center">
-              {iframeLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 dark:bg-gray-900/90 z-10 space-y-3">
-                  <RefreshCw className="w-8 h-8 text-[#6f1d56] animate-spin" />
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                    Loading Therapy Confirmation Form...
-                  </p>
+          ) : (
+            /* Verification Form */
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {errors.submit && (
+                <div className="p-4 rounded-xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 text-xs flex items-start gap-3">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">Submission Error</p>
+                    <p>{errors.submit}</p>
+                  </div>
                 </div>
               )}
 
-              <iframe
-                id="jotform-therapy-iframe"
-                title="Confirmation of Personal Therapy"
-                src={jotformUrl}
-                onLoad={() => setIframeLoading(false)}
-                className="w-full h-[900px] border-0"
-                allow="geolocation; microphone; camera"
-              />
-            </div>
-          </div>
+              {/* Section 1: Trainee Details */}
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 sm:p-7 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 text-[#6f1d56] dark:text-pink-400 font-bold text-sm border-b border-gray-100 dark:border-gray-800 pb-3">
+                  <UserCheck className="w-4 h-4" />
+                  <span>1. Trainee Counsellor Details</span>
+                </div>
 
-          {/* Assistance & Notice */}
-          <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 text-center text-xs text-gray-500 dark:text-gray-400 space-y-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Trainee Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.trainee_name}
+                      onChange={(e) => handleInputChange("trainee_name", e.target.value)}
+                      placeholder="e.g. Jane Doe"
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Trainee Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.trainee_email}
+                      onChange={(e) => handleInputChange("trainee_email", e.target.value)}
+                      placeholder="e.g. jane.doe@example.com"
+                      className={`w-full px-3.5 py-2.5 text-xs rounded-xl border ${
+                        errors.trainee_email
+                          ? "border-red-500 ring-1 ring-red-500"
+                          : "border-gray-300 dark:border-gray-700"
+                      } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]`}
+                    />
+                    {errors.trainee_email && (
+                      <p className="mt-1 text-[11px] text-red-500">{errors.trainee_email}</p>
+                    )}
+                    <p className="mt-1 text-[10px] text-gray-400">
+                      Must match the email used on the trainee placement application.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Qualified Therapist Details */}
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 sm:p-7 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 text-[#6f1d56] dark:text-pink-400 font-bold text-sm border-b border-gray-100 dark:border-gray-800 pb-3">
+                  <Award className="w-4 h-4" />
+                  <span>2. Qualified Personal Therapist Credentials</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Therapist Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.therapist_name}
+                      onChange={(e) => handleInputChange("therapist_name", e.target.value)}
+                      placeholder="e.g. Dr. Sarah Jenkins"
+                      className={`w-full px-3.5 py-2.5 text-xs rounded-xl border ${
+                        errors.therapist_name
+                          ? "border-red-500 ring-1 ring-red-500"
+                          : "border-gray-300 dark:border-gray-700"
+                      } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]`}
+                    />
+                    {errors.therapist_name && (
+                      <p className="mt-1 text-[11px] text-red-500">{errors.therapist_name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Therapist Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.therapist_email}
+                      onChange={(e) => handleInputChange("therapist_email", e.target.value)}
+                      placeholder="e.g. sarah.jenkins@therapy.co.uk"
+                      className={`w-full px-3.5 py-2.5 text-xs rounded-xl border ${
+                        errors.therapist_email
+                          ? "border-red-500 ring-1 ring-red-500"
+                          : "border-gray-300 dark:border-gray-700"
+                      } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]`}
+                    />
+                    {errors.therapist_email && (
+                      <p className="mt-1 text-[11px] text-red-500">{errors.therapist_email}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Therapist Contact Phone (Optional)
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.therapist_phone}
+                      onChange={(e) => handleInputChange("therapist_phone", e.target.value)}
+                      placeholder="e.g. 07123 456789"
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Professional Body / Accrediting Organisation <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={formData.professional_body}
+                      onChange={(e) => handleInputChange("professional_body", e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]"
+                    >
+                      <option value="BACP">BACP (British Association for Counselling and Psychotherapy)</option>
+                      <option value="UKCP">UKCP (UK Council for Psychotherapy)</option>
+                      <option value="NCPS">NCPS (National Counselling &amp; Psychotherapy Society)</option>
+                      <option value="BPS">BPS (British Psychological Society)</option>
+                      <option value="HCPC">HCPC (Health and Care Professions Council)</option>
+                      <option value="Other">Other / International Body</option>
+                    </select>
+                  </div>
+
+                  {formData.professional_body === "Other" && (
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                        Specify Professional Body <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.other_professional_body}
+                        onChange={(e) => handleInputChange("other_professional_body", e.target.value)}
+                        placeholder="e.g. Irish Association for Counselling and Psychotherapy"
+                        className={`w-full px-3.5 py-2.5 text-xs rounded-xl border ${
+                          errors.other_professional_body
+                            ? "border-red-500 ring-1 ring-red-500"
+                            : "border-gray-300 dark:border-gray-700"
+                        } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]`}
+                      />
+                      {errors.other_professional_body && (
+                        <p className="mt-1 text-[11px] text-red-500">{errors.other_professional_body}</p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Professional Membership / Registration Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.membership_number}
+                      onChange={(e) => handleInputChange("membership_number", e.target.value)}
+                      placeholder="e.g. 123456 / Reg 7890"
+                      className={`w-full px-3.5 py-2.5 text-xs rounded-xl border ${
+                        errors.membership_number
+                          ? "border-red-500 ring-1 ring-red-500"
+                          : "border-gray-300 dark:border-gray-700"
+                      } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]`}
+                    />
+                    {errors.membership_number && (
+                      <p className="mt-1 text-[11px] text-red-500">{errors.membership_number}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Therapy Arrangement */}
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 sm:p-7 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 text-[#6f1d56] dark:text-pink-400 font-bold text-sm border-b border-gray-100 dark:border-gray-800 pb-3">
+                  <Calendar className="w-4 h-4" />
+                  <span>3. Therapy Arrangement</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Therapy Modality
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.therapy_modality}
+                      onChange={(e) => handleInputChange("therapy_modality", e.target.value)}
+                      placeholder="e.g. Integrative / Psychodynamic"
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Session Frequency
+                    </label>
+                    <select
+                      value={formData.therapy_frequency}
+                      onChange={(e) => handleInputChange("therapy_frequency", e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]"
+                    >
+                      <option value="Weekly">Weekly</option>
+                      <option value="Fortnightly">Fortnightly</option>
+                      <option value="Twice Weekly">Twice Weekly</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                      Date Commenced
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => handleInputChange("start_date", e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 4: Clinical Declaration & Digital Signature */}
+              <div className="rounded-2xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-br from-pink-50/40 via-white to-purple-50/40 dark:from-gray-900 dark:via-gray-900 dark:to-purple-950/20 p-6 sm:p-7 shadow-sm space-y-5">
+                <div className="flex items-center gap-2 text-[#6f1d56] dark:text-pink-400 font-bold text-sm border-b border-purple-100 dark:border-gray-800 pb-3">
+                  <HeartHandshake className="w-4 h-4" />
+                  <span>4. Clinical Declaration &amp; Sign-off</span>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={formData.confirmed}
+                      onChange={(e) => handleInputChange("confirmed", e.target.checked)}
+                      className="mt-1 w-4 h-4 text-[#6f1d56] rounded border-gray-300 focus:ring-[#6f1d56]"
+                    />
+                    <span className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+                      I confirm that the trainee counsellor named above is currently engaged in
+                      personal therapy with me, and that I hold appropriate professional registration/accreditation
+                      and clinical insurance as required by clinical training standards. <span className="text-red-500">*</span>
+                    </span>
+                  </label>
+                  {errors.confirmed && (
+                    <p className="text-[11px] text-red-500 pl-7">{errors.confirmed}</p>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-purple-100 dark:border-gray-800">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                        Therapist Typed Digital Signature <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.signature}
+                        onChange={(e) => handleInputChange("signature", e.target.value)}
+                        placeholder="Type your full legal name"
+                        className={`w-full px-3.5 py-2.5 text-xs rounded-xl border ${
+                          errors.signature
+                            ? "border-red-500 ring-1 ring-red-500"
+                            : "border-gray-300 dark:border-gray-700"
+                        } bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-[#6f1d56]`}
+                      />
+                      {errors.signature && (
+                        <p className="mt-1 text-[11px] text-red-500">{errors.signature}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                        Date of Declaration
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={new Date().toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/50 text-gray-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Submission Button */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-[#6f1d56] hover:bg-[#852367] text-white font-bold text-sm shadow-lg shadow-[#6f1d56]/25 hover:shadow-xl transition-all active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Submitting Verification...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Submit Personal Therapy Confirmation</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Assistance Notice */}
+          <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 text-center text-xs text-gray-500 dark:text-gray-400 space-y-1">
             <p>
-              Having trouble viewing or submitting the form above?{" "}
-              <a
-                href={jotformUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-bold text-[#6f1d56] dark:text-pink-400 underline hover:opacity-80"
-              >
-                Click here to open directly on JotForm
-              </a>
-              .
+              This is an official verification form for Vanquish Therapies clinical trainee compliance.
             </p>
             <p className="text-[11px] text-gray-400 dark:text-gray-500">
-              For onboarding queries, contact our Compliance Team at{" "}
+              For onboarding queries, please contact our Compliance Team at{" "}
               <a
                 href="mailto:compliance@vanquishtherapies.co.uk"
-                className="underline hover:text-gray-600 dark:hover:text-gray-300"
+                className="underline hover:text-gray-700 dark:hover:text-gray-300"
               >
                 compliance@vanquishtherapies.co.uk
               </a>
@@ -243,5 +640,22 @@ export default function TherapyFormPage() {
         </footer>
       </div>
     </PublicFormWrapper>
+  );
+}
+
+export default function TherapyFormPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="w-8 h-8 text-[#6f1d56] animate-spin" />
+            <p className="text-xs font-semibold text-gray-500">Loading Confirmation Form...</p>
+          </div>
+        </div>
+      }
+    >
+      <TherapyFormContent />
+    </Suspense>
   );
 }

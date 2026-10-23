@@ -658,14 +658,14 @@ export default function DashboardChatPage() {
                                       <p className="text-[11px] font-bold truncate">{msg.attachment_name}</p>
                                       <p className="text-[9px] opacity-70">Attachment</p>
                                     </div>
-                                    <a 
-                                      href={apiService.getStorageUrl(msg.attachment_path)} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
+                                    <button 
+                                      type="button"
+                                      onClick={() => apiService.downloadMessageAttachment(msg.id, msg.attachment_name)} 
                                       className={`p-1.5 rounded-lg ${isMe ? 'hover:bg-white/20' : 'hover:bg-accent/10'} transition-all`}
+                                      title="Download attachment"
                                     >
                                       <Download className="w-3.5 h-3.5" />
-                                    </a>
+                                    </button>
                                   </div>
                                 )}
                                 <div className={`flex items-center gap-1 mt-1.5 justify-end ${isMe ? "text-white/80" : "text-muted-foreground"} text-[10px] font-medium`}>

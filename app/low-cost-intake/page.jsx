@@ -51,7 +51,7 @@ export default function VanquishClientIntake() {
     otherSexualOrientation: "",
 
     // Medical & Service
-    serviceType: "low-cost",
+    serviceType: "Low Cost",
     onMedication: "",
     medicationDetails: "",
     disabilities: "",
@@ -379,13 +379,13 @@ export default function VanquishClientIntake() {
         if (!formData.hearAboutUs) {
           stepErrors.hearAboutUs = "This field is required";
         } else if (formData.hearAboutUs === "Referral") {
-          if (!formData.referrerName.trim())
+          if (!formData.referrerName || !formData.referrerName.trim())
             stepErrors.referrerName = "Referrer's name is required";
-          if (!formData.referrerPhone.trim())
+          if (!formData.referrerPhone || !formData.referrerPhone.trim())
             stepErrors.referrerPhone = "Referrer's phone is required";
-          if (!formData.referrerEmail.trim())
+          if (!formData.referrerEmail || !formData.referrerEmail.trim())
             stepErrors.referrerEmail = "Referrer's email is required";
-          if (!formData.referralReason.trim())
+          if (!formData.referralReason || !formData.referralReason.trim())
             stepErrors.referralReason = "Reasons for referral is required";
         }
         break;
@@ -522,15 +522,33 @@ export default function VanquishClientIntake() {
   };
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error for this field when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "hearAboutUs" && value !== "Referral") {
+        next.referralReason = "";
+        next.referrerName = "";
+        next.referrerPhone = "";
+        next.referrerOrg = "";
+        next.referrerEmail = "";
+      }
+      return next;
+    });
+
+    // Clear error for this field and any sticking referral errors when user makes changes
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      if (field === "hearAboutUs") {
+        delete newErrors.hearAboutUs;
+        if (value !== "Referral") {
+          delete newErrors.referralReason;
+          delete newErrors.referrerName;
+          delete newErrors.referrerPhone;
+          delete newErrors.referrerEmail;
+        }
+      }
+      return newErrors;
+    });
   };
 
   const normalizeAge = (raw) => {
@@ -1649,7 +1667,7 @@ export default function VanquishClientIntake() {
                           : "border-gray-300"
                       }`}
                     >
-                      <option value="low-cost">Low Cost Counselling</option>
+                      <option value="Low Cost">Low Cost Counselling</option>
                       <option value="Mid Range">Mid Range Counselling</option>
                       <option value="Counselling & Coaching">Coaching & Counselling</option>
                     </select>
@@ -2149,6 +2167,9 @@ export default function VanquishClientIntake() {
                           <span className="text-red-500">*</span>
                         </label>
                         <textarea
+                          name="referralReason"
+                          id="referralReason"
+                          data-field="referralReason"
                           value={formData.referralReason}
                           onChange={(e) =>
                             handleInputChange("referralReason", e.target.value)
@@ -2185,6 +2206,9 @@ export default function VanquishClientIntake() {
                           </label>
                           <input
                             type="text"
+                            name="referrerName"
+                            id="referrerName"
+                            data-field="referrerName"
                             value={formData.referrerName}
                             onChange={(e) =>
                               handleInputChange("referrerName", e.target.value)
@@ -2218,6 +2242,9 @@ export default function VanquishClientIntake() {
                           </label>
                           <input
                             type="tel"
+                            name="referrerPhone"
+                            id="referrerPhone"
+                            data-field="referrerPhone"
                             value={formData.referrerPhone}
                             onChange={(e) =>
                               handleInputChange("referrerPhone", e.target.value)
@@ -2250,6 +2277,9 @@ export default function VanquishClientIntake() {
                           </label>
                           <input
                             type="text"
+                            name="referrerOrg"
+                            id="referrerOrg"
+                            data-field="referrerOrg"
                             value={formData.referrerOrg}
                             onChange={(e) =>
                               handleInputChange("referrerOrg", e.target.value)
@@ -2270,6 +2300,9 @@ export default function VanquishClientIntake() {
                           </label>
                           <input
                             type="email"
+                            name="referrerEmail"
+                            id="referrerEmail"
+                            data-field="referrerEmail"
                             value={formData.referrerEmail}
                             onChange={(e) =>
                               handleInputChange("referrerEmail", e.target.value)

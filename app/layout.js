@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://vanquish0.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://vqtmanagement.com'),
   title: {
     default: "Book Therapy Sessions Online UK | Qualified Counsellors & Mental Health Support",
     template: "%s | Vanquish"

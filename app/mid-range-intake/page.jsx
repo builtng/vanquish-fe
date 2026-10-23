@@ -732,6 +732,18 @@ function MidRangeClientIntakeContent() {
       }
       return next;
     });
+    if (field === "hearAboutUs" && value !== "Referral") {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.referrerName;
+        delete newErrors.referrerPhone;
+        delete newErrors.referrerEmail;
+        delete newErrors.referrerOrg;
+        delete newErrors.referrerOrganisation;
+        delete newErrors.referralReason;
+        return newErrors;
+      });
+    }
     if (errors[field]) {
       setErrors((prev) => {
         const newErrors = { ...prev };

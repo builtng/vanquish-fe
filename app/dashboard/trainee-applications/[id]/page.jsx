@@ -1561,7 +1561,7 @@ export default function TraineeApplicationDetail() {
                           applicationId={id}
                         />
                         <PaperworkToggle
-                          label="Personal Therapy Form (JotForm)"
+                          label="Personal Therapy Confirmation"
                           status={
                             application.onboarding_data?.checklist?.therapy_form
                           }
