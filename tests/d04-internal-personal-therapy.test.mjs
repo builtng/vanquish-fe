@@ -30,7 +30,7 @@ test('D04: frontend/app/therapy-form/page.jsx renders an internal form without J
   assert.ok(content.includes('submitPersonalTherapyConfirmation'), 'Form must call apiService.submitPersonalTherapyConfirmation');
 });
 
-test('D04: frontend/lib/api.js defines submitPersonalTherapyConfirmation', () => {
+test('D04: frontend/lib/api.js defines submitPersonalTherapyConfirmation and getTherapyFormData', () => {
   const apiPath = path.join(rootDir, 'lib/api.js');
   const content = fs.readFileSync(apiPath, 'utf8');
 
@@ -41,6 +41,49 @@ test('D04: frontend/lib/api.js defines submitPersonalTherapyConfirmation', () =>
   assert.ok(
     content.includes('/trainee-applications/confirm-personal-therapy'),
     'submitPersonalTherapyConfirmation must call /trainee-applications/confirm-personal-therapy'
+  );
+  assert.ok(
+    content.includes('getTherapyFormData(token)'),
+    'apiService must expose getTherapyFormData method'
+  );
+  assert.ok(
+    content.includes('/therapy-form/'),
+    'getTherapyFormData must call /therapy-form/{token}'
+  );
+});
+
+test('Item 11 Security: therapy-form verifies token, shows trainee first name only, and handles invalid link', () => {
+  const filePath = path.join(rootDir, 'app/therapy-form/page.jsx');
+  const content = fs.readFileSync(filePath, 'utf8');
+
+  // Reads token from search params
+  assert.ok(
+    content.includes('searchParams.get("token")'),
+    'Must read token query param from searchParams'
+  );
+
+  // Calls getTherapyFormData with token
+  assert.ok(
+    content.includes('getTherapyFormData(cleanToken)'),
+    'Must verify token with apiService.getTherapyFormData'
+  );
+
+  // Sets error message for bad token
+  assert.ok(
+    content.includes('This link is no longer valid. Please contact help@vanquishtherapies.co.uk.'),
+    'Must display exact 422 error message for bad or expired token'
+  );
+
+  // Shows trainee first name only after token is checked
+  assert.ok(
+    content.includes('traineeFirstName'),
+    'Must track and render trainee first name only'
+  );
+
+  // Submits token with payload
+  assert.ok(
+    content.includes('token: token'),
+    'Must submit the single-use token in the confirmation payload'
   );
 });
 

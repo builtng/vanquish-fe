@@ -24,6 +24,11 @@ import apiService from "@/lib/api";
 function TherapyFormContent() {
   const searchParams = useSearchParams();
 
+  const [token, setToken] = useState("");
+  const [tokenStatus, setTokenStatus] = useState("loading"); // "loading" | "valid" | "invalid"
+  const [tokenErrorMessage, setTokenErrorMessage] = useState("");
+  const [traineeFirstName, setTraineeFirstName] = useState("");
+
   const [formData, setFormData] = useState({
     trainee_name: "",
     trainee_email: "",
@@ -47,14 +52,45 @@ function TherapyFormContent() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const emailParam = searchParams.get("email");
-    const nameParam = searchParams.get("name");
+    const tokenParam = searchParams.get("token");
 
-    setFormData((prev) => ({
-      ...prev,
-      trainee_email: emailParam ? emailParam.trim() : prev.trainee_email,
-      trainee_name: nameParam ? nameParam.trim() : prev.trainee_name,
-    }));
+    if (!tokenParam || !tokenParam.trim()) {
+      setTokenStatus("invalid");
+      setTokenErrorMessage(
+        "This link is no longer valid. Please contact help@vanquishtherapies.co.uk."
+      );
+      return;
+    }
+
+    const cleanToken = tokenParam.trim();
+    setToken(cleanToken);
+    setTokenStatus("loading");
+
+    apiService
+      .getTherapyFormData(cleanToken)
+      .then((res) => {
+        if (res && res.first_name) {
+          setTraineeFirstName(res.first_name);
+          setTokenStatus("valid");
+        } else {
+          setTokenStatus("invalid");
+          setTokenErrorMessage(
+            "This link is no longer valid. Please contact help@vanquishtherapies.co.uk."
+          );
+        }
+      })
+      .catch((err) => {
+        setTokenStatus("invalid");
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "This link is no longer valid. Please contact help@vanquishtherapies.co.uk.";
+        setTokenErrorMessage(
+          msg.includes("valid") || msg.includes("contact")
+            ? msg
+            : "This link is no longer valid. Please contact help@vanquishtherapies.co.uk."
+        );
+      });
   }, [searchParams]);
 
   const handleInputChange = (field, value) => {
@@ -78,12 +114,6 @@ function TherapyFormContent() {
 
   const validate = () => {
     const newErrors = {};
-
-    if (!formData.trainee_email || !formData.trainee_email.trim()) {
-      newErrors.trainee_email = "Trainee email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.trainee_email.trim())) {
-      newErrors.trainee_email = "Please enter a valid email address.";
-    }
 
     if (!formData.therapist_name || !formData.therapist_name.trim()) {
       newErrors.therapist_name = "Therapist full name is required.";
@@ -125,8 +155,8 @@ function TherapyFormContent() {
     setSubmitting(true);
     try {
       const payload = {
-        trainee_email: formData.trainee_email.trim(),
-        trainee_name: formData.trainee_name.trim() || undefined,
+        token: token,
+        trainee_email: formData.trainee_email ? formData.trainee_email.trim() : undefined,
         therapist_name: formData.therapist_name.trim(),
         therapist_email: formData.therapist_email.trim(),
         therapist_phone: formData.therapist_phone.trim() || undefined,
@@ -143,20 +173,32 @@ function TherapyFormContent() {
       };
 
       const result = await apiService.submitPersonalTherapyConfirmation(payload);
-      setSubmissionResult({
-        ...payload,
-        submittedAt: new Date().toLocaleString("en-GB", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      });
-      setSubmitSuccess(true);
+      if (result && result.success) {
+        setSubmissionResult({
+          ...payload,
+          traineeFirstName,
+          submittedAt: new Date().toLocaleString("en-GB", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        });
+        setSubmitSuccess(true);
+      } else {
+        setErrors({
+          submit:
+            result?.message ||
+            "This link is no longer valid. Please contact help@vanquishtherapies.co.uk.",
+        });
+      }
     } catch (err) {
       setErrors({
-        submit: err.message || "Failed to submit verification. Please check your connection and try again.",
+        submit:
+          err?.response?.data?.message ||
+          err?.message ||
+          "This link is no longer valid. Please contact help@vanquishtherapies.co.uk.",
       });
     } finally {
       setSubmitting(false);
@@ -230,7 +272,37 @@ function TherapyFormContent() {
             <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-pink-500/20 rounded-full blur-3xl pointer-events-none" />
           </div>
 
-          {submitSuccess ? (
+          {tokenStatus === "loading" ? (
+            /* Loading State */
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-12 text-center space-y-4 shadow-sm">
+              <Loader2 className="w-8 h-8 text-[#6f1d56] animate-spin mx-auto" />
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                Verifying personal therapy link...
+              </p>
+            </div>
+          ) : tokenStatus === "invalid" ? (
+            /* Invalid / Expired Token State */
+            <div className="rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20 p-8 sm:p-10 text-center space-y-4 shadow-sm animate-fadeIn">
+              <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 flex items-center justify-center mx-auto">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                Verification Link Invalid
+              </h2>
+              <p className="text-sm text-red-700 dark:text-red-300 max-w-md mx-auto leading-relaxed">
+                {tokenErrorMessage ||
+                  "This link is no longer valid. Please contact help@vanquishtherapies.co.uk."}
+              </p>
+              <div className="pt-2">
+                <a
+                  href="mailto:help@vanquishtherapies.co.uk"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#6f1d56] text-white text-xs font-bold hover:bg-[#852367] transition-colors shadow-md shadow-[#6f1d56]/20"
+                >
+                  Contact Help
+                </a>
+              </div>
+            </div>
+          ) : submitSuccess ? (
             /* Success State Screen */
             <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-white dark:bg-gray-900 shadow-xl p-8 sm:p-10 space-y-6 animate-fadeIn">
               <div className="flex flex-col items-center text-center space-y-3">
@@ -241,8 +313,12 @@ function TherapyFormContent() {
                   Personal Therapy Confirmed
                 </h2>
                 <p className="text-sm text-gray-600 dark:text-gray-300 max-w-md">
-                  Thank you. Your personal therapy confirmation has been successfully recorded
-                  and verified in the Vanquish Therapies compliance system.
+                  Thank you. Personal therapy confirmation for{" "}
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {traineeFirstName || "the trainee"}
+                  </span>{" "}
+                  has been successfully recorded and verified in the Vanquish Therapies
+                  compliance system.
                 </p>
               </div>
 
@@ -253,8 +329,10 @@ function TherapyFormContent() {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Trainee Email:</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">{submissionResult?.trainee_email}</span>
+                    <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Trainee:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {traineeFirstName || "Trainee Counsellor"}
+                    </span>
                   </div>
                   <div>
                     <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Therapist Name:</span>
@@ -289,7 +367,7 @@ function TherapyFormContent() {
                 </button>
                 <Link
                   href="/"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#6f1d56] hover:bg-[#852367] text-white text-xs font-bold transition-all shadow-md shadow-[#6f1d56]/20"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900 text-xs font-semibold transition-colors shadow-sm"
                 >
                   <Home className="w-4 h-4" />
                   <span>Return to Home</span>
@@ -309,49 +387,23 @@ function TherapyFormContent() {
                 </div>
               )}
 
-              {/* Section 1: Trainee Details */}
+              {/* Section 1: Trainee Details (Verified via token) */}
               <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 sm:p-7 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 text-[#6f1d56] dark:text-pink-400 font-bold text-sm border-b border-gray-100 dark:border-gray-800 pb-3">
                   <UserCheck className="w-4 h-4" />
                   <span>1. Trainee Counsellor Details</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Trainee Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.trainee_name}
-                      onChange={(e) => handleInputChange("trainee_name", e.target.value)}
-                      placeholder="e.g. Jane Doe"
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Trainee Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.trainee_email}
-                      onChange={(e) => handleInputChange("trainee_email", e.target.value)}
-                      placeholder="e.g. jane.doe@example.com"
-                      className={`w-full px-3.5 py-2.5 text-xs rounded-xl border ${
-                        errors.trainee_email
-                          ? "border-red-500 ring-1 ring-red-500"
-                          : "border-gray-300 dark:border-gray-700"
-                      } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]`}
-                    />
-                    {errors.trainee_email && (
-                      <p className="mt-1 text-[11px] text-red-500">{errors.trainee_email}</p>
-                    )}
-                    <p className="mt-1 text-[10px] text-gray-400">
-                      Must match the email used on the trainee placement application.
-                    </p>
-                  </div>
+                <div className="p-4 rounded-xl bg-purple-50/70 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 text-xs space-y-1">
+                  <p className="font-medium text-gray-700 dark:text-gray-300">
+                    Confirming personal therapy for:{" "}
+                    <span className="font-bold text-[#6f1d56] dark:text-pink-400 text-sm">
+                      {traineeFirstName || "Trainee"}
+                    </span>
+                  </p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    Verified through your unique, single-use placement onboarding security token.
+                  </p>
                 </div>
               </div>
 
