@@ -563,7 +563,7 @@ export default function FilteredCounsellors({
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 Based on your preferences, we've{" "}
-                <span className="font-semibold text-emerald-800 uppercase tracking-wide">
+                <span className="font-semibold text-[#6f1d56] uppercase tracking-wide">
                   FILTERED
                 </span>{" "}
                 these counsellors for you. Choose a counsellor to see consultation times.
@@ -734,7 +734,7 @@ export default function FilteredCounsellors({
                   {/* Areas of Support */}
                   {clientSupportAreasText && (
                     <div className="flex items-start gap-2.5">
-                      <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
+                      <div className="w-4 h-4 rounded-full border border-[#e8b8dc] bg-[#fcf0f8] flex items-center justify-center flex-shrink-0 mt-0.5 text-[#6f1d56]">
                         <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                       </div>
                       <div>
@@ -751,7 +751,7 @@ export default function FilteredCounsellors({
                   {/* Modality (only if chosen) */}
                   {clientModality && (
                     <div className="flex items-start gap-2.5">
-                      <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
+                      <div className="w-4 h-4 rounded-full border border-[#e8b8dc] bg-[#fcf0f8] flex items-center justify-center flex-shrink-0 mt-0.5 text-[#6f1d56]">
                         <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                       </div>
                       <div>
@@ -768,7 +768,7 @@ export default function FilteredCounsellors({
                   {/* Specialty */}
                   {clientSpecialtyLabel && (
                     <div className="flex items-start gap-2.5">
-                      <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
+                      <div className="w-4 h-4 rounded-full border border-[#e8b8dc] bg-[#fcf0f8] flex items-center justify-center flex-shrink-0 mt-0.5 text-[#6f1d56]">
                         <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                       </div>
                       <div>
@@ -809,7 +809,7 @@ export default function FilteredCounsellors({
                   {/* Counsellor Preference */}
                   {clientPreferenceSummary && (
                     <div className="flex items-start gap-2.5">
-                      <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
+                      <div className="w-4 h-4 rounded-full border border-[#e8b8dc] bg-[#fcf0f8] flex items-center justify-center flex-shrink-0 mt-0.5 text-[#6f1d56]">
                         <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                       </div>
                       <div>
@@ -1075,7 +1075,7 @@ export default function FilteredCounsellors({
       {viewMode === "booking" && (
         !selectedCounsellorObj ? (
           <div className="bg-white rounded-2xl border border-gray-200/80 p-12 text-center shadow-2xs space-y-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 text-[#2d5a3f] flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-full bg-[#fcf0f8] text-[#6f1d56] flex items-center justify-center mx-auto">
               <Users className="w-6 h-6" />
             </div>
             <p className="text-gray-700 font-semibold text-base">
@@ -1306,7 +1306,7 @@ export default function FilteredCounsellors({
               {/* Book a Consultation Card */}
               <div className="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-2xs space-y-4">
                 <div className="flex items-start gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-[#f4f7f4] text-[#2d5a3f] flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-[#fdf5fb] text-[#6f1d56] flex items-center justify-center flex-shrink-0">
                     <Calendar className="w-5 h-5" />
                   </div>
                   <div>
@@ -1359,7 +1359,7 @@ export default function FilteredCounsellors({
 
                 {loadingCounsellorSlots || isSlotsLoading ? (
                   <div className="py-12 flex flex-col items-center justify-center space-y-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-[#2d5a3f]" />
+                    <Loader2 className="w-8 h-8 animate-spin text-[#6f1d56]" />
                     <p className="text-sm text-gray-500">
                       Loading available consultation slots...
                     </p>
@@ -1608,12 +1608,12 @@ export default function FilteredCounsellors({
                       </div>
 
                       {selectedDatetime && (
-                        <div className="mt-2 p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                        <div className="mt-2 p-3.5 bg-[#fcf0f8] border border-[#e8b8dc] rounded-xl flex items-center justify-between">
                           <div>
-                            <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wide block">
+                            <span className="text-[11px] font-bold text-[#6f1d56] uppercase tracking-wide block">
                               Confirmed Consultation Time
                             </span>
-                            <span className="text-xs md:text-sm font-bold text-emerald-950">
+                            <span className="text-xs md:text-sm font-bold text-[#3d0a29]">
                               {new Date(
                                 selectedDatetime.replace(" ", "T")
                               ).toLocaleString("en-GB", {
@@ -1626,7 +1626,7 @@ export default function FilteredCounsellors({
                               })}
                             </span>
                           </div>
-                          <div className="w-6 h-6 rounded-full bg-[#2d5a3f] text-white flex items-center justify-center flex-shrink-0">
+                          <div className="w-6 h-6 rounded-full bg-[#6b153f] text-white flex items-center justify-center flex-shrink-0">
                             <Check className="w-3.5 h-3.5 stroke-[3]" />
                           </div>
                         </div>
@@ -1636,8 +1636,8 @@ export default function FilteredCounsellors({
                 )}
 
                 {/* Bottom Assurance Card */}
-                <div className="bg-[#f7f9f7] rounded-xl p-4 border border-[#e2ece4] flex items-start gap-3 mt-6">
-                  <div className="w-8 h-8 rounded-xl bg-white text-[#2d5a3f] border border-gray-200 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
+                <div className="bg-[#fdf5fb] rounded-xl p-4 border border-[#e8b8dc] flex items-start gap-3 mt-6">
+                  <div className="w-8 h-8 rounded-xl bg-white text-[#6f1d56] border border-gray-200 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
                     <Shield className="w-4 h-4" />
                   </div>
                   <div>
@@ -1681,8 +1681,8 @@ export default function FilteredCounsellors({
                 iconClassName="w-10 h-10"
               />
               <div className="text-center sm:text-left space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f4f7f4] text-[#2d5a3f] text-xs font-bold mb-1 border border-[#d9e6dc]">
-                  <Star className="w-3.5 h-3.5 fill-[#2d5a3f]" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fdf5fb] text-[#6f1d56] text-xs font-bold mb-1 border border-[#e8b8dc]">
+                  <Star className="w-3.5 h-3.5 fill-[#6f1d56]" />
                   <span>
                     {activeProfileModal.match_score || 100}% Overall Fit (
                     {activeProfileModal.fit_label || "Best Fit"})
@@ -1692,11 +1692,11 @@ export default function FilteredCounsellors({
                   <h3 className="font-serif text-2xl md:text-3xl font-bold text-gray-900 whitespace-nowrap truncate">
                     {activeProfileModal.name}
                   </h3>
-                  <span className="inline-flex items-center text-[#2d5a3f] shrink-0" title="Verified Counsellor">
+                  <span className="inline-flex items-center text-[#6f1d56] shrink-0" title="Verified Counsellor">
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
                       <path
                         d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                        fill="#2d5a3f"
+                        fill="#6f1d56"
                       />
                       <path
                         d="m9 12 2 2 4-4"
@@ -1748,7 +1748,7 @@ export default function FilteredCounsellors({
                 {activeProfileModal.modality && (
                   <div className="border border-gray-100 rounded-2xl p-4 space-y-1.5">
                     <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      <Layers className="w-4 h-4 text-[#2d5a3f]" />
+                      <Layers className="w-4 h-4 text-[#6f1d56]" />
                       <span>Modality</span>
                     </div>
                     <p className="text-sm font-semibold text-gray-900">
@@ -1760,7 +1760,7 @@ export default function FilteredCounsellors({
                 {activeProfileModal.specialty && (
                   <div className="border border-gray-100 rounded-2xl p-4 space-y-1.5">
                     <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                      <Users className="w-4 h-4 text-[#2d5a3f]" />
+                      <Users className="w-4 h-4 text-[#6f1d56]" />
                       <span>Specialty</span>
                     </div>
                     <p className="text-sm font-semibold text-gray-900">
@@ -1781,7 +1781,7 @@ export default function FilteredCounsellors({
                   handleSelectCounsellor(activeProfileModal);
                   setActiveProfileModal(null);
                 }}
-                className="flex-1 bg-[#243f32] hover:bg-[#1a2f25] text-white text-sm font-bold py-3 px-6 rounded-xl shadow-xs transition cursor-pointer"
+                className="flex-1 bg-[#6b153f] hover:bg-[#5a1135] text-white text-sm font-bold py-3 px-6 rounded-xl shadow-xs transition cursor-pointer"
               >
                 Select {activeProfileModal.name} & Book Consultation
               </button>
