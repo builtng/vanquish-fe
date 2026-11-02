@@ -1491,9 +1491,9 @@ export default function FilteredCounsellors({
                                   }}
                                   className={`p-2 w-full aspect-square rounded-full flex items-center justify-center text-xs transition-all ${
                                     isSelected
-                                      ? "bg-[#2d4a3e] text-white shadow-xs font-bold cursor-pointer"
+                                      ? "bg-[#6b153f] text-white shadow-xs font-bold cursor-pointer"
                                       : hasSlots
-                                      ? "border border-gray-300 text-gray-800 hover:bg-emerald-50 hover:border-[#2d4a3e] cursor-pointer"
+                                      ? "border border-gray-300 text-gray-800 hover:bg-[#fcf0f8] hover:border-[#6f1d56] cursor-pointer"
                                       : "text-gray-300 cursor-not-allowed"
                                   }`}
                                 >
@@ -1506,7 +1506,7 @@ export default function FilteredCounsellors({
                         </div>
 
                         <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2 text-[11px] text-gray-500">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#3d654c]"></div>
+                          <div className="w-2.5 h-2.5 rounded-full bg-[#6f1d56]"></div>
                           <span>Available dates</span>
                         </div>
                       </div>
@@ -1595,8 +1595,8 @@ export default function FilteredCounsellors({
                                   }
                                   className={`w-full py-2.5 px-4 rounded-xl border text-xs sm:text-sm font-semibold transition text-center cursor-pointer ${
                                     isSlotChosen
-                                      ? "bg-[#2d4a3e] text-white border-[#2d4a3e] shadow-xs"
-                                      : "bg-white border-gray-200 text-gray-800 hover:border-[#2d4a3e] hover:bg-emerald-50/40"
+                                      ? "bg-[#6b153f] text-white border-[#6b153f] shadow-xs"
+                                      : "bg-white border-gray-200 text-gray-800 hover:border-[#6f1d56] hover:bg-[#fcf0f8]"
                                   }`}
                                 >
                                   {slotLabel}
