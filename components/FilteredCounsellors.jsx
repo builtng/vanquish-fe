@@ -188,61 +188,57 @@ export default function FilteredCounsellors({
     setViewMode("booking");
   };
 
-  // Format client availability summary text from their actual selected days and times
-  const clientAvailabilitySummary = useMemo(() => {
-    if (!formData.availability) return "";
+  // Format client availability as an array of per-day badge strings
+  const clientAvailabilityBadges = useMemo(() => {
+    if (!formData.availability) return [];
+    const dayMap = {
+      monday: "Mon",
+      tuesday: "Tue",
+      wednesday: "Wed",
+      thursday: "Thu",
+      friday: "Fri",
+      saturday: "Sat",
+      sunday: "Sun",
+    };
+
+    const formatSlotLabel = (val) => {
+      if (!val || typeof val !== "string") return "";
+      const match = val.match(/^(\d{1,2})(am|pm)-(\d{1,2})(\d{2})(am|pm)$/i);
+      if (match) {
+        const [, startH, startMeridiem, endH, endM, endMeridiem] = match;
+        return `${startH}${startMeridiem.toLowerCase()}–${endH}:${endM}${endMeridiem.toLowerCase()}`;
+      }
+      return val;
+    };
+
     if (typeof formData.availability === "string") {
-      return formData.availability.trim();
+      return formData.availability.trim() ? [formData.availability.trim()] : [];
     }
     if (Array.isArray(formData.availability)) {
-      return formData.availability.filter(Boolean).join(", ");
+      return formData.availability.filter(Boolean);
     }
     if (typeof formData.availability === "object") {
-      const dayMap = {
-        monday: "Mon",
-        tuesday: "Tue",
-        wednesday: "Wed",
-        thursday: "Thu",
-        friday: "Fri",
-        saturday: "Sat",
-        sunday: "Sun",
-      };
-
-      const formatSlotLabel = (val) => {
-        if (!val || typeof val !== "string") return "";
-        const match = val.match(/^(\d{1,2})(am|pm)-(\d{1,2})(\d{2})(am|pm)$/i);
-        if (match) {
-          const [, startH, startMeridiem, endH, endM, endMeridiem] = match;
-          return `${startH}${startMeridiem.toLowerCase()}–${endH}:${endM}${endMeridiem.toLowerCase()}`;
-        }
-        return val;
-      };
-
-      const dayParts = [];
+      const badges = [];
       Object.keys(formData.availability).forEach((d) => {
         const slots = formData.availability[d];
+        const dayName =
+          dayMap[d.toLowerCase()] || (d.charAt(0).toUpperCase() + d.slice(1));
         if (Array.isArray(slots) && slots.length > 0) {
-          const dayName =
-            dayMap[d.toLowerCase()] ||
-            (d.charAt(0).toUpperCase() + d.slice(1));
           const timeList = slots.map(formatSlotLabel).filter(Boolean);
-          if (timeList.length > 0) {
-            dayParts.push(`${dayName} (${timeList.join(", ")})`);
-          } else {
-            dayParts.push(dayName);
-          }
+          badges.push(timeList.length > 0 ? `${dayName} ${timeList.join(", ")}` : dayName);
         } else if (typeof slots === "string" && slots.trim() !== "") {
-          const dayName =
-            dayMap[d.toLowerCase()] ||
-            (d.charAt(0).toUpperCase() + d.slice(1));
-          dayParts.push(`${dayName} (${slots.trim()})`);
+          badges.push(`${dayName} ${slots.trim()}`);
         }
       });
-
-      return dayParts.join("; ");
+      return badges;
     }
-    return "";
+    return [];
   }, [formData.availability]);
+
+  // Plain text summary (kept for any remaining text uses)
+  const clientAvailabilitySummary = useMemo(() => {
+    return clientAvailabilityBadges.join("; ");
+  }, [clientAvailabilityBadges]);
 
   // Format client support areas text
   const clientSupportAreasText = useMemo(() => {
@@ -489,6 +485,11 @@ export default function FilteredCounsellors({
     setFavorites((prev) => ({ ...prev, [uuid]: !prev[uuid] }));
   };
 
+  const [expandedAvail, setExpandedAvail] = useState({});
+  const toggleAvailExpanded = (uuid) => {
+    setExpandedAvail((prev) => ({ ...prev, [uuid]: !prev[uuid] }));
+  };
+
   const selectedCounsellorObj = useMemo(() => {
     if (!selectedCounsellorUuid) return null;
     return (
@@ -589,7 +590,7 @@ export default function FilteredCounsellors({
                     aria-label="Sort counsellors by"
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none bg-white border border-gray-200/90 rounded-lg px-3 py-1.5 pr-7 text-xs sm:text-sm font-semibold text-gray-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#2d5a3f] cursor-pointer"
+                    className="appearance-none bg-white border border-gray-200/90 rounded-lg px-3 py-1.5 pr-7 text-xs sm:text-sm font-semibold text-gray-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#6f1d56] cursor-pointer"
                   >
                     <option value="best_fit">Best Fit</option>
                     <option value="score_desc">Highest Match</option>
@@ -624,17 +625,24 @@ export default function FilteredCounsellors({
                 {/* Filter Criteria Items */}
                 <div className="space-y-4 pt-1">
                   {/* 1. Availability */}
-                  {clientAvailabilitySummary && (
-                    <div className="space-y-1">
+                  {clientAvailabilityBadges.length > 0 && (
+                    <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-gray-600" />
+                        <Calendar className="w-3.5 h-3.5 text-[#6f1d56]" />
                         <span className="text-xs font-bold text-gray-800">
                           Availability
                         </span>
                       </div>
-                      <p className="text-xs text-gray-600 pl-5.5 font-medium leading-relaxed">
-                        {clientAvailabilitySummary}
-                      </p>
+                      <div className="flex flex-wrap gap-1.5 pl-5.5">
+                        {clientAvailabilityBadges.map((badge, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#fcf0f8] text-[#6f1d56] border border-[#e8b8dc]"
+                          >
+                            {badge}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -700,8 +708,8 @@ export default function FilteredCounsellors({
                 </div>
 
                 {/* About These Results Callout */}
-                <div className="bg-[#eef4ee] rounded-xl p-3.5 border border-[#d9e6dc] flex items-start gap-3 mt-4">
-                  <div className="w-5 h-5 rounded-full bg-[#3d654c] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="bg-[#fdf5fb] rounded-xl p-3.5 border border-[#e8b8dc] flex items-start gap-3 mt-4">
+                  <div className="w-5 h-5 rounded-full bg-[#6b153f] text-white flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Check className="w-3 h-3 stroke-[3]" />
                   </div>
                   <div>
@@ -775,18 +783,25 @@ export default function FilteredCounsellors({
                   )}
 
                   {/* Availability */}
-                  {clientAvailabilitySummary && (
+                  {clientAvailabilityBadges.length > 0 && (
                     <div className="flex items-start gap-2.5">
-                      <div className="w-4 h-4 rounded-full border border-gray-300 flex items-center justify-center flex-shrink-0 mt-0.5 text-[#3d654c]">
+                      <div className="w-4 h-4 rounded-full border border-[#e8b8dc] bg-[#fcf0f8] flex items-center justify-center flex-shrink-0 mt-0.5 text-[#6f1d56]">
                         <Check className="w-2.5 h-2.5 stroke-[2.5]" />
                       </div>
                       <div>
                         <h4 className="text-xs font-bold text-gray-800">
                           Availability
                         </h4>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {clientAvailabilitySummary}
-                        </p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {clientAvailabilityBadges.map((badge, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#fcf0f8] text-[#6f1d56] border border-[#e8b8dc]"
+                            >
+                              {badge}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -815,14 +830,14 @@ export default function FilteredCounsellors({
             <div className="lg:col-span-8 space-y-6">
               {loading ? (
                 <div className="bg-white rounded-2xl p-16 text-center border border-gray-100 shadow-2xs flex flex-col items-center justify-center space-y-4">
-                  <Loader2 className="w-9 h-9 animate-spin text-[#2d5a3f]" />
+                  <Loader2 className="w-9 h-9 animate-spin text-[#6f1d56]" />
                   <p className="text-gray-700 font-semibold text-base">
                     Matching and filtering counsellors...
                   </p>
                 </div>
               ) : sortedCounsellors.length === 0 ? (
                 <div className="bg-white rounded-2xl p-12 text-center border border-gray-200/80 shadow-2xs space-y-4">
-                  <div className="w-12 h-12 rounded-full bg-emerald-50 text-[#2d5a3f] flex items-center justify-center mx-auto">
+                  <div className="w-12 h-12 rounded-full bg-[#fcf0f8] text-[#6f1d56] flex items-center justify-center mx-auto">
                     <Users className="w-6 h-6" />
                   </div>
                   <h3 className="text-lg font-bold text-gray-900">
@@ -832,7 +847,7 @@ export default function FilteredCounsellors({
                     No counsellors match all your preferences right now. Please widen your availability or preferences, or contact{" "}
                     <a
                       href="mailto:help@vanquishtherapies.co.uk"
-                      className="text-[#2d5a3f] font-semibold underline"
+                      className="text-[#6f1d56] font-semibold underline"
                     >
                       help@vanquishtherapies.co.uk
                     </a>
@@ -890,9 +905,9 @@ export default function FilteredCounsellors({
                               </div>
 
                               {/* Fit Score Badge Box */}
-                              <div className="bg-[#f7f9f7] border border-gray-200/70 rounded-xl px-4 py-2.5 text-center min-w-[110px] shadow-2xs">
-                                <div className="flex items-center justify-center gap-1 text-xs font-semibold text-[#2d5a3f]">
-                                  <Star className="w-3.5 h-3.5 fill-[#2d5a3f]" />
+                              <div className="bg-[#fdf5fb] border border-[#e8b8dc] rounded-xl px-4 py-2.5 text-center min-w-[110px] shadow-2xs">
+                                <div className="flex items-center justify-center gap-1 text-xs font-semibold text-[#6f1d56]">
+                                  <Star className="w-3.5 h-3.5 fill-[#6f1d56]" />
                                   <span>{counsellor.fit_label || "Best Fit"}</span>
                                 </div>
                                 <div className="text-2xl md:text-3xl font-bold text-gray-900 mt-0.5">
@@ -916,22 +931,22 @@ export default function FilteredCounsellors({
                                       .map((mod, i) => (
                                         <span
                                           key={i}
-                                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]"
+                                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#fdf5fb] text-gray-800 border border-[#e8b8dc]"
                                         >
-                                          <span className="text-[#2d5a3f]">⬡</span>
+                                          <span className="text-[#6f1d56]">⬡</span>
                                           {mod}
                                         </span>
                                       ))
                                   ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
-                                      <span className="text-[#2d5a3f]">⬡</span>
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#fdf5fb] text-gray-800 border border-[#e8b8dc]">
+                                      <span className="text-[#6f1d56]">⬡</span>
                                       {counsellor.modality}
                                     </span>
                                   )
                                 )}
                                 {counsellor.specialty && (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
-                                    <Users className="w-3.5 h-3.5 text-[#2d5a3f]" />
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#fdf5fb] text-gray-800 border border-[#e8b8dc]">
+                                    <Users className="w-3.5 h-3.5 text-[#6f1d56]" />
                                     {counsellor.specialty}
                                   </span>
                                 )}
@@ -967,15 +982,65 @@ export default function FilteredCounsellors({
                             )}
                           </div>
 
-                          {/* Bottom Row: Availability + View Profile Button */}
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-gray-100 mt-2">
-                            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-700 font-medium">
-                              <Calendar className="w-4 h-4 text-gray-500 shrink-0" />
-                              <span>
-                                {counsellor.availability_summary ||
-                                  clientAvailabilitySummary}
-                              </span>
-                            </div>
+                          {/* Bottom Row: Availability badges + View Profile Button */}
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pt-3 border-t border-gray-100 mt-2">
+                            {/* Availability badges */}
+                            {(() => {
+                              const rawSummary = counsellor.availability_summary || clientAvailabilitySummary;
+                              // Build badges: prefer counsellor.availability object, else split summary
+                              let badges = [];
+                              if (counsellor.availability && typeof counsellor.availability === "object" && !Array.isArray(counsellor.availability)) {
+                                const dayMap = { monday:"Mon", tuesday:"Tue", wednesday:"Wed", thursday:"Thu", friday:"Fri", saturday:"Sat", sunday:"Sun" };
+                                Object.keys(counsellor.availability).forEach((d) => {
+                                  const slots = counsellor.availability[d];
+                                  const dayName = dayMap[d.toLowerCase()] || d;
+                                  if (Array.isArray(slots) && slots.length > 0) badges.push(dayName);
+                                  else if (typeof slots === "string" && slots.trim()) badges.push(dayName);
+                                });
+                              } else if (rawSummary) {
+                                badges = rawSummary.split(/[;,]/).map(s => s.trim()).filter(Boolean);
+                              } else {
+                                badges = clientAvailabilityBadges;
+                              }
+
+                              if (badges.length === 0) return null;
+                              const isExpanded = !!expandedAvail[counsellor.uuid];
+                              const SHOW = 3;
+                              const visible = isExpanded ? badges : badges.slice(0, SHOW);
+                              const hasMore = badges.length > SHOW;
+
+                              return (
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5 mb-1.5">
+                                    <Calendar className="w-3.5 h-3.5 text-[#6f1d56] shrink-0" />
+                                    <span className="text-[11px] font-semibold text-[#6f1d56] uppercase tracking-wide">Availability</span>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5 items-center">
+                                    {visible.map((badge, i) => (
+                                      <span
+                                        key={i}
+                                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#fcf0f8] text-[#6f1d56] border border-[#e8b8dc]"
+                                      >
+                                        {badge}
+                                      </span>
+                                    ))}
+                                    {hasMore && (
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleAvailExpanded(counsellor.uuid)}
+                                        className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#f5e6f2] text-[#6f1d56] border border-[#e8b8dc] hover:bg-[#efd6ea] transition cursor-pointer"
+                                      >
+                                        {isExpanded ? (
+                                          <>Less <ChevronUp className="w-3 h-3" /></>
+                                        ) : (
+                                          <>+{badges.length - SHOW} more <ChevronDown className="w-3 h-3" /></>
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
 
                             {counsellor.show_own_consultation_availability === false &&
                             counsellor.show_vanquish_consultation_availability === false ? (
@@ -986,7 +1051,7 @@ export default function FilteredCounsellors({
                               <button
                                 type="button"
                                 onClick={() => handleSelectCounsellor(counsellor)}
-                                className="py-2 px-6 rounded-lg bg-[#2d4a3e] hover:bg-[#223930] text-white text-xs sm:text-sm font-semibold shadow-xs transition text-center cursor-pointer shrink-0"
+                                className="py-2 px-6 rounded-lg bg-[#6b153f] hover:bg-[#5a1135] text-white text-xs sm:text-sm font-semibold shadow-xs transition text-center cursor-pointer shrink-0"
                               >
                                 View profile and book consultation
                               </button>
@@ -1019,7 +1084,7 @@ export default function FilteredCounsellors({
             <button
               type="button"
               onClick={() => setViewMode("directory")}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2d4a3e] hover:bg-[#223930] text-white text-sm font-semibold transition cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#6b153f] hover:bg-[#5a1135] text-white text-sm font-semibold transition cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Choose a Counsellor</span>
@@ -1032,7 +1097,7 @@ export default function FilteredCounsellors({
               <button
                 type="button"
                 onClick={() => setViewMode("directory")}
-                className="inline-flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-[#1b3b2b] transition py-1 group cursor-pointer"
+                className="inline-flex items-center gap-2 text-sm font-bold text-gray-700 hover:text-[#6f1d56] transition py-1 group cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                 <span>Back to filtered counsellors</span>
@@ -1051,7 +1116,7 @@ export default function FilteredCounsellors({
                         handleSelectCounsellor(found);
                       }
                     }}
-                    className="bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#2d5a3f] cursor-pointer"
+                    className="bg-white border border-gray-200 rounded-lg px-2.5 py-1 text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#6f1d56] cursor-pointer"
                   >
                     {counsellors.map((c) => (
                       <option key={c.uuid} value={c.uuid}>
@@ -1087,11 +1152,11 @@ export default function FilteredCounsellors({
                       <h2 className="font-serif text-2xl md:text-3xl font-bold text-gray-900 whitespace-nowrap truncate">
                         {selectedCounsellorObj.name}
                       </h2>
-                      <span className="inline-flex items-center text-[#2d5a3f] shrink-0" title="Verified Counsellor">
+                      <span className="inline-flex items-center text-[#6f1d56] shrink-0" title="Verified Counsellor">
                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
                           <path
                             d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                            fill="#2d5a3f"
+                            fill="#6f1d56"
                           />
                           <path
                             d="m9 12 2 2 4-4"
@@ -1117,22 +1182,22 @@ export default function FilteredCounsellors({
                             .map((mod, i) => (
                               <span
                                 key={i}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#fdf5fb] text-gray-800 border border-[#e8b8dc]"
                               >
-                                <span className="text-[#2d5a3f]">⬡</span>
+                                <span className="text-[#6f1d56]">⬡</span>
                                 {mod}
                               </span>
                             ))
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
-                            <span className="text-[#2d5a3f]">⬡</span>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#fdf5fb] text-gray-800 border border-[#e8b8dc]">
+                            <span className="text-[#6f1d56]">⬡</span>
                             {selectedCounsellorObj.modality}
                           </span>
                         )
                       )}
                       {selectedCounsellorObj.specialty && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#f2f6f3] text-gray-800 border border-[#dce7df]">
-                          <Users className="w-3.5 h-3.5 text-[#2d5a3f]" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#fdf5fb] text-gray-800 border border-[#e8b8dc]">
+                          <Users className="w-3.5 h-3.5 text-[#6f1d56]" />
                           {selectedCounsellorObj.specialty}
                         </span>
                       )}
@@ -1168,14 +1233,26 @@ export default function FilteredCounsellors({
                   {/* Quick Icon Details */}
                   {(selectedCounsellorObj.availability_summary || clientAvailabilitySummary || selectedCounsellorObj.qualified_to_work_with || selectedCounsellorObj.languages) && (
                     <div className="space-y-2.5 pt-3 border-t border-gray-100 text-xs sm:text-sm text-gray-700">
-                      {(selectedCounsellorObj.availability_summary || clientAvailabilitySummary) && (
-                        <div className="flex items-start gap-2.5">
-                          <Calendar className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                          <span>
-                            <strong>Availability:</strong>{" "}
-                            {selectedCounsellorObj.availability_summary ||
-                              clientAvailabilitySummary}
-                          </span>
+                      {(selectedCounsellorObj.availability_summary || clientAvailabilityBadges.length > 0) && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-[#6f1d56] flex-shrink-0" />
+                            <strong className="text-[11px] font-semibold text-[#6f1d56] uppercase tracking-wide">Availability</strong>
+                          </div>
+                          {clientAvailabilityBadges.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {clientAvailabilityBadges.map((badge, i) => (
+                                <span
+                                  key={i}
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#fcf0f8] text-[#6f1d56] border border-[#e8b8dc]"
+                                >
+                                  {badge}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-600">{selectedCounsellorObj.availability_summary}</p>
+                          )}
                         </div>
                       )}
                       {selectedCounsellorObj.qualified_to_work_with && (
