@@ -298,7 +298,7 @@ export default function VanquishTCApplication() {
     });
 
     try {
-      const response = await apiService.uploadTcDocument(field, file, (percent) => {
+      const response = await apiService.uploadTcDocument(file, field, (percent) => {
         setUploadProgress((prev) => ({ ...prev, [field]: percent }));
       });
       const fileUrl = response.url || response.file_path;
