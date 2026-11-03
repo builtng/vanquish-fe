@@ -248,3 +248,41 @@ test("QC Application Detail: shows the same journey stages and Next Stage button
   assert.ok(!render("Active Placement").includes("Next Stage:"));
   assert.ok(render("Rejected").includes("width:0%"));
 });
+
+test("QC Application Detail: offers Grant Portal Access from acceptance onwards, like trainee applications", () => {
+  const { QualifiedApplicationDetailView } = loadComponent(
+    path.join(rootDir, "app/dashboard/qualified-applications/[id]/page.jsx")
+  );
+  const render = (app) =>
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(QualifiedApplicationDetailView, {
+        app: { id: 9, name: "Ross Geller", email: "ross@example.com", ...app },
+      })
+    );
+
+  assert.ok(!render({ status: "Interview Attended" }).includes("Grant Portal Access"));
+
+  const accepted = render({ status: "Induction Attended" });
+  assert.ok(accepted.includes("Grant Portal Access"));
+  assert.ok(accepted.includes("Finalize: Make Active Placement"));
+
+  const granted = render({
+    status: "Onboarding",
+    onboarding_data: { portal_access_granted: true, portal_invite_sent_at: "2026-11-03T10:00:00Z" },
+  });
+  assert.ok(granted.includes("Portal Access Granted"));
+  assert.ok(!granted.includes("Grant Portal Access</button>"));
+});
+
+test("Admin Users: role picker offers Trainee Counsellor and Qualified Counsellor", () => {
+  const content = fs.readFileSync(path.join(rootDir, "app/dashboard/users/page.jsx"), "utf8");
+  assert.ok(content.includes("{ value: 'trainee_counsellor', label: 'Trainee Counsellor' }"));
+  assert.ok(content.includes("{ value: 'qualified_counsellor', label: 'Qualified Counsellor' }"));
+  assert.ok(content.includes("role: user.role_choice || user.role"), "Editing must preselect the counsellor type");
+});
+
+test("API: QC portal invite and finalise endpoints are wired", () => {
+  const content = fs.readFileSync(path.join(rootDir, "lib/api.js"), "utf8");
+  assert.ok(content.includes("/qc-applications/${id}/portal-invite"));
+  assert.ok(content.includes("/qc-applications/${id}/finalize"));
+});

@@ -219,6 +219,51 @@ export function QualifiedApplicationDetailView({
     }
   };
 
+  const handlePortalInvite = async () => {
+    if (!app?.id) return;
+    if (confirm) {
+      const ok = await confirm({
+        title: "Grant Portal Access",
+        message: `Create ${app.name}'s Qualified Counsellor portal login and email them the portal invitation?`,
+        confirmText: "Send Invitation",
+      });
+      if (!ok) return;
+    }
+    try {
+      setActionLoading(true);
+      await apiService.sendQcPortalInvite(app.id);
+      toast.success("Portal invitation sent!");
+      onRefresh?.();
+    } catch (err) {
+      toast.error(err?.data?.message || err?.message || "Failed to send invite.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleFinalizePlacement = async () => {
+    if (!app?.id) return;
+    if (confirm) {
+      const ok = await confirm({
+        title: "Finalize Placement",
+        message: "Confirm this qualified counsellor has completed all onboarding and is ready for matching?",
+        confirmText: "Yes, Finalize",
+        type: "warning",
+      });
+      if (!ok) return;
+    }
+    try {
+      setActionLoading(true);
+      await apiService.finalizeQcPlacement(app.id);
+      toast.success("PLACEMENT ACTIVE! Congratulations.");
+      onRefresh?.();
+    } catch (err) {
+      toast.error(err?.data?.message || err?.message || "An error occurred.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleStatusChange = (e) => changeStatus(e.target.value);
 
   const changeStatus = async (newStatus) => {
@@ -244,6 +289,9 @@ export function QualifiedApplicationDetailView({
     }
     if (newStatus === "Induction No-Show") {
       return handleInductionAttendance(false);
+    }
+    if (newStatus === "Active Placement") {
+      return handleFinalizePlacement();
     }
 
     try {
@@ -302,6 +350,12 @@ export function QualifiedApplicationDetailView({
   }));
   const journeyProgressPercent =
     currentGroupIndex !== -1 ? ((currentGroupIndex + 1) / journeyGroups.length) * 100 : 0;
+
+  const portalAccessGranted = Boolean(app?.onboarding_data?.portal_access_granted);
+  // Shown from acceptance onwards, as on trainee applications.
+  const showPortalSection =
+    portalAccessGranted ||
+    ["Accepted", "Induction Attended", "Induction No-Show", "Onboarding", "Active Placement"].includes(app?.status);
 
   const prevWork = app?.previous_vanquish_work || app?.answers?.previous_vanquish_work;
   const areasToImprove = app?.areas_to_improve || app?.answers?.areas_to_improve;
@@ -581,6 +635,56 @@ export function QualifiedApplicationDetailView({
                 </div>
               </div>
             </div>
+
+            {/* ───────────────── PORTAL & FINALIZATION (same as trainee applications) ───────────────── */}
+            {showPortalSection && (
+            <div className="p-6">
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                {!portalAccessGranted ? (
+                  <button
+                    onClick={handlePortalInvite}
+                    disabled={actionLoading}
+                    className="w-full md:w-auto px-8 py-3 bg-violet-600 text-white rounded-xl font-bold text-sm hover:bg-violet-700 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                  >
+                    <Mail className="w-5 h-5" /> Grant Portal Access
+                  </button>
+                ) : (
+                  <div className="flex-1 flex items-center gap-3 bg-violet-50 p-4 rounded-xl border border-violet-100">
+                    <div className="p-2 bg-violet-100 text-violet-700 rounded-lg">
+                      <Shield className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-violet-900">Portal Access Granted</div>
+                      <div className="text-[10px] text-violet-600 font-medium">
+                        Invitation sent on{" "}
+                        {app.onboarding_data?.portal_invite_sent_at
+                          ? new Date(app.onboarding_data.portal_invite_sent_at).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "-"}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {app.status !== "Active Placement" ? (
+                  <button
+                    onClick={handleFinalizePlacement}
+                    disabled={!portalAccessGranted || actionLoading}
+                    className="w-full md:w-auto px-8 py-3 bg-black text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all disabled:bg-gray-200"
+                  >
+                    Finalize: Make Active Placement
+                  </button>
+                ) : (
+                  <div className="px-8 py-3 bg-green-600 text-white rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg">
+                    <CheckCircle className="w-5 h-5" /> ACTIVE PLACEMENT
+                  </div>
+                )}
+              </div>
+            </div>
+            )}
 
             {/* ───────────────── PREVIOUS APPLICATIONS (INDEPENDENT) ───────────────── */}
             {previousSubmissions.length > 0 && (
