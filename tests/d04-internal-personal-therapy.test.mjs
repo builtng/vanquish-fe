@@ -100,3 +100,13 @@ test('D04: Admin trainee application detail page uses Personal Therapy Confirmat
     'Must not have legacy "(JotForm)" label'
   );
 });
+
+test('Therapy form: the plain /therapy-form link (no token) shows the form instead of "Verification Link Invalid"', () => {
+  const filePath = path.join(rootDir, 'app/therapy-form/page.jsx');
+  const content = fs.readFileSync(filePath, 'utf8');
+
+  assert.ok(content.includes('setTokenStatus("open")'), 'A missing token must open the form, not the invalid screen');
+  assert.ok(content.includes('Trainee Full Name'), 'Open link must ask for the trainee name');
+  assert.ok(content.includes('Trainee Email Address'), 'Open link must ask for the trainee email');
+  assert.ok(content.includes('token: token || undefined'), 'Open link must not send an empty token');
+});
