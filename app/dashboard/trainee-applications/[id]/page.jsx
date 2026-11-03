@@ -268,6 +268,13 @@ function PaperworkToggle({
         </div>
       )}
 
+      {meta?.concerns_raised && (
+        <div className="mt-2 p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-[11px] text-red-700 dark:text-red-300">
+          <p className="font-bold">The therapist has raised concerns about suitability to work with clients.</p>
+          {meta.concerns_details && <p className="mt-0.5 whitespace-pre-line">{meta.concerns_details}</p>}
+        </div>
+      )}
+
       {onFileUpload && (
         <div className="mt-2.5 pt-2 border-t border-gray-200 dark:border-gray-700/60 flex items-center justify-between gap-2 text-xs">
           <input
