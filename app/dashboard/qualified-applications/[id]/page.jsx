@@ -245,8 +245,9 @@ export function QualifiedApplicationDetailView({
     }
   };
 
-  const handleStatusChange = async (e) => {
-    const newStatus = e.target.value;
+  const handleStatusChange = (e) => changeStatus(e.target.value);
+
+  const changeStatus = async (newStatus) => {
     if (!newStatus || newStatus === app?.status) return;
 
     if (newStatus === "Stage 3 Interview Booked") {
@@ -282,6 +283,51 @@ export function QualifiedApplicationDetailView({
       setActionLoading(false);
     }
   };
+
+  // Same stage sequence as the trainee application page. QC applications are
+  // created as "Submitted", which sits at the start alongside "New Application".
+  const stageSequence = [
+    "New Application",
+    "Stage 1 Complete",
+    "Stage 2 Invited",
+    "Stage 2 Video Submitted",
+    "Stage 2 Approved",
+    "Stage 3 Interview Booked",
+    "Interview Attended",
+    "Accepted",
+    "Induction Attended",
+    "Onboarding",
+    "Active Placement",
+  ];
+  const sequenceStatus = !app?.status || app.status === "Submitted" ? "New Application" : app.status;
+  const sequenceIndex = stageSequence.indexOf(sequenceStatus);
+  const nextStage =
+    sequenceIndex !== -1 && sequenceIndex < stageSequence.length - 1
+      ? stageSequence[sequenceIndex + 1]
+      : null;
+
+  // Qualified Counsellor Journey: identical groups to the Trainee Counsellor Journey.
+  const journeyGroups = [
+    { label: "Application", statuses: ["Submitted", "New Application", "Stage 1 Complete", "Stage 2 Invited"] },
+    { label: "Assessment", statuses: ["Stage 2 Video Submitted", "Stage 2 Approved"] },
+    { label: "Interview Booked", statuses: ["Stage 3 Interview Booked"] },
+    { label: "Interview Attended", statuses: ["Interview Attended", "Interview No Show"] },
+    { label: "Accepted", statuses: ["Accepted"] },
+    { label: "Onboarding", statuses: ["Induction Attended", "Induction No-Show", "Onboarding"] },
+    { label: "Active Placement", statuses: ["Active Placement"] },
+  ];
+  const journeyStatus = app?.status || "Submitted";
+  const isOffTrack = journeyStatus === "Rejected" || journeyStatus === "Hold";
+  const currentGroupIndex = isOffTrack
+    ? -1
+    : journeyGroups.findIndex((g) => g.statuses.includes(journeyStatus));
+  const journeyStages = journeyGroups.map((g, index) => ({
+    label: g.label,
+    completed: currentGroupIndex !== -1 && index < currentGroupIndex,
+    current: index === currentGroupIndex,
+  }));
+  const journeyProgressPercent =
+    currentGroupIndex !== -1 ? ((currentGroupIndex + 1) / journeyGroups.length) * 100 : 0;
 
   const prevWork = app?.previous_vanquish_work || app?.answers?.previous_vanquish_work;
   const areasToImprove = app?.areas_to_improve || app?.answers?.areas_to_improve;
@@ -327,7 +373,21 @@ export function QualifiedApplicationDetailView({
                     {app.created_at ? new Date(app.created_at).toLocaleString("en-GB") : "-"}
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  {nextStage && (
+                    <button
+                      onClick={() => changeStatus(nextStage)}
+                      disabled={actionLoading}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all font-bold text-sm shadow-md hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    >
+                      {actionLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4" />
+                      )}{" "}
+                      Next Stage: {nextStage}
+                    </button>
+                  )}
                   <div className="flex items-center gap-2">
                     <label className="text-xs font-medium text-gray-600">Stage:</label>
                     <select
@@ -337,13 +397,20 @@ export function QualifiedApplicationDetailView({
                       className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-300 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
                       <option value="Submitted">Submitted / New</option>
+                      <option value="Stage 1 Complete">Stage 1 Complete</option>
+                      <option value="Stage 2 Invited">Stage 2 Invited</option>
+                      <option value="Stage 2 Video Submitted">Stage 2 Video Submitted</option>
+                      <option value="Stage 2 Approved">Stage 2 Approved</option>
                       <option value="Stage 3 Interview Booked">Stage 3 Interview Booked</option>
                       <option value="Interview Attended">Interview Attended</option>
                       <option value="Interview No Show">Interview No Show</option>
                       <option value="Accepted">Accepted</option>
                       <option value="Induction Attended">Induction Attended</option>
                       <option value="Induction No-Show">Induction No-Show</option>
+                      <option value="Onboarding">Onboarding</option>
+                      <option value="Active Placement">Active Placement</option>
                       <option value="Rejected">Rejected</option>
+                      <option value="Hold">Hold</option>
                     </select>
                   </div>
                   <button
@@ -439,6 +506,68 @@ export function QualifiedApplicationDetailView({
                       .filter(Boolean)
                       .join(", ") || "N/A"}
                   </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ───────────────── JOURNEY TIMELINE (same as Trainee Counsellor Journey) ───────────────── */}
+            <div className="p-6">
+              <h2 className="text-sm font-bold text-gray-800 dark:text-[var(--text-primary)] mb-6 flex items-center gap-2">
+                <History className="w-4 h-4 text-purple-500" />
+                Qualified Counsellor Journey
+                {isOffTrack && (
+                  <span
+                    className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                      journeyStatus === "Rejected"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-slate-100 text-slate-700"
+                    }`}
+                  >
+                    {journeyStatus}
+                  </span>
+                )}
+              </h2>
+              <div className="relative">
+                <div className="absolute top-6 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
+                <div
+                  className="absolute top-6 left-0 h-0.5 bg-purple-600 transition-all duration-500"
+                  style={{ width: `${journeyProgressPercent}%` }}
+                ></div>
+                <div className="relative flex justify-between">
+                  {journeyStages.map((stage) => (
+                    <div
+                      key={stage.label}
+                      className="flex flex-col items-center px-1"
+                      style={{ flex: 1 }}
+                    >
+                      <div
+                        className={`w-12 h-12 rounded-full border-4 flex items-center justify-center relative z-10 ${
+                          stage.completed
+                            ? "bg-purple-600 border-purple-600"
+                            : stage.current
+                              ? "bg-white dark:bg-[var(--card-bg)] border-purple-600"
+                              : "bg-white dark:bg-[var(--card-bg)] border-gray-300 dark:border-gray-600"
+                        }`}
+                      >
+                        {stage.completed ? (
+                          <Check className="w-6 h-6 text-white" />
+                        ) : stage.current ? (
+                          <Clock className="w-6 h-6 text-purple-600" />
+                        ) : (
+                          <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600"></div>
+                        )}
+                      </div>
+                      <p
+                        className={`mt-3 text-xs font-medium text-center ${
+                          stage.completed || stage.current
+                            ? "text-gray-900 dark:text-[var(--text-primary)]"
+                            : "text-gray-500 dark:text-[var(--text-tertiary)]"
+                        }`}
+                      >
+                        {stage.label}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

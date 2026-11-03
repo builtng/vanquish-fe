@@ -215,3 +215,36 @@ test("QC Applications List: View button links directly to /dashboard/qualified-a
     "List page View button must link to /dashboard/qualified-applications/${app.id}"
   );
 });
+
+test("QC Application Detail: shows the same journey stages and Next Stage button as the trainee page", () => {
+  const { QualifiedApplicationDetailView } = loadComponent(
+    path.join(rootDir, "app/dashboard/qualified-applications/[id]/page.jsx")
+  );
+
+  const render = (status) =>
+    ReactDOMServer.renderToStaticMarkup(
+      React.createElement(QualifiedApplicationDetailView, {
+        app: { id: 7, name: "Jane Doe", email: "jane@example.com", status },
+      })
+    );
+
+  const html = render("Interview Attended");
+  assert.ok(html.includes("Qualified Counsellor Journey"));
+  for (const label of [
+    "Application",
+    "Assessment",
+    "Interview Booked",
+    "Interview Attended",
+    "Accepted",
+    "Onboarding",
+    "Active Placement",
+  ]) {
+    assert.ok(html.includes(`>${label}</p>`), `Journey must show the ${label} stage`);
+  }
+  assert.ok(html.includes("Next Stage: Accepted"));
+  assert.ok(html.includes("width:57.14285714285714%"), "Progress line must reach the current stage");
+
+  assert.ok(render("Submitted").includes("Next Stage: Stage 1 Complete"));
+  assert.ok(!render("Active Placement").includes("Next Stage:"));
+  assert.ok(render("Rejected").includes("width:0%"));
+});
