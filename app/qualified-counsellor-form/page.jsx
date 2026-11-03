@@ -528,9 +528,15 @@ function QualifiedCounsellorFormContent() {
   const handleNext = () => handleStepChange(currentStep + 1);
   const handlePrevious = () => handleStepChange(currentStep - 1);
 
+  // Upload tokens for files already uploaded successfully, so a failed submit
+  // can be retried without re-uploading (and re-spending rate limit on) every file.
+  const uploadedTokensRef = useRef(new WeakMap());
+
   const uploadFile = async (file, fieldName) => {
     if (!file) return null;
     if (typeof file === "string") return file;
+    const cachedToken = uploadedTokensRef.current.get(file);
+    if (cachedToken) return cachedToken;
 
     const formDataToUpload = new FormData();
     formDataToUpload.append("file", file);
@@ -546,7 +552,9 @@ function QualifiedCounsellorFormContent() {
         body: formDataToUpload,
       });
       setUploadProgress((prev) => ({ ...prev, [fieldName]: 100 }));
-      return response.file_path || response.data?.file_path;
+      const token = response.file_path || response.data?.file_path;
+      if (token) uploadedTokensRef.current.set(file, token);
+      return token;
     } catch (error) {
       console.error(`Error uploading ${fieldName}:`, error);
       setUploadProgress((prev) => ({ ...prev, [fieldName]: 0 }));
@@ -575,6 +583,26 @@ function QualifiedCounsellorFormContent() {
 
     try {
       // 1. Upload verification documents
+      //    Sequential (not Promise.all) so a burst of 6 uploads doesn't trip the
+      //    rate limiter, and so a failure can name the exact document.
+      const documentsToUpload = [
+        [formData.qualificationDocument, "qualification", "Qualification document"],
+        [formData.dbsCertificateQualified, "dbs", "DBS certificate"],
+        [formData.validIdDocument, "valid_id", "Valid ID"],
+        [formData.professionalMembership, "membership", "Professional membership"],
+        [formData.selfEmploymentProof, "self_employment", "Self-employment proof"],
+        [formData.insuranceQualified, "insurance", "Insurance document"],
+      ];
+      const uploadedDocs = [];
+      for (const [file, fieldName, label] of documentsToUpload) {
+        try {
+          uploadedDocs.push(await uploadFile(file, fieldName));
+        } catch (uploadError) {
+          const reason = uploadError?.data?.message || uploadError?.message || "Upload failed";
+          const fileName = file && typeof file !== "string" && file.name ? ` (${file.name})` : "";
+          throw new Error(`${label}${fileName}: ${reason}`);
+        }
+      }
       const [
         qualificationDoc,
         dbsDoc,
@@ -582,14 +610,7 @@ function QualifiedCounsellorFormContent() {
         membershipDoc,
         selfEmploymentDoc,
         insuranceDoc,
-      ] = await Promise.all([
-        uploadFile(formData.qualificationDocument, "qualification"),
-        uploadFile(formData.dbsCertificateQualified, "dbs"),
-        uploadFile(formData.validIdDocument, "valid_id"),
-        uploadFile(formData.professionalMembership, "membership"),
-        uploadFile(formData.selfEmploymentProof, "self_employment"),
-        uploadFile(formData.insuranceQualified, "insurance"),
-      ]);
+      ] = uploadedDocs;
 
       const autoDate = new Date().toISOString().split("T")[0];
 
