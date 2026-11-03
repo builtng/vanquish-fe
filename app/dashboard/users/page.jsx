@@ -619,7 +619,10 @@ export default function UsersPage() {
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                       options={[
-                        { value: 'super_admin', label: 'Super Admin' },
+                        // Only a Super Admin can create or change a Super Admin.
+                        ...(authUser?.role === "super_admin" || formData.role === "super_admin"
+                          ? [{ value: 'super_admin', label: 'Super Admin' }]
+                          : []),
                         { value: 'admin', label: 'Admin' },
                         { value: 'staff', label: 'Staff' },
                         { value: 'consultation_staff', label: 'Consultation Staff' },
