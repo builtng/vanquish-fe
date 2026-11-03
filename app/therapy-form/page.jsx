@@ -25,7 +25,10 @@ function TherapyFormContent() {
   const searchParams = useSearchParams();
 
   const [token, setToken] = useState("");
-  const [tokenStatus, setTokenStatus] = useState("loading"); // "loading" | "valid" | "invalid"
+  // "loading" | "valid" | "open" | "invalid"
+  // "open" = the plain /therapy-form link with no token (works like the old JotForm:
+  // the trainee's name and email are typed in and matched on our side).
+  const [tokenStatus, setTokenStatus] = useState("loading");
   const [tokenErrorMessage, setTokenErrorMessage] = useState("");
   const [traineeFirstName, setTraineeFirstName] = useState("");
 
@@ -55,10 +58,8 @@ function TherapyFormContent() {
     const tokenParam = searchParams.get("token");
 
     if (!tokenParam || !tokenParam.trim()) {
-      setTokenStatus("invalid");
-      setTokenErrorMessage(
-        "This link is no longer valid. Please contact help@vanquishtherapies.co.uk."
-      );
+      setToken("");
+      setTokenStatus("open");
       return;
     }
 
@@ -115,6 +116,17 @@ function TherapyFormContent() {
   const validate = () => {
     const newErrors = {};
 
+    if (tokenStatus === "open") {
+      if (!formData.trainee_name || !formData.trainee_name.trim()) {
+        newErrors.trainee_name = "Trainee full name is required.";
+      }
+      if (!formData.trainee_email || !formData.trainee_email.trim()) {
+        newErrors.trainee_email = "Trainee email is required.";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.trainee_email.trim())) {
+        newErrors.trainee_email = "Please enter a valid email address.";
+      }
+    }
+
     if (!formData.therapist_name || !formData.therapist_name.trim()) {
       newErrors.therapist_name = "Therapist full name is required.";
     }
@@ -155,7 +167,8 @@ function TherapyFormContent() {
     setSubmitting(true);
     try {
       const payload = {
-        token: token,
+        token: token || undefined,
+        trainee_name: formData.trainee_name ? formData.trainee_name.trim() : undefined,
         trainee_email: formData.trainee_email ? formData.trainee_email.trim() : undefined,
         therapist_name: formData.therapist_name.trim(),
         therapist_email: formData.therapist_email.trim(),
@@ -176,7 +189,8 @@ function TherapyFormContent() {
       if (result && result.success) {
         setSubmissionResult({
           ...payload,
-          traineeFirstName,
+          traineeFirstName:
+            traineeFirstName || formData.trainee_name.trim().split(/\s+/)[0] || "",
           submittedAt: new Date().toLocaleString("en-GB", {
             day: "numeric",
             month: "short",
@@ -194,7 +208,12 @@ function TherapyFormContent() {
         });
       }
     } catch (err) {
+      const fieldErrors = err?.response?.data?.errors || err?.errors || {};
+      const traineeEmailError = Array.isArray(fieldErrors.trainee_email)
+        ? fieldErrors.trainee_email[0]
+        : undefined;
       setErrors({
+        ...(traineeEmailError ? { trainee_email: traineeEmailError } : {}),
         submit:
           err?.response?.data?.message ||
           err?.message ||
@@ -315,7 +334,7 @@ function TherapyFormContent() {
                 <p className="text-sm text-gray-600 dark:text-gray-300 max-w-md">
                   Thank you. Personal therapy confirmation for{" "}
                   <span className="font-semibold text-gray-900 dark:text-white">
-                    {traineeFirstName || "the trainee"}
+                    {submissionResult?.traineeFirstName || traineeFirstName || "the trainee"}
                   </span>{" "}
                   has been successfully recorded and verified in the Vanquish Therapies
                   compliance system.
@@ -331,7 +350,7 @@ function TherapyFormContent() {
                   <div>
                     <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Trainee:</span>
                     <span className="font-semibold text-gray-900 dark:text-white">
-                      {traineeFirstName || "Trainee Counsellor"}
+                      {submissionResult?.traineeFirstName || traineeFirstName || "Trainee Counsellor"}
                     </span>
                   </div>
                   <div>
@@ -394,17 +413,63 @@ function TherapyFormContent() {
                   <span>1. Trainee Counsellor Details</span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-purple-50/70 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 text-xs space-y-1">
-                  <p className="font-medium text-gray-700 dark:text-gray-300">
-                    Confirming personal therapy for:{" "}
-                    <span className="font-bold text-[#6f1d56] dark:text-pink-400 text-sm">
-                      {traineeFirstName || "Trainee"}
-                    </span>
-                  </p>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                    Verified through your unique, single-use placement onboarding security token.
-                  </p>
-                </div>
+                {tokenStatus === "valid" ? (
+                  <div className="p-4 rounded-xl bg-purple-50/70 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 text-xs space-y-1">
+                    <p className="font-medium text-gray-700 dark:text-gray-300">
+                      Confirming personal therapy for:{" "}
+                      <span className="font-bold text-[#6f1d56] dark:text-pink-400 text-sm">
+                        {traineeFirstName || "Trainee"}
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                      Verified through your unique, single-use placement onboarding security token.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                        Trainee Full Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.trainee_name}
+                        onChange={(e) => handleInputChange("trainee_name", e.target.value)}
+                        className={`w-full px-3.5 py-2.5 text-xs rounded-xl border ${
+                          errors.trainee_name
+                            ? "border-red-500 ring-1 ring-red-500"
+                            : "border-gray-300 dark:border-gray-700"
+                        } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]`}
+                      />
+                      {errors.trainee_name && (
+                        <p className="mt-1 text-[11px] text-red-500">{errors.trainee_name}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                        Trainee Email Address <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.trainee_email}
+                        onChange={(e) => handleInputChange("trainee_email", e.target.value)}
+                        className={`w-full px-3.5 py-2.5 text-xs rounded-xl border ${
+                          errors.trainee_email
+                            ? "border-red-500 ring-1 ring-red-500"
+                            : "border-gray-300 dark:border-gray-700"
+                        } bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6f1d56]`}
+                      />
+                      {errors.trainee_email ? (
+                        <p className="mt-1 text-[11px] text-red-500">{errors.trainee_email}</p>
+                      ) : (
+                        <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                          Use the email address the trainee applied to Vanquish Therapies with.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Section 2: Qualified Therapist Details */}
