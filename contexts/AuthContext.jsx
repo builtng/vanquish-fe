@@ -109,8 +109,23 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Re-fetch the signed-in user (e.g. after changing their photo or profile) so
+  // headers and menus show the new details. A failed refresh never signs anyone out.
+  const refreshUser = async () => {
+    try {
+      const response = await apiService.getUser();
+      if (response?.user) {
+        setUser(response.user);
+        return response.user;
+      }
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+    }
+    return null;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
