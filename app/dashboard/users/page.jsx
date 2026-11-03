@@ -124,7 +124,9 @@ export default function UsersPage() {
       email: user.email,
       password: "",
       password_confirmation: "",
-      role: user.role,
+      // Counsellor logins come back as role "counsellor" plus role_choice
+      // ("trainee_counsellor" / "qualified_counsellor") for the picker.
+      role: user.role_choice || user.role,
     });
     setShowEditModal(true);
   };
@@ -433,6 +435,10 @@ export default function UsersPage() {
                                 ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
                                 : user.role === "compliance_officer"
                                 ? "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300"
+                                : user.role === "counsellor"
+                                ? user.counsellor_type === "Qualified"
+                                  ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300"
+                                  : "bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-300"
                                 : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300"
                             }`}
                           >
@@ -450,6 +456,10 @@ export default function UsersPage() {
                               "Consultation Staff"
                             ) : user.role === "compliance_officer" ? (
                               "Compliance Officer"
+                            ) : user.role === "counsellor" ? (
+                              user.counsellor_type === "Qualified"
+                                ? "Qualified Counsellor"
+                                : "Trainee Counsellor"
                             ) : (
                               "Staff"
                             )}
@@ -614,6 +624,8 @@ export default function UsersPage() {
                         { value: 'staff', label: 'Staff' },
                         { value: 'consultation_staff', label: 'Consultation Staff' },
                         { value: 'compliance_officer', label: 'Compliance Officer' },
+                        { value: 'trainee_counsellor', label: 'Trainee Counsellor' },
+                        { value: 'qualified_counsellor', label: 'Qualified Counsellor' },
                       ]}
                       placeholder="Select role"
                     />
