@@ -12,12 +12,10 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle,
-  XCircle,
   Clock,
   Video,
   Check,
   CalendarCheck,
-  Send,
   History,
   RotateCcw,
 } from "lucide-react";
@@ -191,30 +189,6 @@ export function QualifiedApplicationDetailView({
       onRefresh?.();
     } catch (err) {
       toast.error(err?.data?.message || err?.message || "Failed to record decision.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleSendInductionInvite = async () => {
-    if (!app?.id) return;
-    let inductionDate = app.induction_date;
-    if (prompt) {
-      inductionDate = await prompt({
-        title: "Send Induction Invite",
-        message: "Confirm Induction Date:",
-        defaultValue: app.induction_date || "Monday, 19th January, 10:00am",
-      });
-      if (!inductionDate) return;
-    }
-
-    try {
-      setActionLoading(true);
-      await apiService.sendQcInductionInvite(app.id, inductionDate);
-      toast.success("Induction invitation email sent!");
-      onRefresh?.();
-    } catch (err) {
-      toast.error(err?.data?.message || err?.message || "Failed to send induction invite.");
     } finally {
       setActionLoading(false);
     }
@@ -420,70 +394,6 @@ export function QualifiedApplicationDetailView({
                     All Applications
                   </button>
                 </div>
-              </div>
-
-              {/* ───────────────── PIPELINE ACTION BUTTONS ───────────────── */}
-              <div className="mt-6 pt-4 border-t border-purple-100 flex flex-wrap gap-2.5 items-center">
-                <span className="text-xs font-semibold text-gray-700 uppercase tracking-wider mr-1">
-                  Pipeline Actions:
-                </span>
-
-                <button
-                  onClick={handleSendInterviewLink}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-700 text-white hover:bg-purple-800 transition disabled:opacity-50"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  {app.status === "Stage 3 Interview Booked" ? "Re-send Interview Link" : "Send Interview Link"}
-                </button>
-
-                <button
-                  onClick={() => handleAttendance(true)}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-300 hover:bg-teal-100 transition disabled:opacity-50"
-                >
-                  <Check className="w-3.5 h-3.5" /> Mark Interview Attended
-                </button>
-
-                <button
-                  onClick={() => handleAttendance(false)}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-300 hover:bg-rose-100 transition disabled:opacity-50"
-                >
-                  <XCircle className="w-3.5 h-3.5" /> Interview Not Attended
-                </button>
-
-                <button
-                  onClick={() => handleDecision("Accepted")}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-50"
-                >
-                  <CheckCircle className="w-3.5 h-3.5" /> Accept & Invite to Induction
-                </button>
-
-                <button
-                  onClick={handleSendInductionInvite}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-300 hover:bg-blue-100 transition disabled:opacity-50"
-                >
-                  <CalendarCheck className="w-3.5 h-3.5" /> Induction Invite
-                </button>
-
-                <button
-                  onClick={() => handleInductionAttendance(true)}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-green-50 text-green-800 border border-green-300 hover:bg-green-100 transition disabled:opacity-50"
-                >
-                  <CheckCircle className="w-3.5 h-3.5" /> Induction Attended
-                </button>
-
-                <button
-                  onClick={() => handleInductionAttendance(false)}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 transition disabled:opacity-50"
-                >
-                  <XCircle className="w-3.5 h-3.5" /> Induction Not Attended
-                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-purple-100/60 text-sm">
