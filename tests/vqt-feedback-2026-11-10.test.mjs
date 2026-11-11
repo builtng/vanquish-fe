@@ -54,3 +54,18 @@ test("Emergency contact email is hidden on client forms behind one switch (easy 
     assert.ok(src.includes("emergency_contact_email: SHOW_EMERGENCY_CONTACT_EMAIL ?"), page);
   }
 });
+
+test("Low Cost agreement: Section 07 wording updated and the two points removed", () => {
+  const src = read("app/agreement/low-cost/page.jsx");
+  assert.ok(src.includes("Sessions must be booked <strong>at least 48 hours</strong>"));
+  assert.ok(src.includes("If not, the system automatically closes the"));
+  assert.ok(!src.includes("Missing a week without booking creates a gap"));
+  assert.ok(!src.includes("Sessions continue until the client or counsellor"));
+});
+
+test("Admin Edit Client and client profile also hide the emergency contact email", () => {
+  const edit = read("app/dashboard/clients/edit/page.jsx");
+  assert.ok(/\{SHOW_EMERGENCY_CONTACT_EMAIL && \(\s*<div>\s*<label[\s\S]{0,200}Contact Email/.test(edit));
+  const details = read("app/dashboard/client-details/[uuid]/page.jsx");
+  assert.ok(details.includes("{SHOW_EMERGENCY_CONTACT_EMAIL && client.emergencyContact.email && ("));
+});

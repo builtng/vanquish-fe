@@ -9,7 +9,7 @@ import { useToast } from "@/lib/toast";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
 import DashboardLayout from "@/components/DashboardLayout";
-import { SUPPORT_AREAS } from "@/lib/constants";
+import { SUPPORT_AREAS, SHOW_EMERGENCY_CONTACT_EMAIL } from "@/lib/constants";
 import { CLIENT_MODALITY_OPTIONS } from "@/lib/constants/modalities";
 
 import {
@@ -1036,20 +1036,22 @@ function EditClientPageContent() {
                           placeholder="e.g., Mother, Partner, Friend"
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                          Contact Email
-                        </label>
-                        <input
-                          type="email"
-                          value={formData.emergencyContactEmail}
-                          onChange={(e) =>
-                            handleInputChange("emergencyContactEmail", e.target.value)
-                          }
-                          className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                          placeholder="emergency@example.com"
-                        />
-                      </div>
+                      {SHOW_EMERGENCY_CONTACT_EMAIL && (
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                            Contact Email
+                          </label>
+                          <input
+                            type="email"
+                            value={formData.emergencyContactEmail}
+                            onChange={(e) =>
+                              handleInputChange("emergencyContactEmail", e.target.value)
+                            }
+                            className="w-full px-4 py-2 border border-[var(--input-border)] bg-[var(--input-bg)] text-[var(--input-text)] rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                            placeholder="emergency@example.com"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

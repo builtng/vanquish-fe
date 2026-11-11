@@ -1,4 +1,5 @@
 "use client";
+import { SHOW_EMERGENCY_CONTACT_EMAIL } from "@/lib/constants";
 import PageGuard from "@/components/PageGuard";
 
 import React, { useState, useEffect } from "react";
@@ -2959,7 +2960,7 @@ export default function IndividualClientDetailPage() {
                     {client.emergencyContact &&
                       (client.emergencyContact.name ||
                         client.emergencyContact.phone ||
-                        client.emergencyContact.email) && (
+                        (SHOW_EMERGENCY_CONTACT_EMAIL && client.emergencyContact.email)) && (
                         <div className="bg-red-50 rounded-lg border-2 border-red-200 p-6">
                           <div className="flex items-start gap-3">
                             <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
@@ -2998,7 +2999,7 @@ export default function IndividualClientDetailPage() {
                                     </a>
                                   </div>
                                 )}
-                                {client.emergencyContact.email && (
+                                {SHOW_EMERGENCY_CONTACT_EMAIL && client.emergencyContact.email && (
                                   <div className="flex items-center gap-2">
                                     <Mail className="w-4 h-4 text-red-600" />
                                     <a

@@ -661,15 +661,11 @@ function LowCostAgreementContent() {
                     style={{ color: "var(--text-secondary)" }}
                   >
                     <li>
-                      Sessions must be booked 48 hours in advance &mdash; after
-                      this, the booking system automatically closes the slot
-                      for that week.
+                      Sessions must be booked <strong>at least 48 hours</strong>{" "}
+                      in advance. If not, the system automatically closes the
+                      slot for that week.
                     </li>
                     <li>The system will send a reminder ahead of the deadline.</li>
-                    <li>
-                      Missing a week without booking creates a gap: a penalty
-                      applies (3 sessions instead of 4, for the same payment).
-                    </li>
                   </ul>
                 </div>
                 <div>
@@ -685,10 +681,6 @@ function LowCostAgreementContent() {
                   >
                     <li>No gaps are permitted between session blocks.</li>
                     <li>A consistent weekly slot is maintained throughout.</li>
-                    <li>
-                      Sessions continue until the client or counsellor
-                      concludes therapy.
-                    </li>
                   </ul>
                 </div>
               </div>
