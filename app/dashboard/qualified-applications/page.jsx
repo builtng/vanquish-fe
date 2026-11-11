@@ -1,5 +1,6 @@
 "use client";
 
+import { openProtectedDocument } from "@/lib/openProtectedDocument";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -1015,30 +1016,7 @@ function QualifiedApplicationsContent() {
                         {doc.path ? (
                           <button
                             type="button"
-                            onClick={async () => {
-                              const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-                              const token = apiService.getToken();
-                              const url = `${apiBase}/qc-applications/${selectedApp.id}/document/${doc.field}`;
-                              try {
-                                const response = await fetch(url, {
-                                  headers: token ? { Authorization: `Bearer ${token}` } : {},
-                                });
-                                if (!response.ok) throw new Error("Failed to fetch document");
-                                const blob = await response.blob();
-                                const blobUrl = URL.createObjectURL(blob);
-                                const link = document.createElement("a");
-                                link.href = blobUrl;
-                                link.download = `${doc.label.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
-                                link.target = "_blank";
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                                setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-                              } catch (err) {
-                                console.error("Document download error:", err);
-                                alert("Failed to open document. Please try again.");
-                              }
-                            }}
+                            onClick={() => openProtectedDocument(`/qc-applications/${selectedApp.id}/document/${doc.field}`, doc.label)}
                             className="inline-flex items-center gap-1 text-purple-700 hover:underline cursor-pointer"
                           >
                             <ExternalLink className="w-3 h-3" /> View

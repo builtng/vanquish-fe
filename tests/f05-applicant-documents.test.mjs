@@ -63,6 +63,11 @@ test("FIX F05: Applicant document viewing verification", async (t) => {
     );
     assert.match(
       idContent,
+      /openProtectedDocument\(/,
+      "Expected the page to open documents through the authenticated helper"
+    );
+    assert.match(
+      fs.readFileSync(path.join(root, "lib/openProtectedDocument.js"), "utf-8"),
       /Authorization.*Bearer/i,
       "Expected qualified application [id] fetch to include Authorization Bearer header"
     );
@@ -77,6 +82,11 @@ test("FIX F05: Applicant document viewing verification", async (t) => {
     );
     assert.match(
       listContent,
+      /openProtectedDocument\(/,
+      "Expected the page to open documents through the authenticated helper"
+    );
+    assert.match(
+      fs.readFileSync(path.join(root, "lib/openProtectedDocument.js"), "utf-8"),
       /Authorization.*Bearer/i,
       "Expected qualified application list modal to include Authorization Bearer header"
     );

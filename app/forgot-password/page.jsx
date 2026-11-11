@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Mail, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
 import { useBranding } from "@/contexts/BrandingContext";
@@ -14,6 +14,13 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  // Counsellors arrive from /counsellor-login; send them back there, not to the staff login.
+  const [loginHref, setLoginHref] = useState("/");
+
+  useEffect(() => {
+    const portal = new URLSearchParams(window.location.search).get("portal");
+    if (portal === "counsellor") setLoginHref("/counsellor-login");
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,7 +105,7 @@ export default function ForgotPasswordPage() {
                 Please check your inbox (and spam folder) for the password reset email. The link is valid for 60 minutes.
               </p>
               <Link
-                href="/"
+                href={loginHref}
                 className="w-full py-3 px-4 rounded-lg text-white font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-2 bg-[var(--button-primary-bg)]"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -167,7 +174,7 @@ export default function ForgotPasswordPage() {
 
               <div className="text-center pt-2">
                 <Link
-                  href="/"
+                  href={loginHref}
                   className="inline-flex items-center gap-2 text-sm font-medium hover:opacity-80 text-[var(--button-primary-bg)]"
                 >
                   <ArrowLeft className="w-4 h-4" />

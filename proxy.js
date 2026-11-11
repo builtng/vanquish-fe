@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 const ALWAYS_BYPASS = [
   "/login",
   "/counsellor-login",
+  "/forgot-password",
+  "/reset-password",
   "/_next",
   "/favicon.ico",
   "/manifest.json",

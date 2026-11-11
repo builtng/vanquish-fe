@@ -14,6 +14,8 @@ export default function PlacementResponsePage() {
   const [firstName, setFirstName] = useState("");
   const [inductionDate, setInductionDate] = useState("");
   const [alreadyResponded, setAlreadyResponded] = useState(false);
+  // Qualified counsellors are not on a placement, so they see "offer" wording.
+  const [isQualified, setIsQualified] = useState(false);
 
   const [placementAccepted, setPlacementAccepted] = useState(null);
   const [inductionRsvp, setInductionRsvp] = useState(null);
@@ -27,6 +29,7 @@ export default function PlacementResponsePage() {
         const data = await apiService.getPlacementResponse(token);
         setFirstName(data.first_name || "");
         setInductionDate(data.induction_date || "");
+        setIsQualified(data.applicant_type === "qualified");
         if (data.placement_accepted !== null && data.placement_accepted !== undefined) {
           setAlreadyResponded(true);
           setPlacementAccepted(data.placement_accepted);
@@ -103,7 +106,7 @@ export default function PlacementResponsePage() {
             </p>
             <div className="bg-gray-50 rounded-lg p-4 mt-4 text-left text-sm text-gray-700 space-y-1">
               <p>
-                <strong>Placement:</strong>{" "}
+                <strong>{isQualified ? "Offer" : "Placement"}:</strong>{" "}
                 {placementAccepted ? "Accepted" : "Declined"}
               </p>
               <p>
@@ -121,7 +124,7 @@ export default function PlacementResponsePage() {
                 <HeartHandshake className="w-8 h-8 text-[#6f1d56]" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                Confirm Your Placement
+                {isQualified ? "Confirm Your Offer" : "Confirm Your Placement"}
               </h2>
               <p className="text-gray-600 text-sm">
                 Hi {firstName}, please confirm your response below.
@@ -130,7 +133,9 @@ export default function PlacementResponsePage() {
 
             <div className="mb-5">
               <p className="text-sm font-medium text-gray-800 mb-2">
-                Do you accept your placement offer at Vanquish Therapies?
+                {isQualified
+                  ? "Do you accept your offer to join Vanquish Therapies?"
+                  : "Do you accept your placement offer at Vanquish Therapies?"}
               </p>
               <div className="flex gap-3">
                 <ChoiceButton

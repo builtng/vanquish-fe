@@ -260,7 +260,8 @@ export default function CounsellorLoginPage() {
                 </label>
               </div>
               <a
-                href="#"
+                href="/forgot-password?portal=counsellor"
+                id="counsellor-forgot-password"
                 className="text-sm font-medium hover:opacity-80"
                 style={{ color: "var(--button-primary-bg)" }}
               >

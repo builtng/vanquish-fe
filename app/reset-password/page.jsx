@@ -13,6 +13,7 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
   const initialEmail = searchParams.get("email") || "";
+  const loginHref = searchParams.get("portal") === "counsellor" ? "/counsellor-login" : "/";
 
   const { branding } = useBranding();
   const { theme } = useTheme();
@@ -138,7 +139,7 @@ function ResetPasswordForm() {
                 </p>
               </div>
               <Link
-                href="/"
+                href={loginHref}
                 className="w-full py-3 px-4 rounded-lg text-white font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-2 bg-[var(--button-primary-bg)]"
               >
                 Proceed to Login
@@ -280,7 +281,7 @@ function ResetPasswordForm() {
 
               <div className="text-center pt-2">
                 <Link
-                  href="/"
+                  href={loginHref}
                   className="inline-flex items-center gap-2 text-sm font-medium hover:opacity-80 text-[var(--button-primary-bg)]"
                 >
                   <ArrowLeft className="w-4 h-4" />

@@ -237,10 +237,14 @@ test("QC Application Detail: shows the same journey stages and Next Stage button
     "Interview Attended",
     "Accepted",
     "Onboarding",
-    "Active Placement",
+    "Active",
   ]) {
     assert.ok(html.includes(`>${label}</p>`), `Journey must show the ${label} stage`);
   }
+  // VQT feedback 10 Nov: qualified counsellors are not on a placement.
+  assert.ok(!html.includes(">Active Placement<"), "QC journey must say Active, not Active Placement");
+  assert.ok(render("Onboarding").includes("Next Stage: Active"));
+  assert.ok(!render("Onboarding").includes("Next Stage: Active Placement"));
   assert.ok(html.includes("Next Stage: Accepted"));
   assert.ok(html.includes("width:57.14285714285714%"), "Progress line must reach the current stage");
 
@@ -264,7 +268,8 @@ test("QC Application Detail: offers Grant Portal Access from acceptance onwards,
 
   const accepted = render({ status: "Induction Attended" });
   assert.ok(accepted.includes("Grant Portal Access"));
-  assert.ok(accepted.includes("Finalize: Make Active Placement"));
+  assert.ok(accepted.includes("Finalize: Make Active"));
+  assert.ok(!accepted.includes("Make Active Placement"));
 
   const granted = render({
     status: "Onboarding",

@@ -618,6 +618,9 @@ export default function PendingMatchesPage() {
   const [loadingSlotBookings, setLoadingSlotBookings] = useState(false);
   const [slotFilter, setSlotFilter] = useState("all"); // 'all' | 'overlap_only'
   const [activeDayTab, setActiveDayTab] = useState("all"); // 'all' | 'monday' | 'tuesday' | ...
+  // Low Cost "Match manually" override: lets admin pick any weekly time when
+  // the client's and counsellor's availability don't overlap (a note is required).
+  const [manualOverride, setManualOverride] = useState(false);
 
   // Calculate Overlap between client availability and selected TC availability
   const overlapSchedule = useMemo(() => {
@@ -654,6 +657,7 @@ export default function PendingMatchesPage() {
       setSlotFilter(selectedClient?.serviceType === "Low Cost" ? "overlap_only" : "all");
       setActiveDayTab("all");
     }
+    setManualOverride(false);
   }, [selectedTC, showAssignModal, selectedClient]);
 
   const handleMarkReady = async (client) => {
@@ -1293,8 +1297,27 @@ export default function PendingMatchesPage() {
                         {/* Filter Toggles */}
                         {overlapSchedule && (
                           selectedClient?.serviceType === "Low Cost" ? (
-                            <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                              ⭐ Overlapping Slots Only ({overlapSchedule.totalOverlapCount})
+                            <div className="flex items-center gap-2">
+                              {!manualOverride && (
+                                <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                                  ⭐ Overlapping Slots Only ({overlapSchedule.totalOverlapCount})
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                id="manual-match-override"
+                                onClick={() => {
+                                  setManualOverride((v) => !v);
+                                  setSelectedSlot(null);
+                                }}
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                                  manualOverride
+                                    ? "bg-amber-100 border-amber-300 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200"
+                                    : "bg-white border-gray-300 text-gray-700 hover:border-[var(--purple-primary)] dark:bg-[var(--card-bg)] dark:text-[var(--text-secondary)]"
+                                }`}
+                              >
+                                {manualOverride ? "✋ Matching manually (any time)" : "Match manually"}
+                              </button>
                             </div>
                           ) : (
                             <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[var(--bg-secondary)] p-1 rounded-lg">
@@ -1340,7 +1363,11 @@ export default function PendingMatchesPage() {
                           ) : (
                             <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-900 dark:text-amber-200">
                               {selectedClient?.serviceType === "Low Cost" ? (
-                                <span>⚠️ <strong>No direct overlapping slots</strong> between the client's submitted times and counsellor's schedule. Low Cost matching requires a slot present in both schedules.</span>
+                                manualOverride ? (
+                                  <span>✋ <strong>Manual match:</strong> choose any weekly time agreed with the client and counsellor. Please explain why in the Assignment Notes below.</span>
+                                ) : (
+                                  <span>⚠️ <strong>No direct overlapping slots</strong> between the client's submitted times and counsellor's schedule. Click <strong>Match manually</strong> above to choose a time yourself.</span>
+                                )
                               ) : (
                                 <span>⚠️ <strong>No direct overlapping slots</strong> between the client's submitted times and counsellor's current schedule. You may still choose an available counsellor slot below after agreeing with the client.</span>
                               )}
@@ -1393,16 +1420,17 @@ export default function PendingMatchesPage() {
                             <RefreshCw className="w-4 h-4 animate-spin text-[var(--purple-primary)]" />
                             Loading counsellor schedule & active bookings...
                           </div>
-                        ) : selectedClient?.serviceType === "Low Cost" && overlapSchedule?.totalOverlapCount === 0 ? (
+                        ) : selectedClient?.serviceType === "Low Cost" && overlapSchedule?.totalOverlapCount === 0 && !manualOverride ? (
                           <div className="py-8 text-center text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800 p-4">
-                            No overlapping availability found between {selectedClient?.name} and {selectedTC?.name}. Low Cost session times must be an overlapping slot.
+                            No overlapping availability found between {selectedClient?.name} and {selectedTC?.name}. Click <strong>Match manually</strong> above to choose a time yourself.
                           </div>
                         ) : (
                           overlapSchedule?.days
                             .filter((day) => activeDayTab === "all" || activeDayTab === day.key)
                             .map((day) => {
-                              const isLowCost = selectedClient?.serviceType === "Low Cost";
+                              const isLowCost = selectedClient?.serviceType === "Low Cost" && !manualOverride;
                               const slotsToRender = day.slots.filter((slot) => {
+                                if (manualOverride) return true;
                                 if (isLowCost) return slot.isOverlap;
                                 if (slotFilter === "overlap_only") return slot.isOverlap;
                                 return slot.isTCAvailable || slot.isClientAvailable;
@@ -1566,9 +1594,9 @@ export default function PendingMatchesPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-[var(--text-secondary)] mb-1.5">
                       Assignment Notes{" "}
-                      {(selectedTC?.flags || []).length > 0 ? (
+                      {(selectedTC?.flags || []).length > 0 || manualOverride ? (
                         <span className="text-amber-600 font-semibold">
-                          (Required — explain the flagged mismatch)
+                          (Required — explain the {manualOverride ? "manual match" : "flagged mismatch"})
                         </span>
                       ) : (
                         "(Optional)"
@@ -1638,8 +1666,8 @@ export default function PendingMatchesPage() {
                             showError("Please select an overlapping weekly day and time slot for this Low Cost client.");
                             return;
                           }
-                          if (!selectedSlot.isOverlap) {
-                            showError("Low Cost session time must be in both the client's and counsellor's availability.");
+                          if (!selectedSlot.isOverlap && !manualOverride) {
+                            showError("Low Cost session time must be in both the client's and counsellor's availability. Use \"Match manually\" to choose another time.");
                             return;
                           }
                         }
@@ -1647,6 +1675,11 @@ export default function PendingMatchesPage() {
                         const assignmentNotes =
                           document.getElementById("assignmentNotes")?.value.trim() || "";
                         const flags = selectedTC.flags || [];
+
+                        if (manualOverride && !assignmentNotes) {
+                          showError("Please add a note explaining why you are matching manually.");
+                          return;
+                        }
 
                         if (flags.length > 0 && !assignmentNotes) {
                           showError(
@@ -1669,6 +1702,7 @@ export default function PendingMatchesPage() {
                               document.getElementById("sendNotification")?.checked ?? true,
                             allocated_day: selectedSlot?.day || null,
                             allocated_time: selectedSlot?.slot || null,
+                            manual_override: manualOverride,
                           });
 
                           success(

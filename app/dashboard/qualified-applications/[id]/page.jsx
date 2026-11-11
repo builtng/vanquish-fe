@@ -1,4 +1,5 @@
 "use client";
+import { openProtectedDocument } from "@/lib/openProtectedDocument";
 import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
@@ -85,6 +86,10 @@ export default function QualifiedApplicationDetailPage({ initialApp = null } = {
     </PageGuard>
   );
 }
+
+// Qualified counsellors are not on a placement: the stored status stays
+// "Active Placement" (shared with trainees) but is shown simply as "Active".
+const qcStageLabel = (status) => (status === "Active Placement" ? "Active" : status);
 
 export function QualifiedApplicationDetailView({
   app,
@@ -245,7 +250,7 @@ export function QualifiedApplicationDetailView({
     if (!app?.id) return;
     if (confirm) {
       const ok = await confirm({
-        title: "Finalize Placement",
+        title: "Make Active",
         message: "Confirm this qualified counsellor has completed all onboarding and is ready for matching?",
         confirmText: "Yes, Finalize",
         type: "warning",
@@ -255,7 +260,7 @@ export function QualifiedApplicationDetailView({
     try {
       setActionLoading(true);
       await apiService.finalizeQcPlacement(app.id);
-      toast.success("PLACEMENT ACTIVE! Congratulations.");
+      toast.success("Counsellor is now Active.");
       onRefresh?.();
     } catch (err) {
       toast.error(err?.data?.message || err?.message || "An error occurred.");
@@ -336,7 +341,7 @@ export function QualifiedApplicationDetailView({
     { label: "Interview Attended", statuses: ["Interview Attended", "Interview No Show"] },
     { label: "Accepted", statuses: ["Accepted"] },
     { label: "Onboarding", statuses: ["Induction Attended", "Induction No-Show", "Onboarding"] },
-    { label: "Active Placement", statuses: ["Active Placement"] },
+    { label: "Active", statuses: ["Active Placement"] },
   ];
   const journeyStatus = app?.status || "Submitted";
   const isOffTrack = journeyStatus === "Rejected" || journeyStatus === "Hold";
@@ -413,7 +418,7 @@ export function QualifiedApplicationDetailView({
                       ) : (
                         <CheckCircle className="w-4 h-4" />
                       )}{" "}
-                      Next Stage: {nextStage}
+                      Next Stage: {qcStageLabel(nextStage)}
                     </button>
                   )}
                   <div className="flex items-center gap-2">
@@ -436,7 +441,7 @@ export function QualifiedApplicationDetailView({
                       <option value="Induction Attended">Induction Attended</option>
                       <option value="Induction No-Show">Induction No-Show</option>
                       <option value="Onboarding">Onboarding</option>
-                      <option value="Active Placement">Active Placement</option>
+                      <option value="Active Placement">Active</option>
                       <option value="Rejected">Rejected</option>
                       <option value="Hold">Hold</option>
                     </select>
@@ -487,7 +492,7 @@ export function QualifiedApplicationDetailView({
                         : "bg-slate-100 text-slate-700"
                     }`}
                   >
-                    {journeyStatus}
+                    {qcStageLabel(journeyStatus)}
                   </span>
                 )}
               </h2>
@@ -617,7 +622,12 @@ export function QualifiedApplicationDetailView({
                     )}
                     {app.placement_response_token && (
                       <p className="text-[11px] text-gray-500">
-                        <span className="font-medium text-gray-700">Response Token:</span> Active
+                        <span className="font-medium text-gray-700">Offer response:</span>{" "}
+                        {app.placement_accepted === true
+                          ? `Accepted${app.induction_rsvp ? " · attending induction" : app.induction_rsvp === false ? " · not attending induction" : ""}`
+                          : app.placement_accepted === false
+                            ? "Declined"
+                            : "Awaiting response (accept link valid 72 hours)"}
                       </p>
                     )}
                   </div>
@@ -675,7 +685,7 @@ export function QualifiedApplicationDetailView({
                     disabled={!portalAccessGranted || actionLoading}
                     className="w-full md:w-auto px-8 py-3 bg-black text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all disabled:bg-gray-200"
                   >
-                    Finalize: Make Active Placement
+                    Finalize: Make Active
                   </button>
                 ) : (
                   <div className="px-8 py-3 bg-green-600 text-white rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg">
@@ -810,30 +820,7 @@ export function QualifiedApplicationDetailView({
                     {doc.path ? (
                       <button
                         type="button"
-                        onClick={async () => {
-                          const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
-                          const token = apiService.getToken();
-                          const url = `${apiBase}/qc-applications/${id}/document/${doc.field}`;
-                          try {
-                            const response = await fetch(url, {
-                              headers: token ? { Authorization: `Bearer ${token}` } : {},
-                            });
-                            if (!response.ok) throw new Error("Failed to fetch document");
-                            const blob = await response.blob();
-                            const blobUrl = URL.createObjectURL(blob);
-                            const link = document.createElement("a");
-                            link.href = blobUrl;
-                            link.download = `${doc.label.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
-                            link.target = "_blank";
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-                          } catch (err) {
-                            console.error("Document download error:", err);
-                            alert("Failed to open document. Please try again.");
-                          }
-                        }}
+                        onClick={() => openProtectedDocument(`/qc-applications/${id}/document/${doc.field}`, doc.label)}
                         className="inline-flex items-center gap-1 text-purple-700 hover:underline font-medium cursor-pointer"
                       >
                         <ExternalLink className="w-3 h-3" /> View

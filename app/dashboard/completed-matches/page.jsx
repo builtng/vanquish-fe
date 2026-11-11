@@ -65,6 +65,12 @@ export default function CompletedMatchesPage() {
   const [selectedSlotToAssign, setSelectedSlotToAssign] = useState(null);
   const [slotFilter, setSlotFilter] = useState("overlap_only");
   const [activeDayTab, setActiveDayTab] = useState("all");
+  // Low Cost "Match manually" override (any weekly time, when availability doesn't overlap).
+  const [manualOverride, setManualOverride] = useState(false);
+
+  useEffect(() => {
+    setManualOverride(false);
+  }, [assignSlotClient]);
 
   const slotOverlapSchedule = useMemo(() => {
     if (!assignSlotClient) return null;
@@ -81,8 +87,8 @@ export default function CompletedMatchesPage() {
       showError("Please select a weekly day and time slot.");
       return;
     }
-    if (assignSlotClient?.serviceType === "Low Cost" && !selectedSlotToAssign.isOverlap) {
-      showError("Low Cost session time must be in both the client's and counsellor's availability.");
+    if (assignSlotClient?.serviceType === "Low Cost" && !selectedSlotToAssign.isOverlap && !manualOverride) {
+      showError("Low Cost session time must be in both the client's and counsellor's availability. Use \"Match manually\" to choose another time.");
       return;
     }
     try {
@@ -1094,8 +1100,26 @@ export default function CompletedMatchesPage() {
                     </p>
                     {slotOverlapSchedule && (
                       assignSlotClient?.serviceType === "Low Cost" ? (
-                        <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                          ⭐ Overlapping Slots Only ({slotOverlapSchedule.totalOverlapCount})
+                        <div className="flex items-center gap-2">
+                          {!manualOverride && (
+                            <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                              ⭐ Overlapping Slots Only ({slotOverlapSchedule.totalOverlapCount})
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setManualOverride((v) => !v);
+                              setSelectedSlotToAssign(null);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                              manualOverride
+                                ? "bg-amber-100 border-amber-300 text-amber-900"
+                                : "bg-white border-gray-300 text-gray-700 hover:border-[#6f1d56] dark:bg-[var(--card-bg)] dark:text-[var(--text-secondary)]"
+                            }`}
+                          >
+                            {manualOverride ? "✋ Matching manually (any time)" : "Match manually"}
+                          </button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-[var(--bg-secondary)] p-1 rounded-lg text-xs">
@@ -1162,16 +1186,17 @@ export default function CompletedMatchesPage() {
 
                   {/* Slots list */}
                   <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
-                    {assignSlotClient?.serviceType === "Low Cost" && slotOverlapSchedule?.totalOverlapCount === 0 ? (
+                    {assignSlotClient?.serviceType === "Low Cost" && slotOverlapSchedule?.totalOverlapCount === 0 && !manualOverride ? (
                       <div className="py-8 text-center text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800 p-4">
-                        No overlapping availability found between {assignSlotClient?.name} and {assignSlotClient?.matchedTC}. Low Cost session times must be an overlapping slot.
+                        No overlapping availability found between {assignSlotClient?.name} and {assignSlotClient?.matchedTC}. Click <strong>Match manually</strong> above to choose a time yourself.
                       </div>
                     ) : (
                       slotOverlapSchedule?.days
                         .filter((day) => activeDayTab === "all" || activeDayTab === day.key)
                         .map((day) => {
-                          const isLowCost = assignSlotClient?.serviceType === "Low Cost";
+                          const isLowCost = assignSlotClient?.serviceType === "Low Cost" && !manualOverride;
                           const slotsToRender = day.slots.filter((slot) => {
+                            if (manualOverride) return true;
                             if (isLowCost) return slot.isOverlap;
                             if (slotFilter === "overlap_only") return slot.isOverlap;
                             return slot.isTCAvailable || slot.isClientAvailable;
