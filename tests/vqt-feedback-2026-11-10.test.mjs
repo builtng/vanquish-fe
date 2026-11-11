@@ -45,3 +45,12 @@ test("Protected documents open through the shared API address, in a new tab", ()
   assert.ok(helper.includes('window.open("", "_blank")'));
   assert.ok(helper.includes("data?.message"), "shows the server's reason when a file cannot be opened");
 });
+
+test("Emergency contact email is hidden on client forms behind one switch (easy to restore)", () => {
+  assert.ok(read("lib/constants.js").includes("export const SHOW_EMERGENCY_CONTACT_EMAIL = false;"));
+  for (const page of ["app/low-cost-intake/page.jsx", "app/mid-range-intake/page.jsx"]) {
+    const src = read(page);
+    assert.ok(/\{SHOW_EMERGENCY_CONTACT_EMAIL && \(\s*<div>\s*<label[\s\S]{0,200}Emergency Contact Email/.test(src), page);
+    assert.ok(src.includes("emergency_contact_email: SHOW_EMERGENCY_CONTACT_EMAIL ?"), page);
+  }
+});

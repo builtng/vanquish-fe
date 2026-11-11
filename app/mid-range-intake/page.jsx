@@ -1,4 +1,5 @@
 "use client";
+import { SHOW_EMERGENCY_CONTACT_EMAIL } from "@/lib/constants";
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -916,7 +917,7 @@ function MidRangeClientIntakeContent() {
             age: formData.age ? parseInt(normalizeAge(formData.age), 10) : null,
             emergency_contact_name: sanitizeText(formData.emergencyContactName) || null,
             emergency_contact_phone: sanitizeText(formData.emergencyContactPhone) || null,
-            emergency_contact_email: sanitizeText(formData.emergencyContactEmail) || null,
+            emergency_contact_email: SHOW_EMERGENCY_CONTACT_EMAIL ? (sanitizeText(formData.emergencyContactEmail) || null) : null,
             emergency_contact_relationship:
               sanitizeText(formData.emergencyContactRelationship) || null,
             voicemail_ok: formData.voicemailOk === "Yes",
@@ -3048,36 +3049,38 @@ function MidRangeClientIntakeContent() {
                     )}
                   </div>
 
-                  <div>
-                    <label
-                      className="block text-lg font-medium mb-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Emergency Contact Email
-                    </label>
-                    <input
-                      type="email"
-                      name="emergencyContactEmail"
-                      id="emergencyContactEmail"
-                      value={formData.emergencyContactEmail}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "emergencyContactEmail",
-                          e.target.value
-                        )
-                      }
-                      className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.emergencyContactEmail
-                          ? "border-red-500"
-                          : "border-gray-300"
-                        }`}
-                      placeholder="jane.doe@example.com"
-                    />
-                    {errors.emergencyContactEmail && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.emergencyContactEmail}
-                      </p>
-                    )}
-                  </div>
+                  {SHOW_EMERGENCY_CONTACT_EMAIL && (
+                    <div>
+                      <label
+                        className="block text-lg font-medium mb-2"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Emergency Contact Email
+                      </label>
+                      <input
+                        type="email"
+                        name="emergencyContactEmail"
+                        id="emergencyContactEmail"
+                        value={formData.emergencyContactEmail}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "emergencyContactEmail",
+                            e.target.value
+                          )
+                        }
+                        className={`w-full px-4 py-3 text-base border rounded-lg focus:ring-2 focus:border-transparent ${errors.emergencyContactEmail
+                            ? "border-red-500"
+                            : "border-gray-300"
+                          }`}
+                        placeholder="jane.doe@example.com"
+                      />
+                      {errors.emergencyContactEmail && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.emergencyContactEmail}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <div>
                     <label
