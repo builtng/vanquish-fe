@@ -1,5 +1,5 @@
 "use client";
-import { SHOW_EMERGENCY_CONTACT_EMAIL } from "@/lib/constants";
+import { SHOW_EMERGENCY_CONTACT_EMAIL, SHOW_EMERGENCY_CONTACT_STEP } from "@/lib/constants";
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -28,6 +28,9 @@ import { useBranding } from "@/contexts/BrandingContext";
 import { SUPPORT_AREAS } from "@/lib/constants";
 import { MODALITY_OPTIONS } from "@/lib/constants/modalities";
 import WeeklyAvailabilityPicker from "@/components/WeeklyAvailabilityPicker";
+
+// Step number of the Emergency contact step (see SHOW_EMERGENCY_CONTACT_STEP).
+const EMERGENCY_STEP = 11;
 
 function MidRangeClientIntakeContent() {
   const { branding, loading: brandingLoading } = useBranding();
@@ -610,6 +613,7 @@ function MidRangeClientIntakeContent() {
         break;
 
       case 11: // Emergency
+        if (!SHOW_EMERGENCY_CONTACT_STEP) break; // step hidden
         if (!formData.emergencyContactName.trim())
           stepErrors.emergencyContactName =
             "Emergency contact name is required";
@@ -696,11 +700,15 @@ function MidRangeClientIntakeContent() {
   };
 
   const handleNext = () => {
-    handleStepChange(currentStep + 1);
+    let next = currentStep + 1;
+    if (next === EMERGENCY_STEP && !SHOW_EMERGENCY_CONTACT_STEP) next += 1;
+    handleStepChange(next);
   };
 
   const handlePrevious = () => {
-    handleStepChange(currentStep - 1);
+    let prev = currentStep - 1;
+    if (prev === EMERGENCY_STEP && !SHOW_EMERGENCY_CONTACT_STEP) prev -= 1;
+    handleStepChange(prev);
   };
 
   const handleStepClick = (stepNumber) => {
@@ -1082,6 +1090,13 @@ function MidRangeClientIntakeContent() {
     { number: 11, title: "Emergency", icon: AlertTriangle },
     { number: 12, title: "Payment", icon: CreditCard },
   ];
+  // Steps shown in the progress bar (the Emergency step can be hidden).
+  const visibleSteps = steps.filter(
+    (step) => SHOW_EMERGENCY_CONTACT_STEP || step.number !== EMERGENCY_STEP,
+  );
+  const visibleStepNumber =
+    visibleSteps.findIndex((step) => step.number === currentStep) + 1 ||
+    currentStep;
 
   if (submitted) {
     return (
@@ -1172,7 +1187,7 @@ function MidRangeClientIntakeContent() {
                   className="text-lg font-medium"
                   style={{ color: "#6f1d56" }}
                 >
-                  Step {currentStep} of {steps.length}
+                  Step {visibleStepNumber} of {visibleSteps.length}
                 </span>
                 <span
                   className="text-base"
@@ -1189,7 +1204,7 @@ function MidRangeClientIntakeContent() {
                   className="h-2 rounded-full transition-all duration-300"
                   style={{
                     backgroundColor: "#6f1d56",
-                    width: `${(currentStep / steps.length) * 100}%`,
+                    width: `${(visibleStepNumber / visibleSteps.length) * 100}%`,
                   }}
                 />
               </div>
@@ -1199,7 +1214,7 @@ function MidRangeClientIntakeContent() {
             <div className="hidden md:block">
               <div className="relative">
                 <div className="flex items-center justify-between">
-                  {steps.map((step, index) => {
+                  {visibleSteps.map((step, index) => {
                     const isCompleted = completedSteps.has(step.number);
                     const isCurrent = currentStep === step.number;
                     const isAccessible =
@@ -1209,7 +1224,7 @@ function MidRangeClientIntakeContent() {
                       <React.Fragment key={step.number}>
                         <div
                           className="flex flex-col items-center"
-                          style={{ width: `${100 / steps.length}%` }}
+                          style={{ width: `${100 / visibleSteps.length}%` }}
                         >
                           <button
                             type="button"
@@ -1254,7 +1269,7 @@ function MidRangeClientIntakeContent() {
                             {step.title}
                           </span>
                         </div>
-                        {index < steps.length - 1 && (
+                        {index < visibleSteps.length - 1 && (
                           <div
                             className={`h-1 flex-1 mx-2 rounded transition-colors ${currentStep > step.number ? "" : "bg-gray-200"
                               }`}
@@ -3394,7 +3409,7 @@ function MidRangeClientIntakeContent() {
                   className="text-sm font-medium md:hidden"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  {currentStep}/{steps.length}
+                  {visibleStepNumber}/{visibleSteps.length}
                 </div>
 
                 {currentStep < steps.length ? (
