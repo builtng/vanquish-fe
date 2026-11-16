@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import apiService from "@/lib/api";
 import { resetEcho } from "@/lib/echo";
+import { clearImpersonation, isImpersonating } from "@/lib/impersonation";
 
 const AuthContext = createContext(null);
 
@@ -93,6 +94,19 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
+    // In a read-only "View portal" tab, "Log out" just ends the view.
+    if (isImpersonating()) {
+      try {
+        await apiService.stopImpersonation();
+      } catch (error) {
+        console.error("Stop viewing portal:", error);
+      }
+      clearImpersonation();
+      window.close();
+      window.location.replace("/dashboard/training-counsellors");
+      return;
+    }
+
     const role = user?.role;
     try {
       await apiService.logout();

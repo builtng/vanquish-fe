@@ -18,17 +18,12 @@ test("FIX F05: Applicant document viewing verification", async (t) => {
       /\/training-counsellors\/\$\{tcUuid\}\/document\/\$\{fieldName\}/,
       "Expected trainee counsellor document URL to use authenticated endpoint"
     );
-    assert.match(
-      content,
-      /Authorization.*Bearer/i,
-      "Expected fetch request to include Authorization Bearer header"
-    );
-    // Should create blob and trigger download/open
-    assert.match(
-      content,
-      /URL\.createObjectURL\(blob\)/,
-      "Expected blob URL creation for secure file opening"
-    );
+    // Opens through the shared helper (16 Nov), which sends the token and
+    // opens the file from a blob.
+    assert.match(content, /openProtectedDocument\(/, "Expected the shared openProtectedDocument helper");
+    const helper = fs.readFileSync(path.join(root, "lib/openProtectedDocument.js"), "utf-8");
+    assert.match(helper, /Authorization.*Bearer/i, "Expected the helper to send the Authorization Bearer header");
+    assert.match(helper, /URL\.createObjectURL\(blob\)/, "Expected blob URL creation for secure file opening");
   });
 
   await t.test("Trainee application detail page uses authenticated document endpoint with Authorization token", () => {

@@ -1,5 +1,7 @@
 "use client";
+import { openProtectedDocument } from "@/lib/openProtectedDocument";
 import PageGuard from "@/components/PageGuard";
+import ViewPortalButton from "@/components/ViewPortalButton";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -1499,33 +1501,16 @@ export default function IndividualTCDetailPage() {
                               {doc.status && getDocumentStatusBadge(doc.status)}
                               {doc.url && (
                                 <button
-                                  onClick={async () => {
+                                  onClick={() => {
                                     const resolvedUrl = resolveDocUrl(doc.url, uuid, doc.id);
                                     if (!resolvedUrl) return;
 
-                                    // For external/storage URLs that go through the API, attach auth token
-                                    const isApiUrl = resolvedUrl.includes("/training-counsellors/");
-                                    if (isApiUrl) {
-                                      try {
-                                        const token = apiService.getToken();
-                                        const response = await fetch(resolvedUrl, {
-                                          headers: { Authorization: `Bearer ${token}` },
-                                        });
-                                        if (!response.ok) throw new Error("Failed to fetch document");
-                                        const blob = await response.blob();
-                                        const blobUrl = URL.createObjectURL(blob);
-                                        const link = document.createElement("a");
-                                        link.href = blobUrl;
-                                        link.download = doc.name || "document";
-                                        link.target = "_blank";
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-                                      } catch (err) {
-                                        console.error("Document download error:", err);
-                                        alert("Failed to open document. Please try again.");
-                                      }
+                                    // Uploaded documents sit behind the logged-in API.
+                                    if (resolvedUrl.includes("/training-counsellors/")) {
+                                      openProtectedDocument(
+                                        `/training-counsellors/${uuid}/document/${doc.id}`,
+                                        doc.name || doc.type || "document",
+                                      );
                                     } else {
                                       window.open(resolvedUrl, "_blank", "noopener,noreferrer");
                                     }
@@ -1864,6 +1849,10 @@ export default function IndividualTCDetailPage() {
                           ? "Downloading..."
                           : "Download Report"}
                       </button>
+                      <ViewPortalButton
+                        tcUuid={tc.uuid || uuid}
+                        className="w-full py-2 border border-border text-foreground rounded-lg hover:bg-muted font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                      />
                     </div>
                   </div>
 

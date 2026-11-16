@@ -7,6 +7,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import apiService from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import ViewPortalButton from "@/components/ViewPortalButton";
 import { formatName, getCounsellorPrefixType } from "@/lib/nameFormatter";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -963,6 +964,13 @@ function ViewAllTrainingCounsellorsContent() {
                     <Eye className="w-4 h-4" />
                     View Profile
                   </Link>
+
+                  {!tc.isArchived && (
+                    <ViewPortalButton
+                      tcUuid={tc.uuid}
+                      className="px-3 py-2 border border-[var(--border-color)] text-[var(--button-secondary-text)] rounded-lg bg-[var(--button-secondary-bg)] hover:opacity-90 font-medium text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60"
+                    />
+                  )}
 
                   {tc.isArchived ? (
                     authUser?.role === "admin" && (

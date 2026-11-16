@@ -1,4 +1,5 @@
 import { generateMetadata as genMeta } from '@/lib/seo';
+import ImpersonationBanner from '@/components/ImpersonationBanner';
 
 export const metadata = genMeta({
   title: 'Counsellor Portal',
@@ -9,6 +10,10 @@ export const metadata = genMeta({
 });
 
 export default function CounsellorPortalLayout({ children }) {
-  return children;
+  return (
+    <>
+      <ImpersonationBanner />
+      {children}
+    </>
+  );
 }
-
