@@ -39,3 +39,12 @@ test("22 Nov #7: booking banner names the last session and the booking deadline,
   assert.ok(page.includes("Your last booked session is"));
   assert.ok(page.includes("Book your next block by"));
 });
+
+test("22 Nov #10: the Inductions page shows who's coming from the placement acceptance link", () => {
+  const page = read("app/dashboard/inductions/page.jsx");
+  assert.ok(page.includes("<InductionAttendanceOverview />"));
+  const comp = read("components/InductionAttendanceOverview.jsx");
+  assert.ok(comp.includes("apiService.getInductionPlacementAttendees()"));
+  for (const key of ['"attending"', '"not_attending"', '"no_reply"']) assert.ok(comp.includes(key), key);
+  assert.ok(read("lib/api.js").includes('this.request("/inductions/placement-attendees")'));
+});

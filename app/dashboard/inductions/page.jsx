@@ -10,6 +10,7 @@ import { formatName, getCounsellorPrefixType } from '@/lib/nameFormatter';
 import SearchableSelect from '@/components/SearchableSelect';
 import DashboardLayout from '@/components/DashboardLayout';
 import DashboardHeader from '@/components/DashboardHeader';
+import InductionAttendanceOverview from '@/components/InductionAttendanceOverview';
 import { 
   Users, Search, Filter, ChevronDown, MoreVertical, Eye,
   Mail, Phone, Calendar, Edit, Trash2, ArrowUpDown, X,
@@ -240,6 +241,8 @@ export default function InductionsPage() {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-[var(--background)]">
+          <InductionAttendanceOverview />
+
           {loading && inductions.length === 0 && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
