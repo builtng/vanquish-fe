@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import apiService from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import ViewPortalButton from "@/components/ViewPortalButton";
+import { computeOverlapSchedule } from "@/lib/availabilityMatcher";
 import { formatName, getCounsellorPrefixType } from "@/lib/nameFormatter";
 import DashboardLayout from "@/components/DashboardLayout";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -153,6 +154,8 @@ function ViewAllTrainingCounsellorsContent() {
     clientId: "",
     notes: "",
     sendNotification: true,
+    day: "",
+    slot: "",
   });
 
   // Bulk Selection states
@@ -266,6 +269,8 @@ function ViewAllTrainingCounsellorsContent() {
         name: client.name,
         age: client.age || null,
         issues: client.primary_issues || [],
+        serviceType: client.service_type || "",
+        availability: client.availability || {},
       }));
       setPendingClients(transformedData);
     } catch (err) {
@@ -469,6 +474,20 @@ function ViewAllTrainingCounsellorsContent() {
     setShowTopicsModal(true);
   };
 
+  // Weekly slot choices for a Low Cost client in the Assign Client pop-up,
+  // marked when both the client and this counsellor chose that time.
+  const assignClient = pendingClients.find((c) => c.id === assignForm.clientId);
+  const assignNeedsSlot = assignClient?.serviceType === "Low Cost";
+  const assignOverlap = assignNeedsSlot && selectedTC
+    ? computeOverlapSchedule(assignClient.availability || {}, selectedTC.availability || {})
+    : null;
+  const assignSlotOptions = (() => {
+    const day = assignOverlap?.days.find((d) => d.label === assignForm.day);
+    return day
+      ? day.slots.map((slot) => ({ value: slot.value, label: slot.label, isOverlap: slot.isOverlap }))
+      : [];
+  })();
+
   const handleAssignClient = async (e) => {
     e.preventDefault();
 
@@ -480,11 +499,32 @@ function ViewAllTrainingCounsellorsContent() {
     try {
       const client = pendingClients.find((c) => c.id === assignForm.clientId);
 
+      // Low Cost clients book on a fixed weekly day and time, so it is set here
+      // too (without one they could never book).
+      const isLowCost = client?.serviceType === "Low Cost";
+      const chosen = isLowCost ? assignSlotOptions.find((o) => o.value === assignForm.slot) : null;
+      if (isLowCost && (!assignForm.day || !chosen)) {
+        toast.error("Choose the client's weekly day and time.");
+        return;
+      }
+      const manual = isLowCost && !chosen.isOverlap;
+      if (manual && !assignForm.notes.trim()) {
+        toast.error("This time isn't in both schedules. Add a note saying it was agreed (it will be saved as a manual match).");
+        return;
+      }
+
       await apiService.assignMatch({
         client_id: assignForm.clientId,
         tc_id: selectedTC.uuid || selectedTC.id,
         assignment_notes: assignForm.notes || null,
         send_notification: assignForm.sendNotification,
+        ...(isLowCost
+          ? {
+              allocated_day: assignForm.day,
+              allocated_time: assignForm.slot,
+              manual_override: manual,
+            }
+          : {}),
       });
 
       toast.success(
@@ -492,7 +532,7 @@ function ViewAllTrainingCounsellorsContent() {
       );
 
       setShowAssignModal(false);
-      setAssignForm({ clientId: "", notes: "", sendNotification: true });
+      setAssignForm({ clientId: "", notes: "", sendNotification: true, day: "", slot: "" });
 
       // Refresh data
       fetchTrainingCounsellors();
@@ -1133,7 +1173,7 @@ function ViewAllTrainingCounsellorsContent() {
                   </label>
                   <SearchableSelect
                     value={assignForm.clientId}
-                    onChange={(e) => setAssignForm({ ...assignForm, clientId: e.target.value })}
+                    onChange={(e) => setAssignForm({ ...assignForm, clientId: e.target.value, day: "", slot: "" })}
                     options={pendingClients.map((client) => ({
                       value: client.id,
                       label: `${formatName(client.name, 'client')} (${client.age}) - ${client.issues.join(', ')}`,
@@ -1141,6 +1181,62 @@ function ViewAllTrainingCounsellorsContent() {
                     placeholder="Select a client..."
                   />
                 </div>
+
+                {/* Weekly day and time (Low Cost) */}
+                {assignNeedsSlot && (
+                  <div className="space-y-3">
+                    <div className="text-sm text-foreground">
+                      <span className="font-medium">Weekly session time</span> <span className="text-red-500">*</span>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {assignOverlap?.totalOverlapCount
+                          ? `${assignOverlap.totalOverlapCount} time(s) suit both the client and this counsellor (marked ★).`
+                          : "No time suits both schedules. Pick the time agreed with them and add a note: it is saved as a manual match."}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="assignDay" className="block text-xs font-medium text-muted-foreground mb-1">Day</label>
+                        <select
+                          id="assignDay"
+                          value={assignForm.day}
+                          onChange={(e) => setAssignForm({ ...assignForm, day: e.target.value, slot: "" })}
+                          className="w-full px-3 py-2 border border-input bg-input-bg text-input-text rounded-lg"
+                        >
+                          <option value="">Choose a day…</option>
+                          {(assignOverlap?.days || [])
+                            .filter((d) => !["saturday", "sunday"].includes(d.key))
+                            .map((d) => (
+                              <option key={d.key} value={d.label}>
+                                {d.label}{d.overlapCount ? ` (${d.overlapCount} ★)` : ""}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="assignSlot" className="block text-xs font-medium text-muted-foreground mb-1">Time</label>
+                        <select
+                          id="assignSlot"
+                          value={assignForm.slot}
+                          disabled={!assignForm.day}
+                          onChange={(e) => setAssignForm({ ...assignForm, slot: e.target.value })}
+                          className="w-full px-3 py-2 border border-input bg-input-bg text-input-text rounded-lg disabled:opacity-60"
+                        >
+                          <option value="">{assignForm.day ? "Choose a time…" : "Choose a day first"}</option>
+                          {assignSlotOptions.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.isOverlap ? "★ " : ""}{o.label}{o.isOverlap ? " (both available)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    {assignForm.slot && !assignSlotOptions.find((o) => o.value === assignForm.slot)?.isOverlap && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        This time isn&apos;t in both schedules. Add a note below saying it was agreed: the client can still book it.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Notes */}
                 <div>

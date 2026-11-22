@@ -465,6 +465,14 @@ function ClientBookingContent() {
 
   const client = clientData?.client;
   const upcomingSessions = clientData?.upcoming_sessions || [];
+  // The latest session already booked: the banner names it, then the
+  // deadline to book the next block (which is NOT when the block ends).
+  const lastBookedSession = upcomingSessions.reduce(
+    (latest, s) => (s?.scheduled_at && (!latest || new Date(s.scheduled_at) > new Date(latest.scheduled_at)) ? s : latest),
+    null,
+  );
+  const longDate = (value) =>
+    new Date(value).toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const nextSessionNeedingBooking = clientData?.next_session_needing_booking;
   const daysUntilDeadline = client?.days_until_deadline;
   const canBookSessions = client?.can_book_sessions !== false;
@@ -517,19 +525,16 @@ function ClientBookingContent() {
                 />
                 <div className="flex-1">
                   <p className="text-sm text-gray-800 leading-relaxed">
-                    <span className="font-semibold">Please note:</span> Your current block of sessions will come to an end on{" "}
-                    <span className="font-semibold">
-                      {new Date(client.next_booking_deadline).toLocaleDateString(
-                        "en-GB",
-                        {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        },
-                      )}
-                    </span>
-                    . To help ensure your space remains secured with your counsellor, please book your next block of sessions at least 48 hours prior to your next session.
+                    <span className="font-semibold">Please note:</span>{" "}
+                    {lastBookedSession ? (
+                      <>
+                        Your last booked session is{" "}
+                        <span className="font-semibold">{longDate(lastBookedSession.scheduled_at)}</span>.{" "}
+                      </>
+                    ) : null}
+                    Book your next block by{" "}
+                    <span className="font-semibold">{longDate(client.next_booking_deadline)}</span>{" "}
+                    (48 hours before your next weekly session) to keep your space with your counsellor.
                   </p>
                   {client?.service_type === "Low Cost" && (
                     <button
