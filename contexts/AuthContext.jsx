@@ -14,6 +14,14 @@ export function AuthProvider({ children }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    // The "View portal" hand-over page signs nobody in: it receives a
+    // read-only token and immediately loads the counsellor portal. Checking
+    // the admin's own login here raced with that hand-over (see below).
+    if (typeof window !== "undefined" && window.location.pathname === "/portal-view") {
+      setIsLoading(false);
+      return;
+    }
+
     // Check for stored authentication on mount
     const token = apiService.getToken();
     if (token) {
@@ -23,8 +31,14 @@ export function AuthProvider({ children }) {
         .then((response) => {
           setUser(response.user);
         })
-        .catch(() => {
-          apiService.clearToken();
+        .catch((error) => {
+          // Only a real "not signed in" answer clears the login, and only the
+          // token this check used. A cancelled request (the page navigating
+          // away) or a network blip used to clear it too, which wiped the
+          // read-only token of a "View portal" tab and logged people out.
+          if (error?.status === 401) {
+            apiService.clearToken(token);
+          }
           setUser(null);
         })
         .finally(() => {

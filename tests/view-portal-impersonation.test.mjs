@@ -39,10 +39,10 @@ test("View portal: the counsellor token lives in sessionStorage only and expires
 
 test("api.js: impersonation token wins in its tab; clearing it never signs the admin out", () => {
   const api = read("lib/api.js");
-  const getToken = api.slice(api.indexOf("  getToken() {"), api.indexOf("  clearToken() {"));
+  const getToken = api.slice(api.indexOf("  getToken() {"), api.indexOf("  clearToken(onlyIfToken) {"));
   assert.ok(getToken.indexOf("getImpersonation()") < getToken.indexOf('localStorage.getItem("api_token")'));
 
-  const clearToken = api.slice(api.indexOf("  clearToken() {"), api.indexOf("async startImpersonation"));
+  const clearToken = api.slice(api.indexOf("  clearToken(onlyIfToken) {"), api.indexOf("async startImpersonation"));
   assert.ok(clearToken.indexOf("clearImpersonation()") < clearToken.indexOf('localStorage.removeItem("api_token")'));
   assert.match(clearToken, /clearImpersonation\(\);\s*return;/);
 
@@ -81,4 +81,19 @@ test("Counsellor profile documents open through the shared openProtectedDocument
   const page = read("app/dashboard/training-counsellors/details/[uuid]/page.jsx");
   assert.ok(page.includes('import { openProtectedDocument } from "@/lib/openProtectedDocument";'));
   assert.ok(page.includes("openProtectedDocument(\n                                        `/training-counsellors/${uuid}/document/${doc.id}`"));
+});
+
+test("22 Nov: a cancelled or failed sign-in check never wipes the View portal token", () => {
+  const auth = read("contexts/AuthContext.jsx");
+  // The hand-over page does not check the admin's own login at all.
+  assert.ok(auth.includes('window.location.pathname === "/portal-view"'));
+  // Only a real 401 clears a login, and only the token that check used.
+  const check = auth.slice(auth.indexOf(".getUser()"), auth.indexOf(".finally("));
+  assert.match(check, /if \(error\?\.status === 401\) \{\s*apiService\.clearToken\(token\);/);
+  assert.ok(!/\.catch\(\(\) => \{\s*apiService\.clearToken\(\);/.test(check), "no unconditional clearToken on any error");
+
+  const api = read("lib/api.js");
+  assert.ok(api.includes("if (onlyIfToken !== undefined && onlyIfToken !== this.getToken())"));
+  assert.ok(api.includes("const stillCurrent = token === this.getToken();"));
+  assert.ok(api.includes("this.clearToken(token);"));
 });
