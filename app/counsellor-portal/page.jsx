@@ -283,9 +283,20 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes, conductSumm
                     </div>
                   </div>
                 </div>
-                <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-                  Scheduled
-                </span>
+                {c.meeting_link ? (
+                  <a
+                    href={c.meeting_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1 text-xs font-bold rounded-full bg-[#6f1d56] text-white hover:opacity-90"
+                  >
+                    Join
+                  </a>
+                ) : (
+                  <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                    Scheduled
+                  </span>
+                )}
               </div>
             ))}
           </div>

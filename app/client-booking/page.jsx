@@ -746,6 +746,16 @@ function ClientBookingContent() {
                         </span>
                       )}
                     </div>
+                    {session.status === "scheduled" && session.meeting_link && (
+                      <a
+                        href={session.meeting_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-4 shrink-0 px-4 py-2 bg-[#6f1d56] text-white text-sm font-bold rounded-lg hover:opacity-90"
+                      >
+                        Join Session
+                      </a>
+                    )}
                   </div>
                 </div>
               ))}

@@ -11,6 +11,8 @@ import apiService from "@/lib/api";
 import { formatTimeSlotDisplay } from "@/lib/timeFormatter";
 
 import SessionNotesModal from "@/components/SessionNotesModal";
+import SessionMeetingLink from "@/components/SessionMeetingLink";
+import { ukDate, ukTime } from "@/lib/counsellorSchedule";
 import SessionNoteDetailsModal from "@/components/SessionNoteDetailsModal";
 import { useToast, showToast } from "@/lib/toast";
 import ConfirmationModal from "@/components/ConfirmationModal";
@@ -576,6 +578,10 @@ export default function IndividualClientDetailPage() {
             id: session.id,
             date: session.scheduled_at,
             status: session.status,
+            meeting_link: session.meeting_link || null,
+            payment_status: session.payment_status,
+            block_number: session.block_number,
+            total_sessions_in_block: session.total_sessions_in_block,
           }))
         : [],
       consultation:
@@ -2865,6 +2871,67 @@ export default function IndividualClientDetailPage() {
                         </table>
                       </div>
                     </div>
+
+                    {/* Booked therapy sessions, with their video-call links */}
+                    {(client.therapySessions || []).length > 0 && (
+                      <div className="bg-white rounded-lg border border-gray-200 p-6">
+                        <div className="mb-4">
+                          <h2 className="text-lg font-semibold text-gray-900">Booked Sessions</h2>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Therapy sessions the client has booked (UK time). Add the video-call link for each session; the client and counsellor see a Join button.
+                          </p>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date &amp; Time</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Meeting link</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {[...client.therapySessions]
+                                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                                .map((ts) => (
+                                  <tr key={ts.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                      {ts.block_number && ts.total_sessions_in_block
+                                        ? `${ts.block_number} of ${ts.total_sessions_in_block}`
+                                        : "—"}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-700">
+                                      {ukDate(ts.date, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+                                      <br />
+                                      <span className="text-gray-500">{ukTime(ts.date)}</span>
+                                    </td>
+                                    <td className="px-4 py-3">{getSessionStatusBadge(ts.status)}</td>
+                                    <td className="px-4 py-3">
+                                      {ts.status === "scheduled" ? (
+                                        <SessionMeetingLink
+                                          session={{ id: ts.id, meeting_link: ts.meeting_link }}
+                                          canEdit={client.status !== "archived"}
+                                          onSaved={(updated) =>
+                                            setClient((prev) => ({
+                                              ...prev,
+                                              therapySessions: (prev.therapySessions || []).map((s) =>
+                                                s.id === ts.id ? { ...s, meeting_link: updated.meeting_link || null } : s,
+                                              ),
+                                            }))
+                                          }
+                                        />
+                                      ) : (
+                                        <span className="text-xs text-gray-400">—</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Consultation Record */}
 
