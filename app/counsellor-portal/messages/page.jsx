@@ -26,6 +26,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { getEcho } from "@/lib/echo";
+import { isImpersonating } from "@/lib/impersonation";
 
 export default function CounsellorChatPage() {
   const router = useRouter();
@@ -39,6 +40,11 @@ export default function CounsellorChatPage() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [newMessage, setNewMessage] = useState("");
+  // "View portal" (admin, read-only): sending is switched off.
+  const [readOnly, setReadOnly] = useState(false);
+  useEffect(() => {
+    setReadOnly(isImpersonating());
+  }, []);
   const [showSearchStaff, setShowSearchStaff] = useState(false);
   const [staffList, setStaffList] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -226,7 +232,13 @@ export default function CounsellorChatPage() {
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
     if ((!newMessage.trim() && !attachment) || !activeChat) return;
+    if (readOnly) {
+      showError("Read-only view: you can't send messages as this counsellor.");
+      return;
+    }
 
+    const sentText = newMessage;
+    const sentAttachment = attachment;
     try {
       const body = new FormData();
       body.append("message", newMessage);
@@ -250,7 +262,10 @@ export default function CounsellorChatPage() {
       loadMessages(activeChat.id, activeChat.type);
       loadConversations();
     } catch (err) {
-      showError("Failed to send");
+      // Put the message back so it isn't lost, and say why it failed.
+      setNewMessage((current) => current || sentText);
+      setAttachment((current) => current || sentAttachment);
+      showError(err?.message ? `Message not sent: ${err.message}` : "Message not sent. Please try again.");
     }
   };
 
@@ -265,7 +280,7 @@ export default function CounsellorChatPage() {
       setActiveChat(null);
       loadConversations();
     } catch (err) {
-      showError("Failed to delete conversation");
+      showError(err?.message || "Failed to delete conversation");
     }
   };
 
@@ -589,6 +604,11 @@ export default function CounsellorChatPage() {
 
               {/* Input */}
               <div className="p-6 bg-white dark:bg-transparent border-t border-gray-100 dark:border-gray-800">
+                {readOnly ? (
+                  <p className="text-sm text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#1a1b23] rounded-2xl p-4 border border-gray-100 dark:border-white/5">
+                    Read-only view: you can see this counsellor&apos;s messages but can&apos;t send any.
+                  </p>
+                ) : (
                 <form onSubmit={handleSendMessage} className="flex items-end gap-3 bg-gray-50 dark:bg-[#1a1b23] rounded-2xl p-2 border border-gray-100 dark:border-white/5 focus-within:border-accent/40 focus-within:ring-4 focus-within:ring-accent/5 transition-all duration-300">
                   <div className="flex items-center">
                     <button type="button" className="p-2.5 hover:bg-white dark:hover:bg-white/5 rounded-xl text-gray-400 transition-colors shadow-sm">
@@ -645,6 +665,7 @@ export default function CounsellorChatPage() {
                     <Send className="w-5 h-5" />
                   </button>
                 </form>
+                )}
                 <div className="flex items-center justify-center gap-3 mt-3 opacity-30">
                    <div className="h-px w-8 bg-gray-400" />
                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.1em]">Secured by Vanquish-Shield</p>
