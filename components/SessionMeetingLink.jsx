@@ -8,9 +8,8 @@ import { useToast } from "@/contexts/ToastContext";
 /**
  * Video-call link of one booked therapy session.
  * - Link set: a "Join Session" button that opens it in a new tab.
- * - canEdit (admin, or the session's own counsellor): add / change / remove
- *   the link inline. Read-only views (e.g. admin "View portal") pass
- *   canEdit={false}.
+ * - canEdit (admins only): add / change / remove the link inline.
+ *   Everyone else just sees Join Session, or "No link yet".
  */
 export default function SessionMeetingLink({ session, canEdit = false, onSaved, size = "sm" }) {
   const { success, error: showError } = useToast();

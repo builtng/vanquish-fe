@@ -2878,7 +2878,7 @@ export default function IndividualClientDetailPage() {
                         <div className="mb-4">
                           <h2 className="text-lg font-semibold text-gray-900">Booked Sessions</h2>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            Therapy sessions the client has booked (UK time). Add the video-call link for each session; the client and counsellor see a Join button.
+                            Therapy sessions the client has booked (UK time). An admin adds the video-call link for each session; the client and counsellor see a Join button.
                           </p>
                         </div>
                         <div className="overflow-x-auto">
@@ -2911,7 +2911,11 @@ export default function IndividualClientDetailPage() {
                                       {ts.status === "scheduled" ? (
                                         <SessionMeetingLink
                                           session={{ id: ts.id, meeting_link: ts.meeting_link }}
-                                          canEdit={client.status !== "archived"}
+                                          // Admins only (not other staff roles)
+                                          canEdit={
+                                            ["admin", "super_admin"].includes(user?.role) &&
+                                            client.status !== "archived"
+                                          }
                                           onSaved={(updated) =>
                                             setClient((prev) => ({
                                               ...prev,

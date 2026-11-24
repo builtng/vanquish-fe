@@ -7,7 +7,6 @@ import { useToast } from "@/contexts/ToastContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import apiService from "@/lib/api";
 import SessionMeetingLink from "@/components/SessionMeetingLink";
-import { isImpersonating } from "@/lib/impersonation";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import {
@@ -30,11 +29,6 @@ function SessionsPageContent() {
   const { error: showError } = useToast();
 
   const [counsellorData, setCounsellorData] = useState(null);
-  // Admin "View portal" is read-only: links can be opened but not edited.
-  const [readOnly, setReadOnly] = useState(false);
-  useEffect(() => {
-    setReadOnly(isImpersonating());
-  }, []);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -166,18 +160,8 @@ function SessionsPageContent() {
                             </a>
                           )}
                           {session.kind === "session" && (
-                            <SessionMeetingLink
-                              session={session}
-                              canEdit={!readOnly}
-                              onSaved={(updated) =>
-                                setCounsellorData((prev) => ({
-                                  ...prev,
-                                  upcoming_sessions: (prev?.upcoming_sessions || []).map((s) =>
-                                    s.id === updated.id ? { ...s, meeting_link: updated.meeting_link } : s,
-                                  ),
-                                }))
-                              }
-                            />
+                            // Links are set by an admin; counsellors can only join.
+                            <SessionMeetingLink session={session} canEdit={false} />
                           )}
                         </div>
                       </div>
