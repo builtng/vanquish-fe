@@ -348,7 +348,9 @@ function ClientBookingContent() {
   };
 
   const formatDate = (dateString) => {
+    // Sessions are UK times: show them in UK time wherever the client is.
     return new Date(dateString).toLocaleDateString("en-GB", {
+      timeZone: "Europe/London",
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -472,7 +474,7 @@ function ClientBookingContent() {
     null,
   );
   const longDate = (value) =>
-    new Date(value).toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    new Date(value).toLocaleDateString("en-GB", { timeZone: "Europe/London", weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const nextSessionNeedingBooking = clientData?.next_session_needing_booking;
   const daysUntilDeadline = client?.days_until_deadline;
   const canBookSessions = client?.can_book_sessions !== false;
@@ -696,6 +698,7 @@ function ClientBookingContent() {
               {client?.consultation?.scheduled_at && (
                 <p className="text-gray-600 mt-1">
                   {new Date(client.consultation.scheduled_at).toLocaleString("en-GB", {
+                    timeZone: "Europe/London",
                     weekday: "long",
                     day: "numeric",
                     month: "long",

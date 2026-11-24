@@ -9,6 +9,7 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import apiService from "@/lib/api";
 import { formatDate } from "@/lib/dates";
 import { getInitials, abbreviateLastName } from "@/lib/utils";
+import { upcomingSchedule, scheduleLabel, ukDate, ukTime } from "@/lib/counsellorSchedule";
 import CounsellorLayout from "@/components/CounsellorLayout";
 import DashboardHeader from "@/components/DashboardHeader";
 import {
@@ -193,7 +194,7 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes, conductSumm
         <StatCard
           icon={Calendar}
           label="Upcoming Sessions"
-          value={counsellorData?.upcoming_consultations?.length ?? 0}
+          value={upcomingSchedule(counsellorData).length}
           color="#6366f1"
           href="/counsellor-portal/sessions"
         />
@@ -246,7 +247,7 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes, conductSumm
           </Link>
         </div>
 
-        {!counsellorData?.upcoming_consultations?.length ? (
+        {!upcomingSchedule(counsellorData).length ? (
           <div className="text-center py-8">
             <Calendar className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
             <p className="text-gray-500 dark:text-[var(--text-secondary)] text-sm">
@@ -255,9 +256,9 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes, conductSumm
           </div>
         ) : (
           <div className="space-y-3">
-            {counsellorData.upcoming_consultations.slice(0, 4).map((c) => (
+            {upcomingSchedule(counsellorData).slice(0, 4).map((c) => (
               <div
-                key={c.id}
+                key={c.key}
                 className="flex items-center justify-between p-3 bg-gray-50 dark:bg-[var(--hover-bg)] rounded-lg"
               >
                 <div className="flex items-center gap-3">
@@ -273,16 +274,12 @@ function OverviewContent({ counsellorData, unreadCount, recentNotes, conductSumm
                     </p>
                     <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-500 dark:text-[var(--text-secondary)]">
                       <Clock className="w-3 h-3" />
-                      {new Date(c.scheduled_at).toLocaleDateString("en-GB", {
+                      {ukDate(c.scheduled_at, {
                         weekday: "short",
                         day: "numeric",
                         month: "short",
                       })}{" "}
-                      at{" "}
-                      {new Date(c.scheduled_at).toLocaleTimeString("en-GB", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      at {ukTime(c.scheduled_at)} · {scheduleLabel(c)}
                     </div>
                   </div>
                 </div>
